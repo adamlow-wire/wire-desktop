@@ -20,16 +20,20 @@
 import * as remoteMain from '@electron/remote/main';
 import {
   app,
+  clipboard,
   dialog,
   BrowserWindow,
   BrowserWindowConstructorOptions,
   Event as ElectronEvent,
   ipcMain,
   Menu,
+  nativeImage,
   WebContents,
   desktopCapturer,
   safeStorage,
   HandlerDetails,
+  nativeTheme,
+  ContextMenuParams,
 } from 'electron';
 import electronDl from 'electron-dl';
 import windowStateKeeper from 'electron-window-state';
@@ -94,6 +98,9 @@ const WINDOW_SIZE = {
 };
 
 let proxyInfoArg: URL | undefined;
+
+// Track webviews to broadcast theme updates
+const webviewWebContents: WebContents[] = [];
 
 const customProtocolHandler = new CustomProtocolHandler();
 
@@ -185,6 +192,134 @@ app.getGPUInfo('basic').then((info: any) => {
   }
 });
 
+// Helper function to create and show context menu
+const createAndShowContextMenu = (webContents: WebContents, params: ContextMenuParams): void => {
+  if (!webContents) {
+    return;
+  }
+
+  const window = BrowserWindow.fromWebContents(webContents);
+  if (!window) {
+    return;
+  }
+
+  const isWebview = webContents.getType() === 'webview';
+  const webContentsId = webContents.id;
+  const template: Electron.MenuItemConstructorOptions[] = [];
+
+  if (params.isEditable) {
+    template.push(
+      {
+        click: isWebview
+          ? () => webContents.cut()
+          : () => {
+              const mainWindow = BrowserWindow.fromWebContents(main.webContents);
+              if (mainWindow) {
+                main.webContents.send(EVENT_TYPE.EDIT.CUT, webContentsId);
+              }
+            },
+        enabled: params.editFlags.canCut,
+        label: locale.getText('menuCut'),
+      },
+      {
+        click: isWebview
+          ? () => webContents.copy()
+          : () => {
+              const mainWindow = BrowserWindow.fromWebContents(main.webContents);
+              if (mainWindow) {
+                main.webContents.send(EVENT_TYPE.EDIT.COPY, webContentsId);
+              }
+            },
+        enabled: params.editFlags.canCopy,
+        label: locale.getText('menuCopy'),
+      },
+      {
+        click: isWebview
+          ? () => webContents.paste()
+          : () => {
+              const mainWindow = BrowserWindow.fromWebContents(main.webContents);
+              if (mainWindow) {
+                main.webContents.send(EVENT_TYPE.EDIT.PASTE, webContentsId);
+              }
+            },
+        enabled: params.editFlags.canPaste,
+        label: locale.getText('menuPaste'),
+      },
+      {type: 'separator'},
+      {
+        click: isWebview
+          ? () => webContents.selectAll()
+          : () => {
+              const mainWindow = BrowserWindow.fromWebContents(main.webContents);
+              if (mainWindow) {
+                main.webContents.send(EVENT_TYPE.EDIT.SELECT_ALL, webContentsId);
+              }
+            },
+        enabled: params.editFlags.canSelectAll,
+        label: locale.getText('menuSelectAll'),
+      },
+    );
+
+    if (params.dictionarySuggestions && params.dictionarySuggestions.length > 0) {
+      template.push({type: 'separator'});
+      for (const suggestion of params.dictionarySuggestions) {
+        template.push({
+          click: () => webContents.replaceMisspelling(suggestion),
+          label: suggestion,
+        });
+      }
+    }
+  } else if (params.mediaType === 'image') {
+    template.push(
+      {
+        click: async () => {
+          if (params.srcURL) {
+            const response = await fetch(params.srcURL, {
+              headers: {'User-Agent': config.userAgent},
+            });
+            const bytes = await response.arrayBuffer();
+            downloadImage(new Uint8Array(bytes));
+          }
+        },
+        label: locale.getText('menuSavePictureAs'),
+      },
+      {
+        click: async () => {
+          if (params.srcURL) {
+            const response = await fetch(params.srcURL, {
+              headers: {'User-Agent': config.userAgent},
+            });
+            const bytes = await response.arrayBuffer();
+            const image = nativeImage.createFromBuffer(Buffer.from(bytes));
+            clipboard.writeImage(image);
+          }
+        },
+        label: locale.getText('menuCopyPicture'),
+      },
+    );
+  } else if (params.linkURL) {
+    const copyContext = params.linkURL.replace(/^mailto:/, '');
+    template.push({
+      click: () => {
+        clipboard.writeText(copyContext);
+      },
+      label: locale.getText('menuCopy'),
+    });
+  } else if (params.selectionText || params.editFlags.canCopy) {
+    template.push({
+      click: () => {
+        clipboard.writeText(params.selectionText || '');
+      },
+      label: locale.getText('menuCopy'),
+    });
+  }
+
+  if (template.length > 0) {
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({window});
+  }
+};
+
 // IPC events
 const bindIpcEvents = (): void => {
   ipcMain.on(EVENT_TYPE.ACTION.SAVE_PICTURE, (_event, bytes: Uint8Array, timestamp?: string) => {
@@ -216,6 +351,35 @@ const bindIpcEvents = (): void => {
       settings.save(SettingsType.DOWNLOAD_PATH, downloadPath);
       settings.persistToFile();
     }
+  });
+
+  // Native theme IPC handlers
+  ipcMain.handle(EVENT_TYPE.NATIVE_THEME.SHOULD_USE_DARK_COLORS, () => {
+    return nativeTheme.shouldUseDarkColors;
+  });
+
+  ipcMain.on(EVENT_TYPE.NATIVE_THEME.SUBSCRIBE, event => {
+    // Send initial theme state
+    event.sender.send(EVENT_TYPE.NATIVE_THEME.UPDATED, nativeTheme.shouldUseDarkColors);
+  });
+
+  // Listen for native theme changes and broadcast to all webviews
+  nativeTheme.on('updated', () => {
+    const useDarkMode = nativeTheme.shouldUseDarkColors;
+    // Broadcast to all tracked webviews
+    webviewWebContents.forEach(webContents => {
+      if (!webContents.isDestroyed()) {
+        webContents.send(EVENT_TYPE.NATIVE_THEME.UPDATED, useDarkMode);
+      }
+    });
+  });
+
+  // Context menu IPC handler (for preload scripts that send via IPC)
+  ipcMain.on(EVENT_TYPE.CONTEXT_MENU.SHOW, (event, params: ContextMenuParams, webContentsId?: number) => {
+    const webContents = webContentsId
+      ? webviewWebContents.find((wc: WebContents) => wc.id === webContentsId) || event.sender
+      : event.sender;
+    createAndShowContextMenu(webContents, params);
   });
 };
 
@@ -681,6 +845,15 @@ class ElectronWrapperInit {
           break;
         }
         case 'webview': {
+          // Track webview for theme updates
+          webviewWebContents.push(contents);
+          contents.on('destroyed', () => {
+            const index = webviewWebContents.indexOf(contents);
+            if (index > -1) {
+              webviewWebContents.splice(index, 1);
+            }
+          });
+
           if (proxyInfoArg?.origin && contents.session) {
             this.logger.log('Found proxy settings in arguments, applying settings on the webview...');
             await applyProxySettings(proxyInfoArg, contents);
@@ -692,6 +865,10 @@ class ElectronWrapperInit {
           });
           contents.on('will-navigate', (event: ElectronEvent, url: string) => {
             willNavigateInWebview(event, url, contents.getURL());
+          });
+          // Handle context menu for webviews
+          contents.on('context-menu', (_event: ElectronEvent, params: ContextMenuParams) => {
+            createAndShowContextMenu(contents, params);
           });
           if (ENABLE_LOGGING) {
             const colorCodeRegex = /%c(.+?)%c/gm;

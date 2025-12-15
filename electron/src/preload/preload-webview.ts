@@ -27,8 +27,6 @@ import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 
-const remote = require('@electron/remote');
-
 interface TeamAccountInfo {
   accentID: number;
   availability?: Availability.Type;
@@ -45,16 +43,15 @@ type Theme = 'dark' | 'default';
 const logger = getLogger('preload-webview');
 
 function subscribeToThemeChange(): void {
-  function updateWebAppTheme(): void {
+  function updateWebAppTheme(useDarkMode: boolean): void {
     if (WebAppEvents.PROPERTIES.UPDATE.INTERFACE) {
-      const useDarkMode = remote.nativeTheme.shouldUseDarkColors;
       logger.info(`Switching dark mode ${useDarkMode ? 'on' : 'off'} ...`);
       window.amplify.publish(WebAppEvents.PROPERTIES.UPDATE.INTERFACE.USE_DARK_MODE, useDarkMode);
     }
   }
 
-  function initialThemeCheck() {
-    const useDarkMode = remote.nativeTheme.shouldUseDarkColors;
+  async function initialThemeCheck() {
+    const useDarkMode = await ipcRenderer.invoke(EVENT_TYPE.NATIVE_THEME.SHOULD_USE_DARK_COLORS);
     logger.info(`Switching initial dark mode ${useDarkMode ? 'on' : 'off'} ...`);
     window.amplify.publish(WebAppEvents.PROPERTIES.UPDATE.INTERFACE.USE_DARK_MODE, useDarkMode);
     window.amplify.unsubscribe(WebAppEvents.LIFECYCLE.LOADED, initialThemeCheck);
@@ -64,7 +61,12 @@ function subscribeToThemeChange(): void {
     ipcRenderer.send(EVENT_TYPE.WEBAPP.APP_LOADED);
     initialThemeCheck();
   });
-  remote.nativeTheme.on('updated', () => updateWebAppTheme());
+
+  // Subscribe to native theme updates
+  ipcRenderer.send(EVENT_TYPE.NATIVE_THEME.SUBSCRIBE);
+  ipcRenderer.on(EVENT_TYPE.NATIVE_THEME.UPDATED, (_event, useDarkMode: boolean) => {
+    updateWebAppTheme(useDarkMode);
+  });
 }
 
 webFrame.setZoomFactor(1.0);
@@ -300,8 +302,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   subscribeToWebappEvents();
   reportWebappVersion();
   reportWebappAVSVersion();
-  // include context menu
-  await import('./menu/preload-context');
 });
 
 // overwrite window.close() to prevent webapp from closing itself

@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2018 Wire Swiss GmbH
+ * Copyright (C) 2025 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,155 +17,12 @@
  *
  */
 
-import {
-  clipboard,
-  ipcRenderer,
-  Menu as ElectronMenu,
-  ContextMenuParams,
-  MenuItemConstructorOptions,
-  WebContents,
-  nativeImage,
-} from 'electron';
+/*
+ * Context menu handling is now done in main.ts
+ * The main process listens to 'context-menu' events on webContents
+ * and creates/shows menus directly. This file is kept for compatibility
+ * but the actual implementation is in main.ts
+ */
 
-import {EVENT_TYPE} from '../../lib/eventType';
-import * as locale from '../../locale';
-import {config} from '../../settings/config';
-import {sendToWebContents} from '../../window/WindowUtil';
-
-const remote = require('@electron/remote');
-
-interface ElectronMenuWithImageAndTime extends ElectronMenu {
-  image?: string;
-  timestamp?: string;
-}
-
-const savePicture = async (url: RequestInfo, timestamp?: string): Promise<void> => {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': config.userAgent,
-    },
-  });
-  const bytes = await response.arrayBuffer();
-  ipcRenderer.send(EVENT_TYPE.ACTION.SAVE_PICTURE, new Uint8Array(bytes), timestamp);
-};
-
-const copyPicture = async (url: RequestInfo): Promise<void> => {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': config.userAgent,
-    },
-  });
-  const bytes = await response.arrayBuffer();
-  const image = nativeImage.createFromBuffer(Buffer.from(bytes));
-  clipboard.writeImage(image);
-};
-
-const createDefaultMenu = (copyContext: string) =>
-  remote.Menu.buildFromTemplate([
-    {
-      click: () => clipboard.writeText(copyContext),
-      label: locale.getText('menuCopy'),
-    },
-  ]);
-
-const createTextMenu = (params: ContextMenuParams, webContents: WebContents): ElectronMenu => {
-  const {editFlags, dictionarySuggestions} = params;
-  // Detect if context menu is triggered from a webview
-  const isWebview = webContents.getType() === 'webview';
-  const webContentsId = webContents.id;
-
-  const template: MenuItemConstructorOptions[] = [
-    {
-      click: isWebview
-        ? () => webContents.cut()
-        : (_menuItem, baseWindow) => sendToWebContents(baseWindow, EVENT_TYPE.EDIT.CUT, webContentsId),
-      enabled: editFlags.canCut,
-      label: locale.getText('menuCut'),
-    },
-    {
-      click: isWebview
-        ? () => webContents.copy()
-        : (_menuItem, baseWindow) => sendToWebContents(baseWindow, EVENT_TYPE.EDIT.COPY, webContentsId),
-      enabled: editFlags.canCopy,
-      label: locale.getText('menuCopy'),
-    },
-    {
-      click: isWebview
-        ? () => webContents.paste()
-        : (_menuItem, baseWindow) => sendToWebContents(baseWindow, EVENT_TYPE.EDIT.PASTE, webContentsId),
-      enabled: editFlags.canPaste,
-      label: locale.getText('menuPaste'),
-    },
-    {
-      type: 'separator',
-    },
-    {
-      click: isWebview
-        ? () => webContents.selectAll()
-        : (_menuItem, baseWindow) => sendToWebContents(baseWindow, EVENT_TYPE.EDIT.SELECT_ALL, webContentsId),
-      enabled: editFlags.canSelectAll,
-      label: locale.getText('menuSelectAll'),
-    },
-  ];
-
-  if (dictionarySuggestions.length > 0) {
-    template.push({
-      type: 'separator',
-    });
-
-    for (const suggestion of dictionarySuggestions) {
-      template.push({
-        click: () => webContents.replaceMisspelling(suggestion),
-        label: suggestion,
-      });
-    }
-  }
-
-  return remote.Menu.buildFromTemplate(template);
-};
-
-const imageMenu: ElectronMenuWithImageAndTime = remote.Menu.buildFromTemplate([
-  {
-    click: () => savePicture(imageMenu.image || ''),
-    label: locale.getText('menuSavePictureAs'),
-  },
-  {
-    click: () => copyPicture(imageMenu.image || ''),
-    label: locale.getText('menuCopyPicture'),
-  },
-]);
-
-const webContents = remote.getCurrentWebContents();
-
-webContents.on('context-menu', (_event: Event, params: ContextMenuParams) => {
-  const window = remote.getCurrentWindow();
-
-  if (params.isEditable) {
-    const textMenu = createTextMenu(params, webContents);
-    textMenu.popup({window});
-  } else if (params.mediaType === 'image') {
-    imageMenu.image = params.srcURL;
-    imageMenu.popup({window});
-  } else if (!!params.linkURL) {
-    const copyContext = params.linkURL.replace(/^mailto:/, '');
-    createDefaultMenu(copyContext).popup({window});
-  } else if (!!params.selectionText || params.editFlags.canCopy) {
-    const copyContext = params.selectionText;
-    createDefaultMenu(copyContext).popup({window});
-  } else if (params.editFlags.canSelectAll) {
-    let element = document.elementFromPoint(params.x, params.y) as HTMLElement;
-
-    // Maybe we are in a code block _inside_ an element with the 'text' class?
-    // Code block can consist of many tags: CODE, PRE, SPAN, etc.
-    while (element && (element as any) !== document && !(element as HTMLElement).classList.contains('text')) {
-      element = element.parentNode as HTMLElement;
-    }
-
-    if (element) {
-      const copyContext = (params.selectionText || '').toString() || ((element as HTMLElement).innerText || '').trim();
-      if (copyContext) {
-        createDefaultMenu(copyContext).popup({window});
-      }
-    }
-  }
-});
+// Empty export to make this a valid module
+export {};
