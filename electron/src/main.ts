@@ -193,7 +193,7 @@ app.getGPUInfo('basic').then((info: any) => {
 });
 
 // Helper function to create and show context menu
-const createAndShowContextMenu = (webContents: WebContents, params: ContextMenuParams): void => {
+const createAndShowContextMenu = (webContents: WebContents, params: ContextMenuParams, event?: ElectronEvent): void => {
   if (!webContents) {
     return;
   }
@@ -223,7 +223,10 @@ const createAndShowContextMenu = (webContents: WebContents, params: ContextMenuP
       },
       {
         click: isWebview
-          ? () => webContents.copy()
+          ? () => {
+              // For webviews, copy directly - webContents.copy() works with current selection
+              webContents.copy();
+            }
           : () => {
               const mainWindow = BrowserWindow.fromWebContents(main.webContents);
               if (mainWindow) {
@@ -272,26 +275,36 @@ const createAndShowContextMenu = (webContents: WebContents, params: ContextMenuP
   } else if (params.mediaType === 'image') {
     template.push(
       {
-        click: async () => {
+        click: () => {
           if (params.srcURL) {
-            const response = await fetch(params.srcURL, {
-              headers: {'User-Agent': config.userAgent},
+            // Use IPC fetch to get image bytes, then use downloadImage() for proper filename/extension
+            const requestId = `${Date.now()}-${Math.random()}`;
+            ipcMain.once(`${EVENT_TYPE.ACTION.FETCH_IMAGE_RESPONSE}-${requestId}`, (_event, bytes: Uint8Array) => {
+              if (bytes.length > 0) {
+                downloadImage(bytes).catch(error => logger.error('Failed to download image:', error));
+              }
             });
-            const bytes = await response.arrayBuffer();
-            downloadImage(new Uint8Array(bytes));
+            webContents.send(EVENT_TYPE.ACTION.FETCH_IMAGE, params.srcURL, requestId, 'save');
           }
         },
         label: locale.getText('menuSavePictureAs'),
       },
       {
-        click: async () => {
+        click: () => {
           if (params.srcURL) {
-            const response = await fetch(params.srcURL, {
-              headers: {'User-Agent': config.userAgent},
+            // Use IPC fetch to get image bytes for clipboard (webContents.copy() doesn't work for images)
+            const requestId = `${Date.now()}-${Math.random()}`;
+            ipcMain.once(`${EVENT_TYPE.ACTION.FETCH_IMAGE_RESPONSE}-${requestId}`, (_event, bytes: Uint8Array) => {
+              if (bytes.length > 0) {
+                try {
+                  const image = nativeImage.createFromBuffer(Buffer.from(bytes));
+                  clipboard.writeImage(image);
+                } catch (error) {
+                  logger.error('Failed to copy image:', error);
+                }
+              }
             });
-            const bytes = await response.arrayBuffer();
-            const image = nativeImage.createFromBuffer(Buffer.from(bytes));
-            clipboard.writeImage(image);
+            webContents.send(EVENT_TYPE.ACTION.FETCH_IMAGE, params.srcURL, requestId, 'copy');
           }
         },
         label: locale.getText('menuCopyPicture'),
@@ -308,7 +321,19 @@ const createAndShowContextMenu = (webContents: WebContents, params: ContextMenuP
   } else if (params.selectionText || params.editFlags.canCopy) {
     template.push({
       click: () => {
-        clipboard.writeText(params.selectionText || '');
+        if (isWebview) {
+          // For webviews, use webContents.copy() to copy current selection
+          webContents.copy();
+        } else if (params.selectionText) {
+          // For main window, use clipboard directly with selection text
+          clipboard.writeText(params.selectionText);
+        } else {
+          // Fallback: try to copy via IPC
+          const mainWindow = BrowserWindow.fromWebContents(main.webContents);
+          if (mainWindow) {
+            main.webContents.send(EVENT_TYPE.EDIT.COPY, webContentsId);
+          }
+        }
       },
       label: locale.getText('menuCopy'),
     });
@@ -379,7 +404,7 @@ const bindIpcEvents = (): void => {
     const webContents = webContentsId
       ? webviewWebContents.find((wc: WebContents) => wc.id === webContentsId) || event.sender
       : event.sender;
-    createAndShowContextMenu(webContents, params);
+    createAndShowContextMenu(webContents, params, event);
   });
 };
 
@@ -867,8 +892,8 @@ class ElectronWrapperInit {
             willNavigateInWebview(event, url, contents.getURL());
           });
           // Handle context menu for webviews
-          contents.on('context-menu', (_event: ElectronEvent, params: ContextMenuParams) => {
-            createAndShowContextMenu(contents, params);
+          contents.on('context-menu', (event: ElectronEvent, params: ContextMenuParams) => {
+            createAndShowContextMenu(contents, params, event);
           });
           if (ENABLE_LOGGING) {
             const colorCodeRegex = /%c(.+?)%c/gm;

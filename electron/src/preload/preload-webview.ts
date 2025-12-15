@@ -237,6 +237,26 @@ const subscribeToMainProcessEvents = (): void => {
       window.dispatchEvent(new CustomEvent(WebAppEvents.CONVERSATION.JOIN, {detail: {code, key, domain}}));
     },
   );
+
+  // Handle image fetch requests from main process (has access to webview cookies/session)
+  ipcRenderer.on(EVENT_TYPE.ACTION.FETCH_IMAGE, async (_event, url: string, requestId: string, action: string) => {
+    try {
+      const response = await fetch(url, {
+        credentials: 'include', // Include cookies for authenticated requests
+        headers: {'User-Agent': navigator.userAgent},
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      ipcRenderer.send(`${EVENT_TYPE.ACTION.FETCH_IMAGE_RESPONSE}-${requestId}`, bytes);
+    } catch (error) {
+      logger.error('Failed to fetch image:', error);
+      // Send empty array on error
+      ipcRenderer.send(`${EVENT_TYPE.ACTION.FETCH_IMAGE_RESPONSE}-${requestId}`, new Uint8Array(0));
+    }
+  });
 };
 
 function getOpenGraphDataViaChannel(url: string): Promise<OpenGraphResult> {
