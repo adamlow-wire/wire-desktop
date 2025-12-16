@@ -406,6 +406,51 @@ const bindIpcEvents = (): void => {
       : event.sender;
     createAndShowContextMenu(webContents, params, event);
   });
+
+  // Forward system menu actions and other messages from main window to webview's webContents
+  // This ensures ipcRenderer.on() in preload-webview.ts receives the message
+  // accountIdOrWebContentsId can be either an account ID (string) or webContentsId (number) for backwards compatibility
+  ipcMain.on(
+    EVENT_TYPE.UI.SYSTEM_MENU_TO_WEBVIEW,
+    (_event, accountIdOrWebContentsId: string | number, action: string, ...args: any[]) => {
+      let webviewContents: WebContents | undefined;
+
+      // If it's a number, treat it as webContentsId (backwards compatibility)
+      if (typeof accountIdOrWebContentsId === 'number') {
+        webviewContents = webviewWebContents.find((wc: WebContents) => wc.id === accountIdOrWebContentsId);
+      } else {
+        // If it's a string, treat it as account ID and find webview by matching account ID in URL
+        const accountId = accountIdOrWebContentsId;
+        webviewContents = webviewWebContents.find((wc: WebContents) => {
+          if (wc.isDestroyed()) {
+            return false;
+          }
+          try {
+            const url = wc.getURL();
+            const urlObj = new URL(url);
+            const urlAccountId = urlObj.searchParams.get('id');
+            return urlAccountId === accountId;
+          } catch (error) {
+            return false;
+          }
+        });
+      }
+
+      if (webviewContents && !webviewContents.isDestroyed()) {
+        try {
+          webviewContents.send(action, ...args);
+        } catch (error) {
+          logger.error(`Failed to send action "${action}" to webview:`, error);
+        }
+      } else {
+        const availableIds = webviewWebContents.map((wc: WebContents) => wc.id).join(', ');
+        logger.warn(
+          `Cannot send action "${action}" to webview (accountId/webContentsId: ${accountIdOrWebContentsId}). ` +
+            `Available webContentsIds: [${availableIds || 'none'}]`,
+        );
+      }
+    },
+  );
 };
 
 const checkConfigV0FullScreen = (mainWindowState: windowStateKeeper.State): void => {

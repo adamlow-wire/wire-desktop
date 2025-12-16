@@ -83,6 +83,8 @@ const isBrowserWindow = (baseWindow: unknown): baseWindow is BrowserWindow => {
   return baseWindow instanceof Object && 'webContents' in baseWindow;
 };
 
+// Import webviewWebContents from main - we'll need to pass it or access it differently
+// For now, keep the original function and add a new one for direct webview access
 export const sendToWebContents = (baseWindow: BaseWindow | undefined, channel: string, ...args: any[]) => {
   if (isBrowserWindow(baseWindow)) {
     try {

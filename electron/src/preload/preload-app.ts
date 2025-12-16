@@ -18,7 +18,6 @@
  */
 
 import {contextBridge, ipcRenderer, webFrame} from 'electron';
-import {truncate} from 'lodash';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
@@ -32,10 +31,25 @@ const logger = getLogger('preload-app');
 
 webFrame.setVisualZoomLevelLimits(1, 1);
 
+// Simple truncate function to replace lodash
+const truncate = (str: string, {length}: {length: number}): string => {
+  if (str.length <= length) {
+    return str;
+  }
+  return `${str.substring(0, length)}...`;
+};
+
 const getSelectedWebview = (): Electron.WebviewTag | null =>
   document.querySelector<Electron.WebviewTag>('.Webview:not(.hide)');
 const getWebviewById = (id: string): Electron.WebviewTag | null =>
   document.querySelector<Electron.WebviewTag>(`.Webview[data-accountid="${id}"]`);
+
+// Helper to safely call a method on webview if it exists
+const callWebviewMethod = (webview: Electron.WebviewTag | null, methodName: keyof Electron.WebviewTag): void => {
+  if (webview && typeof webview[methodName] === 'function') {
+    (webview[methodName] as () => void)();
+  }
+};
 
 // Helper to find and focus a webview by webContents ID
 const focusWebviewByContentsId = (webContentsId: number): Electron.WebviewTag | null => {
@@ -60,51 +74,91 @@ const subscribeToMainProcessEvents = (): void => {
     EVENT_TYPE.ACTION.JOIN_CONVERSATION,
     async (_event, {code, key, domain}: {code: string; key: string; domain?: string}) => {
       const selectedWebview = getSelectedWebview();
-      if (selectedWebview) {
-        await selectedWebview.send(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code, key, domain});
+      if (!selectedWebview) {
+        logger.warn('Cannot send JOIN_CONVERSATION: no webview found');
+        return;
       }
+      const accountId = selectedWebview.getAttribute('data-accountid');
+      if (!accountId) {
+        logger.warn('Cannot send JOIN_CONVERSATION: webview has no data-accountid attribute');
+        return;
+      }
+      // Route through main process to webview's webContents (webview.send() not available in context-isolated preload)
+      ipcRenderer.send(EVENT_TYPE.UI.SYSTEM_MENU_TO_WEBVIEW, accountId, EVENT_TYPE.ACTION.JOIN_CONVERSATION, {
+        code,
+        key,
+        domain,
+      });
     },
   );
 
   ipcRenderer.on(EVENT_TYPE.UI.SYSTEM_MENU, async (_event, action: string) => {
     const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(action);
+    if (!selectedWebview) {
+      logger.warn(`Cannot send SYSTEM_MENU action "${action}": no webview found`);
+      return;
     }
+    const accountId = selectedWebview.getAttribute('data-accountid');
+    if (!accountId) {
+      logger.warn(`Cannot send SYSTEM_MENU action "${action}": webview has no data-accountid attribute`);
+      return;
+    }
+    // Route through main process to webview's webContents (webview.send() not available in context-isolated preload)
+    ipcRenderer.send(EVENT_TYPE.UI.SYSTEM_MENU_TO_WEBVIEW, accountId, action);
   });
 
   ipcRenderer.on(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED, async () => {
     const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
+    if (!selectedWebview) {
+      logger.warn('Cannot send SSO_WINDOW_CLOSED: no webview found');
+      return;
     }
+    const accountId = selectedWebview.getAttribute('data-accountid');
+    if (!accountId) {
+      logger.warn('Cannot send SSO_WINDOW_CLOSED: webview has no data-accountid attribute');
+      return;
+    }
+    // Route through main process to webview's webContents
+    ipcRenderer.send(EVENT_TYPE.UI.SYSTEM_MENU_TO_WEBVIEW, accountId, WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
   });
 
   ipcRenderer.on(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, async (_event, hash: string) => {
     const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, hash);
+    if (!selectedWebview) {
+      logger.warn('Cannot send CHANGE_LOCATION_HASH: no webview found');
+      return;
     }
+    const accountId = selectedWebview.getAttribute('data-accountid');
+    if (!accountId) {
+      logger.warn('Cannot send CHANGE_LOCATION_HASH: webview has no data-accountid attribute');
+      return;
+    }
+    // Route through main process to webview's webContents
+    ipcRenderer.send(EVENT_TYPE.UI.SYSTEM_MENU_TO_WEBVIEW, accountId, EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, hash);
   });
 
   ipcRenderer.on(EVENT_TYPE.EDIT.COPY, (_event, webContentsId?: number) => {
     const targetWebview = webContentsId !== undefined ? focusWebviewByContentsId(webContentsId) : getSelectedWebview();
-    targetWebview?.copy();
+    callWebviewMethod(targetWebview, 'copy');
   });
   ipcRenderer.on(EVENT_TYPE.EDIT.CUT, (_event, webContentsId?: number) => {
     const targetWebview = webContentsId !== undefined ? focusWebviewByContentsId(webContentsId) : getSelectedWebview();
-    targetWebview?.cut();
+    callWebviewMethod(targetWebview, 'cut');
   });
   ipcRenderer.on(EVENT_TYPE.EDIT.PASTE, (_event, webContentsId?: number) => {
     const targetWebview = webContentsId !== undefined ? focusWebviewByContentsId(webContentsId) : getSelectedWebview();
-    targetWebview?.paste();
+    callWebviewMethod(targetWebview, 'paste');
   });
-  ipcRenderer.on(EVENT_TYPE.EDIT.REDO, () => getSelectedWebview()?.redo());
+  ipcRenderer.on(EVENT_TYPE.EDIT.REDO, () => {
+    callWebviewMethod(getSelectedWebview(), 'redo');
+  });
   ipcRenderer.on(EVENT_TYPE.EDIT.SELECT_ALL, (_event, webContentsId?: number) => {
     const targetWebview = webContentsId !== undefined ? focusWebviewByContentsId(webContentsId) : getSelectedWebview();
-    targetWebview?.selectAll();
+    callWebviewMethod(targetWebview, 'selectAll');
   });
-  ipcRenderer.on(EVENT_TYPE.EDIT.UNDO, () => getSelectedWebview()?.undo());
+  ipcRenderer.on(EVENT_TYPE.EDIT.UNDO, () => {
+    callWebviewMethod(getSelectedWebview(), 'undo');
+  });
 
   ipcRenderer.on(EVENT_TYPE.WRAPPER.RELOAD, (): void => {
     const webviews = document.querySelectorAll<Electron.WebviewTag>('webview');
@@ -167,13 +221,25 @@ const electronAPI = {
   },
   sendLogoutAccount: async (accountId: string): Promise<void> => {
     const accountWebview = getWebviewById(accountId);
-    logger.log(`Sending logout signal to webview for account "${truncate(accountId, {length: 5})}".`);
-    await accountWebview?.send(EVENT_TYPE.ACTION.SIGN_OUT);
+    if (!accountWebview) {
+      logger.warn(`Cannot send logout: webview for account "${truncate(accountId, {length: 5})}" not found`);
+      return;
+    }
+    // Route through main process to webview's webContents
+    ipcRenderer.send(EVENT_TYPE.UI.SYSTEM_MENU_TO_WEBVIEW, accountId, EVENT_TYPE.ACTION.SIGN_OUT);
   },
   sendConversationJoinToHost: async (accountId: string, code: string, key: string, domain?: string): Promise<void> => {
     const accountWebview = getWebviewById(accountId);
-    logger.log(`Sending conversation join data to webview for account "${truncate(accountId, {length: 5})}".`);
-    await accountWebview?.send(WebAppEvents.CONVERSATION.JOIN, {code, key, domain});
+    if (!accountWebview) {
+      logger.warn(`Cannot send conversation join: webview for account "${truncate(accountId, {length: 5})}" not found`);
+      return;
+    }
+    // Route through main process to webview's webContents
+    ipcRenderer.send(EVENT_TYPE.UI.SYSTEM_MENU_TO_WEBVIEW, accountId, WebAppEvents.CONVERSATION.JOIN, {
+      code,
+      key,
+      domain,
+    });
   },
 };
 
