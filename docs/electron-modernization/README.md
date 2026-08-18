@@ -12,6 +12,13 @@ Read in this order:
 4. [Capability matrix](./capabilities.md) — product behavior that must be understood and protected.
 5. [Architecture decisions](./decisions/README.md) — detailed ADRs for choices referenced by the plan.
 
+M0 evidence:
+
+- [Fork and integration workflow](./governance.md)
+- [Legacy baseline](./baseline.md)
+- [Desktop threat model](./threat-model.md)
+- [Electron compatibility inventory](./electron-compatibility.md)
+
 Repository-wide agent instructions are in [`AGENTS.md`](../../AGENTS.md).
 
 ## Sources of truth

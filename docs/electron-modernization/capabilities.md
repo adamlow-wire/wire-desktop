@@ -34,6 +34,36 @@ Confidence values are `none`, `low`, `medium`, or `high`. `High` requires repres
 | DCP-020 | Linux packaging and desktop integration | Linux | Build path; no Playwright project | low | BASE-002, TST-005 | PKG-001, PKG-002 | Packaged launch, protocol, tray/menu, and representative E2E |
 | DCP-021 | Settings and user-data migration | Windows, macOS, Linux | Partial settings tests; no modernization fixture | low | BASE-002 | PKG-003 | Released-version fixtures, recovery path, no silent loss/corruption |
 
+## Acceptance validation
+
+`Automated`, `packaged`, and `manual` are separate obligations. `N/A` requires an approved scope decision; an empty result never implies a pass.
+
+| ID | Required behavior | Automated validation | Packaged validation | Manual/provider validation | Acceptance authority |
+| --- | --- | --- | --- | --- | --- |
+| DCP-001 | Login/registration opens the intended account in its isolated session | Critical login/register E2E and partition assertion | Fresh-profile login on each supported OS | Mandatory backend/federation variants | Product; Security for session boundary |
+| DCP-002 | Add/switch/remove affects only the selected account and routes activation correctly | Lifecycle E2E plus cross-account IPC/storage deny tests | Three-account switch/remove smoke | Keyboard/accessibility review | Product and Security |
+| DCP-003 | SSO uses one-time validated responses and moves only intended cookies to the intended account | Protocol abuse, lifecycle, cookie isolation, controlled IdP fixture | SSO launch/cancel/success on each OS | Approved IdP/federation matrix under Q-002 | Product and Security |
+| DCP-004 | Logout/removal clears only approved state and retained state survives restart | Per-account deletion and restart/migration fixtures | Logout/remove/relaunch smoke | Data-retention expectation review | Product and Security |
+| DCP-005 | Tray/menu actions and unread state match the active application/account state | Policy and platform-adapter tests | Native tray/menu/tooltip smoke per OS | Visual and accessibility check | Product and Platform |
+| DCP-006 | Notifications/badges activate the correct account/conversation without data crossover | Routing and deny tests | Signed notification, app badge, overlay/bounce smoke | OS settings/permission review | Product, Security, Platform |
+| DCP-007 | Camera/microphone work only for authorized Wire views and user flows | Permission allow/deny plus fake-device call E2E | One call smoke per OS | Native permission prompt/revocation | Product and Security |
+| DCP-008 | Display capture requires authorized origin/view and user choice | Source-selection, gesture, cancel, hostile-view tests | Screen-share smoke per OS; macOS audio where supported | Native chooser and permission review | Product and Security |
+| DCP-009 | PiP has fixed safe preferences, correct lifecycle, and no navigation escape | Preference/navigation/focus/cleanup tests | Create/interact/close smoke per OS | Accessibility/always-on-top review | Product and Security |
+| DCP-010 | Valid deep links route once at every lifecycle point; malformed/hostile inputs do nothing privileged | Parser and startup/second-instance matrix | Registered-protocol fresh/running-app smoke | OS browser invocation | Product and Security |
+| DCP-011 | Proxy settings/auth apply only to intended sessions and cancellation fails closed | Parser, credential, callback, cancellation, session-scope tests | Authenticated proxy smoke per OS | Enterprise proxy variants | Enterprise Product and Security |
+| DCP-012 | Certificate failures and approved enterprise exceptions are scoped, explicit, and fail closed | Pin/Chromium failure, retry, persistence, scope tests | Interception smoke per OS | Approved interception products under Q-005 | Security and Enterprise Product |
+| DCP-013 | Managed config is read from the correct backend and exposed as immutable authorized policy | Backend fixtures and bridge authorization | Managed/unmanaged profile smoke per OS | MDM/registry deployment | Enterprise Product and Security |
+| DCP-014 | Only approved external schemes leave the app; context actions do not expose broader privilege | URL/protocol/encoding deny matrix | Default-browser and context-menu smoke | OS association review | Product and Security |
+| DCP-015 | Open Graph retrieval accepts only safe destinations/content within hard limits | SSRF, DNS/redirect, credential, time, byte, type tests | N/A after policy approval | Enterprise proxy interaction if retained | Security and Product |
+| DCP-016 | Encryption/decryption is available only to the owning authorized account contract | Schema, sender, cross-account, size/error tests | Keychain/credential-store round trip per OS | Locked/unavailable key store behavior | Security |
+| DCP-017 | Signed Squirrel install/update/rollback preserves state and protocol ownership | Selection/version/update metadata tests | Fresh, upgrade, rollback, uninstall on supported Windows | Windows enterprise coexistence | Release Engineering and Security |
+| DCP-018 | MSI install/upgrade/repair/uninstall and Squirrel coexistence follow the approved deployment contract | Build/selection tests after upstream merge | Signed Windows matrix | Software-deployment tooling | Enterprise Product and Release Engineering |
+| DCP-019 | Signed/notarized macOS app launches, notifies, updates, and survives restart | Build config/update metadata tests | Signed/notarized install/update/rollback | Gatekeeper and permission prompts | Release Engineering and Security |
+| DCP-020 | Linux artifact installs/launches with protocol, tray/menu, sandbox/fuses, and defined feature parity | Build config and representative E2E | AppImage/deb/rpm install/launch as approved | Desktop-environment matrix under Q-006 | Product and Platform |
+| DCP-021 | Released user state migrates without silent loss and has recovery/rollback | Versioned fixtures, interrupted/corrupt migration tests | Upgrade and rollback from approved releases per OS | Recovery messaging and support procedure | Product and Security |
+
+The matrix is complete as an engineering acceptance specification. BASE-002 remains open until Q-001, Q-002, and Q-006 are resolved and the named Product/Security/Platform authorities approve the security-sensitive rows.
+
 ## Coverage interpretation
 
 A capability cannot reach `high` confidence solely through unit mocks. Security-sensitive capabilities also require the corresponding invariant tests. A platform-independent policy may be tested once, but each native integration must have representative evidence on every platform claimed in its row.

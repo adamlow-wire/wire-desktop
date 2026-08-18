@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.3.0
+revision: 0.4.0
 status: draft
 updated: 2026-08-18
 owners:
@@ -207,7 +207,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### GOV-001 — Establish fork and integration workflow
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `blocked`
 - Milestone: `M0`
 - Dependencies: none
 - Scope: Create the fork, configure `upstream`, protect `integration/electron-modernization`, define required checks, and record the upstream base commit.
@@ -217,7 +217,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Required reviewers and CI checks are configured.
   - Upstream synchronization procedure is documented.
   - `upstream_base` in this document is populated.
-- Evidence: [Fork integration branch](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization); hosted protection configuration remains open
+- Evidence: [Fork integration branch](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization) and [workflow specification](./governance.md); hosted protection configuration remains open
 
 #### GOV-002 — Open early upstream architecture draft
 
@@ -249,7 +249,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### BASE-001 — Capture a reproducible legacy baseline
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `blocked`
 - Milestone: `M0`
 - Dependencies: GOV-001
 - Scope: Record current build/test results, supported platforms, package outputs, startup behavior, and known failures without treating known insecure behavior as desired behavior.
@@ -258,12 +258,12 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Packaged development builds are smoke-tested on Windows, macOS, and Linux.
   - Known flaky or environment-dependent tests are identified.
   - Baseline artifacts and logs are retained by CI.
-- Evidence: TBD
+- Evidence: [Legacy baseline and known gaps](./baseline.md); cross-platform package workflow commit `df90f89ca88f98d441173ba297421ccb5bb0ebcd` is defined but has not produced verified artifacts
 
 #### BASE-002 — Create the capability acceptance matrix
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `blocked`
 - Milestone: `M0`
 - Dependencies: BASE-001
 - Scope: For every `retain`, `retain/redesign`, or `retain/harden` scope entry, record supported platforms, current behavior, desired behavior, tests, migration owner, and acceptance evidence.
@@ -271,14 +271,14 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Every retained scope entry maps to at least one capability row.
   - Each row identifies automated, packaged-smoke, and manual validation requirements.
   - Product and security owners approve security-sensitive behavior.
-- Evidence: TBD
+- Evidence: [Capability and acceptance matrix](./capabilities.md); product/security/platform approvals remain open
 
 ### 10.2 Architecture and security
 
 #### ARC-001 — Approve target process and view architecture
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `blocked`
 - Milestone: `M0`
 - Dependencies: SEC-001
 - Scope: Produce an ADR covering the main process, local shell, `WebContentsView` account views, view ownership, session partitions, preload boundaries, and layout coordination.
@@ -287,12 +287,12 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Trust boundaries and data flows are diagrammed.
   - Account creation, destruction, crash recovery, focus, resize, and lifecycle are specified.
   - Security and platform owners approve the ADR.
-- Evidence: TBD
+- Evidence: [Proposed ADR 0001](./decisions/0001-process-and-view-architecture.md); owner approval remains open
 
 #### SEC-001 — Threat model the desktop wrapper
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `blocked`
 - Milestone: `M0`
 - Dependencies: BASE-002
 - Scope: Model remote webapp compromise, malicious navigation, compromised dependencies, hostile local environment, cross-account attacks, malicious deep links, SSRF, updater abuse, and renderer-to-main escalation.
@@ -300,7 +300,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Assets, trust boundaries, entry points, attackers, and mitigations are documented.
   - Each high-risk threat maps to an invariant and work item.
   - Residual risks have named owners and acceptance authority.
-- Evidence: TBD
+- Evidence: [Desktop wrapper threat model](./threat-model.md); security/product approval remains open
 
 #### SEC-002 — Create a central view identity and capability registry
 
@@ -473,7 +473,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### ELC-001 — Inventory Electron breaking changes and compatibility blockers
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: BASE-001
 - Scope: Review breaking changes from Electron 39 through the current latest stable major, including Node/Chromium changes and deprecated APIs used by this repository.
@@ -481,7 +481,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Each breaking change is classified as applicable, not applicable, or requiring a work item.
   - Native modules, packaging tools, Playwright, electron-mocha, updater libraries, and signing tools are included.
   - Known blockers have owners and resolution paths.
-- Evidence: TBD
+- Evidence: [Electron 38-to-43 compatibility inventory](./electron-compatibility.md)
 
 #### ELC-002 — Upgrade Electron to latest stable
 
@@ -530,7 +530,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### TST-001 — Make coverage reporting accurate
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: BASE-001
 - Scope: Collect main, preload, and local-renderer coverage with source maps; include unexecuted source files; publish reports; and enforce targeted thresholds.
@@ -540,21 +540,21 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - New security-policy modules require at least 90% branch coverage.
   - New/changed code uses a diff-coverage gate.
   - No arbitrary high global threshold is imposed on untouched legacy code.
-- Evidence: TBD
+- Evidence: commit `c27cfa6a41404f3835049d0553d6fbb7b17c4441`; local pipeline passed on 2026-08-18
 
 #### TST-002 — Characterize enterprise SSO
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `blocked`
 - Milestone: `M0`
 - Dependencies: BASE-002
 - Scope: Cover SSO window/session lifecycle, protocol validation, authorization secret behavior, cookies, navigation, permissions, cancellation, errors, and cleanup.
 - Acceptance:
-  - Invalid protocol, host, secret, response type, length, replay, and order are rejected.
-  - SSO cookies transfer only under defined success conditions to the intended account session.
-  - Ephemeral data and protocol handlers are removed on success, failure, and close.
-  - At least one representative E2E flow uses a controlled test IdP or deterministic local fixture.
-- Evidence: TBD
+  - Required legacy behavior has passing characterization tests whose sensitivity is demonstrated before implementation changes.
+  - Invalid protocol, host, secret, response type, length, replay, order, cookie scope, and cleanup expectations exist as passing characterization or explicitly quarantined `security-target` tests owned by CAP-002.
+  - SSO session creation, permission denial, success/error/cancellation paths, intended cookie transfer, navigation, and close cleanup are exercised without external IdP dependence.
+  - At least one representative Electron integration flow uses a controlled test IdP or deterministic local fixture.
+- Evidence: commit `c27cfa6a41404f3835049d0553d6fbb7b17c4441`: 16 characterization tests pass, three CAP-002 security targets are quarantined; protocol-condition sensitivity mutation produced the expected two failures and was reverted
 
 #### TST-003 — Characterize tray, badge, notification, and menu behavior
 
@@ -620,6 +620,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 - Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation.
 - Acceptance:
   - TST-002 passes against the new implementation.
+  - Every CAP-002 `security-target` quarantine in the SSO suite is removed and passes.
   - SSO windows use fixed secure preferences and ephemeral sessions.
   - Account targeting and cookie transfer cannot cross partitions.
 - Evidence: TBD
@@ -806,6 +807,8 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | RSK-009 | User data or session state is lost during partition/architecture migration | medium | critical | Versioned migration, fixtures from released builds, backup/recovery design | TBD | open |
 | RSK-010 | Final upstream review is too large to complete effectively | high | high | Early architecture feedback, work-item commits, subsystem review packets | TBD | open |
 | RSK-011 | Knowledge is concentrated in too few Wire developers and is lost between implementation periods | high | high | Stable project IDs, baseline contracts, concise ADRs, current handoff, small PRs, and cross-review of security-sensitive work | TBD | open |
+| RSK-012 | Packaging code catches errors and CI can appear successful without producing an artifact | high | high | Assert artifact existence, make package errors fatal under PKG-001, and retain runner logs | Release Engineering | open |
+| RSK-013 | Fork protection, CI secrets, and named approval authorities are unavailable to the implementation environment | high | high | Renew GitHub administration access; nominate owners; provision least-privilege fork CI secrets | Project sponsor | open |
 
 ## 15. Decision log
 
@@ -828,11 +831,14 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | Q-005 | Which certificate interception/bypass behavior remains a product requirement? | CAP-005 | Security/product | TBD |
 | Q-006 | Is Linux feature parity equal to Windows/macOS or a defined subset? | BASE-002 | Product | TBD |
 | Q-007 | What staged rollout and telemetry are permissible for this security-sensitive product? | REL-002 | Product/privacy/security | TBD |
+| Q-008 | Who are the accountable technical, security, product, platform, SSO, and release-engineering approvers? | M0 | Project sponsor | TBD |
+| Q-009 | Which existing Wire CI credentials and runners may be provisioned to the fork for E2E, signing, and package evidence? | M0 | Project sponsor/Release Engineering | TBD |
 
 ## 17. Change log
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.4.0 | 2026-08-18 | Codex | Captured M0 evidence, corrected SSO characterization versus target-security scope, and recorded external M0 blockers | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, ELC-001, TST-001, TST-002, CAP-002, RSK-012, RSK-013 |
 | 0.3.0 | 2026-08-18 | Codex | Recorded the durable human/AI project-memory outcome and knowledge-concentration risk | OBJ-007, GOV-003, RSK-011 |
 | 0.2.0 | 2026-08-18 | Codex | Moved the plan into the durable project documentation hub and added baseline-first testing and AI/human continuity scaffolding | GOV-001, BASE-001, BASE-002, TST-001, TST-002, TST-004 |
 | 0.1.0 | 2026-08-18 | Codex | Initial structured modernization plan | all |
