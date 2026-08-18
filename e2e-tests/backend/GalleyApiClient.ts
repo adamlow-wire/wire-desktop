@@ -21,6 +21,8 @@ import {type RequestOpts} from '@oazapfts/runtime';
 
 import * as galleyApi from './generated/galleyApi';
 
+import {normalizeBasicAuthorization} from '../../bin/test-tools/e2e-basic-authorization';
+
 export type GalleyApiClientConfig = {
   baseUrl: string;
   basicAuth: string;
@@ -36,7 +38,7 @@ export class GalleyApiClient {
     this.requestOptions = {
       baseUrl,
       headers: {
-        Authorization: basicAuth.startsWith('Basic ') ? basicAuth : `Basic ${basicAuth}`,
+        Authorization: normalizeBasicAuthorization(basicAuth),
       },
     };
   }

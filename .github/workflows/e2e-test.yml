@@ -76,6 +76,10 @@ jobs:
             "BACKEND_BASIC_AUTH=$BACKEND_BASIC_AUTH" \
             >e2e-tests/.env
 
+      - name: Verify backend credentials
+        shell: bash
+        run: yarn ts-node -P tsconfig.playwright.json e2e-tests/scripts/preflightBackend.ts
+
       - name: Build application
         shell: bash
         run: yarn prestart

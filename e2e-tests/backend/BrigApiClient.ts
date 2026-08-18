@@ -21,6 +21,8 @@ import {type RequestOpts} from '@oazapfts/runtime';
 
 import * as brigApi from './generated/brigApi';
 
+import {normalizeBasicAuthorization} from '../../bin/test-tools/e2e-basic-authorization';
+
 export type BrigApiClientConfig = {
   baseUrl: string;
   basicAuth: string;
@@ -36,7 +38,7 @@ export class BrigApiClient {
     this.requestOptions = {
       baseUrl,
       headers: {
-        Authorization: basicAuth.startsWith('Basic ') ? basicAuth : `Basic ${basicAuth}`,
+        Authorization: normalizeBasicAuthorization(basicAuth),
       },
     };
   }

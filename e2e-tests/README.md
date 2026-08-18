@@ -21,6 +21,8 @@ The E2E tests depend on configs / secrets which need to be provided as environme
 2. Run `op inject -i e2e-tests/.env.tpl -o e2e-tests/.env` to create the .env file within the `e2e-tests` folder
 3. Re-run the command in case the `.env.tpl` file was updated or the secrets changed
 
+Fork CI can instead provide `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` as GitHub Actions secrets. The Basic authentication value is the internal staging-backend credential, not a Wire user login. It may be supplied as `username:password`, `base64(username:password)`, or the complete `Basic base64(username:password)` header value. CI validates the credential against the read-only `/i/status` endpoint before building the app.
+
 ### Running the E2E tests
 
 Before attempting to execute the E2E tests make sure to run the script `yarn run prestart` once. It will generate the outputs needed for launching the application within the tests.
