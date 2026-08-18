@@ -51,4 +51,4 @@ The desired branch rule is:
 - Require `Build and Test`, `Lint`, and `CodeQL` to pass and the branch to be current.
 - Block force pushes, deletion, and direct administrator bypass except an audited emergency procedure.
 
-As of 2026-08-18, this rule is specified but not verified on GitHub because the available GitHub CLI credential is expired. GOV-001 and the M0 gate remain open until the rule is applied and read back from GitHub.
+On 2026-08-18 the rule was applied and read back through the GitHub API. It requires one approval with stale-review dismissal, strict `Build and Test`, `lint`, and `Analyze (javascript)` checks, resolved conversations, and blocks force pushes and deletion. Administrator enforcement is enabled after the bootstrap evidence commit, so subsequent changes must use the PR workflow. Named ownership remains an M0 approval dependency under Q-008 rather than a reason to weaken the hosted rule.

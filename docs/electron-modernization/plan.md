@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.4.0
+revision: 0.5.0
 status: draft
 updated: 2026-08-18
 owners:
@@ -207,7 +207,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### GOV-001 — Establish fork and integration workflow
 
 - Priority: `P0`
-- Status: `blocked`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: none
 - Scope: Create the fork, configure `upstream`, protect `integration/electron-modernization`, define required checks, and record the upstream base commit.
@@ -217,7 +217,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Required reviewers and CI checks are configured.
   - Upstream synchronization procedure is documented.
   - `upstream_base` in this document is populated.
-- Evidence: [Fork integration branch](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization) and [workflow specification](./governance.md); hosted protection configuration remains open
+- Evidence: [Fork integration branch](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization), [workflow specification](./governance.md), and GitHub API readback on 2026-08-18
 
 #### GOV-002 — Open early upstream architecture draft
 
@@ -540,7 +540,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - New security-policy modules require at least 90% branch coverage.
   - New/changed code uses a diff-coverage gate.
   - No arbitrary high global threshold is imposed on untouched legacy code.
-- Evidence: commit `c27cfa6a41404f3835049d0553d6fbb7b17c4441`; local pipeline passed on 2026-08-18
+- Evidence: commits `c27cfa6a41404f3835049d0553d6fbb7b17c4441` and `d96baaad0b4945f213921ad1515291bd7fef6a25`; local pipeline passed on 2026-08-18; the corrected gate rejected a historical TypeScript diff at 21.54% against its 80% requirement
 
 #### TST-002 — Characterize enterprise SSO
 
@@ -838,6 +838,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.5.0 | 2026-08-18 | Codex | Recorded verified integration-branch protection and corrected diff-coverage sensitivity evidence | GOV-001, TST-001 |
 | 0.4.0 | 2026-08-18 | Codex | Captured M0 evidence, corrected SSO characterization versus target-security scope, and recorded external M0 blockers | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, ELC-001, TST-001, TST-002, CAP-002, RSK-012, RSK-013 |
 | 0.3.0 | 2026-08-18 | Codex | Recorded the durable human/AI project-memory outcome and knowledge-concentration risk | OBJ-007, GOV-003, RSK-011 |
 | 0.2.0 | 2026-08-18 | Codex | Moved the plan into the durable project documentation hub and added baseline-first testing and AI/human continuity scaffolding | GOV-001, BASE-001, BASE-002, TST-001, TST-002, TST-004 |
