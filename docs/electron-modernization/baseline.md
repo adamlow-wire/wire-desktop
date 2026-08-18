@@ -37,7 +37,7 @@ The IDE exports `ELECTRON_RUN_AS_NODE=1`. Electron commands must remove that inh
 | Development startup | `electron . --no-sandbox --version` | pass; prints `3.42.0` and exits |
 | Aggregate coverage | legacy `yarn coverage` | fail: `.nyc_output` did not exist because test scripts were not run under NYC |
 | Linux AppImage | `LINUX_TARGET=AppImage yarn build:linux` | fail during `registry-js` rebuild; wrapper logs the error but exits 0 |
-| Development E2E | `yarn test:e2e` | not run: requires Wire test credentials generated from 1Password |
+| Development E2E | PR #1 E2E run `32190461891` | Windows/macOS build and app launch passed; all 30 tests failed during shared user setup when Brig rejected the internal activation-code request with HTTP 401 |
 | Windows package smoke | PR #1 Windows runner | pass; development executable produced, launched, and retained |
 | macOS package smoke | PR #1 macOS runner | pass; unsigned development app produced, launched, and retained |
 
@@ -50,9 +50,9 @@ The IDE exports `ELECTRON_RUN_AS_NODE=1`. Electron commands must remove that inh
 | Legacy coverage command has no input data and covers neither unimported source nor local renderer code | Replace it with explicit NYC/Jest collection and CI artifacts | TST-001 |
 | Linux packaging attempts to rebuild the Windows-only optional `registry-js` module | Linux artifacts cannot currently be reproduced in this environment | ELC-001, PKG-001 |
 | Linux and macOS build functions catch packaging errors without rethrowing | CI can report success without an artifact; package existence must be asserted | ELC-001, PKG-001 |
-| E2E runs only Windows and macOS and requires fork-unavailable secrets | M0 cannot claim E2E or Linux product coverage | TST-005 |
+| E2E runs only Windows and macOS; fork secret injection works, but the configured Basic-auth credential is not authorized for the internal staging API | M0 cannot yet claim product-flow E2E or Linux product coverage | BASE-001, TST-005 |
 | Current warnings include typeless ESM reparsing, stale Browserslist data, deprecated Node `punycode`, and AWS SDK v2 end of support | Compatibility inventory must track toolchain updates without conflating warnings with test failures | ELC-001, ELC-003 |
 
 ## Remaining platform evidence
 
-The [PR #1 package baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retains Windows and macOS development artifacts and converts Linux's missing AppImage into a visible failure. BASE-001 remains incomplete only until the available E2E credentials are configured and a development E2E result is retained. Repairing the known Linux package failure and making build wrappers propagate errors belong to PKG-001; a reproducible legacy failure is valid M0 baseline evidence and must not be hidden.
+The [PR #1 package baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retains Windows and macOS development artifacts and converts Linux's missing AppImage into a visible failure. The first [fork E2E run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32190461891) proved secret injection, cross-platform builds, and app launch, then exposed a shared HTTP 401 from the internal activation-code endpoint. [PR #2](https://github.com/adamlow-wire/wire-desktop/pull/2) adds supported raw-credential normalization and a read-only `/i/status` preflight; its [Windows/macOS run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32193043318) shows staging still rejects the configured credential, so BASE-001 remains incomplete until the exact internal staging credential is supplied privately and a product-flow E2E result is retained. Repairing the known Linux package failure and making build wrappers propagate errors belong to PKG-001; a reproducible legacy failure is valid M0 baseline evidence and must not be hidden.
