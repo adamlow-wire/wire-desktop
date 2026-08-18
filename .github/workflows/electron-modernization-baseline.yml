@@ -1,0 +1,89 @@
+name: Electron Modernization Baseline
+
+on:
+  push:
+    branches: [integration/electron-modernization]
+  workflow_dispatch:
+
+concurrency:
+  group: electron-modernization-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package_baseline:
+    name: Package Baseline (${{ matrix.platform }})
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            os: ubuntu-24.04
+            build: LINUX_TARGET=AppImage yarn build:linux
+            artifact: wrap/dist/*.AppImage
+          - platform: Windows
+            os: windows-2025
+            build: yarn build:win
+            artifact: wrap/build/**/*.exe
+          - platform: macOS
+            os: macos-26
+            build: yarn build:macos:x64
+            artifact: wrap/build/**/*.app
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version-file: '.node-version'
+          cache: 'yarn'
+      - name: Install dependencies
+        shell: bash
+        run: yarn --immutable
+      - name: Build development package
+        shell: bash
+        run: ${{ matrix.build }}
+      - name: Verify claimed artifact exists
+        shell: bash
+        run: |
+          shopt -s globstar nullglob
+          artifacts=(${{ matrix.artifact }})
+          if (( ${#artifacts[@]} == 0 )); then
+            echo "Build returned without producing the expected ${{ matrix.platform }} artifact." >&2
+            exit 1
+          fi
+          printf '%s\n' "${artifacts[@]}"
+      - name: Smoke-test Linux package
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          artifact=$(find wrap/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          test -n "$artifact"
+          chmod +x "$artifact"
+          xvfb-run "$artifact" --appimage-extract-and-run --no-sandbox --version
+      - name: Smoke-test Windows package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $app = Get-ChildItem wrap/build -Recurse -Filter *.exe |
+            Where-Object { $_.Name -notin @('Squirrel.exe', 'Update.exe') } |
+            Select-Object -First 1
+          if (-not $app) { throw 'No packaged application executable found.' }
+          & $app.FullName --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Smoke-test macOS package
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          executable=$(find wrap/build -maxdepth 6 -type f -path '*.app/Contents/MacOS/*' -perm -111 -print -quit)
+          test -n "$executable"
+          "$executable" --version
+      - name: Upload development artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: modernization-baseline-${{ matrix.platform }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: warn
+          retention-days: 7
