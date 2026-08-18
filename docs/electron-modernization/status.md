@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-18
 milestone: M0
 active_work_item: BASE-001
-state: blocked-on-external-controls
+state: awaiting-solo-maintainer-review
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
@@ -13,33 +13,32 @@ upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
 next_work_item: BASE-001
 blockers:
-  - BASE-001 requires verified Windows, macOS, and Linux package/launch evidence and available E2E credentials
-  - BASE-002, SEC-001, and ARC-001 require named Wire product, security, and platform approvers
-  - Q-001, Q-002, Q-006, Q-008, and Q-009 require project-sponsor decisions
+  - PR #1 must pass its required checks and be merged by the solo maintainer
+  - BASE-001 requires an E2E run after the fork credential is configured
+  - Linux packaging reproducibly fails while rebuilding the Windows-only registry-js module
 ---
 
 # Current project status
 
 ## Current outcome
 
-All locally actionable M0 controls are implemented: the integration branch is protected, the legacy baseline is recorded, coverage is accurate and gated for changed/security code, SSO has a passing deterministic characterization suite with known security failures explicitly quarantined, the capability acceptance matrix is detailed, and the threat model, Electron 38-to-43 inventory, governance procedure, and target architecture ADR exist. M0 is not closed: cross-platform package evidence, named approvals, and product/platform scope decisions require Wire authority or infrastructure.
+The active integration branch was recreated at the recorded upstream base so every modernization commit enters through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). The project uses a solo-maintainer, AI-assisted model: the PR, strict automated checks, explicit test evidence, and the maintainer's merge decision replace unavailable multi-person approvals without claiming independent review. M0 is not closed until the E2E baseline is recorded and the maintainer reviews and merges PR #1.
 
 ## Active work
 
-| Field               | Value                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------- |
-| Work item           | BASE-001 — Capture a reproducible legacy baseline                                            |
-| Owner               | `adamlow-wire`                                                                               |
-| Branch              | `integration/electron-modernization`                                                         |
-| Goal                | Obtain the external controls and approvals needed to close M0 honestly                       |
-| Completion evidence | Hosted branch-rule readback, cross-platform CI links/artifacts, and recorded owner approvals |
+| Field               | Value                                                                            |
+| ------------------- | -------------------------------------------------------------------------------- |
+| Work item           | BASE-001 — Capture a reproducible legacy baseline                                |
+| Owner               | `adamlow-wire`                                                                   |
+| Branch              | `ci/m0-package-baseline-portability`                                             |
+| Goal                | Complete E2E evidence and merge the complete M0 delta through PR #1              |
+| Completion evidence | Required CI, package/E2E runs, and the solo maintainer's recorded merge decision |
 
 ## Next executable sequence
 
-1. Inspect `Build and Test`, `Lint`, `CodeQL`, and cross-platform baseline workflow results for commit `9b07c1e3`.
-2. Nominate the Q-008 owners; have Security/Product review the threat model and capability matrix and Security/Platform review ADR 0001.
-3. Resolve supported OS, Linux parity, required IdPs, and fork CI credential/runners under Q-001, Q-002, Q-006, and Q-009.
-4. Re-run failed/missing package and E2E evidence. When all M0 gates pass, begin ELC-002 with the 38→39 upgrade commit.
+1. Configure the fork's E2E secret without placing secret values in source or chat, label PR #1 `run-e2e`, and record the result.
+2. Review and merge PR #1 once the required checks and acceptable baseline evidence are present.
+3. Begin ELC-002 with an isolated 38→39 upgrade PR; fix the Linux packaging defect under PKG-001 rather than hiding it in the baseline.
 
 ## Completed work
 
@@ -58,7 +57,7 @@ All locally actionable M0 controls are implemented: the integration branch is pr
 | Work item identifiers | Unique | 2026-08-18 |
 | Work item dependencies | All identifiers resolve; graph is acyclic | 2026-08-18 |
 | Integration publication | Branch pushed to `adamlow-wire` fork | 2026-08-18 |
-| Integration protection | Strict required checks, one approval, stale-review dismissal, no force push/deletion, conversation resolution; API read back | 2026-08-18 |
+| Integration protection | PR required with zero external approvals; strict required checks, no admin bypass/force push/deletion, conversation resolution; API read back | 2026-08-18 |
 | Legacy development build | Passed | 2026-08-18 |
 | Jest baseline | 14 suites / 36 tests passed | 2026-08-18 |
 | Electron main baseline | 37 legacy tests passed | 2026-08-18 |
@@ -67,12 +66,12 @@ All locally actionable M0 controls are implemented: the integration branch is pr
 | SSO characterization | 16 passed / 3 security targets pending | 2026-08-18 |
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
 | Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
-| Windows/macOS packages | Awaiting platform workflow evidence | — |
-| Development E2E | Awaiting Wire test credentials | — |
+| Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
+| Development E2E | Credentials available to maintainer; fork secret and run pending | — |
 
 ## Handoff notes
 
-- Do not mark M0 done from local documents alone; the external blockers in the front matter are mandatory gate evidence.
+- Do not claim independent review in the solo-maintainer model. The maintainer's PR merge is the recorded product/security/architecture decision.
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
 - The Linux build command is not trustworthy until it propagates package errors and artifact existence is checked.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.

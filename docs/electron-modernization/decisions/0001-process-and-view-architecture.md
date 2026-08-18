@@ -3,7 +3,7 @@ decision_id: DEC-004
 adr: 0001
 status: proposed
 date: 2026-08-18
-owners: [desktop-maintainer, security-owner, platform-owner]
+owners: [adamlow-wire]
 work_items: [ARC-001, SEC-002, SEC-005, SEC-006, SEC-007]
 invariants: [INV-001, INV-002, INV-003, INV-004, INV-005, INV-006, INV-008, INV-010]
 supersedes: []
@@ -86,7 +86,7 @@ This removes renderer-owned `<webview>` creation and provides one main-process s
 - A one-account M2 spike must demonstrate view composition, resize/focus, crash recovery, navigation denial, and explicit destruction on all supported platforms.
 - Hostile-renderer tests must fail to access raw IPC, Electron/Node, another account, unknown frames, or capabilities not registered to the view.
 - Multi-account, SSO, calling/display capture, tray/notification routing, proxy/certificate, deep-link, and packaged tests remain capability gates.
-- Wire Desktop, Security, and Platform owners must approve this ADR before its status becomes `accepted`.
+- The solo maintainer must review the architecture and security consequences before merging PR #1. That merge records acceptance without claiming independent review; the M0 closure PR then updates this status from `proposed` to `accepted`.
 
 ## Revisit conditions
 

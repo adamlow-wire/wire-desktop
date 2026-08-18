@@ -15,6 +15,7 @@ work_items: [GOV-001]
 | Fork | `fork` | `git@github.com:adamlow-wire/wire-desktop.git` | Hosts reviewed modernization work |
 | Upstream base | `origin/dev` | `e1ba98c50dce28b26b05466169fbdf941f0285f3` | Recorded starting point; later upstream commits enter by merge |
 | Integration | — | `integration/electron-modernization` | Shared, non-rebased history; final PR source |
+| Archived bootstrap | — | `archive/electron-modernization-bootstrap-2026-08-18` | Preserves the pre-PR bootstrap history; do not use as an implementation base |
 | Pending MSI work | — | `feature/WPB-5221-windows-native-msi` | Remains separate until it reaches `origin/dev` through normal review |
 
 The published integration branch is [available on the fork](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization).
@@ -25,8 +26,9 @@ The published integration branch is [available on the fork](https://github.com/a
 2. Keep the branch to one primary work item and commit characterization tests separately from behavior changes where practical.
 3. Open a PR to `integration/electron-modernization` using the modernization template.
 4. Require green `Build and Test`, `Lint`, and `CodeQL` checks. Run platform/package jobs when the affected capability requires them.
-5. Require at least one desktop maintainer review. Security-boundary changes also require a security-owner review.
-6. Merge without rewriting shared integration history. Direct pushes to the integration branch are prohibited once hosted protection is enabled.
+5. The solo maintainer reviews the PR diff, test evidence, security invariants, and unresolved risks before merging. The merge is the recorded approval; do not claim independent review.
+6. Security-boundary changes require a distinct security-review pass recorded in the PR, even when performed by the same maintainer with AI assistance.
+7. Merge without rewriting shared integration history. Direct pushes to the integration branch are prohibited.
 
 ## Upstream synchronization
 
@@ -46,9 +48,10 @@ Resolve conflicts in the synchronization branch, run the baseline, record the ne
 
 The desired branch rule is:
 
-- Require a pull request with one approval and dismissal of stale approvals.
-- Require code-owner review when ownership is defined.
+- Require a pull request. The approval count is zero because GitHub prevents a solo PR author from approving their own PR.
 - Require `Build and Test`, `Lint`, and `CodeQL` to pass and the branch to be current.
-- Block force pushes, deletion, and direct administrator bypass except an audited emergency procedure.
+- Require resolved conversations and block force pushes, deletion, and administrator bypass.
 
-On 2026-08-18 the rule was applied and read back through the GitHub API. It requires one approval with stale-review dismissal, strict `Build and Test`, `lint`, and `Analyze (javascript)` checks, resolved conversations, and blocks force pushes and deletion. Administrator enforcement is enabled after the bootstrap evidence commit, so subsequent changes must use the PR workflow. Named ownership remains an M0 approval dependency under Q-008 rather than a reason to weaken the hosted rule.
+On 2026-08-18 the original directly populated integration branch was archived and the active branch was recreated at upstream commit `e1ba98c50dce28b26b05466169fbdf941f0285f3`. PR #1 now contains the complete M0 delta. GitHub API readback confirms PR enforcement with zero external approvals, strict `Build and Test`, `lint`, and `Analyze (javascript)` checks, resolved conversations, and no administrator bypass, force pushes, or deletion.
+
+This is deliberately a solo-maintainer workflow. Quality comes from small PRs, explicit acceptance criteria, sensitive-test demonstrations, required CI, and recorded review notes—not ceremonial reviewer requirements that cannot be satisfied.

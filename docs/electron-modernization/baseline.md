@@ -38,7 +38,8 @@ The IDE exports `ELECTRON_RUN_AS_NODE=1`. Electron commands must remove that inh
 | Aggregate coverage | legacy `yarn coverage` | fail: `.nyc_output` did not exist because test scripts were not run under NYC |
 | Linux AppImage | `LINUX_TARGET=AppImage yarn build:linux` | fail during `registry-js` rebuild; wrapper logs the error but exits 0 |
 | Development E2E | `yarn test:e2e` | not run: requires Wire test credentials generated from 1Password |
-| Windows/macOS packages | platform runners | not run locally |
+| Windows package smoke | PR #1 Windows runner | pass; development executable produced, launched, and retained |
+| macOS package smoke | PR #1 macOS runner | pass; unsigned development app produced, launched, and retained |
 
 ## Baseline findings
 
@@ -54,4 +55,4 @@ The IDE exports `ELECTRON_RUN_AS_NODE=1`. Electron commands must remove that inh
 
 ## Remaining platform evidence
 
-BASE-001 remains incomplete until development packages are built and launched on supported Windows, macOS, and Linux runners, package failures propagate non-zero status, and available E2E results are retained by CI. The present report is the reproducible local baseline and the source of those follow-up jobs.
+The [PR #1 package baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retains Windows and macOS development artifacts and converts Linux's missing AppImage into a visible failure. BASE-001 remains incomplete only until the available E2E credentials are configured and a development E2E result is retained. Repairing the known Linux package failure and making build wrappers propagate errors belong to PKG-001; a reproducible legacy failure is valid M0 baseline evidence and must not be hidden.

@@ -62,7 +62,7 @@ Confidence values are `none`, `low`, `medium`, or `high`. `High` requires repres
 | DCP-020 | Linux artifact installs/launches with protocol, tray/menu, sandbox/fuses, and defined feature parity | Build config and representative E2E | AppImage/deb/rpm install/launch as approved | Desktop-environment matrix under Q-006 | Product and Platform |
 | DCP-021 | Released user state migrates without silent loss and has recovery/rollback | Versioned fixtures, interrupted/corrupt migration tests | Upgrade and rollback from approved releases per OS | Recovery messaging and support procedure | Product and Security |
 
-The matrix is complete as an engineering acceptance specification. BASE-002 remains open until Q-001, Q-002, and Q-006 are resolved and the named Product/Security/Platform authorities approve the security-sensitive rows.
+The matrix is complete as an engineering acceptance specification. Q-008 maps its role labels to the solo maintainer; they remain useful descriptions of the decision being made rather than claims that several reviewers exist. Merging PR #1 records the maintainer's M0 acceptance of this matrix, which is then recorded by the M0 closure PR.
 
 ## Coverage interpretation
 

@@ -5,8 +5,8 @@ updated: 2026-08-18
 work_items: [SEC-001]
 reviewers:
   technical: adamlow-wire
-  security: TBD
-  product: TBD
+  security: adamlow-wire
+  product: adamlow-wire
 ---
 
 # Desktop wrapper threat model
@@ -100,16 +100,16 @@ The legacy implementation already disables Node integration for its primary wind
 
 ## Verification strategy
 
-Each critical/high threat must have at least one automated deny-path test. THR-001 through THR-009 and THR-013 require real-Electron hostile-renderer coverage in addition to policy unit tests. THR-006 requires a controlled SSO fixture. THR-011 and THR-012 require packaged artifacts and independent review; development-mode tests cannot satisfy them.
+Each critical/high threat must have at least one automated deny-path test. THR-001 through THR-009 and THR-013 require real-Electron hostile-renderer coverage in addition to policy unit tests. THR-006 requires a controlled SSO fixture. THR-011 and THR-012 require packaged artifacts and a separately recorded security-review pass; development-mode tests cannot satisfy them. Independent review remains desirable before public release but is not misrepresented as available during solo development.
 
 ## Residual risks and acceptance authority
 
 | Residual risk | Required owner | Acceptance authority | Status |
 | --- | --- | --- | --- |
-| A zero-day Electron/Chromium sandbox escape remains possible | Electron maintenance owner | Wire Security | Reduce through current releases; not accepted for an EOL runtime |
-| Product-required enterprise certificate interception may reduce transport guarantees | Enterprise networking owner | Wire Security and Product | Policy details unresolved under Q-005 |
-| Real IdP behavior cannot be represented completely by a deterministic fixture | SSO product owner | Wire Security and Product | Provider matrix unresolved under Q-002 |
-| A compromised administrator/OS can inspect or replace user-space state | Platform security owner | Wire Security | Documented platform assumption; signing/integrity still required |
-| Supply-chain compromise of signing authority bypasses application checks | Release engineering owner | Wire Security and Release Engineering | Requires operational key protection and incident response |
+| A zero-day Electron/Chromium sandbox escape remains possible | adamlow-wire | Solo maintainer; external reviewer if available | Reduce through current releases; not accepted for an EOL runtime |
+| Product-required enterprise certificate interception may reduce transport guarantees | adamlow-wire | Solo maintainer | Policy details unresolved under Q-005 |
+| Real IdP behavior cannot be represented completely by a deterministic fixture | adamlow-wire | Solo maintainer | Protocol-level automation; record provider evidence when available |
+| A compromised administrator/OS can inspect or replace user-space state | adamlow-wire | Solo maintainer | Documented platform assumption; signing/integrity still required |
+| Supply-chain compromise of signing authority bypasses application checks | adamlow-wire | Solo maintainer; signing authority for release | Requires operational key protection and incident response |
 
-The model is technically complete but not approved. SEC-001 and M0 remain open until the security/product owners are named and record acceptance or required changes.
+The model is technically complete. In the solo workflow, the maintainer's review and merge of PR #1 records acceptance; the M0 closure PR records that outcome in project status. This is self-review and is not described as independent security assurance.

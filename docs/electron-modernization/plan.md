@@ -1,13 +1,14 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.5.0
+revision: 0.6.0
 status: draft
 updated: 2026-08-18
 owners:
-  technical: TBD
-  security: TBD
-  product: TBD
+  technical: adamlow-wire
+  security: adamlow-wire
+  product: adamlow-wire
+operating_model: solo AI-assisted maintainer
 source_branch: integration/electron-modernization
 upstream_base: e1ba98c50dce28b26b05466169fbdf941f0285f3
 current_electron: 38.8.6
@@ -192,7 +193,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 | Milestone | Exit gate | Mandatory evidence |
 | --- | --- | --- |
-| M0 — Governed baseline | Fork, integration branch, owners, CI baseline, capability inventory, and threat model exist | Branch links, baseline report, approved threat model |
+| M0 — Governed baseline | Fork, PR-only integration branch, accountable maintainer, CI baseline, capability inventory, and threat model exist | Branch/PR links, baseline report, maintainer-reviewed threat model |
 | M1 — Supported runtime | Latest stable Electron builds and baseline tests pass on supported platforms | Version check, breaking-change log, CI runs, packaged smoke results |
 | M2 — Secure shell proof | One account runs using the new architecture and satisfies INV-001 through INV-010 | Architecture tests, IPC policy tests, security review notes |
 | M3 — Security-critical parity | Multi-account, SSO, certificate, navigation, permissions, and deep links use the new boundary | Capability tests and platform E2E evidence |
@@ -214,10 +215,10 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 - Acceptance:
   - Fork and protected integration branch exist.
   - Direct pushes are disabled for the integration branch.
-  - Required reviewers and CI checks are configured.
+  - The PR review policy and CI checks are configured for the declared operating model.
   - Upstream synchronization procedure is documented.
   - `upstream_base` in this document is populated.
-- Evidence: [Fork integration branch](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization), [workflow specification](./governance.md), and GitHub API readback on 2026-08-18
+- Evidence: [M0 PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1), [workflow specification](./governance.md), and GitHub API readback on 2026-08-18; the pre-PR bootstrap branch is archived
 
 #### GOV-002 — Open early upstream architecture draft
 
@@ -249,7 +250,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### BASE-001 — Capture a reproducible legacy baseline
 
 - Priority: `P0`
-- Status: `blocked`
+- Status: `in_progress`
 - Milestone: `M0`
 - Dependencies: GOV-001
 - Scope: Record current build/test results, supported platforms, package outputs, startup behavior, and known failures without treating known insecure behavior as desired behavior.
@@ -258,12 +259,12 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Packaged development builds are smoke-tested on Windows, macOS, and Linux.
   - Known flaky or environment-dependent tests are identified.
   - Baseline artifacts and logs are retained by CI.
-- Evidence: [Legacy baseline and known gaps](./baseline.md); cross-platform package workflow commit `df90f89ca88f98d441173ba297421ccb5bb0ebcd` is defined but has not produced verified artifacts
+- Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; E2E remains pending
 
 #### BASE-002 — Create the capability acceptance matrix
 
 - Priority: `P0`
-- Status: `blocked`
+- Status: `in_progress`
 - Milestone: `M0`
 - Dependencies: BASE-001
 - Scope: For every `retain`, `retain/redesign`, or `retain/harden` scope entry, record supported platforms, current behavior, desired behavior, tests, migration owner, and acceptance evidence.
@@ -271,14 +272,14 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Every retained scope entry maps to at least one capability row.
   - Each row identifies automated, packaged-smoke, and manual validation requirements.
   - Product and security owners approve security-sensitive behavior.
-- Evidence: [Capability and acceptance matrix](./capabilities.md); product/security/platform approvals remain open
+- Evidence: [Capability and acceptance matrix](./capabilities.md); solo-maintainer acceptance is pending PR #1 merge
 
 ### 10.2 Architecture and security
 
 #### ARC-001 — Approve target process and view architecture
 
 - Priority: `P0`
-- Status: `blocked`
+- Status: `in_progress`
 - Milestone: `M0`
 - Dependencies: SEC-001
 - Scope: Produce an ADR covering the main process, local shell, `WebContentsView` account views, view ownership, session partitions, preload boundaries, and layout coordination.
@@ -287,12 +288,12 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Trust boundaries and data flows are diagrammed.
   - Account creation, destruction, crash recovery, focus, resize, and lifecycle are specified.
   - Security and platform owners approve the ADR.
-- Evidence: [Proposed ADR 0001](./decisions/0001-process-and-view-architecture.md); owner approval remains open
+- Evidence: [Proposed ADR 0001](./decisions/0001-process-and-view-architecture.md); solo-maintainer acceptance is pending PR #1 merge and will be recorded in the M0 closure PR
 
 #### SEC-001 — Threat model the desktop wrapper
 
 - Priority: `P0`
-- Status: `blocked`
+- Status: `in_progress`
 - Milestone: `M0`
 - Dependencies: BASE-002
 - Scope: Model remote webapp compromise, malicious navigation, compromised dependencies, hostile local environment, cross-account attacks, malicious deep links, SSRF, updater abuse, and renderer-to-main escalation.
@@ -300,7 +301,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Assets, trust boundaries, entry points, attackers, and mitigations are documented.
   - Each high-risk threat maps to an invariant and work item.
   - Residual risks have named owners and acceptance authority.
-- Evidence: [Desktop wrapper threat model](./threat-model.md); security/product approval remains open
+- Evidence: [Desktop wrapper threat model](./threat-model.md); solo-maintainer acceptance is pending PR #1 merge and will be recorded in the M0 closure PR
 
 #### SEC-002 — Create a central view identity and capability registry
 
@@ -808,7 +809,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | RSK-010 | Final upstream review is too large to complete effectively | high | high | Early architecture feedback, work-item commits, subsystem review packets | TBD | open |
 | RSK-011 | Knowledge is concentrated in too few Wire developers and is lost between implementation periods | high | high | Stable project IDs, baseline contracts, concise ADRs, current handoff, small PRs, and cross-review of security-sensitive work | TBD | open |
 | RSK-012 | Packaging code catches errors and CI can appear successful without producing an artifact | high | high | Assert artifact existence, make package errors fatal under PKG-001, and retain runner logs | Release Engineering | open |
-| RSK-013 | Fork protection, CI secrets, and named approval authorities are unavailable to the implementation environment | high | high | Renew GitHub administration access; nominate owners; provision least-privilege fork CI secrets | Project sponsor | open |
+| RSK-013 | Solo development concentrates product, platform, and security decisions in one maintainer | high | high | PR-only integration, strict CI, explicit security-review passes, sensitive-test demonstrations, concise decision records, and external review before release when feasible | adamlow-wire | open |
 
 ## 15. Decision log
 
@@ -819,25 +820,27 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | DEC-003 | 2026-08-18 | accepted | Supported Electron runtime and security-boundary work are P0 | The current runtime is EOL and the current boundary violates modern Electron security guidance | Never; only implementation ordering may change |
 | DEC-004 | 2026-08-18 | proposed | Use `WebContentsView` for remote account content | Electron discourages `<webview>`; main ownership improves policy control | ARC-001 identifies a safer supported architecture |
 | DEC-005 | 2026-08-18 | accepted | Target latest stable Electron dynamically, not version 43 permanently | Prevents this plan becoming stale during a long migration | Electron release/support policy materially changes |
+| DEC-006 | 2026-08-18 | accepted | Operate as a solo AI-assisted maintainer with PR-only integration and zero required external approvals | Preserves traceability and automated gates without pretending unavailable organizational review exists | Additional maintainers join or upstream mandates another process |
 
 ## 16. Open questions
 
 | Question ID | Question | Needed by | Owner | Resolution |
 | --- | --- | --- | --- | --- |
-| Q-001 | Which Windows, macOS, and Linux versions are release-blocking? | M0 | Product/platform | TBD |
-| Q-002 | Which identity providers and federation variants form the mandatory SSO matrix? | TST-002 | Product/security | TBD |
+| Q-001 | Which Windows, macOS, and Linux versions are release-blocking? | M0 | adamlow-wire | All three platforms remain in scope; minimum supported OS versions are fixed under PKG-001 before release qualification |
+| Q-002 | Which identity providers and federation variants form the mandatory SSO matrix? | TST-002 | adamlow-wire | Automate protocol behavior with deterministic fixtures; record real-provider evidence when available without making an undocumented vendor list an M0 dependency |
 | Q-003 | Can the Wire webapp accept a versioned `contextBridge` adapter, and where should that adapter live? | ARC-001 | Desktop/webapp | TBD |
 | Q-004 | Which account state must migrate, and which caches may be safely rebuilt? | PKG-003 | Product/security | TBD |
 | Q-005 | Which certificate interception/bypass behavior remains a product requirement? | CAP-005 | Security/product | TBD |
-| Q-006 | Is Linux feature parity equal to Windows/macOS or a defined subset? | BASE-002 | Product | TBD |
+| Q-006 | Is Linux feature parity equal to Windows/macOS or a defined subset? | BASE-002 | adamlow-wire | Retain the current capability scope on Linux; document unavoidable platform differences explicitly and test them under their owning capability |
 | Q-007 | What staged rollout and telemetry are permissible for this security-sensitive product? | REL-002 | Product/privacy/security | TBD |
-| Q-008 | Who are the accountable technical, security, product, platform, SSO, and release-engineering approvers? | M0 | Project sponsor | TBD |
-| Q-009 | Which existing Wire CI credentials and runners may be provisioned to the fork for E2E, signing, and package evidence? | M0 | Project sponsor/Release Engineering | TBD |
+| Q-008 | Who are the accountable technical, security, product, platform, SSO, and release-engineering approvers? | M0 | adamlow-wire | `adamlow-wire` is the accountable solo maintainer for each role; PR merges record self-review, not independent review |
+| Q-009 | Which existing Wire CI credentials and runners may be provisioned to the fork for E2E, signing, and package evidence? | M0 | adamlow-wire | E2E credentials are available for private fork configuration; unsigned development macOS testing is valid before release qualification; signing is deferred to M5; Jira is not used by the fork |
 
 ## 17. Change log
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.6.0 | 2026-08-18 | Codex | Replaced unavailable multi-person approval assumptions with a truthful solo-maintainer model and reconstructed M0 as a PR-only integration change | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, RSK-013, DEC-006, Q-001, Q-002, Q-006, Q-008, Q-009 |
 | 0.5.0 | 2026-08-18 | Codex | Recorded verified integration-branch protection and corrected diff-coverage sensitivity evidence | GOV-001, TST-001 |
 | 0.4.0 | 2026-08-18 | Codex | Captured M0 evidence, corrected SSO characterization versus target-security scope, and recorded external M0 blockers | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, ELC-001, TST-001, TST-002, CAP-002, RSK-012, RSK-013 |
 | 0.3.0 | 2026-08-18 | Codex | Recorded the durable human/AI project-memory outcome and knowledge-concentration risk | OBJ-007, GOV-003, RSK-011 |
