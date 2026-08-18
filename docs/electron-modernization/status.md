@@ -6,33 +6,35 @@ active_work_item: GOV-001
 state: setup
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
-fork_url: TBD
-publication: pending
+published_head: 567be7646a61fdd725f7fdb693880a294d65d155
+fork_url: https://github.com/adamlow-wire/wire-desktop
+publication: published
 upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
 next_work_item: BASE-001
-blockers: []
+blockers:
+  - GOV-001 requires hosted branch protection and required checks; GitHub CLI authentication must be renewed to configure them
 ---
 
 # Current project status
 
 ## Current outcome
 
-The structured plan and durable AI/human project scaffolding have been created on the local integration branch. Fork creation, branch publication, and the reproducible legacy baseline are the next operational steps.
+The structured plan and durable AI/human project scaffolding are committed and published to the existing `adamlow-wire/wire-desktop` fork. The branch is isolated on Wire's current `origin/dev` rather than the separate unmerged MSI feature history. Hosted branch protection and required checks remain before GOV-001 is complete.
 
 ## Active work
 
-| Field               | Value                                                                               |
-| ------------------- | ----------------------------------------------------------------------------------- |
-| Work item           | GOV-001 — Establish fork and integration workflow                                   |
-| Owner               | TBD                                                                                 |
-| Branch              | `integration/electron-modernization`                                                |
-| Goal                | Create and publish the fork/integration workflow without modifying upstream history |
-| Completion evidence | Fork URL, remote configuration, branch protection state, and recorded upstream base |
+| Field | Value |
+| --- | --- |
+| Work item | GOV-001 — Establish fork and integration workflow |
+| Owner | `adamlow-wire` |
+| Branch | `integration/electron-modernization` |
+| Goal | Create and publish the fork/integration workflow without modifying upstream history |
+| Completion evidence | [Published branch](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization), remotes, branch protection state, and recorded upstream base |
 
 ## Next executable sequence
 
-1. Finish GOV-001 and record the fork URL and integration commit.
+1. Renew GitHub CLI authentication, configure branch protection/required checks, and finish GOV-001.
 2. Run BASE-001 without changing application behavior.
 3. Create the capability acceptance matrix details under BASE-002.
 4. Begin TST-001 and TST-002 so coverage and SSO behavior are trustworthy before architecture replacement.
@@ -45,6 +47,7 @@ The structured plan and durable AI/human project scaffolding have been created o
 | Plan formatting           | `prettier --check` passed                 | 2026-08-18 |
 | Work item identifiers     | Unique                                    | 2026-08-18 |
 | Work item dependencies    | All identifiers resolve; graph is acyclic | 2026-08-18 |
+| Integration publication   | Branch pushed to `adamlow-wire` fork      | 2026-08-18 |
 | Application test baseline | Not yet executed under this project       | —          |
 | Packaged baseline         | Not yet executed under this project       | —          |
 

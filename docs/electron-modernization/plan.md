@@ -216,7 +216,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Required reviewers and CI checks are configured.
   - Upstream synchronization procedure is documented.
   - `upstream_base` in this document is populated.
-- Evidence: TBD
+- Evidence: [Fork integration branch](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization); hosted protection configuration remains open
 
 #### GOV-002 — Open early upstream architecture draft
 
