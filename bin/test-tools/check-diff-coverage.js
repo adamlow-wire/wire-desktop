@@ -109,7 +109,7 @@ const main = () => {
   const changedSecurityBranches = [];
 
   for (const [file, lines] of changed) {
-    if (/\.d\.ts$|\.test\.|\.spec\./.test(file)) {
+    if (!/\.tsx?$/.test(file) || /\.d\.ts$|\.test\.|\.spec\./.test(file)) {
       continue;
     }
 
