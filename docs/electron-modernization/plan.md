@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.2.0
+revision: 0.3.0
 status: draft
 updated: 2026-08-18
 owners:
@@ -95,6 +95,7 @@ This project is not a general rewrite of the Wire webapp.
 | OBJ-004 | Preserve required desktop behavior | Every retained capability has explicit acceptance criteria and passing tests on its supported platforms. |
 | OBJ-005 | Make future Electron upgrades routine | An owner, cadence, automation, and compatibility test gate exist for Electron updates. |
 | OBJ-006 | Produce an upstream-reviewable change | The final PR has a clear architecture narrative, migration evidence, security evidence, and a reviewable commit structure. |
+| OBJ-007 | Preserve project context across a long-running effort | Humans and AI agents can recover current state, decisions, evidence, and the next bounded task without relying on chat history. |
 
 ## 5. Security invariants
 
@@ -229,6 +230,21 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Upstream can review the architecture before full migration cost is incurred.
   - Material feedback is represented as decisions, risks, or work-item changes here.
 - Evidence: TBD
+
+#### GOV-003 — Establish durable human and AI project memory
+
+- Priority: `P0`
+- Status: `done`
+- Milestone: `M0`
+- Dependencies: none
+- Scope: Provide one discoverable project hub, authoritative scope, current handoff, testing contract, capability confidence matrix, ADR convention, and PR evidence template without adding runtime scaffolding.
+- Acceptance:
+  - Root agent guidance points to the project reading order and working rules.
+  - Current state and the next executable work have one authoritative location.
+  - Scope, decisions, risks, capabilities, and test evidence use stable identifiers.
+  - Scope and handoff update rules prevent silent loss of history.
+  - No production dependency or runtime abstraction is added.
+- Evidence: commit `567be7646a61fdd725f7fdb693880a294d65d155`
 
 #### BASE-001 — Capture a reproducible legacy baseline
 
@@ -789,6 +805,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | RSK-008 | Packaged behavior differs from development-mode E2E | high | high | Mandatory packaged smoke and installer/update test layers | TBD | open |
 | RSK-009 | User data or session state is lost during partition/architecture migration | medium | critical | Versioned migration, fixtures from released builds, backup/recovery design | TBD | open |
 | RSK-010 | Final upstream review is too large to complete effectively | high | high | Early architecture feedback, work-item commits, subsystem review packets | TBD | open |
+| RSK-011 | Knowledge is concentrated in too few Wire developers and is lost between implementation periods | high | high | Stable project IDs, baseline contracts, concise ADRs, current handoff, small PRs, and cross-review of security-sensitive work | TBD | open |
 
 ## 15. Decision log
 
@@ -816,6 +833,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.3.0 | 2026-08-18 | Codex | Recorded the durable human/AI project-memory outcome and knowledge-concentration risk | OBJ-007, GOV-003, RSK-011 |
 | 0.2.0 | 2026-08-18 | Codex | Moved the plan into the durable project documentation hub and added baseline-first testing and AI/human continuity scaffolding | GOV-001, BASE-001, BASE-002, TST-001, TST-002, TST-004 |
 | 0.1.0 | 2026-08-18 | Codex | Initial structured modernization plan | all |
 

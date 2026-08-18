@@ -6,7 +6,7 @@ active_work_item: GOV-001
 state: setup
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
-published_head: 567be7646a61fdd725f7fdb693880a294d65d155
+scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
@@ -39,6 +39,12 @@ The structured plan and durable AI/human project scaffolding are committed and p
 3. Create the capability acceptance matrix details under BASE-002.
 4. Begin TST-001 and TST-002 so coverage and SSO behavior are trustworthy before architecture replacement.
 5. Run ELC-001 from the verified baseline, then upgrade Electron one major at a time under ELC-002.
+
+## Completed work
+
+| Work item                                               | Evidence                                          |
+| ------------------------------------------------------- | ------------------------------------------------- |
+| GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155` |
 
 ## Last verified state
 
