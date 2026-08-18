@@ -1,8 +1,12 @@
 {
   "all": true,
-  "exclude": ["**/*.test*.ts"],
+  "clean": false,
+  "exclude": ["**/*.d.ts", "**/*.test*.ts"],
   "extension": [".ts"],
   "include": ["electron/src/**/*.ts"],
   "per-file": false,
-  "reporter": ["html"]
+  "report-dir": "coverage/electron",
+  "reporter": ["html", "json", "text-summary"],
+  "require": ["./.babel-register.js"],
+  "temp-dir": ".nyc_output"
 }
