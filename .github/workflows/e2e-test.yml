@@ -47,11 +47,34 @@ jobs:
         run: yarn playwright install --only-shell --with-deps chromium
 
       - uses: 1password/install-cli-action@8d006a0d0a4fd505af7f7ce589e7f768385ff5e4
-      - name: Generate env file
+        if: ${{ github.repository == 'wireapp/wire-desktop' }}
+      - name: Generate env file from 1Password
+        if: ${{ github.repository == 'wireapp/wire-desktop' }}
         shell: bash
         run: op inject -i e2e-tests/.env.tpl -o e2e-tests/.env
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+
+      - name: Generate env file from fork secrets
+        if: ${{ github.repository != 'wireapp/wire-desktop' }}
+        shell: bash
+        env:
+          WEBAPP_URL: ${{ secrets.E2E_WEBAPP_URL }}
+          BACKEND_URL: ${{ secrets.E2E_BACKEND_URL }}
+          BACKEND_BASIC_AUTH: ${{ secrets.E2E_BACKEND_BASIC_AUTH }}
+        run: |
+          for name in WEBAPP_URL BACKEND_URL BACKEND_BASIC_AUTH; do
+            if [[ -z "${!name}" ]]; then
+              echo "Required fork E2E secret ${name} is not configured." >&2
+              exit 1
+            fi
+          done
+          umask 077
+          printf '%s\n' \
+            "WEBAPP_URL=$WEBAPP_URL" \
+            "BACKEND_URL=$BACKEND_URL" \
+            "BACKEND_BASIC_AUTH=$BACKEND_BASIC_AUTH" \
+            >e2e-tests/.env
 
       - name: Build application
         shell: bash

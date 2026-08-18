@@ -13,8 +13,8 @@ upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
 next_work_item: BASE-001
 blockers:
-  - PR #1 must pass its required checks and be merged by the solo maintainer
-  - BASE-001 requires an E2E run after the fork credential is configured
+  - PR #1 must be merged by the solo maintainer after E2E evidence is reviewed
+  - BASE-001 requires an E2E run after three raw-value fork secrets are configured
   - Linux packaging reproducibly fails while rebuilding the Windows-only registry-js module
 ---
 
@@ -36,7 +36,7 @@ The active integration branch was recreated at the recorded upstream base so eve
 
 ## Next executable sequence
 
-1. Configure the fork's E2E secret without placing secret values in source or chat, label PR #1 `run-e2e`, and record the result.
+1. Configure `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` as fork Actions secrets without placing values in source or chat; then label PR #1 `run-e2e` and record the result.
 2. Review and merge PR #1 once the required checks and acceptable baseline evidence are present.
 3. Begin ELC-002 with an isolated 38→39 upgrade PR; fix the Linux packaging defect under PKG-001 rather than hiding it in the baseline.
 
@@ -67,7 +67,7 @@ The active integration branch was recreated at the recorded upstream base so eve
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
 | Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
-| Development E2E | Credentials available to maintainer; fork secret and run pending | — |
+| Development E2E | Raw values available to maintainer; three fork Actions secrets and run pending | — |
 
 ## Handoff notes
 

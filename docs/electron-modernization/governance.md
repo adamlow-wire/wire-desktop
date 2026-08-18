@@ -15,7 +15,6 @@ work_items: [GOV-001]
 | Fork | `fork` | `git@github.com:adamlow-wire/wire-desktop.git` | Hosts reviewed modernization work |
 | Upstream base | `origin/dev` | `e1ba98c50dce28b26b05466169fbdf941f0285f3` | Recorded starting point; later upstream commits enter by merge |
 | Integration | — | `integration/electron-modernization` | Shared, non-rebased history; final PR source |
-| Archived bootstrap | — | `archive/electron-modernization-bootstrap-2026-08-18` | Preserves the pre-PR bootstrap history; do not use as an implementation base |
 | Pending MSI work | — | `feature/WPB-5221-windows-native-msi` | Remains separate until it reaches `origin/dev` through normal review |
 
 The published integration branch is [available on the fork](https://github.com/adamlow-wire/wire-desktop/tree/integration/electron-modernization).
@@ -52,6 +51,6 @@ The desired branch rule is:
 - Require `Build and Test`, `Lint`, and `CodeQL` to pass and the branch to be current.
 - Require resolved conversations and block force pushes, deletion, and administrator bypass.
 
-On 2026-08-18 the original directly populated integration branch was archived and the active branch was recreated at upstream commit `e1ba98c50dce28b26b05466169fbdf941f0285f3`. PR #1 now contains the complete M0 delta. GitHub API readback confirms PR enforcement with zero external approvals, strict `Build and Test`, `lint`, and `Analyze (javascript)` checks, resolved conversations, and no administrator bypass, force pushes, or deletion.
+On 2026-08-18 the original directly populated integration branch was replaced by a clean active branch at upstream commit `e1ba98c50dce28b26b05466169fbdf941f0285f3`; its temporary archive was deleted after verifying that PR #1 preserved every M0 commit. PR #1 now contains the complete M0 delta. GitHub API readback confirms PR enforcement with zero external approvals, strict `Build and Test`, `lint`, and `Analyze (javascript)` checks, resolved conversations, and no administrator bypass, force pushes, or deletion.
 
 This is deliberately a solo-maintainer workflow. Quality comes from small PRs, explicit acceptance criteria, sensitive-test demonstrations, required CI, and recorded review notes—not ceremonial reviewer requirements that cannot be satisfied.

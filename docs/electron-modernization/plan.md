@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.6.0
+revision: 0.6.1
 status: draft
 updated: 2026-08-18
 owners:
@@ -218,7 +218,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - The PR review policy and CI checks are configured for the declared operating model.
   - Upstream synchronization procedure is documented.
   - `upstream_base` in this document is populated.
-- Evidence: [M0 PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1), [workflow specification](./governance.md), and GitHub API readback on 2026-08-18; the pre-PR bootstrap branch is archived
+- Evidence: [M0 PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1), [workflow specification](./governance.md), and GitHub API readback on 2026-08-18; the temporary pre-PR archive was deleted after ancestry verification
 
 #### GOV-002 — Open early upstream architecture draft
 
@@ -834,12 +834,13 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | Q-006 | Is Linux feature parity equal to Windows/macOS or a defined subset? | BASE-002 | adamlow-wire | Retain the current capability scope on Linux; document unavoidable platform differences explicitly and test them under their owning capability |
 | Q-007 | What staged rollout and telemetry are permissible for this security-sensitive product? | REL-002 | Product/privacy/security | TBD |
 | Q-008 | Who are the accountable technical, security, product, platform, SSO, and release-engineering approvers? | M0 | adamlow-wire | `adamlow-wire` is the accountable solo maintainer for each role; PR merges record self-review, not independent review |
-| Q-009 | Which existing Wire CI credentials and runners may be provisioned to the fork for E2E, signing, and package evidence? | M0 | adamlow-wire | E2E credentials are available for private fork configuration; unsigned development macOS testing is valid before release qualification; signing is deferred to M5; Jira is not used by the fork |
+| Q-009 | Which existing Wire CI credentials and runners may be provisioned to the fork for E2E, signing, and package evidence? | M0 | adamlow-wire | Raw E2E values use private `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` Actions secrets; unsigned development macOS testing is valid before release qualification; signing is deferred to M5; Jira is not used by the fork |
 
 ## 17. Change log
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.6.1 | 2026-08-18 | Codex | Added the raw-value fork E2E credential path and recorded deletion of the temporary bootstrap archive | GOV-001, BASE-001, Q-009 |
 | 0.6.0 | 2026-08-18 | Codex | Replaced unavailable multi-person approval assumptions with a truthful solo-maintainer model and reconstructed M0 as a PR-only integration change | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, RSK-013, DEC-006, Q-001, Q-002, Q-006, Q-008, Q-009 |
 | 0.5.0 | 2026-08-18 | Codex | Recorded verified integration-branch protection and corrected diff-coverage sensitivity evidence | GOV-001, TST-001 |
 | 0.4.0 | 2026-08-18 | Codex | Captured M0 evidence, corrected SSO characterization versus target-security scope, and recorded external M0 blockers | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, ELC-001, TST-001, TST-002, CAP-002, RSK-012, RSK-013 |
