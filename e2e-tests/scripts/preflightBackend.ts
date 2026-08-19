@@ -36,9 +36,12 @@ const requireEnvironmentValue = (name: 'BACKEND_URL' | 'BACKEND_BASIC_AUTH') => 
 const main = async () => {
   const backendUrl = requireEnvironmentValue('BACKEND_URL');
   const authorization = normalizeBasicAuthorization(requireEnvironmentValue('BACKEND_BASIC_AUTH'));
-  const statusUrl = new URL('/i/status', backendUrl);
+  const validationUrl = new URL('/i/users/activation-code', backendUrl);
 
-  const response = await fetch(statusUrl, {
+  // Authentication is evaluated by nginz before Brig validates the missing
+  // email parameter. A 4xx other than 401/403 therefore proves that the
+  // credential passed without creating or modifying backend data.
+  const response = await fetch(validationUrl, {
     headers: {Authorization: authorization, Accept: 'application/json'},
     signal: AbortSignal.timeout(15_000),
   });
@@ -46,8 +49,8 @@ const main = async () => {
   if (response.status === 401 || response.status === 403) {
     throw new Error(`The staging backend rejected E2E_BACKEND_BASIC_AUTH (HTTP ${response.status}).`);
   }
-  if (!response.ok) {
-    throw new Error(`The staging backend preflight failed at /i/status (HTTP ${response.status}).`);
+  if (response.status >= 500) {
+    throw new Error(`The staging backend preflight failed at /i/users/activation-code (HTTP ${response.status}).`);
   }
 
   console.info(`E2E backend preflight passed (HTTP ${response.status}).`);

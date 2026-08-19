@@ -13,7 +13,7 @@ upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
 next_work_item: BASE-001
 blockers:
-  - The configured E2E_BACKEND_BASIC_AUTH value is syntactically valid but staging rejects it with HTTP 401
+  - The original E2E run received HTTP 401 from the protected activation-code endpoint; the first PR #2 preflight used an unexposed route and must be rerun after correction
   - PR #1 must be merged by the solo maintainer after E2E evidence is reviewed
   - PR #2 must be reviewed and merged into the M0 branch before PR #1
   - Linux packaging reproducibly fails while rebuilding the Windows-only registry-js module
@@ -23,7 +23,7 @@ blockers:
 
 ## Current outcome
 
-The active integration branch was recreated at the recorded upstream base so every modernization commit enters through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). The project uses a solo-maintainer, AI-assisted model: the PR, strict automated checks, explicit test evidence, and the maintainer's merge decision replace unavailable multi-person approvals without claiming independent review. [PR #2](https://github.com/adamlow-wire/wire-desktop/pull/2) fixes raw Basic-auth normalization and adds a read-only preflight. The preflight proves that the configured value has a supported format but staging rejects it with HTTP 401. M0 is not closed until a valid internal staging credential produces an E2E baseline and the maintainer reviews and merges the stacked PRs.
+The active integration branch was recreated at the recorded upstream base so every modernization commit enters through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). The project uses a solo-maintainer, AI-assisted model: the PR, strict automated checks, explicit test evidence, and the maintainer's merge decision replace unavailable multi-person approvals without claiming independent review. [PR #2](https://github.com/adamlow-wire/wire-desktop/pull/2) fixes raw Basic-auth normalization and adds a non-mutating preflight against the actual protected activation-code route. Its first implementation incorrectly used unexposed `/i/status`, so run `32193043318` is not credential evidence and must be repeated after the correction. M0 is not closed until the protected route and E2E baseline pass and the maintainer reviews and merges the stacked PRs.
 
 ## Active work
 
@@ -69,7 +69,7 @@ The active integration branch was recreated at the recorded upstream base so eve
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
 | Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
-| Development E2E | Fork injection, builds, and app launch work on Windows/macOS; all 30 tests then fail at Brig activation with HTTP 401. [PR #2 preflight](https://github.com/adamlow-wire/wire-desktop/actions/runs/32193043318) independently confirms the configured internal credential is rejected on both platforms. | 2026-08-18 |
+| Development E2E | Fork injection, builds, and app launch work on Windows/macOS; all 30 tests then fail at Brig activation with HTTP 401. PR #2 run `32193043318` is invalid credential evidence because its initial preflight targeted unexposed `/i/status`; a corrected rerun is pending. | 2026-08-18 |
 
 ## Handoff notes
 
