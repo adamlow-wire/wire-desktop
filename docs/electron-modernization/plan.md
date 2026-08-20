@@ -3,7 +3,7 @@ document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
 revision: 0.6.1
 status: draft
-updated: 2026-08-18
+updated: 2026-08-20
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -259,7 +259,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Packaged development builds are smoke-tested on Windows, macOS, and Linux.
   - Known flaky or environment-dependent tests are identified.
   - Baseline artifacts and logs are retained by CI.
-- Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; E2E remains pending
+- Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; [first fork E2E run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32190461891) proved secret injection, builds, and launch but used an unauthorized Basic-auth value, so a valid E2E result remains pending
 
 #### BASE-002 — Create the capability acceptance matrix
 

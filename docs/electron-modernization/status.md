@@ -1,9 +1,9 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-08-18
+updated: 2026-08-20
 milestone: M0
 active_work_item: BASE-001
-state: awaiting-solo-maintainer-review
+state: awaiting-e2e-vault-access
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
@@ -13,8 +13,9 @@ upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
 next_work_item: BASE-001
 blockers:
-  - PR #1 must be merged by the solo maintainer after E2E evidence is reviewed
-  - BASE-001 requires an E2E run after three raw-value fork secrets are configured
+  - Access to the Test Automation 1Password vault is pending so the three exact staging values can replace the incorrect fork secrets
+  - TST-002 still requires a controlled SSO integration fixture before M0 can close
+  - PR #1 must be reviewed and merged by the solo maintainer after the remaining M0 evidence is recorded
   - Linux packaging reproducibly fails while rebuilding the Windows-only registry-js module
 ---
 
@@ -22,23 +23,25 @@ blockers:
 
 ## Current outcome
 
-The active integration branch was recreated at the recorded upstream base so every modernization commit enters through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). The project uses a solo-maintainer, AI-assisted model: the PR, strict automated checks, explicit test evidence, and the maintainer's merge decision replace unavailable multi-person approvals without claiming independent review. M0 is not closed until the E2E baseline is recorded and the maintainer reviews and merges PR #1.
+The protected integration branch intentionally remains at the recorded upstream base. The 13 M0 commits are on `ci/m0-package-baseline-portability` and enter integration only through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). Obsolete credential-workaround [PR #2](https://github.com/adamlow-wire/wire-desktop/pull/2) was closed without merge and its branch was deleted. M0 is not complete: BASE-001 is waiting for a valid staging E2E run, TST-002 still lacks its controlled SSO fixture, and the remaining review-dependent M0 items are accepted only when the maintainer merges PR #1.
 
 ## Active work
 
-| Field               | Value                                                                            |
-| ------------------- | -------------------------------------------------------------------------------- |
-| Work item           | BASE-001 — Capture a reproducible legacy baseline                                |
-| Owner               | `adamlow-wire`                                                                   |
-| Branch              | `ci/m0-package-baseline-portability`                                             |
-| Goal                | Complete E2E evidence and merge the complete M0 delta through PR #1              |
-| Completion evidence | Required CI, package/E2E runs, and the solo maintainer's recorded merge decision |
+| Field               | Value                                                                        |
+| ------------------- | ---------------------------------------------------------------------------- |
+| Work item           | BASE-001 — Capture a reproducible legacy baseline                            |
+| Owner               | `adamlow-wire`                                                               |
+| Branch              | `ci/m0-package-baseline-portability`                                         |
+| Goal                | Obtain the authoritative staging values and complete the legacy E2E baseline |
+| Completion evidence | Passing Windows/macOS E2E run using the exact Test Automation vault values   |
 
 ## Next executable sequence
 
-1. Configure `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` as fork Actions secrets without placing values in source or chat; then label PR #1 `run-e2e` and record the result.
-2. Review and merge PR #1 once the required checks and acceptable baseline evidence are present.
-3. Begin ELC-002 with an isolated 38→39 upgrade PR; fix the Linux packaging defect under PKG-001 rather than hiding it in the baseline.
+1. After access to the `Test Automation` vault is granted, copy the `BackendConnection staging` fields into `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` without placing values in source or chat.
+2. Add `run-e2e` to PR #1, classify any genuine product failures, and retain the Windows/macOS result.
+3. Complete the remaining TST-002 controlled SSO fixture and perform the M0 exit review.
+4. Review and merge PR #1; this records acceptance of BASE-002, ARC-001, and SEC-001 and places the M0 commits on the integration branch.
+5. Begin ELC-002 with an isolated 38→39 upgrade PR. The known Linux packaging defect remains assigned to PKG-001.
 
 ## Completed work
 
@@ -67,7 +70,7 @@ The active integration branch was recreated at the recorded upstream base so eve
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
 | Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
-| Development E2E | Raw values available to maintainer; three fork Actions secrets and run pending | — |
+| Development E2E | Run `32190461891` built and launched on Windows/macOS, then all 30 tests failed because the configured normal Wire login was rejected by the protected activation-code endpoint; authoritative vault values pending | 2026-08-19 |
 
 ## Handoff notes
 
@@ -75,4 +78,5 @@ The active integration branch was recreated at the recorded upstream base so eve
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
 - The Linux build command is not trustworthy until it propagates package errors and artifact existence is checked.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
+- PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
 - Update this file in place; retain only information needed to resume accurately. Durable historical outcomes belong in the plan change/decision logs and PRs.
