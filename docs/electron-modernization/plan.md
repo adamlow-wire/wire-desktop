@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.6.2
+revision: 0.6.3
 status: draft
 updated: 2026-08-20
 owners:
@@ -250,7 +250,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### BASE-001 — Capture a reproducible legacy baseline
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: GOV-001
 - Scope: Record current build/test results, supported platforms, package outputs, startup behavior, and known failures without treating known insecure behavior as desired behavior.
@@ -259,7 +259,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Packaging is attempted on Windows, macOS, and Linux; produced artifacts are smoke-tested, while failures to produce an artifact are retained and assigned to an owning work item.
   - Known flaky or environment-dependent tests are identified.
   - Baseline artifacts and logs are retained by CI.
-- Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; [E2E run 32356381068](https://github.com/adamlow-wire/wire-desktop/actions/runs/32356381068) passed macOS and retained one persistent Windows group-call failure plus one flaky logout flow
+- Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; [PR #3 E2E run 32364188026](https://github.com/adamlow-wire/wire-desktop/actions/runs/32364188026) passed Windows and macOS with all group-call and logout cases passing on their first attempts; the merged report retained 57 expected results and three unrelated known flakes
 
 #### BASE-002 — Create the capability acceptance matrix
 
@@ -840,6 +840,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.6.3 | 2026-08-20 | Codex | Completed the reproducible legacy baseline after authenticated group-call and logout stabilization passed on Windows and macOS | BASE-001 |
 | 0.6.2 | 2026-08-20 | Codex | Clarified that M0 records reproducible legacy packaging failures rather than requiring their implementation fix before baseline closure | BASE-001, PKG-001 |
 | 0.6.1 | 2026-08-18 | Codex | Added the raw-value fork E2E credential path and recorded deletion of the temporary bootstrap archive | GOV-001, BASE-001, Q-009 |
 | 0.6.0 | 2026-08-18 | Codex | Replaced unavailable multi-person approval assumptions with a truthful solo-maintainer model and reconstructed M0 as a PR-only integration change | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, RSK-013, DEC-006, Q-001, Q-002, Q-006, Q-008, Q-009 |

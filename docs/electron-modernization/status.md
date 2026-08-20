@@ -2,8 +2,8 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-20
 milestone: M0
-active_work_item: BASE-001
-state: e2e-windows-failure-analysis
+active_work_item: TST-002
+state: m0-sso-exit-review
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
@@ -11,36 +11,34 @@ fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
-next_work_item: BASE-001
+next_work_item: TST-002
 blockers:
-  - Windows E2E has one persistent group-call failure and one flaky logout flow in run 32356381068
   - TST-002 still requires a controlled SSO integration fixture before M0 can close
-  - PR #1 must be reviewed and merged by the solo maintainer after the remaining M0 evidence is recorded
+  - Stacked PRs #1 and #3 must be reviewed and merged in order by the solo maintainer
 ---
 
 # Current project status
 
 ## Current outcome
 
-The protected integration branch intentionally remains at the recorded upstream base. The M0 commits are on `ci/m0-package-baseline-portability` and enter integration only through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). Obsolete credential-workaround [PR #2](https://github.com/adamlow-wire/wire-desktop/pull/2) was closed without merge and its branch was deleted. The authoritative staging values are now configured: [E2E run 32356381068](https://github.com/adamlow-wire/wire-desktop/actions/runs/32356381068) passed all macOS tests; Windows passed 28, had one persistent group-call failure, and marked the logout flow flaky. M0 remains incomplete until those Windows results are characterized, TST-002 gains its controlled SSO fixture, and the maintainer merges PR #1.
+BASE-001 is complete on stacked [PR #3](https://github.com/adamlow-wire/wire-desktop/pull/3). [E2E run 32364188026](https://github.com/adamlow-wire/wire-desktop/actions/runs/32364188026) passed the complete Windows and macOS jobs; every group-call and logout case passed on its first attempt. The merged report recorded 57 expected results, three unrelated known flakes, and no unexpected failures. The protected integration branch remains unchanged until the maintainer reviews and merges PR #1 followed by PR #3. M0 then requires only TST-002 reconciliation and its exit review.
 
 ## Active work
 
 | Field               | Value                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------- |
-| Work item           | BASE-001 — Capture a reproducible legacy baseline                                   |
+| Work item           | TST-002 — Characterize enterprise SSO                                               |
 | Owner               | `adamlow-wire`                                                                      |
-| Branch              | `ci/m0-package-baseline-portability`                                                |
-| Goal                | Characterize and resolve the Windows-only E2E failures without weakening assertions |
-| Completion evidence | Passing Windows/macOS E2E run using the exact Test Automation vault values          |
+| Next branch         | `test/TST-002-controlled-sso`                                                       |
+| Goal                | Reconcile existing SSO integration evidence and fill only the remaining fixture gap |
+| Completion evidence | Passing deterministic Electron integration flow plus documented sensitivity         |
 
 ## Next executable sequence
 
-1. Use the retained Windows report and traces from run `32356381068` to characterize the group-call failure and logout flake on a dedicated BASE-001 test-fix branch/PR.
-2. Prove any test fix is sensitive to the behavior it protects, then rerun Windows and macOS with `run-e2e`.
-3. Complete the remaining TST-002 controlled SSO fixture and perform the M0 exit review.
-4. Review and merge PR #1; this records acceptance of BASE-002, ARC-001, and SEC-001 and places the M0 commits on the integration branch.
-5. Begin ELC-002 with an isolated 38→39 upgrade PR. The known Linux packaging defect remains assigned to PKG-001.
+1. Review and merge PR #1, then its stacked PR #3; do not merge directly to the protected integration branch.
+2. On a dedicated TST-002 branch, reconcile the existing 16-passing/3-security-target SSO suite with the controlled integration acceptance criterion and add only demonstrably missing coverage.
+3. Perform the M0 exit review and record its closure through a PR.
+4. Begin ELC-002 with an isolated 38→39 upgrade PR. The known Linux packaging defect remains assigned to PKG-001.
 
 ## Completed work
 
@@ -50,6 +48,7 @@ The protected integration branch intentionally remains at the recorded upstream 
 | GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155` |
 | ELC-001 — Inventory Electron compatibility blockers     | `electron-compatibility.md`                       |
 | TST-001 — Make coverage reporting accurate              | Commits `c27cfa6a`, `d96baaad`                    |
+| BASE-001 — Capture a reproducible legacy baseline       | PR #3 run `32364188026`                           |
 
 ## Last verified state
 
@@ -69,7 +68,7 @@ The protected integration branch intentionally remains at the recorded upstream 
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
 | Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
-| Development E2E | Run `32356381068`: macOS passed; Windows 28 passed, group call failed after three attempts (`Page.handleJavaScriptDialog` then login-avatar timeouts), and logout was flaky after a login-avatar timeout | 2026-08-20 |
+| Development E2E | Run `32364188026`: Windows/macOS jobs passed; merged report 57 expected, 3 unrelated flaky, 0 unexpected; all group-call/logout cases passed first attempt | 2026-08-20 |
 
 ## Handoff notes
 
@@ -78,5 +77,6 @@ The protected integration branch intentionally remains at the recorded upstream 
 - The Linux build command is not trustworthy until it propagates package errors and artifact existence is checked.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
-- The authoritative `BackendConnection staging` values work. Do not alter credential handling in response to the remaining Windows-only product-flow failures.
+- The authoritative `BackendConnection staging` values work. Do not add credential normalization or workarounds without new evidence of a credential defect.
+- Local Linux is useful for build/unit/integration filtering but cannot currently replace the hosted E2E gate: the wrapper opens and the expected `<webview>` page is not surfaced as a second Playwright window.
 - Update this file in place; retain only information needed to resume accurately. Durable historical outcomes belong in the plan change/decision logs and PRs.
