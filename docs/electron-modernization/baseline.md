@@ -1,6 +1,6 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION-BASELINE
-status: captured-with-gaps
+status: captured
 updated: 2026-08-20
 work_items: [BASE-001, TST-001]
 source_commit: 1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a
@@ -37,7 +37,7 @@ The IDE exports `ELECTRON_RUN_AS_NODE=1`. Electron commands must remove that inh
 | Development startup | `electron . --no-sandbox --version` | pass; prints `3.42.0` and exits |
 | Aggregate coverage | legacy `yarn coverage` | fail: `.nyc_output` did not exist because test scripts were not run under NYC |
 | Linux AppImage | `LINUX_TARGET=AppImage yarn build:linux` | fail during `registry-js` rebuild; wrapper logs the error but exits 0 |
-| Development E2E | PR #1 run `32356381068` | macOS passed all 30 tests; Windows passed 28, failed group call after three attempts, and marked logout flaky |
+| Development E2E | PR #3 run `32364188026` | Windows and macOS jobs passed; merged report: 57 expected, 3 unrelated flaky, 0 unexpected; group-call and logout cases passed first attempt on both platforms |
 | Windows package smoke | PR #1 Windows runner | pass; development executable produced, launched, and retained |
 | macOS package smoke | PR #1 macOS runner | pass; unsigned development app produced, launched, and retained |
 
@@ -50,9 +50,10 @@ The IDE exports `ELECTRON_RUN_AS_NODE=1`. Electron commands must remove that inh
 | Legacy coverage command has no input data and covers neither unimported source nor local renderer code | Replace it with explicit NYC/Jest collection and CI artifacts | TST-001 |
 | Linux packaging attempts to rebuild the Windows-only optional `registry-js` module | Linux artifacts cannot currently be reproduced in this environment | ELC-001, PKG-001 |
 | Linux and macOS build functions catch packaging errors without rethrowing | CI can report success without an artifact; package existence must be asserted | ELC-001, PKG-001 |
-| E2E runs only Windows and macOS; authoritative staging values work, but Windows group call fails and logout is flaky while macOS passes | BASE-001 remains incomplete until the Windows behavior is characterized and a green rerun is retained | BASE-001, TST-005 |
+| E2E runs only Windows and macOS; a local Linux attempt cannot currently substitute because the wrapper opens but Playwright does not expose its `<webview>` as the expected second window | Retain Windows/macOS as the development E2E gate and add representative Linux coverage under its owning work | TST-005 |
+| The merged green report retained Windows localization and menu-archive flakes plus a macOS multi-account notification flake | These are visible non-blocking baseline instability, separate from the first-attempt group-call and logout results | TST-003, TST-005 |
 | Current warnings include typeless ESM reparsing, stale Browserslist data, deprecated Node `punycode`, and AWS SDK v2 end of support | Compatibility inventory must track toolchain updates without conflating warnings with test failures | ELC-001, ELC-003 |
 
 ## Remaining platform evidence
 
-The [PR #1 package baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retains Windows and macOS development artifacts and converts Linux's missing AppImage into a visible failure. With the authoritative staging values, [E2E run 32356381068](https://github.com/adamlow-wire/wire-desktop/actions/runs/32356381068) passed macOS and exposed a persistent Windows group-call failure plus a flaky logout flow; its merged Playwright report and platform blobs are retained. BASE-001 remains incomplete until those Windows results are characterized and a green rerun is retained. Repairing the known Linux package failure and making build wrappers propagate errors belong to PKG-001; the reproducible legacy failure remains visible baseline evidence.
+The [PR #1 package baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retains Windows and macOS development artifacts and converts Linux's missing AppImage into a visible failure. [PR #3 E2E run 32364188026](https://github.com/adamlow-wire/wire-desktop/actions/runs/32364188026) passed both platform jobs after the authenticated-page and call-cleanup contracts were stabilized. All group-call and logout cases passed on their first attempts; the merged report retains the three unrelated flakes listed above. Repairing the known Linux package failure and making build wrappers propagate errors belong to PKG-001; representative Linux E2E belongs to TST-005.
