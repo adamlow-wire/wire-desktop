@@ -11,7 +11,7 @@ owners:
 operating_model: solo AI-assisted maintainer
 source_branch: integration/electron-modernization
 upstream_base: e1ba98c50dce28b26b05466169fbdf941f0285f3
-current_electron: 38.8.6
+current_electron: 43.4.0
 reference_latest_stable_electron: 43.4.0
 reference_latest_checked: 2026-08-18
 target_electron_rule: latest stable Electron at each release-candidate cut
@@ -121,7 +121,7 @@ Baseline facts are observations, not target behavior.
 
 | Area | Baseline on 2026-08-18 | Consequence |
 | --- | --- | --- |
-| Electron | `38.8.6`; Electron 38 is end-of-life | P0 runtime upgrade required. |
+| Electron | `43.4.0`; latest stable verified 2026-08-20 | Keep the runtime within Electron's supported window. |
 | Main wrapper | `contextIsolation: false`, `sandbox: false`, `webviewTag: true` | The current architecture conflicts with INV-001. |
 | Remote account views | `<webview>`, `allowpopups`, unsandboxed preload, context isolation disabled | Replacement view architecture required. |
 | Remote access | `@electron/remote` is enabled broadly | Must be removed. |
@@ -171,7 +171,7 @@ The current source references supporting this baseline include:
 
 Three P0 tracks SHOULD proceed in parallel after M0:
 
-- **Track A — Runtime:** Upgrade Electron one major at a time, resolve breaking changes, and land on the latest stable release.
+- **Track A — Runtime:** Test the direct upgrade to latest stable first; split only at evidenced compatibility boundaries.
 - **Track B — Secure shell:** Build the replacement view, preload, IPC, navigation, and permission architecture.
 - **Track C — Safety net:** Add characterization, security-contract, and compatibility tests needed to change behavior safely.
 
@@ -490,7 +490,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 - Status: `ready`
 - Milestone: `M1`
 - Dependencies: BASE-001, ELC-001
-- Scope: Upgrade one Electron major at a time from 38 to the latest stable release, resolving and testing each major transition. Refresh the target immediately before completion.
+- Scope: Upgrade from Electron 38 to the latest stable release, testing the direct transition first and splitting only where an evidenced compatibility boundary requires it. Refresh the target immediately before completion.
 - Acceptance:
   - `package.json` pins the latest stable Electron available at completion.
   - All baseline unit, integration, type, lint, and required E2E tests pass.
@@ -840,6 +840,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.8.0 | 2026-08-20 | Codex | Revalidated Electron 43.4.0 as latest stable and replaced assumed per-major upgrade ceremony with a direct, evidence-driven transition | ELC-001, ELC-002 |
 | 0.7.0 | 2026-08-20 | Codex | Closed M0 after accepted governance, capability, architecture, threat-model, baseline, and deterministic SSO evidence; made the Electron 38→39 upgrade the next work | BASE-002, ARC-001, SEC-001, TST-002, DEC-004, ELC-002 |
 | 0.6.3 | 2026-08-20 | Codex | Completed the reproducible legacy baseline after authenticated group-call and logout stabilization passed on Windows and macOS | BASE-001 |
 | 0.6.2 | 2026-08-20 | Codex | Clarified that M0 records reproducible legacy packaging failures rather than requiring their implementation fix before baseline closure | BASE-001, PKG-001 |

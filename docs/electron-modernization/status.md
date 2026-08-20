@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-20
 milestone: M1
 active_work_item: ELC-002
-state: m0-complete
+state: m1-in-progress
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 integration_head_commit: 6a406dbdd474114fd3e3031091569e579ec606df
@@ -20,24 +20,24 @@ blockers: []
 
 ## Current outcome
 
-M0's governed-baseline exit gate is satisfied. [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1) recorded solo-maintainer acceptance of the capability matrix, architecture, and threat model; [PR #4](https://github.com/adamlow-wire/wire-desktop/pull/4) integrated the reviewed BASE-001 stabilization. The SSO suite now has 18 passing characterizations, including a deterministic local Electron fixture, with three legacy security failures explicitly quarantined for CAP-002. M1 begins with ELC-002's isolated Electron 38→39 upgrade.
+M0 is merged through [PR #5](https://github.com/adamlow-wire/wire-desktop/pull/5). M1 is active on `upgrade/ELC-002-electron-43`: Electron is pinned directly from `38.8.6` to the revalidated latest stable `43.4.0`, and the local compatibility gate passes without source changes or security exceptions. Clean CI must now prove coverage, required E2E, and packaged launch smoke before merge.
 
 ## Active work
 
-| Field               | Value                                                                   |
-| ------------------- | ----------------------------------------------------------------------- |
-| Work item           | ELC-002 — Upgrade Electron to latest stable                             |
-| Owner               | `adamlow-wire`                                                          |
-| Next branch         | `upgrade/ELC-002-electron-39`                                           |
-| Goal                | Upgrade Electron 38→39 as one isolated, tested compatibility transition |
-| Completion evidence | Baseline tests and supported-platform packages pass on Electron 39      |
+| Field               | Value                                                                        |
+| ------------------- | ---------------------------------------------------------------------------- |
+| Work item           | ELC-002 — Upgrade Electron to latest stable                                  |
+| Owner               | `adamlow-wire`                                                               |
+| Active branch       | `upgrade/ELC-002-electron-43`                                                |
+| Goal                | Prove the direct Electron 38.8.6→43.4.0 transition                           |
+| Completion evidence | Local baseline plus clean Windows/macOS/Linux package and required E2E gates |
 
 ## Next executable sequence
 
-1. Review and merge the M0 closure PR.
-2. Refresh the latest stable Electron reference and upstream compatibility state before runtime changes.
-3. Begin ELC-002 with an isolated 38→39 upgrade PR; preserve the M0 characterization contracts unchanged.
-4. Keep the known Linux packaging repair under PKG-001 and the three SSO security targets under CAP-002.
+1. Open the ELC-002 PR and run all clean-checkout required checks.
+2. Require Windows and macOS packaged launch smoke plus the existing authenticated E2E matrix.
+3. Merge only when Electron `43.4.0` remains latest stable and every required result is green.
+4. Begin the bounded M2 secure single-account shell proof on a new branch; keep the three legacy SSO targets under CAP-002.
 
 ## Completed work
 
@@ -73,6 +73,7 @@ M0's governed-baseline exit gate is satisfied. [PR #1](https://github.com/adamlo
 | Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
 | Development E2E | Run `32364188026`: Windows/macOS jobs passed; merged report 57 expected, 3 unrelated flaky, 0 unexpected; all group-call/logout cases passed first attempt | 2026-08-20 |
+| Electron 43 local compatibility | Runtime `v43.4.0`; types/build passed; Jest 14/36, main 54 + 3 pending, renderer 2, build tools 13 all passed | 2026-08-20 |
 
 ## Handoff notes
 
