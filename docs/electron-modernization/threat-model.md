@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION-THREAT-MODEL
-status: review-required
-updated: 2026-08-18
+status: accepted
+updated: 2026-08-20
 work_items: [SEC-001]
 reviewers:
   technical: adamlow-wire
@@ -112,4 +112,4 @@ Each critical/high threat must have at least one automated deny-path test. THR-0
 | A compromised administrator/OS can inspect or replace user-space state | adamlow-wire | Solo maintainer | Documented platform assumption; signing/integrity still required |
 | Supply-chain compromise of signing authority bypasses application checks | adamlow-wire | Solo maintainer; signing authority for release | Requires operational key protection and incident response |
 
-The model is technically complete. In the solo workflow, the maintainer's review and merge of PR #1 records acceptance; the M0 closure PR records that outcome in project status. This is self-review and is not described as independent security assurance.
+The model is technically complete. In the solo workflow, the maintainer's review and merge of PR #1 records acceptance. This is self-review and is not described as independent security assurance.

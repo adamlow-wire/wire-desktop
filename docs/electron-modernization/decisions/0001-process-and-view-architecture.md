@@ -1,7 +1,7 @@
 ---
 decision_id: DEC-004
 adr: 0001
-status: proposed
+status: accepted
 date: 2026-08-18
 owners: [adamlow-wire]
 work_items: [ARC-001, SEC-002, SEC-005, SEC-006, SEC-007]
@@ -86,7 +86,7 @@ This removes renderer-owned `<webview>` creation and provides one main-process s
 - A one-account M2 spike must demonstrate view composition, resize/focus, crash recovery, navigation denial, and explicit destruction on all supported platforms.
 - Hostile-renderer tests must fail to access raw IPC, Electron/Node, another account, unknown frames, or capabilities not registered to the view.
 - Multi-account, SSO, calling/display capture, tray/notification routing, proxy/certificate, deep-link, and packaged tests remain capability gates.
-- The solo maintainer must review the architecture and security consequences before merging PR #1. That merge records acceptance without claiming independent review; the M0 closure PR then updates this status from `proposed` to `accepted`.
+- The solo maintainer reviewed the architecture and security consequences through PR #1. Its merge records acceptance without claiming independent review.
 
 ## Revisit conditions
 
