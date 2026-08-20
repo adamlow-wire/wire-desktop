@@ -2,9 +2,9 @@ name: Lint
 
 on:
   push:
-    branches: [main, staging, dev]
+    branches: [main, staging, dev, integration/electron-modernization]
   pull_request:
-    branches: [main, staging, dev]
+    branches: [main, staging, dev, integration/electron-modernization]
   merge_group:
     branches: [main, staging, dev]
 

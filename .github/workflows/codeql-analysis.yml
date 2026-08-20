@@ -6,6 +6,10 @@
 name: 'CodeQL'
 
 on:
+  push:
+    branches: [integration/electron-modernization]
+  pull_request:
+    branches: [integration/electron-modernization]
   schedule:
     - cron: '0 18 * * MON'
 

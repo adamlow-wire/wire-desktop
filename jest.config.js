@@ -22,6 +22,9 @@
 /** @type {import('@jest/types').Config.InitialOptions} */
 // const jestConfig: Config = {
 const jestConfig = {
+  collectCoverageFrom: ['electron/renderer/src/**/*.{ts,tsx}', '!electron/renderer/src/**/*.d.ts'],
+  coverageDirectory: '<rootDir>/coverage/renderer',
+  coverageReporters: ['html', 'json', 'text-summary'],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
   testEnvironment: 'jsdom',
   testPathIgnorePatterns: ['<rootDir>/electron/dist', '<rootDir>/e2e-tests'],
