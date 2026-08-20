@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-20
 milestone: M0
 active_work_item: BASE-001
-state: awaiting-e2e-vault-access
+state: e2e-windows-failure-analysis
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
@@ -13,7 +13,7 @@ upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
 next_work_item: BASE-001
 blockers:
-  - Access to the Test Automation 1Password vault is pending so the three exact staging values can replace the incorrect fork secrets
+  - Windows E2E has one persistent group-call failure and one flaky logout flow in run 32356381068
   - TST-002 still requires a controlled SSO integration fixture before M0 can close
   - PR #1 must be reviewed and merged by the solo maintainer after the remaining M0 evidence is recorded
 ---
@@ -22,22 +22,22 @@ blockers:
 
 ## Current outcome
 
-The protected integration branch intentionally remains at the recorded upstream base. The 13 M0 commits are on `ci/m0-package-baseline-portability` and enter integration only through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). Obsolete credential-workaround [PR #2](https://github.com/adamlow-wire/wire-desktop/pull/2) was closed without merge and its branch was deleted. M0 is not complete: BASE-001 is waiting for a valid staging E2E run, TST-002 still lacks its controlled SSO fixture, and the remaining review-dependent M0 items are accepted only when the maintainer merges PR #1.
+The protected integration branch intentionally remains at the recorded upstream base. The M0 commits are on `ci/m0-package-baseline-portability` and enter integration only through [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1). Obsolete credential-workaround [PR #2](https://github.com/adamlow-wire/wire-desktop/pull/2) was closed without merge and its branch was deleted. The authoritative staging values are now configured: [E2E run 32356381068](https://github.com/adamlow-wire/wire-desktop/actions/runs/32356381068) passed all macOS tests; Windows passed 28, had one persistent group-call failure, and marked the logout flow flaky. M0 remains incomplete until those Windows results are characterized, TST-002 gains its controlled SSO fixture, and the maintainer merges PR #1.
 
 ## Active work
 
-| Field               | Value                                                                        |
-| ------------------- | ---------------------------------------------------------------------------- |
-| Work item           | BASE-001 — Capture a reproducible legacy baseline                            |
-| Owner               | `adamlow-wire`                                                               |
-| Branch              | `ci/m0-package-baseline-portability`                                         |
-| Goal                | Obtain the authoritative staging values and complete the legacy E2E baseline |
-| Completion evidence | Passing Windows/macOS E2E run using the exact Test Automation vault values   |
+| Field               | Value                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| Work item           | BASE-001 — Capture a reproducible legacy baseline                                   |
+| Owner               | `adamlow-wire`                                                                      |
+| Branch              | `ci/m0-package-baseline-portability`                                                |
+| Goal                | Characterize and resolve the Windows-only E2E failures without weakening assertions |
+| Completion evidence | Passing Windows/macOS E2E run using the exact Test Automation vault values          |
 
 ## Next executable sequence
 
-1. After access to the `Test Automation` vault is granted, copy the `BackendConnection staging` fields into `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` without placing values in source or chat.
-2. Add `run-e2e` to PR #1, classify any genuine product failures, and retain the Windows/macOS result.
+1. Use the retained Windows report and traces from run `32356381068` to characterize the group-call failure and logout flake on a dedicated BASE-001 test-fix branch/PR.
+2. Prove any test fix is sensitive to the behavior it protects, then rerun Windows and macOS with `run-e2e`.
 3. Complete the remaining TST-002 controlled SSO fixture and perform the M0 exit review.
 4. Review and merge PR #1; this records acceptance of BASE-002, ARC-001, and SEC-001 and places the M0 commits on the integration branch.
 5. Begin ELC-002 with an isolated 38→39 upgrade PR. The known Linux packaging defect remains assigned to PKG-001.
@@ -69,7 +69,7 @@ The protected integration branch intentionally remains at the recorded upstream 
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
 | Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
-| Development E2E | Run `32190461891` built and launched on Windows/macOS, then all 30 tests failed because the configured normal Wire login was rejected by the protected activation-code endpoint; authoritative vault values pending | 2026-08-19 |
+| Development E2E | Run `32356381068`: macOS passed; Windows 28 passed, group call failed after three attempts (`Page.handleJavaScriptDialog` then login-avatar timeouts), and logout was flaky after a login-avatar timeout | 2026-08-20 |
 
 ## Handoff notes
 
@@ -78,4 +78,5 @@ The protected integration branch intentionally remains at the recorded upstream 
 - The Linux build command is not trustworthy until it propagates package errors and artifact existence is checked.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
+- The authoritative `BackendConnection staging` values work. Do not alter credential handling in response to the remaining Windows-only product-flow failures.
 - Update this file in place; retain only information needed to resume accurately. Durable historical outcomes belong in the plan change/decision logs and PRs.

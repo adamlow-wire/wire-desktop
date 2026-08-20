@@ -259,7 +259,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Packaging is attempted on Windows, macOS, and Linux; produced artifacts are smoke-tested, while failures to produce an artifact are retained and assigned to an owning work item.
   - Known flaky or environment-dependent tests are identified.
   - Baseline artifacts and logs are retained by CI.
-- Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; [first fork E2E run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32190461891) proved secret injection, builds, and launch but used an unauthorized Basic-auth value, so a valid E2E result remains pending
+- Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; [E2E run 32356381068](https://github.com/adamlow-wire/wire-desktop/actions/runs/32356381068) passed macOS and retained one persistent Windows group-call failure plus one flaky logout flow
 
 #### BASE-002 — Create the capability acceptance matrix
 
