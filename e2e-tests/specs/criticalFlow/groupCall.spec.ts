@@ -29,12 +29,16 @@ test(
   'I want to have a group call',
   {tag: ['@TC-11071', '@crit-flow-web']},
   async ({app, createUser, createTeam, createPage}) => {
-    const [member, memberPage] = await Promise.all([createUser(), createPage()]);
+    const [member, initialMemberPage] = await Promise.all([createUser(), createPage()]);
     const team = await createTeam('Calling', {users: [member], features: {conferenceCalling: true}});
-    const [owner, ownerPage] = [team.owner, app.page];
+    const [owner, initialOwnerPage] = [team.owner, app.page];
     const conversationName = 'Calling';
 
-    await Promise.all([loginUser(memberPage, member), loginUser(ownerPage, owner)]);
+    const [memberPage, ownerPage] = await Promise.all([
+      loginUser(initialMemberPage, member),
+      loginUser(initialOwnerPage, owner),
+    ]);
+    app.page = ownerPage;
 
     await test.step('Owner creates group and adds the member', async () => {
       await createGroup(ownerPage, conversationName, [member]);
@@ -52,6 +56,14 @@ test(
 
       await expect(callCell(memberPage).goFullScreen).toBeVisible();
       await expect(callCell(ownerPage).goFullScreen).toBeVisible();
+    });
+
+    await test.step('Participants leave the call before test teardown', async () => {
+      await callCell(ownerPage).declineButton.click();
+      await expect(callCell(ownerPage)).toBeHidden();
+
+      await callCell(memberPage).declineButton.click();
+      await expect(callCell(memberPage)).toBeHidden();
     });
   },
 );
