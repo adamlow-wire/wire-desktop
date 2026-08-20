@@ -23,11 +23,14 @@ const pkg = require('../../package.json');
 void (async () => {
   try {
     const config = await buildLinuxConfig();
-    const desktopConfig = config.builderConfig.deb?.desktop;
+    const desktopConfig = config.builderConfig.deb?.desktop?.entry;
+    if (!desktopConfig) {
+      throw new Error('Linux desktop entry configuration is missing.');
+    }
     desktopConfig.Comment = pkg.description;
     desktopConfig.Exec = `${pkg.name} %U`;
     desktopConfig.Icon = pkg.name;
-    desktopConfig.Terminal = false;
+    desktopConfig.Terminal = 'false';
     desktopConfig.Type = 'Application';
     const formattedEntry = Object.entries(desktopConfig)
       .map(([key, value]) => `${key}=${value}`)

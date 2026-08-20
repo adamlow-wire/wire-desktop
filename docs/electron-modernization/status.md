@@ -20,7 +20,7 @@ blockers: []
 
 ## Current outcome
 
-M0 is merged through [PR #5](https://github.com/adamlow-wire/wire-desktop/pull/5). M1 is active on `upgrade/ELC-002-electron-43`: Electron is pinned directly from `38.8.6` to the revalidated latest stable `43.4.0`, and the local compatibility gate passes without source changes or security exceptions. Clean CI must now prove coverage, required E2E, and packaged launch smoke before merge.
+M0 is merged through [PR #5](https://github.com/adamlow-wire/wire-desktop/pull/5). M1 is active in [PR #6](https://github.com/adamlow-wire/wire-desktop/pull/6): Electron is pinned directly from `38.8.6` to the revalidated latest stable `43.4.0`. The first hosted run exposed the known Linux false-green as a real M1 blocker: builder 25.1.8 could not resolve Electron 43's ABI and the wrapper swallowed the error. The branch now updates the packaging toolchain, propagates failures, and makes missing artifacts fatal; clean platform reruns are pending.
 
 ## Active work
 
@@ -70,7 +70,7 @@ M0 is merged through [PR #5](https://github.com/adamlow-wire/wire-desktop/pull/5
 | Build-tool baseline | 13 tests passed | 2026-08-20 |
 | SSO characterization | 18 passed / 3 CAP-002 security targets pending; new error tests sensitivity-proven | 2026-08-20 |
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
-| Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
+| Linux AppImage baseline | PR #6 first run confirmed builder 25.1.8 could not resolve Electron 43 ABI and incorrectly exited 0; repair and fatal artifact gate pending rerun | 2026-08-20 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
 | Development E2E | Run `32364188026`: Windows/macOS jobs passed; merged report 57 expected, 3 unrelated flaky, 0 unexpected; all group-call/logout cases passed first attempt | 2026-08-20 |
 | Electron 43 local compatibility | Runtime `v43.4.0`; types/build passed; Jest 14/36, main 54 + 3 pending, renderer 2, build tools 13 all passed | 2026-08-20 |
@@ -79,7 +79,7 @@ M0 is merged through [PR #5](https://github.com/adamlow-wire/wire-desktop/pull/5
 
 - Do not claim independent review in the solo-maintainer model. The maintainer's PR merge is the recorded product/security/architecture decision.
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
-- The Linux build command is not trustworthy until it propagates package errors and artifact existence is checked.
+- PR #6 contains a sensitivity-proven regression test for Linux packaging error propagation; do not restore the prior catch-and-log behavior.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
 - The authoritative `BackendConnection staging` values work. Do not add credential normalization or workarounds without new evidence of a credential defect.

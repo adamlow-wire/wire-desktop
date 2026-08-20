@@ -55,11 +55,6 @@ jobs:
             macOS) artifact=$(find wrap/build -type d -name '*.app' -print -quit) ;;
           esac
           if [[ -z "$artifact" ]]; then
-            if [[ '${{ matrix.platform }}' == 'Linux' ]]; then
-              echo '::warning title=Known Linux baseline gap::Build returned without producing an AppImage; PKG-001 owns the repair.'
-              echo 'available=false' >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
             echo "Build returned without producing the expected ${{ matrix.platform }} artifact." >&2
             exit 1
           fi

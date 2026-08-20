@@ -58,7 +58,7 @@ These are not new 39-to-43 removals, but they are upgrade blockers because carry
 | Host Node | `.node-version` `22.22.3` | Node 24 is embedded from Electron 40 onward; build Node may remain 22 only if supported by all tools | ELC-002 tests runtime behavior at each major; ELC-003 aligns build Node deliberately |
 | `electron-mocha` | `12.3.1` | Must prove main/renderer tests and source-map coverage on each Electron major | ELC-003/TST-001; replace if it blocks sandboxed integration tests |
 | Playwright | `1.60.0` | Electron launch compatibility and Chromium browser-shell install must be tested | ELC-003/TST-005 |
-| `electron-builder` | `25.1.8` | Linux package currently fails rebuilding Windows-only `registry-js`; error is swallowed | ELC-003/PKG-001; fix dependency pruning and propagate failure before accepting artifacts |
+| `electron-builder` | `26.15.3` | Updated in ELC-002 because 25.1.8's rebuild stack could not resolve Electron 43's ABI | ELC-002 propagates packaging failures and requires real artifacts; broader dependency review remains ELC-003 |
 | `electron-packager` | `17.1.2` | Windows/macOS packaging and Electron 43 download/sign behavior unverified | ELC-003/PKG-001 |
 | `@electron/fuses` | `1.8.0` | Existing useful fuses must remain compatible and be re-read from packaged binaries | SEC-011/PKG-001 |
 | `@electron/osx-sign` | `1.3.3` | Signing/notarization and Electron 42 notification behavior require signed artifact tests | ELC-003/PKG-001 |
@@ -70,4 +70,4 @@ These are not new 39-to-43 removals, but they are upgrade blockers because carry
 
 ## Upgrade execution record
 
-ELC-002 tested the direct `38.8.6`→`43.4.0` transition first. The dependency and runtime transition required no source compatibility workaround: types, development build, Jest, Electron main/renderer, and build-tool suites passed unchanged. This made intermediate version commits unnecessary and avoided validating releases that were already unsupported. Clean CI provides coverage, E2E, and platform package smoke evidence before acceptance. A packaging function that merely logs an error, or a job whose claimed artifact is absent, is not accepted.
+ELC-002 tested the direct `38.8.6`→`43.4.0` transition first. Application source required no compatibility workaround: types, development build, Jest, Electron main/renderer, and build-tool suites passed unchanged. Packaging required `electron-builder` `25.1.8`→`26.15.3`, the new nested Linux desktop-entry configuration shape, and propagation of builder failures after configuration restoration. This made intermediate Electron commits unnecessary and avoided validating releases that were already unsupported. Clean CI provides coverage, E2E, and platform package smoke evidence before acceptance. A packaging function that merely logs an error, or a job whose claimed artifact is absent, is not accepted.

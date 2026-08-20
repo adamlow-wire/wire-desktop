@@ -17,9 +17,14 @@
  */
 
 import * as assert from 'assert';
+import * as fs from 'fs-extra';
+import * as os from 'os';
 import * as path from 'path';
 
-import {buildLinuxConfig} from './build-linux';
+import {Arch} from 'builder-util';
+import type {Configuration, Platform} from 'electron-builder';
+
+import {buildLinuxConfig, buildLinuxWrapper} from './build-linux';
 import {generateUUID} from '../../bin-utils';
 
 const wireJsonPath = path.join(__dirname, '../../../electron/wire.json');
@@ -49,6 +54,51 @@ describe('build-linux', () => {
       delete process.env.LINUX_NAME_SHORT;
       delete process.env.LINUX_KEYWORDS;
       delete process.env.LINUX_TARGET;
+    });
+  });
+
+  describe('buildLinuxWrapper', () => {
+    it('propagates packaging errors and restores mutated configuration files', async () => {
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'build-linux-'));
+      const packageJsonPath = path.join(tempDir, 'package.json');
+      const tempWireJsonPath = path.join(tempDir, 'wire.json');
+      const tempEnvFilePath = path.join(tempDir, '.env.defaults');
+      const originalPackageJson = {name: 'test-package', version: '1.0.0'};
+      const originalWireJson = await fs.readJson(wireJsonPath);
+      const controlledError = new Error('controlled packaging failure');
+
+      await fs.writeJson(packageJsonPath, originalPackageJson);
+      await fs.writeJson(tempWireJsonPath, originalWireJson);
+      await fs.writeFile(tempEnvFilePath, '', 'utf8');
+
+      try {
+        await assert.rejects(
+          buildLinuxWrapper(
+            {} as Configuration,
+            {
+              artifactName: 'test.${ext}',
+              categories: 'Network',
+              executableName: 'test',
+              genericName: 'Test',
+              keywords: 'test',
+              targets: ['AppImage'],
+            },
+            packageJsonPath,
+            tempWireJsonPath,
+            tempEnvFilePath,
+            Arch.x64,
+            async () => {
+              throw controlledError;
+            },
+            () => new Map() as ReturnType<typeof Platform.LINUX.createTarget>,
+          ),
+          error => error === controlledError,
+        );
+        assert.deepStrictEqual(await fs.readJson(packageJsonPath), originalPackageJson);
+        assert.deepStrictEqual(await fs.readJson(tempWireJsonPath), originalWireJson);
+      } finally {
+        await fs.remove(tempDir);
+      }
     });
   });
 });

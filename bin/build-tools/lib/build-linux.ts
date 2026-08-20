@@ -17,7 +17,8 @@
  *
  */
 
-import * as electronBuilder from 'electron-builder';
+import {Arch} from 'builder-util';
+import type * as electronBuilder from 'electron-builder';
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -73,7 +74,7 @@ export async function buildLinuxConfig(
     afterInstall: 'bin/deb/after-install.tpl',
     afterRemove: 'bin/deb/after-remove.tpl',
     category: 'Network',
-    desktop: linuxDesktopConfig,
+    desktop: {entry: linuxDesktopConfig},
     fpm: ['--name', linuxConfig.executableName],
   };
 
@@ -85,7 +86,7 @@ export async function buildLinuxConfig(
     appImage: {
       artifactName: linuxConfig.artifactName,
       category: platformSpecificConfig.category,
-      desktop: linuxDesktopConfig,
+      desktop: {entry: linuxDesktopConfig},
       publish: null,
     },
     asar: commonConfig.enableAsar,
@@ -130,14 +131,17 @@ export async function buildLinuxWrapper(
   packageJsonPath: string,
   wireJsonPath: string,
   envFilePath: string,
-  architecture: electronBuilder.Arch = electronBuilder.Arch.x64,
+  architecture: electronBuilder.Arch = Arch.x64,
+  build: typeof electronBuilder.build = options => require('electron-builder').build(options),
+  createTargets: typeof electronBuilder.Platform.LINUX.createTarget = (targets, arch) =>
+    require('electron-builder').Platform.LINUX.createTarget(targets, arch),
 ): Promise<void> {
   const wireJsonResolved = path.resolve(wireJsonPath);
   const packageJsonResolved = path.resolve(packageJsonPath);
   const envFileResolved = path.resolve(envFilePath);
   const {commonConfig} = await getCommonConfig(envFileResolved, wireJsonResolved);
 
-  const targets = electronBuilder.Platform.LINUX.createTarget(linuxConfig.targets, architecture);
+  const targets = createTargets(linuxConfig.targets, architecture);
 
   logger.info(
     `Building ${commonConfig.name} ${commonConfig.version} for Linux (target${
@@ -156,11 +160,9 @@ export async function buildLinuxWrapper(
   await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
 
   try {
-    const builtPackages = await electronBuilder.build({config: builderConfig, targets});
+    const builtPackages = await build({config: builderConfig, targets});
     builtPackages.forEach(builtPackage => logger.log(`Built package "${builtPackage}".`));
-  } catch (error) {
-    logger.error(error);
+  } finally {
+    await restoreFiles(backup);
   }
-
-  await restoreFiles(backup);
 }
