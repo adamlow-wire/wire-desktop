@@ -17,7 +17,7 @@
  *
  */
 
-import {Page} from '@playwright/test';
+import {expect, Page} from '@playwright/test';
 
 import {User} from './createUser';
 
@@ -33,10 +33,45 @@ const fillLoginCredentials = async (page: Page, user: User) => {
   await loginPage(page).loginButton.click();
 };
 
+const accountIdFromUrl = (url: string) => new URL(url).searchParams.get('id');
+
+const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
+  const accountId = accountIdFromUrl(loginPage.url());
+  let authenticatedPage: Page | undefined;
+
+  await expect
+    .poll(
+      async () => {
+        const candidatePages = loginPage
+          .context()
+          .pages()
+          .filter(page => page === loginPage || (accountId !== null && accountIdFromUrl(page.url()) === accountId));
+
+        for (const candidatePage of [...candidatePages].reverse()) {
+          try {
+            const userAvatar = conversationsSidebar(candidatePage).userAvatar;
+            if ((await userAvatar.isVisible()) && (await userAvatar.textContent())?.includes(user.initials)) {
+              authenticatedPage = candidatePage;
+              return true;
+            }
+          } catch {
+            // Electron can retire the login webview while its authenticated replacement is being created.
+          }
+        }
+
+        return false;
+      },
+      {message: `Wait for ${user.initials}'s authenticated account page`, timeout: LOGIN_TIMEOUT},
+    )
+    .toBe(true);
+
+  return authenticatedPage!;
+};
+
 /* Visit the sso page and execute the login for the user */
 export const loginUser = async (page: Page, user: User) => {
   await fillLoginCredentials(page, user);
-  await conversationsSidebar(page).userAvatar.waitFor({state: 'visible', timeout: LOGIN_TIMEOUT});
+  return waitForAuthenticatedPage(page, user);
 };
 
 export const loginUserAfterDataCleanup = async (page: Page, user: User) => {
@@ -44,5 +79,5 @@ export const loginUserAfterDataCleanup = async (page: Page, user: User) => {
   const historyConfirmButton = loginPage(page).historyConfirmButton;
   await historyConfirmButton.click();
 
-  await conversationsSidebar(page).userAvatar.waitFor({state: 'visible', timeout: LOGIN_TIMEOUT});
+  return waitForAuthenticatedPage(page, user);
 };

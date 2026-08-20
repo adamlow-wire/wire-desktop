@@ -34,9 +34,10 @@ test('Logout flow', {tag: ['@TC-11286', '@crit-flow-desktop']}, async ({app, cre
   test.setTimeout(120_000);
   const userB = await createUser();
   const {owner: userA} = await createTeam('Test Team', {users: [userB]});
-  const userBPage = await createPage();
+  const initialUserBPage = await createPage();
 
-  await Promise.all([loginUser(app.page, userA), loginUser(userBPage, userB)]);
+  const [userAPage, userBPage] = await Promise.all([loginUser(app.page, userA), loginUser(initialUserBPage, userB)]);
+  app.page = userAPage;
   await connectWithUser(app.page, userB);
 
   await conversationsList(app.page).getConversation(userB.fullName, {protocol: 'mls'}).open();
@@ -86,7 +87,7 @@ test('Logout flow', {tag: ['@TC-11286', '@crit-flow-desktop']}, async ({app, cre
   });
 
   await test.step('User logs in into Account A again', async () => {
-    await loginUser(app.page, userA);
+    app.page = await loginUser(app.page, userA);
     await expect(conversationsSidebar(app.page).userAvatar).toContainText(userA.initials);
   });
 
@@ -121,7 +122,7 @@ test('Logout flow', {tag: ['@TC-11286', '@crit-flow-desktop']}, async ({app, cre
   });
 
   await test.step('User A logs back in', async () => {
-    await loginUserAfterDataCleanup(app.page, userA);
+    app.page = await loginUserAfterDataCleanup(app.page, userA);
     await conversationsList(app.page).getConversation(userB.fullName, {protocol: 'mls'}).open();
     await expect(conversation(app.page).getMessage({content: 'Test message'})).toBeHidden();
   });
@@ -134,9 +135,9 @@ test(
     const userA = await createUser();
     const userB = await createUser();
 
-    await loginUser(app.page, userA);
+    app.page = await loginUser(app.page, userA);
     await accountsSidebar(app).addAccount();
-    await loginUser(app.page, userB);
+    app.page = await loginUser(app.page, userB);
     await accountsSidebar(app).switchAccount(0);
 
     await test.step("User right-clicks on the Account B's avatar on the sidebar with accounts' avatars and clicks 'Log out' option", async () => {
