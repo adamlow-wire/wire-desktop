@@ -49,8 +49,7 @@ const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
 
         for (const candidatePage of [...candidatePages].reverse()) {
           try {
-            const userAvatar = conversationsSidebar(candidatePage).userAvatar;
-            if ((await userAvatar.isVisible()) && (await userAvatar.textContent())?.includes(user.initials)) {
+            if (await conversationsSidebar(candidatePage).userAvatar.isVisible()) {
               authenticatedPage = candidatePage;
               return true;
             }

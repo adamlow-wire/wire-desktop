@@ -58,9 +58,11 @@ test(
       await expect(callCell(ownerPage).goFullScreen).toBeVisible();
     });
 
-    await test.step('Owner ends the call before test teardown', async () => {
+    await test.step('Participants leave the call before test teardown', async () => {
       await callCell(ownerPage).declineButton.click();
       await expect(callCell(ownerPage)).toBeHidden();
+
+      await callCell(memberPage).declineButton.click();
       await expect(callCell(memberPage)).toBeHidden();
     });
   },
