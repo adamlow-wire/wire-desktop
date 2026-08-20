@@ -32,6 +32,12 @@ const envFilePath = path.join(__dirname, '../../../.env.defaults');
 
 describe('build-linux', () => {
   describe('buildLinuxConfig', () => {
+    it('does not rebuild the Windows-only registry module on Linux', async () => {
+      const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+
+      assert.strictEqual(builderConfig.npmRebuild, false);
+    });
+
     it('honors environment variables', async () => {
       const categories = generateUUID();
       const keywords = generateUUID();

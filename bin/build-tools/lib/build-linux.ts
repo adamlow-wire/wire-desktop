@@ -109,6 +109,9 @@ export async function buildLinuxConfig(
       executableName: linuxConfig.executableName,
       target: linuxConfig.targets,
     },
+    // The only native production dependency is registry-js, which is loaded exclusively by the
+    // Windows managed-device backend. Rebuilding it on Linux is both unnecessary and unsupported.
+    npmRebuild: false,
     productName: commonConfig.name,
     publish: null,
     removePackageScripts: true,
