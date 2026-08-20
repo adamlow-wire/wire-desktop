@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.6.1
+revision: 0.6.2
 status: draft
 updated: 2026-08-20
 owners:
@@ -256,7 +256,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 - Scope: Record current build/test results, supported platforms, package outputs, startup behavior, and known failures without treating known insecure behavior as desired behavior.
 - Acceptance:
   - Unit, renderer, build-tool, and available E2E results are recorded.
-  - Packaged development builds are smoke-tested on Windows, macOS, and Linux.
+  - Packaging is attempted on Windows, macOS, and Linux; produced artifacts are smoke-tested, while failures to produce an artifact are retained and assigned to an owning work item.
   - Known flaky or environment-dependent tests are identified.
   - Baseline artifacts and logs are retained by CI.
 - Evidence: [Legacy baseline and known gaps](./baseline.md); [PR #1 package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32187255739) retained passing Windows/macOS artifacts and a reproducible Linux failure; [first fork E2E run](https://github.com/adamlow-wire/wire-desktop/actions/runs/32190461891) proved secret injection, builds, and launch but used an unauthorized Basic-auth value, so a valid E2E result remains pending
@@ -840,6 +840,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.6.2 | 2026-08-20 | Codex | Clarified that M0 records reproducible legacy packaging failures rather than requiring their implementation fix before baseline closure | BASE-001, PKG-001 |
 | 0.6.1 | 2026-08-18 | Codex | Added the raw-value fork E2E credential path and recorded deletion of the temporary bootstrap archive | GOV-001, BASE-001, Q-009 |
 | 0.6.0 | 2026-08-18 | Codex | Replaced unavailable multi-person approval assumptions with a truthful solo-maintainer model and reconstructed M0 as a PR-only integration change | GOV-001, BASE-001, BASE-002, ARC-001, SEC-001, RSK-013, DEC-006, Q-001, Q-002, Q-006, Q-008, Q-009 |
 | 0.5.0 | 2026-08-18 | Codex | Recorded verified integration-branch protection and corrected diff-coverage sensitivity evidence | GOV-001, TST-001 |

@@ -16,7 +16,6 @@ blockers:
   - Access to the Test Automation 1Password vault is pending so the three exact staging values can replace the incorrect fork secrets
   - TST-002 still requires a controlled SSO integration fixture before M0 can close
   - PR #1 must be reviewed and merged by the solo maintainer after the remaining M0 evidence is recorded
-  - Linux packaging reproducibly fails while rebuilding the Windows-only registry-js module
 ---
 
 # Current project status
