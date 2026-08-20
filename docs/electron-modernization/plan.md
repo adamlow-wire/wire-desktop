@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.6.3
+revision: 0.7.0
 status: draft
 updated: 2026-08-20
 owners:
@@ -264,7 +264,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### BASE-002 — Create the capability acceptance matrix
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: BASE-001
 - Scope: For every `retain`, `retain/redesign`, or `retain/harden` scope entry, record supported platforms, current behavior, desired behavior, tests, migration owner, and acceptance evidence.
@@ -272,14 +272,14 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Every retained scope entry maps to at least one capability row.
   - Each row identifies automated, packaged-smoke, and manual validation requirements.
   - Product and security owners approve security-sensitive behavior.
-- Evidence: [Capability and acceptance matrix](./capabilities.md); solo-maintainer acceptance is pending PR #1 merge
+- Evidence: [Capability and acceptance matrix](./capabilities.md); the solo maintainer merged [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1), recording acceptance
 
 ### 10.2 Architecture and security
 
 #### ARC-001 — Approve target process and view architecture
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: SEC-001
 - Scope: Produce an ADR covering the main process, local shell, `WebContentsView` account views, view ownership, session partitions, preload boundaries, and layout coordination.
@@ -288,12 +288,12 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Trust boundaries and data flows are diagrammed.
   - Account creation, destruction, crash recovery, focus, resize, and lifecycle are specified.
   - Security and platform owners approve the ADR.
-- Evidence: [Proposed ADR 0001](./decisions/0001-process-and-view-architecture.md); solo-maintainer acceptance is pending PR #1 merge and will be recorded in the M0 closure PR
+- Evidence: [Accepted ADR 0001](./decisions/0001-process-and-view-architecture.md); the solo maintainer reviewed and accepted it by merging [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1)
 
 #### SEC-001 — Threat model the desktop wrapper
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: BASE-002
 - Scope: Model remote webapp compromise, malicious navigation, compromised dependencies, hostile local environment, cross-account attacks, malicious deep links, SSRF, updater abuse, and renderer-to-main escalation.
@@ -301,7 +301,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Assets, trust boundaries, entry points, attackers, and mitigations are documented.
   - Each high-risk threat maps to an invariant and work item.
   - Residual risks have named owners and acceptance authority.
-- Evidence: [Desktop wrapper threat model](./threat-model.md); solo-maintainer acceptance is pending PR #1 merge and will be recorded in the M0 closure PR
+- Evidence: [Accepted desktop wrapper threat model](./threat-model.md); the solo maintainer reviewed and accepted it by merging [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1)
 
 #### SEC-002 — Create a central view identity and capability registry
 
@@ -487,7 +487,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### ELC-002 — Upgrade Electron to latest stable
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `ready`
 - Milestone: `M1`
 - Dependencies: BASE-001, ELC-001
 - Scope: Upgrade one Electron major at a time from 38 to the latest stable release, resolving and testing each major transition. Refresh the target immediately before completion.
@@ -546,7 +546,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### TST-002 — Characterize enterprise SSO
 
 - Priority: `P0`
-- Status: `blocked`
+- Status: `done`
 - Milestone: `M0`
 - Dependencies: BASE-002
 - Scope: Cover SSO window/session lifecycle, protocol validation, authorization secret behavior, cookies, navigation, permissions, cancellation, errors, and cleanup.
@@ -555,7 +555,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Invalid protocol, host, secret, response type, length, replay, order, cookie scope, and cleanup expectations exist as passing characterization or explicitly quarantined `security-target` tests owned by CAP-002.
   - SSO session creation, permission denial, success/error/cancellation paths, intended cookie transfer, navigation, and close cleanup are exercised without external IdP dependence.
   - At least one representative Electron integration flow uses a controlled test IdP or deterministic local fixture.
-- Evidence: commit `c27cfa6a41404f3835049d0553d6fbb7b17c4441`: 16 characterization tests pass, three CAP-002 security targets are quarantined; protocol-condition sensitivity mutation produced the expected two failures and was reverted
+- Evidence: commits `c27cfa6a41404f3835049d0553d6fbb7b17c4441` and `6e1fc7f0`: 18 characterization tests pass, including a deterministic local Electron SSO flow with permission denial, success, error, cancellation, cookie transfer, navigation, and cleanup; three CAP-002 security targets remain narrowly quarantined; protocol-condition and error-response sensitivity mutations produced the expected failures and were reverted
 
 #### TST-003 — Characterize tray, badge, notification, and menu behavior
 
@@ -818,7 +818,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
 | DEC-003 | 2026-08-18 | accepted | Supported Electron runtime and security-boundary work are P0 | The current runtime is EOL and the current boundary violates modern Electron security guidance | Never; only implementation ordering may change |
-| DEC-004 | 2026-08-18 | proposed | Use `WebContentsView` for remote account content | Electron discourages `<webview>`; main ownership improves policy control | ARC-001 identifies a safer supported architecture |
+| DEC-004 | 2026-08-18 | accepted | Use `WebContentsView` for remote account content | Electron discourages `<webview>`; main ownership improves policy control | The M2 spike identifies a safer supported architecture or an unresolvable platform constraint |
 | DEC-005 | 2026-08-18 | accepted | Target latest stable Electron dynamically, not version 43 permanently | Prevents this plan becoming stale during a long migration | Electron release/support policy materially changes |
 | DEC-006 | 2026-08-18 | accepted | Operate as a solo AI-assisted maintainer with PR-only integration and zero required external approvals | Preserves traceability and automated gates without pretending unavailable organizational review exists | Additional maintainers join or upstream mandates another process |
 
@@ -840,6 +840,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.7.0 | 2026-08-20 | Codex | Closed M0 after accepted governance, capability, architecture, threat-model, baseline, and deterministic SSO evidence; made the Electron 38→39 upgrade the next work | BASE-002, ARC-001, SEC-001, TST-002, DEC-004, ELC-002 |
 | 0.6.3 | 2026-08-20 | Codex | Completed the reproducible legacy baseline after authenticated group-call and logout stabilization passed on Windows and macOS | BASE-001 |
 | 0.6.2 | 2026-08-20 | Codex | Clarified that M0 records reproducible legacy packaging failures rather than requiring their implementation fix before baseline closure | BASE-001, PKG-001 |
 | 0.6.1 | 2026-08-18 | Codex | Added the raw-value fork E2E credential path and recorded deletion of the temporary bootstrap archive | GOV-001, BASE-001, Q-009 |

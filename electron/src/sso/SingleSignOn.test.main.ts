@@ -255,8 +255,53 @@ describe('SingleSignOn', () => {
     });
   });
 
+  describe('login finalization errors', () => {
+    const createFinalizationHarness = (sourceSession?: Session) => {
+      const scripts: string[] = [];
+      const sender = {
+        executeJavaScript: async (script: string) => {
+          scripts.push(script);
+        },
+        session: {cookies: {}} as Session,
+      } as unknown as WebContents;
+      const singleSignOn = new SingleSignOn(
+        {} as BrowserWindow,
+        {sender} as unknown as ElectronEvent,
+        'https://app.wire.com',
+        {},
+      );
+      singleSignOn['session'] = sourceSession;
+      return {scripts, singleSignOn};
+    };
+
+    it('[characterization][DCP-003] reports a missing ephemeral session instead of completing login', async () => {
+      const {scripts, singleSignOn} = createFinalizationHarness();
+
+      await singleSignOn['finalizeLogin']('AUTH_SUCCESS');
+
+      assert.strictEqual(scripts.length, 1);
+      assert.match(scripts[0], /data: \{type: 'AUTH_ERROR_SESS_NOT_AVAILABLE'\}/);
+    });
+
+    it('[characterization][DCP-003] reports a cookie transfer failure instead of completing login', async () => {
+      const sourceSession = {
+        cookies: {
+          get: async () => {
+            throw new Error('controlled cookie read failure');
+          },
+        },
+      } as unknown as Session;
+      const {scripts, singleSignOn} = createFinalizationHarness(sourceSession);
+
+      await singleSignOn['finalizeLogin']('AUTH_SUCCESS');
+
+      assert.strictEqual(scripts.length, 1);
+      assert.match(scripts[0], /data: \{type: 'AUTH_ERROR_COOKIE'\}/);
+    });
+  });
+
   describe('window and session cleanup', () => {
-    it('[characterization][DCP-003] clears the ephemeral session and unregisters the protocol on close', async () => {
+    it('[characterization][DCP-003] clears the ephemeral session and unregisters the protocol on close or cancel', async () => {
       const windowListeners = new Map<string, () => Promise<void>>();
       let clearCount = 0;
       let closeCount = 0;
@@ -348,7 +393,7 @@ describe('SingleSignOn', () => {
       assert.strictEqual(title, oversizedOrigin);
     });
 
-    it('[characterization][DCP-003] completes a deterministic local SSO success flow', async () => {
+    it('[characterization][DCP-003] completes a deterministic local SSO flow with permissions denied', async () => {
       let receivedUserAgent: string | undefined;
       const server = createServer((request, response) => {
         receivedUserAgent = request.headers['user-agent'];
