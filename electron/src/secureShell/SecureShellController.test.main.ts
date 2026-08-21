@@ -92,14 +92,14 @@ describe('SecureShellController', () => {
     await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
   });
 
-  const createController = async (accountId: string): Promise<SecureShellController> => {
+  const createController = async (accountId: string, show = false): Promise<SecureShellController> => {
     const controller = new SecureShellController(
       {
         accountId,
         accountPreload: path.join(process.cwd(), 'electron/dist/preload/preload-secure-account.js'),
         accountUrl,
         allowHttpForTest: true,
-        show: false,
+        show,
       },
       registry,
     );
@@ -107,6 +107,38 @@ describe('SecureShellController', () => {
     await controller.start();
     return controller;
   };
+
+  it('[security-target][INV-003][ARC-002] owns the shell lifecycle and revokes authority on disposal', async () => {
+    const controller = await createController('account-a', true);
+    const window = controller.getWindowForTest();
+    const webContents = controller.getAccountWebContentsForTest();
+    assert.ok(window);
+    assert.ok(webContents);
+    assert.strictEqual(window.isVisible(), true);
+    await assert.rejects(controller.start(), /already running/);
+
+    const shellUrl = window.webContents.getURL();
+    assert.strictEqual(await window.webContents.executeJavaScript("window.open('https://example.com')"), null);
+    await window.webContents.executeJavaScript("location.href = 'https://example.com/escape'");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    assert.strictEqual(window.webContents.getURL(), shellUrl);
+    window.setSize(900, 700);
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    window.hide();
+    assert.strictEqual(window.isVisible(), false);
+    controller.show();
+    assert.strictEqual(window.isVisible(), true);
+
+    const registeredId = webContents.id;
+    controller.dispose();
+    assert.strictEqual(window.isDestroyed(), true);
+    assert.strictEqual(registry.has(registeredId), false);
+    assert.strictEqual(controller.getWindowForTest(), undefined);
+    assert.strictEqual(controller.getAccountWebContentsForTest(), undefined);
+
+    controller.dispose();
+  });
 
   it('[security-target][INV-001][INV-002][INV-003][ARC-002] exposes only the isolated fixed bridge', async () => {
     const controller = await createController('account-a');
