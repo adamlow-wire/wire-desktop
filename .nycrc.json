@@ -1,7 +1,7 @@
 {
   "all": true,
   "clean": false,
-  "exclude": ["**/*.d.ts", "**/*.test*.ts"],
+  "exclude": ["**/*.d.ts", "**/*.test*.ts", "**/wrap/**"],
   "extension": [".ts"],
   "include": ["electron/src/**/*.ts"],
   "per-file": false,

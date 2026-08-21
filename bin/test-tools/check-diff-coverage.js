@@ -24,6 +24,7 @@ const CHANGED_LINE_THRESHOLD = 80;
 const SECURITY_BRANCH_THRESHOLD = 90;
 const COVERAGE_FILES = ['coverage/electron/coverage-final.json', 'coverage/renderer/coverage-final.json'];
 const SOURCE_ROOTS = ['electron/src', 'electron/renderer/src'];
+const SECURE_SHELL_POLICY = /^electron\/src\/secureShell\/(ViewIdentityRegistry|ipc|policy|protocol)\.ts$/;
 
 const normalizePath = filePath => filePath.split(path.sep).join('/');
 
@@ -124,7 +125,7 @@ const main = () => {
       }
     }
 
-    if (file.startsWith('electron/src/security/')) {
+    if (file.startsWith('electron/src/security/') || SECURE_SHELL_POLICY.test(file)) {
       for (const [id, branch] of Object.entries(coverage.branchMap)) {
         if (!lines.has(branch.loc.start.line)) {
           continue;

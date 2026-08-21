@@ -67,6 +67,10 @@ import {TrayHandler} from './menu/TrayHandler';
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
 import {OriginValidator} from './runtime/OriginValidator';
+import {startSecureShellProof} from './secureShell/bootstrap';
+import {bindSecureShellIpc} from './secureShell/ipc';
+import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
+import {SecureShellController} from './secureShell/SecureShellController';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
@@ -79,7 +83,14 @@ import * as WindowUtil from './window/WindowUtil';
 
 const logger = getLogger(path.basename(__filename));
 
-remoteMain.initialize();
+const argv = minimist(process.argv.slice(1));
+const secureShellProof = argv['secure-shell-proof'] === true;
+
+if (secureShellProof) {
+  registerSecureShellSchemePrivileges();
+} else {
+  remoteMain.initialize();
+}
 
 const APP_PATH = path.join(app.getAppPath(), config.electronDirectory);
 const INDEX_HTML = path.join(APP_PATH, 'renderer/index.html');
@@ -102,7 +113,6 @@ let proxyInfoArg: URL | undefined;
 const customProtocolHandler = new CustomProtocolHandler();
 
 // Config
-const argv = minimist(process.argv.slice(1));
 const fileBasedProxyConfig = settings.restore<string | undefined>(SettingsType.PROXY_SERVER_URL);
 
 const currentLocale = locale.getCurrent();
@@ -111,7 +121,7 @@ const customDownloadPath = settings.restore<string | undefined>(SettingsType.DOW
 const appHomePath = (path: string) => `${app.getPath('home')}\\${path}`;
 const isInternalBuild = (): boolean => config.environment === 'internal';
 
-if (customDownloadPath) {
+if (customDownloadPath && !secureShellProof) {
   electronDl({
     directory: appHomePath(customDownloadPath),
     saveAs: false,
@@ -773,25 +783,42 @@ class ElectronWrapperInit {
   }
 }
 
-customProtocolHandler.registerCoreProtocol();
 handlePortableFlags();
-lifecycle
-  .checkSingleInstance()
-  .then(() => lifecycle.initSquirrelListener())
-  .catch(error => logger.error(error));
+void lifecycle.checkSingleInstance().catch(error => logger.error(error));
 
-// Reloads the entire view when a `relaunch` is triggered (MacOS only, as other platform will quit and restart the app)
-lifecycle.addRelaunchListeners(async () => {
-  const mainURL = getMainWindowUrl();
-  await main.loadURL(mainURL.href);
-});
+if (secureShellProof) {
+  if (lifecycle.isFirstInstance) {
+    void startSecureShellProof(
+      {
+        accountPreload: path.join(APP_PATH, 'dist/preload/preload-secure-account.js'),
+        app,
+        getAccountUrl: EnvironmentUtil.web.getWebappUrl,
+        logger,
+      },
+      {
+        bindIpc: bindSecureShellIpc,
+        createController: (options, registry) => new SecureShellController(options, registry),
+        installProtocol: installSecureShellProtocol,
+      },
+    );
+  }
+} else {
+  customProtocolHandler.registerCoreProtocol();
+  void lifecycle.initSquirrelListener().catch(error => logger.error(error));
 
-// Stop further execution on update to prevent second tray icon
-if (lifecycle.isFirstInstance) {
-  addLinuxWorkarounds();
-  bindIpcEvents();
-  handleAppEvents();
-  renameWebViewLogFiles();
-  fs.ensureFileSync(LOG_FILE);
-  new ElectronWrapperInit().run().catch(error => logger.error(error));
+  // Reloads the entire view when a `relaunch` is triggered (MacOS only, as other platform will quit and restart the app)
+  lifecycle.addRelaunchListeners(async () => {
+    const mainURL = getMainWindowUrl();
+    await main.loadURL(mainURL.href);
+  });
+
+  // Stop further execution on update to prevent second tray icon
+  if (lifecycle.isFirstInstance) {
+    addLinuxWorkarounds();
+    bindIpcEvents();
+    handleAppEvents();
+    renameWebViewLogFiles();
+    fs.ensureFileSync(LOG_FILE);
+    new ElectronWrapperInit().run().catch(error => logger.error(error));
+  }
 }

@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2023 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,17 +17,8 @@
  *
  */
 
-// import type {Config} from 'jest';
-
-/** @type {import('@jest/types').Config.InitialOptions} */
-// const jestConfig: Config = {
-const jestConfig = {
-  collectCoverageFrom: ['electron/renderer/src/**/*.{ts,tsx}', '!electron/renderer/src/**/*.d.ts'],
-  coverageDirectory: '<rootDir>/coverage/renderer',
-  coverageReporters: ['html', 'json', 'text-summary'],
-  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
-  testEnvironment: 'jsdom',
-  testPathIgnorePatterns: ['<rootDir>/electron/dist', '<rootDir>/e2e-tests', '<rootDir>/wrap'],
-};
-
-module.exports = jestConfig;
+export const SECURE_SHELL_SCHEME = 'wire-app';
+export const SECURE_SHELL_ORIGIN = `${SECURE_SHELL_SCHEME}://shell`;
+export const SECURE_SHELL_RUNTIME_INFO_CHANNEL = 'wire-secure-shell:runtime-info:v1';
+export const SECURE_SHELL_CONTRACT_VERSION = 1 as const;
+export const SECURE_SHELL_RUNTIME_INFO_CAPABILITY = 'runtime-info' as const;
