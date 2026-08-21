@@ -27,7 +27,7 @@ const jestConfig = {
   coverageReporters: ['html', 'json', 'text-summary'],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
   testEnvironment: 'jsdom',
-  testPathIgnorePatterns: ['<rootDir>/electron/dist', '<rootDir>/e2e-tests'],
+  testPathIgnorePatterns: ['<rootDir>/electron/dist', '<rootDir>/e2e-tests', '<rootDir>/wrap'],
 };
 
 module.exports = jestConfig;
