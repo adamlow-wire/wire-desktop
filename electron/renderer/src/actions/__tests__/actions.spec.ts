@@ -26,10 +26,10 @@ import {
   updateAccountBadge,
   updateAccountBadgeCount,
 } from '../';
-import type {State} from '../../index';
+import type {AppDispatch, State} from '../../index';
 import {generateUUID} from '../../lib/util';
-import {createAccount} from '../../reducers/accountReducer';
-import {switchAccount} from '../AccountAction';
+import accountReducer, {createAccount} from '../../reducers/accountReducer';
+import {AccountAction, switchAccount} from '../AccountAction';
 
 describe('action creators', () => {
   describe('addAccount', () => {
@@ -61,6 +61,31 @@ describe('action creators', () => {
         type: ACCOUNT_ACTION.SWITCH_ACCOUNT,
       };
       expect(switchAccount(id)).toEqual(action);
+    });
+
+    it('[characterization][DCP-001] clears preserved unread state when the account becomes visible', async () => {
+      const account = {...createAccount({visible: false}), badgeCount: 1};
+      let state: State = {
+        accounts: [account],
+        contextMenuState: {accountId: '', isAtLeastAdmin: false, position: {centerX: 0, centerY: 0}},
+      };
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        state = {...state, accounts: accountReducer(state.accounts, action)};
+        return action;
+      });
+      const sendBadgeCount = jest.fn();
+      window.blur = jest.fn();
+      window.focus = jest.fn();
+      window.sendBadgeCount = sendBadgeCount;
+      const webview = document.createElement('div');
+      webview.className = 'Webview';
+      webview.dataset.accountid = account.id;
+      document.body.replaceChildren(webview);
+
+      await new AccountAction().switchWebview(0)(dispatch as unknown as AppDispatch, () => state);
+
+      expect(state.accounts[0]).toMatchObject({badgeCount: 0, visible: true});
+      expect(sendBadgeCount).toHaveBeenCalledWith(0, false);
     });
   });
 
