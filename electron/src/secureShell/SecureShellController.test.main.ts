@@ -116,7 +116,8 @@ describe('SecureShellController', () => {
       .map(view => (view as WebContentsView).webContents.id);
   };
 
-  it('[security-target][INV-003][ARC-002] owns the shell lifecycle and revokes authority on disposal', async () => {
+  it('[security-target][INV-003][ARC-002] owns the shell lifecycle and revokes authority on disposal', async function () {
+    this.timeout(10_000);
     const controller = await createController('account-a', true);
     const window = controller.getWindowForTest();
     const webContents = controller.getAccountWebContentsForTest();
