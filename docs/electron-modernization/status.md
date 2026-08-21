@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-21
 milestone: M3
 active_work_item: CAP-001
-state: m3-cap001-characterization
+state: m3-cap001-account-selection-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 integration_head_commit: e08ab2a97eeb71114f5692818a0a367461aa5b08
@@ -20,7 +20,7 @@ blockers: []
 
 ## Current outcome
 
-M0, M1, and M2 are complete. [PR #7](https://github.com/adamlow-wire/wire-desktop/pull/7) proves a sandboxed, main-owned, single-account `WebContentsView` boundary behind an explicit opt-in. Its security tests and packages pass on Windows, macOS, and Linux, and authenticated legacy E2E passes on Windows and macOS. The legacy product path remains unchanged; M3 starts product migration with CAP-001.
+M0, M1, and M2 are complete. M3 is active through [draft PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8), which extends the opt-in secure shell from one account to an exact-target, main-owned account collection. The legacy product path remains available while CAP-001 migrates one bounded lifecycle slice at a time.
 
 ## Active work
 
@@ -29,16 +29,16 @@ M0, M1, and M2 are complete. [PR #7](https://github.com/adamlow-wire/wire-deskto
 | Work item     | CAP-001 — Migrate account and multi-account lifecycle           |
 | Owner         | `adamlow-wire`                                                  |
 | Active branch | `cap/CAP-001-account-selection`                                 |
-| Goal          | Characterize add/switch/remove selection before view migration  |
+| Goal          | Prove secure add/switch/targeted-remove account selection       |
 | Starting gate | ARC-002 and TST-004 complete; legacy fallback remains available |
 
 ## Next executable sequence
 
-1. Characterize stable account/session identity across add, switch, and targeted removal.
-2. Prove the characterization tests fail under a temporary selection-policy regression, then revert it.
-3. Introduce the equivalent main-owned secure-shell account collection behind the explicit modernized path.
-4. Prove exact active-account targeting and cross-account session/IPC isolation before expanding scope.
-5. Keep logout data deletion and enterprise SSO out of this first slice; they retain CAP-001/CAP-002 ownership.
+1. Complete hosted build, coverage, Windows/macOS/Linux package, and authenticated Windows/macOS E2E validation for PR #8.
+2. Merge PR #8 only after its final head is green and the maintained evidence is recorded in the PR.
+3. Start a new CAP-001 branch for logout and per-account data deletion characterization.
+4. Prove deletion targets only the selected account's partition before connecting it to the secure account collection.
+5. Keep enterprise and automated SSO under CAP-002; do not expand the account-selection PR into SSO.
 
 ## Completed work
 
@@ -84,6 +84,8 @@ M0, M1, and M2 are complete. [PR #7](https://github.com/adamlow-wire/wire-deskto
 | M2 secure-shell/package baseline | Run `32469363410`: 17 security-target tests plus package/artifact smoke passed on Windows, macOS, and Linux | 2026-08-21 |
 | M2 legacy E2E | Run `32469363449`: Windows/macOS and merged report passed; 55 first-attempt passes, 5 disclosed retry passes, 0 unexpected | 2026-08-21 |
 | Capability matrix review | ARC-002 proves architecture/security boundaries but does not migrate product capabilities; confidence rows remain unchanged for CAP-001 | 2026-08-21 |
+| CAP-001 account selection characterization | Legacy reducer 8/8 passed; changing exact selection from equality to inequality failed the new lifecycle test, then the reverted test passed | 2026-08-21 |
+| CAP-001 secure account selection | Local Electron main suite 73 passed / 3 owned CAP-002 targets pending; secure-shell subset 19/19; target mutation failed both visibility/isolation tests; types and lint passed | 2026-08-21 |
 
 ## Handoff notes
 
@@ -92,6 +94,7 @@ M0, M1, and M2 are complete. [PR #7](https://github.com/adamlow-wire/wire-deskto
 - PR #6 contains a sensitivity-proven regression test for Linux packaging error propagation; do not restore the prior catch-and-log behavior.
 - PR #6 also contains sensitivity-proven Electron 43 unread-state compatibility tests; hidden accounts may increase but not clear unread state until visible.
 - ARC-002 is a proof path, not a claim that legacy `@electron/remote`, `<webview>`, or broad IPC has been removed globally. CAP-001 begins migration; the global security work items remain open until the fallback is removed.
+- PR #8 does not yet route production account actions through the secure collection and does not delete partition data. It establishes the tested main-owned selection boundary required for those later CAP-001 slices.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
 - The authoritative `BackendConnection staging` values work. Do not add credential normalization or workarounds without new evidence of a credential defect.
