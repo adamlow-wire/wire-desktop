@@ -3,10 +3,10 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-21
 milestone: M3
 active_work_item: CAP-001
-state: m2-complete-m3-ready
+state: m3-cap001-characterization
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
-integration_head_commit: 37169b39c54ffdf54ff555dfe0f453568c3209e6
+integration_head_commit: e08ab2a97eeb71114f5692818a0a367461aa5b08
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
@@ -24,21 +24,21 @@ M0, M1, and M2 are complete. [PR #7](https://github.com/adamlow-wire/wire-deskto
 
 ## Active work
 
-| Field         | Value                                                             |
-| ------------- | ----------------------------------------------------------------- |
-| Work item     | CAP-001 — Migrate account and multi-account lifecycle             |
-| Owner         | `adamlow-wire`                                                    |
-| Active branch | Not started                                                       |
-| Goal          | Move account lifecycle onto the proven secure shell incrementally |
-| Starting gate | ARC-002 and TST-004 complete; legacy fallback remains available   |
+| Field         | Value                                                           |
+| ------------- | --------------------------------------------------------------- |
+| Work item     | CAP-001 — Migrate account and multi-account lifecycle           |
+| Owner         | `adamlow-wire`                                                  |
+| Active branch | `cap/CAP-001-account-selection`                                 |
+| Goal          | Characterize add/switch/remove selection before view migration  |
+| Starting gate | ARC-002 and TST-004 complete; legacy fallback remains available |
 
 ## Next executable sequence
 
-1. Open one CAP-001 branch and PR from the updated integration branch.
-2. Characterize one account-lifecycle slice and sensitivity-prove its tests before changing behavior.
-3. Migrate that slice to the ARC-002 shell while retaining an explicit legacy fallback.
-4. Prove account targeting and cross-account session/IPC isolation before expanding scope.
-5. Keep enterprise SSO and its three quarantined security targets under CAP-002.
+1. Characterize stable account/session identity across add, switch, and targeted removal.
+2. Prove the characterization tests fail under a temporary selection-policy regression, then revert it.
+3. Introduce the equivalent main-owned secure-shell account collection behind the explicit modernized path.
+4. Prove exact active-account targeting and cross-account session/IPC isolation before expanding scope.
+5. Keep logout data deletion and enterprise SSO out of this first slice; they retain CAP-001/CAP-002 ownership.
 
 ## Completed work
 
