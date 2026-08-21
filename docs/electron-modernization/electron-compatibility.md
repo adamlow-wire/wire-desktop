@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-COMPATIBILITY-INVENTORY
 status: validated-on-43
-updated: 2026-08-20
+updated: 2026-08-21
 work_items: [ELC-001, ELC-002]
 current_electron: 43.4.0
 target_reviewed: 43.4.0
@@ -37,6 +37,7 @@ This inventory is valid for 38 through 43. ELC-002 refreshed the target on 2026-
 | 43 | `NativeImage.toBitmap()` normalizes to sRGB | not applicable | No `toBitmap`/`getBitmap` use found |
 | 43 | Extension CSS injection includes more fallback frames | not applicable | No Chrome extension scripting use found |
 | 43 | Dialogs without `defaultPath` start in Downloads | applicable behavior | Current save paths are explicit; audit any new open/save dialogs under capability tests |
+| 43 | Legacy hidden-account unread timing changed under Chromium 150 | applicable compatibility regression | Hosted traces proved the hidden webapp delivered `1` and then an immediate `0`; the wrapper now preserves decreases from hidden accounts until they are visible, with characterization and cross-platform E2E coverage |
 
 ## Adjacent deprecated/security-sensitive Electron APIs
 
@@ -70,4 +71,8 @@ These are not new 39-to-43 removals, but they are upgrade blockers because carry
 
 ## Upgrade execution record
 
-ELC-002 tested the direct `38.8.6`→`43.4.0` transition first. Application source required no compatibility workaround: types, development build, Jest, Electron main/renderer, and build-tool suites passed unchanged. Packaging required `electron-builder` `25.1.8`→`26.15.3`, the new nested Linux desktop-entry configuration shape, and propagation of builder failures after configuration restoration. This made intermediate Electron commits unnecessary and avoided validating releases that were already unsupported. Clean CI provides coverage, E2E, and platform package smoke evidence before acceptance. A packaging function that merely logs an error, or a job whose claimed artifact is absent, is not accepted.
+ELC-002 tested the direct `38.8.6`→`43.4.0` transition first. Types, the development build, Jest, Electron main/renderer, and build-tool suites passed without staged source changes. Packaging required `electron-builder` `25.1.8`→`26.15.3`, the new nested Linux desktop-entry configuration shape, and propagation of builder failures after configuration restoration.
+
+Hosted E2E then exposed a Chromium 150 timing change in the legacy `<webview>` path. On both Windows and macOS the hidden account received the message, reported unread count `1`, and immediately reported `0`, clearing the wrapper badge before it could be observed. The same-environment Electron 38 macOS control passed. ELC-002 therefore preserves a hidden account's decreasing unread count until that account is visible; a characterization test was first proved red against the previous logic, and the unchanged E2E assertion remains the platform gate.
+
+The direct upgrade avoided validating intermediate releases that were already unsupported. Clean CI provides coverage, E2E, and platform package smoke evidence before acceptance. A packaging function that merely logs an error, or a job whose claimed artifact is absent, is not accepted.
