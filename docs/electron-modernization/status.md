@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-20
 milestone: M1
 active_work_item: ELC-002
-state: m0-complete
+state: m1-in-progress
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 integration_head_commit: 6a406dbdd474114fd3e3031091569e579ec606df
@@ -20,24 +20,24 @@ blockers: []
 
 ## Current outcome
 
-M0's governed-baseline exit gate is satisfied. [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1) recorded solo-maintainer acceptance of the capability matrix, architecture, and threat model; [PR #4](https://github.com/adamlow-wire/wire-desktop/pull/4) integrated the reviewed BASE-001 stabilization. The SSO suite now has 18 passing characterizations, including a deterministic local Electron fixture, with three legacy security failures explicitly quarantined for CAP-002. M1 begins with ELC-002's isolated Electron 38→39 upgrade.
+M0 is merged through [PR #5](https://github.com/adamlow-wire/wire-desktop/pull/5). M1 is active in [PR #6](https://github.com/adamlow-wire/wire-desktop/pull/6): Electron is pinned directly from `38.8.6` to the revalidated latest stable `43.4.0`. The first hosted run exposed the known Linux false-green as a real M1 blocker: builder 25.1.8 could not resolve Electron 43's ABI and the wrapper swallowed the error. The branch now updates the packaging toolchain, propagates failures, and makes missing artifacts fatal; clean platform reruns are pending.
 
 ## Active work
 
-| Field               | Value                                                                   |
-| ------------------- | ----------------------------------------------------------------------- |
-| Work item           | ELC-002 — Upgrade Electron to latest stable                             |
-| Owner               | `adamlow-wire`                                                          |
-| Next branch         | `upgrade/ELC-002-electron-39`                                           |
-| Goal                | Upgrade Electron 38→39 as one isolated, tested compatibility transition |
-| Completion evidence | Baseline tests and supported-platform packages pass on Electron 39      |
+| Field               | Value                                                                        |
+| ------------------- | ---------------------------------------------------------------------------- |
+| Work item           | ELC-002 — Upgrade Electron to latest stable                                  |
+| Owner               | `adamlow-wire`                                                               |
+| Active branch       | `upgrade/ELC-002-electron-43`                                                |
+| Goal                | Prove the direct Electron 38.8.6→43.4.0 transition                           |
+| Completion evidence | Local baseline plus clean Windows/macOS/Linux package and required E2E gates |
 
 ## Next executable sequence
 
-1. Review and merge the M0 closure PR.
-2. Refresh the latest stable Electron reference and upstream compatibility state before runtime changes.
-3. Begin ELC-002 with an isolated 38→39 upgrade PR; preserve the M0 characterization contracts unchanged.
-4. Keep the known Linux packaging repair under PKG-001 and the three SSO security targets under CAP-002.
+1. Open the ELC-002 PR and run all clean-checkout required checks.
+2. Require Windows and macOS packaged launch smoke plus the existing authenticated E2E matrix.
+3. Merge only when Electron `43.4.0` remains latest stable and every required result is green.
+4. Begin the bounded M2 secure single-account shell proof on a new branch; keep the three legacy SSO targets under CAP-002.
 
 ## Completed work
 
@@ -70,15 +70,16 @@ M0's governed-baseline exit gate is satisfied. [PR #1](https://github.com/adamlo
 | Build-tool baseline | 13 tests passed | 2026-08-20 |
 | SSO characterization | 18 passed / 3 CAP-002 security targets pending; new error tests sensitivity-proven | 2026-08-20 |
 | Coverage pipeline | 46 main/preload + 32 local-renderer files; pass | 2026-08-18 |
-| Linux AppImage baseline | Failed rebuilding Windows-only `registry-js`; build incorrectly exited 0 | 2026-08-18 |
+| Linux AppImage baseline | PR #6 first run confirmed builder 25.1.8 could not resolve Electron 43 ABI and incorrectly exited 0; repair and fatal artifact gate pending rerun | 2026-08-20 |
 | Windows/macOS packages | Development package and launch smoke passed in PR #1 CI | 2026-08-18 |
 | Development E2E | Run `32364188026`: Windows/macOS jobs passed; merged report 57 expected, 3 unrelated flaky, 0 unexpected; all group-call/logout cases passed first attempt | 2026-08-20 |
+| Electron 43 local compatibility | Runtime `v43.4.0`; types/build passed; Jest 14/36, main 54 + 3 pending, renderer 2, build tools 13 all passed | 2026-08-20 |
 
 ## Handoff notes
 
 - Do not claim independent review in the solo-maintainer model. The maintainer's PR merge is the recorded product/security/architecture decision.
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
-- The Linux build command is not trustworthy until it propagates package errors and artifact existence is checked.
+- PR #6 contains a sensitivity-proven regression test for Linux packaging error propagation; do not restore the prior catch-and-log behavior.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
 - The authoritative `BackendConnection staging` values work. Do not add credential normalization or workarounds without new evidence of a credential defect.

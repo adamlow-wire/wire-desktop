@@ -23,7 +23,7 @@ import {AppDispatch, State} from '../index';
 import {SwitchAccount} from '../reducers/accountReducer';
 import {AccountSelector} from '../selector/AccountSelector';
 
-import {ACCOUNT_ACTION, initiateSSO} from './index';
+import {ACCOUNT_ACTION, initiateSSO, updateAccountBadgeCount} from './index';
 
 type WebviewTag = Electron.WebviewTag;
 
@@ -91,6 +91,7 @@ export class AccountAction {
       }
 
       dispatch(switchAccount(account.id));
+      updateAccountBadgeCount(account.id, 0)(dispatch, getState);
 
       // Note: We need to focus window first to properly set focus
       // on the webview with shortcuts like Cmd+1/2/3

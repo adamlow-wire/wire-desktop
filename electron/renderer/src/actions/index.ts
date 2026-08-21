@@ -105,6 +105,9 @@ export const updateAccountBadge = (id: string, count: number): UpdateAccountBadg
   type: ACCOUNT_ACTION.UPDATE_ACCOUNT_BADGE,
 });
 
+export const shouldAcceptBadgeCount = (account: Account, count: number): boolean =>
+  account.badgeCount !== count && (account.visible || count > account.badgeCount);
+
 export const updateAccountDarkMode = (id: string, darkMode: boolean): UpdateAccountDarkMode => ({
   darkMode,
   id,
@@ -186,15 +189,16 @@ export const updateAccountBadgeCount = (id: string, count: number) => {
   return (dispatch: AppDispatch, getState: () => State) => {
     const accounts = getState().accounts;
     const account = getState().accounts.find(acc => acc.id === id);
+    const countHasChanged = account ? shouldAcceptBadgeCount(account, count) : false;
+    const effectiveCount = account && !countHasChanged ? account.badgeCount : count;
     const accumulatedCount = accounts.reduce((accumulated, account) => {
-      return accumulated + (account.id === id ? count : account.badgeCount);
+      return accumulated + (account.id === id ? effectiveCount : account.badgeCount);
     }, 0);
     const ignoreFlash = account?.availability === Availability.Type.BUSY;
 
     window.sendBadgeCount(accumulatedCount, ignoreFlash);
 
     if (account) {
-      const countHasChanged = account.badgeCount !== count;
       if (countHasChanged) {
         dispatch(updateAccountBadge(id, count));
       }

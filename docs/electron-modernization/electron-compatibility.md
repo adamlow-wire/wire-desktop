@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-COMPATIBILITY-INVENTORY
-status: complete-for-38-to-43
-updated: 2026-08-18
-work_items: [ELC-001]
-current_electron: 38.8.6
+status: validated-on-43
+updated: 2026-08-21
+work_items: [ELC-001, ELC-002]
+current_electron: 43.4.0
 target_reviewed: 43.4.0
 ---
 
@@ -13,7 +13,7 @@ target_reviewed: 43.4.0
 
 Electron `38.8.6` reached end of life on 2026-03-10. On 2026-08-18 the latest stable line is Electron 43; Electron's schedule maps 39 to Chromium 142/Node 22.20, 40 to Chromium 144/Node 24.11, 41 to Chromium 146/Node 24.14, 42 to Chromium 148/Node 24.15, and 43 to Chromium 150/Node 24.17. The upgrade therefore crosses both a Node major and ten Chromium majors. See the official [release schedule](https://releases.electronjs.org/schedule) and [breaking-change register](https://www.electronjs.org/docs/latest/breaking-changes).
 
-This inventory is valid for 38 through 43. ELC-002 must refresh it if a newer stable major exists when upgrade work starts or reaches release-candidate cut.
+This inventory is valid for 38 through 43. ELC-002 refreshed the target on 2026-08-20 and confirmed `43.4.0` remained the latest stable release. Electron 44 was still prerelease and therefore outside M1.
 
 ## Breaking changes 39 through 43
 
@@ -21,7 +21,7 @@ This inventory is valid for 38 through 43. ELC-002 must refresh it if a newer st
 | --- | --- | --- | --- |
 | 39 | `--host-rules` deprecated | not applicable; no repository use | Keep proxy tests; do not add the deprecated switch |
 | 39 | `window.open` popups always resizable | applicable | SSO/PiP and external-window handlers already override/deny creation; characterize under TST-002/CAP-003 and recheck per-major |
-| 39 | macOS desktop audio capture requires `NSAudioCaptureUsageDescription` on macOS 14.2+ | blocker | `desktopCapturer` is exposed but `resources/macos/Info.plist.json` lacks the key; CAP-003/PKG-001 must add the reviewed purpose string and packaged screen/audio test |
+| 39 | macOS desktop audio capture requires `NSAudioCaptureUsageDescription` on macOS 14.2+ | applicable; not runtime-blocking | `desktopCapturer` is exposed but `resources/macos/Info.plist.json` lacks the key; CAP-003/PKG-001 must add the reviewed purpose string and packaged screen/audio test before release qualification |
 | 39 | Shared-texture offscreen paint payload changed | not applicable | No offscreen/shared-texture rendering; `offscreen` is explicitly false |
 | 40 | Renderer-process `clipboard` API deprecated | applicable/security-aligned | `preload-context.ts` imports clipboard; move clipboard operations behind the narrow bridge under SEC-005/CAP-004 before Electron 44 removes renderer access |
 | 40 | macOS dSYM archives use `tar.xz` rather than zip | requires release-tool verification | No Electron dSYM consumer found in repository; Release Engineering must verify external symbol upload under PKG-001 |
@@ -30,13 +30,14 @@ This inventory is valid for 38 through 43. ELC-002 must refresh it if a newer st
 | 41/43 | Linux `showHiddenFiles` deprecated then removed | not applicable | No use found |
 | 42 | macOS notifications move to `UNNotification` and require signing | applicable | Notification E2E currently mocks browser notifications; CAP-004/PKG-001 require signed packaged notification delivery/failure checks |
 | 42 | Offscreen rendering defaults to scale factor 1.0 | not applicable | Offscreen rendering disabled |
-| 42 | Electron binary download moves from package `postinstall` to first execution | applicable build change | Verify immutable Yarn install, mirrors, offline/reproducible CI cache, and cross-platform acquisition at the 41-to-42 step |
+| 42 | Electron binary download moves from package `postinstall` to first execution | applicable build change | Direct execution downloaded and reported Electron `43.4.0`; clean CI packaging verifies cross-platform acquisition. Reproducible/offline cache policy remains with ELC-003/PKG-001 |
 | 42 | `Session.clearStorageData({quotas})` removed | not applicable | Calls pass no `quotas` object |
 | 42 | Array-only `hslShift` argument deprecated | not applicable | No use found |
 | 43 | Rounded corners and native WCO layout on Linux | low applicability | Current windows use native/default title bars; packaged UI smoke under PKG-001 guards shell/PiP behavior |
 | 43 | `NativeImage.toBitmap()` normalizes to sRGB | not applicable | No `toBitmap`/`getBitmap` use found |
 | 43 | Extension CSS injection includes more fallback frames | not applicable | No Chrome extension scripting use found |
 | 43 | Dialogs without `defaultPath` start in Downloads | applicable behavior | Current save paths are explicit; audit any new open/save dialogs under capability tests |
+| 43 | Legacy hidden-account unread timing changed under Chromium 150 | applicable compatibility regression | Hosted traces proved the hidden webapp delivered `1` and then an immediate `0`; the wrapper now preserves decreases from hidden accounts until they are visible, with characterization and cross-platform E2E coverage |
 
 ## Adjacent deprecated/security-sensitive Electron APIs
 
@@ -58,7 +59,7 @@ These are not new 39-to-43 removals, but they are upgrade blockers because carry
 | Host Node | `.node-version` `22.22.3` | Node 24 is embedded from Electron 40 onward; build Node may remain 22 only if supported by all tools | ELC-002 tests runtime behavior at each major; ELC-003 aligns build Node deliberately |
 | `electron-mocha` | `12.3.1` | Must prove main/renderer tests and source-map coverage on each Electron major | ELC-003/TST-001; replace if it blocks sandboxed integration tests |
 | Playwright | `1.60.0` | Electron launch compatibility and Chromium browser-shell install must be tested | ELC-003/TST-005 |
-| `electron-builder` | `25.1.8` | Linux package currently fails rebuilding Windows-only `registry-js`; error is swallowed | ELC-003/PKG-001; fix dependency pruning and propagate failure before accepting artifacts |
+| `electron-builder` | `26.15.3` | Updated in ELC-002 because 25.1.8's rebuild stack could not resolve Electron 43's ABI | ELC-002 propagates packaging failures and requires real artifacts; broader dependency review remains ELC-003 |
 | `electron-packager` | `17.1.2` | Windows/macOS packaging and Electron 43 download/sign behavior unverified | ELC-003/PKG-001 |
 | `@electron/fuses` | `1.8.0` | Existing useful fuses must remain compatible and be re-read from packaged binaries | SEC-011/PKG-001 |
 | `@electron/osx-sign` | `1.3.3` | Signing/notarization and Electron 42 notification behavior require signed artifact tests | ELC-003/PKG-001 |
@@ -68,6 +69,10 @@ These are not new 39-to-43 removals, but they are upgrade blockers because carry
 | Windows ia32 scripts | Explicit x86 build/install scripts remain | Electron 43 supports them, but Electron 44 removes Windows ia32 binaries | Product/Platform must resolve Q-001 before a target of 44+ |
 | Chromium/webapp | Chromium 140 to 150 | Remote Wire webapp compatibility cannot be inferred from wrapper unit tests | ELC-002 plus Windows/macOS/Linux E2E at each accepted upgrade step |
 
-## Upgrade execution rule
+## Upgrade execution record
 
-ELC-002 advances 38→39→40→41→42→43 one major per reviewed commit. At each step it runs types, development build, Jest, Electron main/renderer, build-tool tests, coverage, available E2E, and platform package smoke. A step is not accepted when a packaging function merely logs an error or when its claimed artifact is absent. The target is refreshed before the first step and at release-candidate cut; new majors extend this inventory before version changes land.
+ELC-002 tested the direct `38.8.6`→`43.4.0` transition first. Types, the development build, Jest, Electron main/renderer, and build-tool suites passed without staged source changes. Packaging required `electron-builder` `25.1.8`→`26.15.3`, the new nested Linux desktop-entry configuration shape, and propagation of builder failures after configuration restoration.
+
+Hosted E2E then exposed a Chromium 150 timing change in the legacy `<webview>` path. On both Windows and macOS the hidden account received the message, reported unread count `1`, and immediately reported `0`, clearing the wrapper badge before it could be observed. The same-environment Electron 38 macOS control passed. ELC-002 therefore preserves a hidden account's decreasing unread count until that account is visible; a characterization test was first proved red against the previous logic, and the unchanged E2E assertion remains the platform gate.
+
+The direct upgrade avoided validating intermediate releases that were already unsupported. Clean CI provides coverage, E2E, and platform package smoke evidence before acceptance. A packaging function that merely logs an error, or a job whose claimed artifact is absent, is not accepted.

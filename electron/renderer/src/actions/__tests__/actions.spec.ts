@@ -17,9 +17,19 @@
  *
  */
 
-import {ACCOUNT_ACTION, addAccount, deleteAccount, updateAccount, updateAccountBadge} from '../';
+import {
+  ACCOUNT_ACTION,
+  addAccount,
+  deleteAccount,
+  shouldAcceptBadgeCount,
+  updateAccount,
+  updateAccountBadge,
+  updateAccountBadgeCount,
+} from '../';
+import type {AppDispatch, State} from '../../index';
 import {generateUUID} from '../../lib/util';
-import {switchAccount} from '../AccountAction';
+import accountReducer, {createAccount} from '../../reducers/accountReducer';
+import {AccountAction, switchAccount} from '../AccountAction';
 
 describe('action creators', () => {
   describe('addAccount', () => {
@@ -52,6 +62,31 @@ describe('action creators', () => {
       };
       expect(switchAccount(id)).toEqual(action);
     });
+
+    it('[characterization][DCP-001] clears preserved unread state when the account becomes visible', async () => {
+      const account = {...createAccount({visible: false}), badgeCount: 1};
+      let state: State = {
+        accounts: [account],
+        contextMenuState: {accountId: '', isAtLeastAdmin: false, position: {centerX: 0, centerY: 0}},
+      };
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        state = {...state, accounts: accountReducer(state.accounts, action)};
+        return action;
+      });
+      const sendBadgeCount = jest.fn();
+      window.blur = jest.fn();
+      window.focus = jest.fn();
+      window.sendBadgeCount = sendBadgeCount;
+      const webview = document.createElement('div');
+      webview.className = 'Webview';
+      webview.dataset.accountid = account.id;
+      document.body.replaceChildren(webview);
+
+      await new AccountAction().switchWebview(0)(dispatch as unknown as AppDispatch, () => state);
+
+      expect(state.accounts[0]).toMatchObject({badgeCount: 0, visible: true});
+      expect(sendBadgeCount).toHaveBeenCalledWith(0, false);
+    });
   });
 
   describe('updateAccountBadge', () => {
@@ -64,6 +99,38 @@ describe('action creators', () => {
         type: ACCOUNT_ACTION.UPDATE_ACCOUNT_BADGE,
       };
       expect(updateAccountBadge(id, count)).toEqual(action);
+    });
+  });
+
+  describe('shouldAcceptBadgeCount', () => {
+    it('[characterization][DCP-001] preserves unread state reported by a hidden account', () => {
+      const account = {...createAccount({visible: false}), badgeCount: 1};
+
+      expect(shouldAcceptBadgeCount(account, 0)).toBe(false);
+    });
+
+    it('[characterization][DCP-001] accepts increases from hidden accounts and changes from visible accounts', () => {
+      const hiddenAccount = {...createAccount({visible: false}), badgeCount: 1};
+      const visibleAccount = {...createAccount({visible: true}), badgeCount: 1};
+
+      expect(shouldAcceptBadgeCount(hiddenAccount, 2)).toBe(true);
+      expect(shouldAcceptBadgeCount(visibleAccount, 0)).toBe(true);
+    });
+
+    it('[characterization][DCP-001] keeps the application badge and state unread while the account is hidden', () => {
+      const account = {...createAccount({visible: false}), badgeCount: 1};
+      const dispatch = jest.fn();
+      const sendBadgeCount = jest.fn();
+      const state: State = {
+        accounts: [account],
+        contextMenuState: {accountId: '', isAtLeastAdmin: false, position: {centerX: 0, centerY: 0}},
+      };
+      window.sendBadgeCount = sendBadgeCount;
+
+      updateAccountBadgeCount(account.id, 0)(dispatch, () => state);
+
+      expect(sendBadgeCount).toHaveBeenCalledWith(1, false);
+      expect(dispatch).not.toHaveBeenCalled();
     });
   });
 
