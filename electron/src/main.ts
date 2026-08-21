@@ -67,10 +67,10 @@ import {TrayHandler} from './menu/TrayHandler';
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
 import {OriginValidator} from './runtime/OriginValidator';
+import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
-import {ViewIdentityRegistry} from './secureShell/ViewIdentityRegistry';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
@@ -788,43 +788,19 @@ void lifecycle.checkSingleInstance().catch(error => logger.error(error));
 
 if (secureShellProof) {
   if (lifecycle.isFirstInstance) {
-    const registry = new ViewIdentityRegistry();
-    let controller: SecureShellController | undefined;
-    let disposeIpc: (() => void) | undefined;
-    let disposeProtocol: (() => void) | undefined;
-
-    app.on('window-all-closed', () => app.quit());
-    app.on('activate', () => controller?.show());
-    app.once('before-quit', () => {
-      controller?.dispose();
-      disposeIpc?.();
-      disposeProtocol?.();
-    });
-    void app
-      .whenReady()
-      .then(async () => {
-        const accountUrl = EnvironmentUtil.web.getWebappUrl();
-        if (!accountUrl) {
-          throw new Error('Secure shell proof requires a configured webapp URL.');
-        }
-
-        disposeProtocol = installSecureShellProtocol();
-        disposeIpc = bindSecureShellIpc(registry);
-        controller = new SecureShellController(
-          {
-            accountId: 'secure-shell-proof-account',
-            accountPreload: path.join(APP_PATH, 'dist/preload/preload-secure-account.js'),
-            accountUrl,
-          },
-          registry,
-        );
-        await controller.start();
-      })
-      .catch(error => {
-        logger.error('Secure shell proof failed closed.', error);
-        controller?.dispose();
-        app.quit();
-      });
+    void startSecureShellProof(
+      {
+        accountPreload: path.join(APP_PATH, 'dist/preload/preload-secure-account.js'),
+        app,
+        getAccountUrl: EnvironmentUtil.web.getWebappUrl,
+        logger,
+      },
+      {
+        bindIpc: bindSecureShellIpc,
+        createController: (options, registry) => new SecureShellController(options, registry),
+        installProtocol: installSecureShellProtocol,
+      },
+    );
   }
 } else {
   customProtocolHandler.registerCoreProtocol();
