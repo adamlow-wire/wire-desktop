@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.7.0
+revision: 0.9.0
 status: draft
-updated: 2026-08-20
+updated: 2026-08-21
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -13,7 +13,7 @@ source_branch: integration/electron-modernization
 upstream_base: e1ba98c50dce28b26b05466169fbdf941f0285f3
 current_electron: 43.4.0
 reference_latest_stable_electron: 43.4.0
-reference_latest_checked: 2026-08-18
+reference_latest_checked: 2026-08-21
 target_electron_rule: latest stable Electron at each release-candidate cut
 priority_order:
   - supported Electron runtime
@@ -195,7 +195,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 | --- | --- | --- |
 | M0 — Governed baseline | Fork, PR-only integration branch, accountable maintainer, CI baseline, capability inventory, and threat model exist | Branch/PR links, baseline report, maintainer-reviewed threat model |
 | M1 — Supported runtime | Latest stable Electron builds and baseline tests pass on supported platforms | Version check, breaking-change log, CI runs, packaged smoke results |
-| M2 — Secure shell proof | One account runs using the new architecture and satisfies INV-001 through INV-010 | Architecture tests, IPC policy tests, security review notes |
+| M2 — Secure shell proof | One opt-in account runs using the new architecture and proves INV-001 through INV-008 and INV-010; production package integrity remains owned by INV-009/M5 | Architecture tests, hostile-renderer tests, IPC/policy tests, security review notes |
 | M3 — Security-critical parity | Multi-account, SSO, certificate, navigation, permissions, and deep links use the new boundary | Capability tests and platform E2E evidence |
 | M4 — Full required parity | All retained P1 capabilities pass their acceptance matrix | Completed capability matrix |
 | M5 — Release qualified | Packaged upgrade/migration tests, external security review, and rollback exercise pass | Signed artifacts, reports, remediation closure |
@@ -289,6 +289,23 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Account creation, destruction, crash recovery, focus, resize, and lifecycle are specified.
   - Security and platform owners approve the ADR.
 - Evidence: [Accepted ADR 0001](./decisions/0001-process-and-view-architecture.md); the solo maintainer reviewed and accepted it by merging [PR #1](https://github.com/adamlow-wire/wire-desktop/pull/1)
+
+#### ARC-002 — Implement the secure single-account shell proof
+
+- Priority: `P0`
+- Status: `in_progress`
+- Milestone: `M2`
+- Dependencies: ARC-001, ELC-002
+- Scope: Add an explicit opt-in path that runs one remote account in a main-owned `WebContentsView` behind a sandboxed local shell, without enabling legacy remote or broad IPC authority on that path. This proves the boundary before product-capability migration; it does not remove the legacy fallback.
+- Acceptance:
+  - The proof uses a privileged local scheme with a restrictive production CSP, plus a remote view with `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`, and `webviewTag: false`.
+  - A main-owned immutable identity registry binds the view, main frame, exact origin, isolated persistent session, and a minimal capability set before remote navigation.
+  - The only proof IPC is a fixed, versioned, runtime-validated contract; unknown, destroyed, subframe, origin-mismatched, or invalid-payload callers fail closed.
+  - Navigation, popup, permission, and download behavior default to deny and have positive and hostile tests where an allow path exists.
+  - Real Electron integration tests prove effective preferences, the absence of Node/Electron/raw IPC/remote access, session isolation, lifecycle cleanup, and authority removal before crash recovery.
+  - Legacy product E2E and Windows/macOS/Linux package baselines remain green because the proof path is opt-in.
+  - Proof evidence maps INV-001 through INV-008 and INV-010. INV-009 remains owned by SEC-011 and M5 production qualification.
+- Evidence: TBD
 
 #### SEC-001 — Threat model the desktop wrapper
 
@@ -487,7 +504,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### ELC-002 — Upgrade Electron to latest stable
 
 - Priority: `P0`
-- Status: `ready`
+- Status: `done`
 - Milestone: `M1`
 - Dependencies: BASE-001, ELC-001
 - Scope: Upgrade from Electron 38 to the latest stable release, testing the direct transition first and splitting only where an evidenced compatibility boundary requires it. Refresh the target immediately before completion.
@@ -497,7 +514,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Packaged apps launch on all supported operating systems.
   - The breaking-change log records every required code/configuration change.
   - No temporary compatibility flag weakens a security invariant without a tracked exception.
-- Evidence: TBD
+- Evidence: [PR #6](https://github.com/adamlow-wire/wire-desktop/pull/6); final-head [package baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/32463021013) passed on Windows, macOS, and Linux; [authenticated E2E](https://github.com/adamlow-wire/wire-desktop/actions/runs/32463021040) passed with 60 tests, 0 unexpected failures, and 3 disclosed retry passes
 
 #### ELC-003 — Upgrade or replace Electron-adjacent dependencies
 
@@ -840,6 +857,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 0.9.0 | 2026-08-21 | Codex | Closed the Electron 43 runtime milestone and bounded M2 as an opt-in secure-shell proof; retained production fuse, signing, and integrity qualification in M5 | ELC-002, ARC-002, INV-009, SEC-011 |
 | 0.8.0 | 2026-08-20 | Codex | Revalidated Electron 43.4.0 as latest stable, replaced assumed per-major upgrade ceremony with a direct evidence-driven transition, and made Linux packaging failures/artifact absence fatal | ELC-001, ELC-002, PKG-001 |
 | 0.7.0 | 2026-08-20 | Codex | Closed M0 after accepted governance, capability, architecture, threat-model, baseline, and deterministic SSO evidence; made the Electron 38→39 upgrade the next work | BASE-002, ARC-001, SEC-001, TST-002, DEC-004, ELC-002 |
 | 0.6.3 | 2026-08-20 | Codex | Completed the reproducible legacy baseline after authenticated group-call and logout stabilization passed on Windows and macOS | BASE-001 |
