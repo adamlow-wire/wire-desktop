@@ -17,7 +17,7 @@
  *
  */
 
-import {app, WebContents, WebPreferences} from 'electron';
+import {app, WebContents, WebContentsView, WebPreferences} from 'electron';
 
 import * as assert from 'assert';
 import {createServer, Server} from 'http';
@@ -108,7 +108,16 @@ describe('SecureShellController', () => {
     return controller;
   };
 
-  it('[security-target][INV-003][ARC-002] owns the shell lifecycle and revokes authority on disposal', async () => {
+  const getVisibleAccountContentsIds = (controller: SecureShellController): number[] => {
+    const window = controller.getWindowForTest();
+    assert.ok(window);
+    return window.contentView.children
+      .filter(view => view.getVisible())
+      .map(view => (view as WebContentsView).webContents.id);
+  };
+
+  it('[security-target][INV-003][ARC-002] owns the shell lifecycle and revokes authority on disposal', async function () {
+    this.timeout(10_000);
     const controller = await createController('account-a', true);
     const window = controller.getWindowForTest();
     const webContents = controller.getAccountWebContentsForTest();
@@ -183,6 +192,52 @@ describe('SecureShellController', () => {
     await firstContents.executeJavaScript("localStorage.setItem('isolation-proof', 'account-a')");
     assert.strictEqual(await secondContents.executeJavaScript("localStorage.getItem('isolation-proof')"), null);
     assert.notStrictEqual(firstContents.session, secondContents.session);
+  });
+
+  it('[migration][INV-003][INV-004][INV-010][DCP-002][CAP-001] adds, switches, and removes only the targeted account', async () => {
+    const controller = await createController('account-a');
+    const firstContents = controller.getAccountWebContentsForTest('account-a');
+    assert.ok(firstContents);
+    await firstContents.executeJavaScript("localStorage.setItem('selection-proof', 'account-a')");
+
+    await controller.addAccount('account-b');
+    const secondContents = controller.getAccountWebContentsForTest('account-b');
+    assert.ok(secondContents);
+    assert.deepStrictEqual(controller.getAccountIds(), ['account-a', 'account-b']);
+    assert.strictEqual(controller.getActiveAccountId(), 'account-b');
+    assert.deepStrictEqual(getVisibleAccountContentsIds(controller), [secondContents.id]);
+    assert.notStrictEqual(firstContents.session, secondContents.session);
+    assert.strictEqual(await secondContents.executeJavaScript("localStorage.getItem('selection-proof')"), null);
+
+    controller.switchAccount('account-a');
+    assert.strictEqual(controller.getActiveAccountId(), 'account-a');
+    assert.deepStrictEqual(getVisibleAccountContentsIds(controller), [firstContents.id]);
+
+    controller.switchAccount('account-b');
+    controller.removeAccount('account-a');
+    assert.deepStrictEqual(controller.getAccountIds(), ['account-b']);
+    assert.strictEqual(controller.getActiveAccountId(), 'account-b');
+    assert.deepStrictEqual(getVisibleAccountContentsIds(controller), [secondContents.id]);
+    assert.strictEqual(registry.has(firstContents.id), false);
+    await waitFor(() => firstContents.isDestroyed());
+    assert.strictEqual(firstContents.isDestroyed(), true);
+    assert.deepStrictEqual(await secondContents.executeJavaScript('window.wireDesktopProof.getRuntimeInfo()'), {
+      accountId: 'account-b',
+      contractVersion: 1,
+    });
+  });
+
+  it('[security-target][INV-003][INV-010][CAP-001] fails closed for duplicate or unknown account targets', async () => {
+    const controller = await createController('account-a');
+    const firstContents = controller.getAccountWebContentsForTest('account-a');
+    assert.ok(firstContents);
+
+    await assert.rejects(controller.addAccount('account-a'), /already exists/);
+    assert.throws(() => controller.switchAccount('unknown-account'), /Unknown secure account/);
+    assert.throws(() => controller.removeAccount('unknown-account'), /Unknown secure account/);
+    assert.deepStrictEqual(controller.getAccountIds(), ['account-a']);
+    assert.strictEqual(controller.getActiveAccountId(), 'account-a');
+    assert.deepStrictEqual(getVisibleAccountContentsIds(controller), [firstContents.id]);
   });
 
   it('[security-target][INV-005][INV-006][INV-010][ARC-002] denies popup, navigation, and permissions', async () => {

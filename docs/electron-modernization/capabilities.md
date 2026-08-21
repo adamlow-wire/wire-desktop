@@ -13,7 +13,7 @@ Confidence values are `none`, `low`, `medium`, or `high`. `High` requires repres
 | Capability ID | Capability | Platforms | Current evidence | Current confidence | Characterization owner/work | Migration work | Target evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | DCP-001 | Normal login and registration | Windows, macOS, Linux | Playwright critical flows on Windows/macOS | medium | BASE-002 | CAP-001 | Development E2E plus packaged login smoke on supported platforms |
-| DCP-002 | Multi-account add/switch/remove | Windows, macOS, Linux | Critical and regression E2E; reducer/action tests | medium | BASE-002, TST-004 | CAP-001 | E2E plus partition, IPC, and storage isolation tests |
+| DCP-002 | Multi-account add/switch/remove | Windows, macOS, Linux | Critical/regression E2E; sensitivity-proven reducer lifecycle contract; secure-shell exact-target, partition, IPC, and storage-isolation tests | medium | BASE-002, TST-004 | CAP-001 | Product action routing, lifecycle E2E, and packaged three-account switch/remove smoke |
 | DCP-003 | Enterprise and automated SSO | Windows, macOS, Linux | 18 characterization tests including a deterministic Electron fixture; three CAP-002 security targets quarantined | medium | TST-002 | CAP-002 | Controlled IdP E2E, protocol abuse tests, cookie/account isolation, cleanup |
 | DCP-004 | Logout, data clearing, and persistence | Windows, macOS, Linux | Logout and account-removal E2E | medium | BASE-002 | CAP-001, PKG-003 | Per-account deletion tests and released-version migration fixtures |
 | DCP-005 | Tray and native application menu | Windows, macOS, Linux | Basic tray icon/unread/flashing tests; menu E2E | low | TST-003 | CAP-004 | Platform branch tests plus packaged native smoke |

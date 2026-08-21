@@ -230,7 +230,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 - Acceptance:
   - Upstream can review the architecture before full migration cost is incurred.
   - Material feedback is represented as decisions, risks, or work-item changes here.
-- Evidence: TBD
+- Evidence: [Draft PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) is the first bounded slice: legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. Product action routing and per-account data deletion remain open, so CAP-001 is not complete.
 
 #### GOV-003 — Establish durable human and AI project memory
 
@@ -619,7 +619,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
@@ -857,6 +857,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.1.0 | 2026-08-21 | Codex | Started M3 with a bounded, test-first account-selection slice that preserves stable identities and proves exact-target isolation in the secure shell; retained product routing and data deletion as explicit CAP-001 follow-up work | CAP-001, DCP-002, INV-003, INV-004, INV-010 |
 | 1.0.0 | 2026-08-21 | Codex | Closed the bounded M2 secure-shell proof with cross-platform integration/package evidence, hostile-boundary tests, passing changed-code coverage, and authenticated legacy E2E; made the proof and its regression suite the executable prerequisites for M3 account migration | ARC-002, TST-004, CAP-001, SEC-007 |
 | 0.9.0 | 2026-08-21 | Codex | Closed the Electron 43 runtime milestone and bounded M2 as an opt-in secure-shell proof; retained production fuse, signing, and integrity qualification in M5 | ELC-002, ARC-002, INV-009, SEC-011 |
 | 0.8.0 | 2026-08-20 | Codex | Revalidated Electron 43.4.0 as latest stable, replaced assumed per-major upgrade ceremony with a direct evidence-driven transition, and made Linux packaging failures/artifact absence fatal | ELC-001, ELC-002, PKG-001 |

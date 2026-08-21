@@ -96,4 +96,40 @@ describe('accounts reducer', () => {
     expect(newState.length).toEqual(1);
     expect(firstAccount.id).toEqual('d01eb964-bf56-4668-8883-dc248b58b1ca');
   });
+
+  it('[characterization][DCP-002][CAP-001] preserves stable identities while adding, switching, and removing accounts', () => {
+    const firstAccount = createAccount({
+      id: '046da4f1-39be-4b8b-823b-e71f12811454',
+      sessionID: 'f390f32c-963b-4cb4-9f05-d7446442f252',
+    });
+    const secondAccount = createAccount({
+      id: 'd01eb964-bf56-4668-8883-dc248b58b1ca',
+      sessionID: 'a482c12d-289a-45ab-b331-a1cc9b32c621',
+      visible: false,
+    });
+
+    const addedState = accountReducer([firstAccount, secondAccount], addAccount());
+    const addedAccount = addedState[2];
+    expect(addedState.map(account => account.id)).toEqual([firstAccount.id, secondAccount.id, addedAccount.id]);
+    expect(addedState.map(account => account.sessionID)).toEqual([
+      firstAccount.sessionID,
+      secondAccount.sessionID,
+      addedAccount.sessionID,
+    ]);
+    expect(addedState.filter(account => account.visible).map(account => account.id)).toEqual([addedAccount.id]);
+
+    const switchedState = accountReducer(addedState, switchAccount(secondAccount.id));
+    expect(switchedState.map(account => account.id)).toEqual([firstAccount.id, secondAccount.id, addedAccount.id]);
+    expect(switchedState.map(account => account.sessionID)).toEqual([
+      firstAccount.sessionID,
+      secondAccount.sessionID,
+      addedAccount.sessionID,
+    ]);
+    expect(switchedState.filter(account => account.visible).map(account => account.id)).toEqual([secondAccount.id]);
+
+    const removedState = accountReducer(switchedState, deleteAccount(firstAccount.id));
+    expect(removedState.map(account => account.id)).toEqual([secondAccount.id, addedAccount.id]);
+    expect(removedState.map(account => account.sessionID)).toEqual([secondAccount.sessionID, addedAccount.sessionID]);
+    expect(removedState.filter(account => account.visible).map(account => account.id)).toEqual([secondAccount.id]);
+  });
 });

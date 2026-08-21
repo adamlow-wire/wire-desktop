@@ -38,10 +38,10 @@ export interface SecureShellControllerOptions {
 }
 
 export class SecureShellController {
-  private accountView: WebContentsView | undefined;
+  private activeAccountId: string | undefined;
+  private readonly accountViews = new Map<string, WebContentsView>();
   private readonly accountUrl: URL;
   private readonly configuredSessions = new WeakSet<Session>();
-  private readonly partition: string;
   private readonly registry: ViewIdentityRegistry;
   private readonly options: SecureShellControllerOptions;
   private window: BrowserWindow | undefined;
@@ -50,7 +50,6 @@ export class SecureShellController {
     this.options = options;
     this.registry = registry;
     this.accountUrl = parseSecureAccountUrl(options.accountUrl, options.allowHttpForTest);
-    this.partition = createSecureAccountPartition(`${this.accountUrl.origin}\0${options.accountId}`);
   }
 
   async start(): Promise<void> {
@@ -74,11 +73,11 @@ export class SecureShellController {
     this.window = window;
     window.webContents.on('will-navigate', event => event.preventDefault());
     window.webContents.setWindowOpenHandler(() => ({action: 'deny'}));
-    window.on('resize', () => this.layoutAccountView());
-    window.on('closed', () => this.disposeAccountView());
+    window.on('resize', () => this.layoutAccountViews());
+    window.on('closed', () => this.disposeAccountViews());
 
     await window.loadURL(`${SECURE_SHELL_ORIGIN}/index.html`);
-    await this.createAccountView();
+    await this.addAccount(this.options.accountId);
 
     if (this.options.show !== false) {
       window.show();
@@ -89,8 +88,61 @@ export class SecureShellController {
     this.window?.show();
   }
 
-  getAccountWebContentsForTest(): Electron.WebContents | undefined {
-    return this.accountView?.webContents;
+  async addAccount(accountId: string): Promise<void> {
+    if (!this.window || this.window.isDestroyed()) {
+      throw new Error('Secure shell is not running.');
+    }
+    if (this.accountViews.has(accountId)) {
+      throw new Error(`Secure account "${accountId}" already exists.`);
+    }
+
+    try {
+      await this.createAccountView(accountId);
+      this.switchAccount(accountId);
+    } catch (error) {
+      this.disposeAccountView(accountId);
+      throw error;
+    }
+  }
+
+  switchAccount(accountId: string): void {
+    if (!this.accountViews.has(accountId)) {
+      throw new Error(`Unknown secure account "${accountId}".`);
+    }
+
+    for (const [candidateId, view] of this.accountViews) {
+      view.setVisible(candidateId === accountId);
+    }
+    this.activeAccountId = accountId;
+  }
+
+  removeAccount(accountId: string): void {
+    if (!this.accountViews.has(accountId)) {
+      throw new Error(`Unknown secure account "${accountId}".`);
+    }
+
+    const wasActive = this.activeAccountId === accountId;
+    this.disposeAccountView(accountId);
+    if (wasActive) {
+      this.activeAccountId = undefined;
+      const remainingIds = [...this.accountViews.keys()];
+      const fallbackId = remainingIds[remainingIds.length - 1];
+      if (fallbackId) {
+        this.switchAccount(fallbackId);
+      }
+    }
+  }
+
+  getAccountIds(): readonly string[] {
+    return Object.freeze([...this.accountViews.keys()]);
+  }
+
+  getActiveAccountId(): string | undefined {
+    return this.activeAccountId;
+  }
+
+  getAccountWebContentsForTest(accountId = this.options.accountId): Electron.WebContents | undefined {
+    return this.accountViews.get(accountId)?.webContents;
   }
 
   getWindowForTest(): BrowserWindow | undefined {
@@ -98,37 +150,40 @@ export class SecureShellController {
   }
 
   dispose(): void {
-    this.disposeAccountView();
+    this.disposeAccountViews();
     if (this.window && !this.window.isDestroyed()) {
       this.window.destroy();
     }
     this.window = undefined;
   }
 
-  private async createAccountView(): Promise<void> {
+  private async createAccountView(accountId: string): Promise<void> {
     if (!this.window || this.window.isDestroyed()) {
-      return;
+      throw new Error('Secure shell is not running.');
     }
+
+    const partition = createSecureAccountPartition(`${this.accountUrl.origin}\0${accountId}`);
 
     const view = new WebContentsView({
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
         nodeIntegrationInWorker: false,
-        partition: this.partition,
+        partition,
         preload: this.options.accountPreload,
         sandbox: true,
         webviewTag: false,
       },
     });
+    view.setVisible(false);
     const webContents = view.webContents;
-    this.accountView = view;
+    this.accountViews.set(accountId, view);
     this.configureSession(webContents.session);
     this.registry.register({
-      accountId: this.options.accountId,
+      accountId,
       allowedOrigin: this.accountUrl.origin,
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
-      partition: this.partition,
+      partition,
       webContents,
     });
 
@@ -143,14 +198,16 @@ export class SecureShellController {
     webContents.once('destroyed', () => this.registry.unregister(webContents.id));
     webContents.once('render-process-gone', () => {
       this.registry.unregister(webContents.id);
-      void this.recoverAccountView(view).catch(error => {
+      void this.recoverAccountView(accountId, view).catch(error => {
         logger.error('Secure account view recovery failed.', error);
-        this.disposeAccountView();
+        if (this.accountViews.has(accountId)) {
+          this.removeAccount(accountId);
+        }
       });
     });
 
     this.window.contentView.addChildView(view);
-    this.layoutAccountView();
+    this.layoutAccountViews();
     await webContents.loadURL(this.accountUrl.href);
   }
 
@@ -168,30 +225,43 @@ export class SecureShellController {
     accountSession.on('will-download', (event: Event) => event.preventDefault());
   }
 
-  private layoutAccountView(): void {
-    if (!this.window || !this.accountView) {
+  private layoutAccountViews(): void {
+    if (!this.window) {
       return;
     }
 
     const {height, width} = this.window.getContentBounds();
-    this.accountView.setBounds({height, width, x: 0, y: 0});
+    for (const view of this.accountViews.values()) {
+      view.setBounds({height, width, x: 0, y: 0});
+    }
   }
 
-  private async recoverAccountView(failedView: WebContentsView): Promise<void> {
-    if (this.accountView !== failedView || !this.window || this.window.isDestroyed()) {
+  private async recoverAccountView(accountId: string, failedView: WebContentsView): Promise<void> {
+    if (this.accountViews.get(accountId) !== failedView || !this.window || this.window.isDestroyed()) {
       return;
     }
 
-    this.disposeAccountView();
-    await this.createAccountView();
+    const wasActive = this.activeAccountId === accountId;
+    this.disposeAccountView(accountId);
+    await this.createAccountView(accountId);
+    if (wasActive) {
+      this.switchAccount(accountId);
+    }
   }
 
-  private disposeAccountView(): void {
-    const view = this.accountView;
-    this.accountView = undefined;
+  private disposeAccountViews(): void {
+    for (const accountId of [...this.accountViews.keys()]) {
+      this.disposeAccountView(accountId);
+    }
+    this.activeAccountId = undefined;
+  }
+
+  private disposeAccountView(accountId: string): void {
+    const view = this.accountViews.get(accountId);
     if (!view) {
       return;
     }
+    this.accountViews.delete(accountId);
 
     this.registry.unregister(view.webContents.id);
     if (this.window && !this.window.isDestroyed()) {
