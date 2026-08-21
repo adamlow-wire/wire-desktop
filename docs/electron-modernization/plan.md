@@ -619,7 +619,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
