@@ -42,6 +42,17 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: yarn --immutable
+      - name: Build secure-shell preload
+        shell: bash
+        run: yarn build:ts
+      - name: Test secure-shell boundary
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/secureShell/**/*.test.main.ts" --no-sandbox
+          else
+            yarn electron-mocha --require .babel-register.js "electron/src/secureShell/**/*.test.main.ts" --no-sandbox
+          fi
       - name: Build development package
         shell: bash
         run: ${{ matrix.build }}
