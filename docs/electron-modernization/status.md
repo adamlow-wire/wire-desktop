@@ -1,9 +1,9 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-21
-milestone: M2
-active_work_item: ARC-002
-state: m2-in-progress
+milestone: M3
+active_work_item: CAP-001
+state: m2-complete-m3-ready
 integration_branch: integration/electron-modernization
 integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 integration_head_commit: 37169b39c54ffdf54ff555dfe0f453568c3209e6
@@ -12,7 +12,7 @@ fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
 related_pending_branch: feature/WPB-5221-windows-native-msi
-next_work_item: ARC-002
+next_work_item: CAP-001
 blockers: []
 ---
 
@@ -20,25 +20,25 @@ blockers: []
 
 ## Current outcome
 
-M0 and M1 are complete. [PR #6](https://github.com/adamlow-wire/wire-desktop/pull/6) upgraded Electron directly from `38.8.6` to `43.4.0`, repaired fatal packaging/error gates, and passed the final Windows/macOS/Linux package baseline plus authenticated Windows/macOS E2E. M2 is active as a bounded opt-in secure single-account shell proof; the legacy product path remains unchanged until capability migration.
+M0, M1, and M2 are complete. [PR #7](https://github.com/adamlow-wire/wire-desktop/pull/7) proves a sandboxed, main-owned, single-account `WebContentsView` boundary behind an explicit opt-in. Its security tests and packages pass on Windows, macOS, and Linux, and authenticated legacy E2E passes on Windows and macOS. The legacy product path remains unchanged; M3 starts product migration with CAP-001.
 
 ## Active work
 
-| Field               | Value                                                                                     |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| Work item           | ARC-002 — Implement the secure single-account shell proof                                 |
-| Owner               | `adamlow-wire`                                                                            |
-| Active branch       | `arch/ARC-002-secure-shell-proof`                                                         |
-| Goal                | Prove the new renderer/view boundary behind an explicit opt-in without changing legacy UX |
-| Completion evidence | Security-target tests, real Electron integration, package baseline, and legacy E2E        |
+| Field         | Value                                                             |
+| ------------- | ----------------------------------------------------------------- |
+| Work item     | CAP-001 — Migrate account and multi-account lifecycle             |
+| Owner         | `adamlow-wire`                                                    |
+| Active branch | Not started                                                       |
+| Goal          | Move account lifecycle onto the proven secure shell incrementally |
+| Starting gate | ARC-002 and TST-004 complete; legacy fallback remains available   |
 
 ## Next executable sequence
 
-1. Add the ARC-002 work item and tests for policy, identity, IPC, preferences, isolation, and lifecycle.
-2. Prove test sensitivity with temporary fail-open/security regressions, then revert them.
-3. Implement the opt-in secure shell and run real Electron integration locally.
-4. Require the normal Windows/macOS/Linux package baseline and authenticated legacy E2E before merging.
-5. Begin M3 with CAP-001 multi-account lifecycle; keep the three legacy SSO targets under CAP-002.
+1. Open one CAP-001 branch and PR from the updated integration branch.
+2. Characterize one account-lifecycle slice and sensitivity-prove its tests before changing behavior.
+3. Migrate that slice to the ARC-002 shell while retaining an explicit legacy fallback.
+4. Prove account targeting and cross-account session/IPC isolation before expanding scope.
+5. Keep enterprise SSO and its three quarantined security targets under CAP-002.
 
 ## Completed work
 
@@ -54,6 +54,8 @@ M0 and M1 are complete. [PR #6](https://github.com/adamlow-wire/wire-desktop/pul
 | SEC-001 — Threat model the desktop wrapper              | `threat-model.md`; PR #1                          |
 | TST-002 — Characterize enterprise SSO                   | 18 passing / 3 CAP-002 security targets pending   |
 | ELC-002 — Upgrade Electron to latest stable             | PR #6; Electron 43.4.0; final package/E2E green   |
+| ARC-002 — Implement secure single-account shell proof   | PR #7; 17 security-target tests; all-platform CI  |
+| TST-004 — Add security-boundary regression tests        | PR #7; sensitivity proof; mandatory all-platform  |
 
 ## Last verified state
 
@@ -78,6 +80,10 @@ M0 and M1 are complete. [PR #6](https://github.com/adamlow-wire/wire-desktop/pul
 | Electron 43 local compatibility | Runtime `v43.4.0`; types/build passed; Jest 14/36, main 54 + 3 pending, renderer 2, build tools 13 all passed | 2026-08-20 |
 | Electron 43 final package baseline | Run `32463021013`: Windows, macOS, and Linux passed with required artifacts | 2026-08-21 |
 | Electron 43 final E2E | Run `32463021040`: Windows/macOS passed; merged report 57 expected, 3 unrelated retry passes, 0 unexpected | 2026-08-21 |
+| M2 changed-code coverage | Run `32469363415`: 80.00% changed statements and 95.45% changed security branches; pass | 2026-08-21 |
+| M2 secure-shell/package baseline | Run `32469363410`: 17 security-target tests plus package/artifact smoke passed on Windows, macOS, and Linux | 2026-08-21 |
+| M2 legacy E2E | Run `32469363449`: Windows/macOS and merged report passed; 55 first-attempt passes, 5 disclosed retry passes, 0 unexpected | 2026-08-21 |
+| Capability matrix review | ARC-002 proves architecture/security boundaries but does not migrate product capabilities; confidence rows remain unchanged for CAP-001 | 2026-08-21 |
 
 ## Handoff notes
 
@@ -85,7 +91,7 @@ M0 and M1 are complete. [PR #6](https://github.com/adamlow-wire/wire-desktop/pul
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
 - PR #6 contains a sensitivity-proven regression test for Linux packaging error propagation; do not restore the prior catch-and-log behavior.
 - PR #6 also contains sensitivity-proven Electron 43 unread-state compatibility tests; hidden accounts may increase but not clear unread state until visible.
-- ARC-002 is a proof path, not a claim that legacy `@electron/remote`, `<webview>`, or broad IPC has been removed globally. Those work items remain open until migration removes the fallback.
+- ARC-002 is a proof path, not a claim that legacy `@electron/remote`, `<webview>`, or broad IPC has been removed globally. CAP-001 begins migration; the global security work items remain open until the fallback is removed.
 - The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
 - The authoritative `BackendConnection staging` values work. Do not add credential normalization or workarounds without new evidence of a credential defect.

@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 0.9.0
+revision: 1.0.0
 status: draft
 updated: 2026-08-21
 owners:
@@ -293,7 +293,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### ARC-002 — Implement the secure single-account shell proof
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M2`
 - Dependencies: ARC-001, ELC-002
 - Scope: Add an explicit opt-in path that runs one remote account in a main-owned `WebContentsView` behind a sandboxed local shell, without enabling legacy remote or broad IPC authority on that path. This proves the boundary before product-capability migration; it does not remove the legacy fallback.
@@ -305,7 +305,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Real Electron integration tests prove effective preferences, the absence of Node/Electron/raw IPC/remote access, session isolation, lifecycle cleanup, and authority removal before crash recovery.
   - Legacy product E2E and Windows/macOS/Linux package baselines remain green because the proof path is opt-in.
   - Proof evidence maps INV-001 through INV-008 and INV-010. INV-009 remains owned by SEC-011 and M5 production qualification.
-- Evidence: TBD
+- Evidence: [PR #7](https://github.com/adamlow-wire/wire-desktop/pull/7); [Windows/macOS/Linux secure-shell and package baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/32469363410); [authenticated Windows/macOS E2E](https://github.com/adamlow-wire/wire-desktop/actions/runs/32469363449) passed with 55 first-attempt passes, 5 disclosed retry passes, and 0 unexpected failures; changed-code coverage passed at 80.00% statements and 95.45% security branches in [Build and Test](https://github.com/adamlow-wire/wire-desktop/actions/runs/32469363415)
 
 #### SEC-001 — Threat model the desktop wrapper
 
@@ -590,15 +590,15 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### TST-004 — Add security-boundary regression tests
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `done`
 - Milestone: `M2`
-- Dependencies: SEC-002, SEC-003, SEC-008, SEC-009
+- Dependencies: ARC-002
 - Scope: Assert effective web preferences, bridge surface, sender authorization, navigation policy, popup policy, permissions, session isolation, and fail-closed behavior.
 - Acceptance:
   - Tests fail if context isolation or sandboxing is disabled.
   - Tests fail if Node, Electron, raw IPC, or remote APIs become reachable from remote content.
   - A hostile test page exercises unauthorized IPC and cross-account attempts.
-- Evidence: TBD
+- Evidence: [PR #7](https://github.com/adamlow-wire/wire-desktop/pull/7) adds 17 mandatory `security-target` tests covering effective preferences, bridge reachability, sender authorization, exact-origin navigation, popup/permission/download denial, partition isolation, teardown, and crash recovery; a temporary fail-open navigation mutation produced the expected hostile-origin failure and was reverted; the tests passed on Windows, macOS, and Linux in [run 32469363410](https://github.com/adamlow-wire/wire-desktop/actions/runs/32469363410)
 
 #### TST-005 — Expand platform E2E and packaged smoke CI
 
@@ -621,8 +621,8 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 - Priority: `P0`
 - Status: `proposed`
 - Milestone: `M3`
-- Dependencies: SEC-007, TST-004
-- Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events.
+- Dependencies: ARC-002, TST-004
+- Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
 - Acceptance:
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
@@ -857,6 +857,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.0.0 | 2026-08-21 | Codex | Closed the bounded M2 secure-shell proof with cross-platform integration/package evidence, hostile-boundary tests, passing changed-code coverage, and authenticated legacy E2E; made the proof and its regression suite the executable prerequisites for M3 account migration | ARC-002, TST-004, CAP-001, SEC-007 |
 | 0.9.0 | 2026-08-21 | Codex | Closed the Electron 43 runtime milestone and bounded M2 as an opt-in secure-shell proof; retained production fuse, signing, and integrity qualification in M5 | ELC-002, ARC-002, INV-009, SEC-011 |
 | 0.8.0 | 2026-08-20 | Codex | Revalidated Electron 43.4.0 as latest stable, replaced assumed per-major upgrade ceremony with a direct evidence-driven transition, and made Linux packaging failures/artifact absence fatal | ELC-001, ELC-002, PKG-001 |
 | 0.7.0 | 2026-08-20 | Codex | Closed M0 after accepted governance, capability, architecture, threat-model, baseline, and deterministic SSO evidence; made the Electron 38→39 upgrade the next work | BASE-002, ARC-001, SEC-001, TST-002, DEC-004, ELC-002 |
