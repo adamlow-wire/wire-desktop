@@ -212,6 +212,7 @@ describe('SecureShellController', () => {
     assert.strictEqual(controller.getActiveAccountId(), 'account-a');
     assert.deepStrictEqual(getVisibleAccountContentsIds(controller), [firstContents.id]);
 
+    controller.switchAccount('account-b');
     controller.removeAccount('account-a');
     assert.deepStrictEqual(controller.getAccountIds(), ['account-b']);
     assert.strictEqual(controller.getActiveAccountId(), 'account-b');
