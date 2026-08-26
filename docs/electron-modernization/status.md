@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-08-26
 milestone: M3
 active_work_item: CAP-001
-state: m3-upstream-sync-before-cap001-continuation
+state: m3-cap001-account-data-deletion-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: e548edeb65a31a75b01933a81c1c34926639b0b0
 integration_head_commit: 9ffd69fb74c26f524a16b3baeb0e9997aba35d04
@@ -26,19 +26,19 @@ Upstream has since merged the native Windows MSI work in PR #9722. The current s
 
 ## Active work
 
-| Field         | Value                                                          |
-| ------------- | -------------------------------------------------------------- |
-| Work item     | CAP-001 — Migrate account and multi-account lifecycle          |
-| Owner         | `adamlow-wire`                                                 |
-| Active branch | `gov/GOV-001-upstream-sync-2026-08-26`                         |
-| Goal          | Synchronize merged MSI work and restore accurate durable state |
-| Starting gate | PR #8 merged green; upstream synchronization is conflict-free  |
+| Field         | Value                                                         |
+| ------------- | ------------------------------------------------------------- |
+| Work item     | CAP-001 — Migrate account and multi-account lifecycle         |
+| Owner         | `adamlow-wire`                                                |
+| Active branch | `cap/CAP-001-account-data-deletion`                           |
+| Goal          | Prove deletion clears only the targeted secure partition      |
+| Starting gate | PR #9 synchronization is open; local coverage repair is green |
 
 ## Next executable sequence
 
-1. Merge the upstream synchronization through a dedicated PR after build, unit/integration, Windows/macOS/Linux package, and authenticated Windows/macOS E2E checks pass.
-2. Start a new CAP-001 branch for logout and per-account data deletion characterization.
-3. Prove deletion targets only the selected account's partition before connecting it to the secure account collection.
+1. Merge PR #9 after its build, Windows/macOS/Linux package, and authenticated Windows/macOS E2E checks pass.
+2. Publish the stacked CAP-001 deletion PR against the synchronized integration branch.
+3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
 4. Complete the remaining M3 security-policy and capability items in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
@@ -92,6 +92,7 @@ Upstream has since merged the native Windows MSI work in PR #9722. The current s
 | Upstream synchronization preflight | Upstream PR #9722 is 15 commits ahead; three-way merge completed without conflicts on the dedicated synchronization branch | 2026-08-26 |
 | MSI/Electron-builder compatibility | The imported MSI configuration suite initially failed because Electron Builder 26 loaded an ESM-only transitive module under Jest; deferring the runtime import until packaging preserved behavior and the suite passed 10/10, followed by Jest 19/19 suites and 62/62 tests | 2026-08-26 |
 | Upstream MSI changed-code coverage | PR #9 first hosted run correctly rejected 58.97% changed-statement coverage; focused registry, managed-endpoint, MSI/Squirrel, and missing-updater tests raised the same local gate to 38/39 statements (97.44%). Replacing the MSI-only logical AND guard with logical OR failed the new lifecycle test and the mutation was reverted | 2026-08-26 |
+| CAP-001 targeted deletion | The real-Electron test initially retained account A local storage under a remove-only perturbation, then passed after exact-session storage/cache clearing; account B local storage and cookies remained intact. Secure-shell suite: 20/20 passed; types, test types, lint, and formatting passed | 2026-08-26 |
 
 ## Handoff notes
 

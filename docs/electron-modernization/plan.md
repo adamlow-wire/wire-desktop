@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.2.0
+revision: 1.3.0
 status: draft
 updated: 2026-08-26
 owners:
@@ -627,7 +627,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
-- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. Product action routing and per-account data deletion remain open.
+- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. The follow-up deletion slice proves exact-session local-storage/cookie clearing while another account remains intact; hosted evidence is pending. Production action routing remains open.
 
 #### CAP-002 — Migrate enterprise and automated SSO
 
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.3.0 | 2026-08-26 | Codex | Added a bounded CAP-001 data-deletion slice that removes view authority before clearing only the targeted persistent session and prevents same-account recreation during deletion | CAP-001, DCP-004, INV-004, INV-010 |
 | 1.2.0 | 2026-08-26 | Codex | Reconciled merged PR #8 evidence, incorporated upstream native MSI work, corrected CAP-001 evidence ownership, and recorded the decision to keep Electron 43.4.0 during M3 while Windows ia32 scope remains unresolved | GOV-001, GOV-002, CAP-001, DEC-007, Q-010, RSK-003 |
 | 1.1.0 | 2026-08-21 | Codex | Started M3 with a bounded, test-first account-selection slice that preserves stable identities and proves exact-target isolation in the secure shell; retained product routing and data deletion as explicit CAP-001 follow-up work | CAP-001, DCP-002, INV-003, INV-004, INV-010 |
 | 1.0.0 | 2026-08-21 | Codex | Closed the bounded M2 secure-shell proof with cross-platform integration/package evidence, hostile-boundary tests, passing changed-code coverage, and authenticated legacy E2E; made the proof and its regression suite the executable prerequisites for M3 account migration | ARC-002, TST-004, CAP-001, SEC-007 |
