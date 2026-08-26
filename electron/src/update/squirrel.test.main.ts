@@ -23,7 +23,7 @@ import assert from 'node:assert';
 import os from 'node:os';
 import path from 'node:path';
 
-import {isSquirrelInstallation} from './squirrelInstallation';
+import {installUpdate, isSquirrelInstallation} from './squirrel';
 
 describe('Squirrel updater', () => {
   const testDirectory = path.join(os.tmpdir(), `wire-squirrel-test-${process.pid}`);
@@ -39,5 +39,9 @@ describe('Squirrel updater', () => {
 
   it('does not treat an MSI installation as Squirrel', () => {
     assert.strictEqual(isSquirrelInstallation(updaterPath), false);
+  });
+
+  it('does not launch the updater when it is unavailable', async () => {
+    await assert.doesNotReject(() => installUpdate());
   });
 });

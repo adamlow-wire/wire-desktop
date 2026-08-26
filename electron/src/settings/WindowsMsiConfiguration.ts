@@ -35,11 +35,12 @@ export interface WindowsMsiWebAppConfiguration {
   url?: string;
 }
 
-function loadRegistry(): WindowsRegistry | undefined {
+export function loadWindowsRegistry(
+  load: () => WindowsRegistry = () => require('registry-js'),
+): WindowsRegistry | undefined {
   try {
     // Native and Windows-only. Loading lazily keeps it out of non-Windows runtime paths.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('registry-js');
+    return load();
   } catch {
     return undefined;
   }
@@ -51,7 +52,7 @@ function registryKey(productName: string): string {
 
 export function getWindowsMsiWebAppConfiguration(
   productName: string,
-  registry: WindowsRegistry | undefined = loadRegistry(),
+  registry: WindowsRegistry | null | undefined = loadWindowsRegistry(),
 ): WindowsMsiWebAppConfiguration {
   if (!registry) {
     return {isConfigured: false, issue: 'registry-unavailable'};

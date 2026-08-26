@@ -23,22 +23,33 @@ import {getLogger} from '../logging/getLogger';
 import {config} from '../settings/config';
 import {settings} from '../settings/ConfigurationPersistence';
 import {SettingsType} from '../settings/SettingsType';
-import {getWindowsMsiWebAppConfiguration, selectWebAppUrlOverride} from '../settings/WindowsMsiConfiguration';
+import {
+  getWindowsMsiWebAppConfiguration,
+  selectWebAppUrlOverride,
+  WindowsMsiWebAppConfiguration,
+} from '../settings/WindowsMsiConfiguration';
 
 const logger = getLogger('EnvironmentUtil');
 const argv = minimist(process.argv.slice(1));
 const webappUrlSetting = settings.restore<string | undefined>(SettingsType.CUSTOM_WEBAPP_URL);
 const windowsMsiWebAppConfiguration =
   process.platform === 'win32' ? getWindowsMsiWebAppConfiguration(config.name) : {isConfigured: false};
-if (windowsMsiWebAppConfiguration.issue) {
-  const message = `MSI webapp configuration issue: ${windowsMsiWebAppConfiguration.issue}`;
-  if (windowsMsiWebAppConfiguration.isConfigured) {
-    // Never log the configured value: a malformed URL could contain credentials or other sensitive data.
-    logger.error(`${message}; refusing to fall back to an unmanaged endpoint.`);
-  } else {
-    logger.warn(`${message}; continuing without machine-wide configuration.`);
+export const reportWindowsMsiConfigurationIssue = (
+  configuration: WindowsMsiWebAppConfiguration,
+  issueLogger: Pick<typeof logger, 'error' | 'warn'> = logger,
+): void => {
+  if (!configuration.issue) {
+    return;
   }
-}
+  const message = `MSI webapp configuration issue: ${configuration.issue}`;
+  if (configuration.isConfigured) {
+    // Never log the configured value: a malformed URL could contain credentials or other sensitive data.
+    issueLogger.error(`${message}; refusing to fall back to an unmanaged endpoint.`);
+  } else {
+    issueLogger.warn(`${message}; continuing without machine-wide configuration.`);
+  }
+};
+reportWindowsMsiConfigurationIssue(windowsMsiWebAppConfiguration);
 const customWebappUrl = selectWebAppUrlOverride(
   windowsMsiWebAppConfiguration,
   argv[config.ARGUMENT.ENV],
@@ -111,17 +122,32 @@ export const setEnvironment = (env: ServerType): void => {
  * Otherwise: if there is a custom url set, it will return that one,
  * else it will return the url of the current environment,
  * and if no environment is set, it will use the default value set in the config.
+ * @param {WindowsMsiWebAppConfiguration} msiConfiguration machine-wide Windows configuration state
+ * @param {string | undefined} configuredUrl managed, command-line, or per-user URL selected by policy
+ * @param {boolean} isWireGov whether fallback environments are prohibited
+ * @param {string | undefined} environmentUrl selected built-in environment URL
+ * @param {string | undefined} defaultUrl build-time default URL
  * @returns {string | undefined} the url of the webapp, or undefined if none is configured
  */
-function getWebappUrl() {
-  if (windowsMsiWebAppConfiguration.isConfigured && !customWebappUrl) {
+export function resolveWebappUrl(
+  msiConfiguration: WindowsMsiWebAppConfiguration,
+  configuredUrl: string | undefined,
+  isWireGov: boolean,
+  environmentUrl: string | undefined,
+  defaultUrl: string | undefined,
+): string | undefined {
+  if (msiConfiguration.isConfigured && !configuredUrl) {
     return undefined;
   }
-  if (app.IS_WIRE_GOV) {
-    return customWebappUrl;
+  if (isWireGov) {
+    return configuredUrl;
   }
+  return configuredUrl ?? environmentUrl ?? defaultUrl;
+}
+
+function getWebappUrl() {
   const envUrl = currentEnvironment && webappEnvironments[currentEnvironment]?.url;
-  return customWebappUrl ?? envUrl ?? config.appBase;
+  return resolveWebappUrl(windowsMsiWebAppConfiguration, customWebappUrl, app.IS_WIRE_GOV, envUrl, config.appBase);
 }
 
 /**

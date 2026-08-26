@@ -19,7 +19,12 @@
 
 import assert from 'node:assert';
 
-import {getWindowsMsiWebAppConfiguration, selectWebAppUrlOverride, WindowsRegistry} from './WindowsMsiConfiguration';
+import {
+  getWindowsMsiWebAppConfiguration,
+  loadWindowsRegistry,
+  selectWebAppUrlOverride,
+  WindowsRegistry,
+} from './WindowsMsiConfiguration';
 
 function registryWith(values: Array<{name: string; data: unknown}>): WindowsRegistry {
   return {
@@ -32,6 +37,23 @@ function registryWith(values: Array<{name: string; data: unknown}>): WindowsRegi
 }
 
 describe('WindowsMsiConfiguration', () => {
+  describe('loadWindowsRegistry', () => {
+    it('loads the Windows-only registry module lazily and tolerates its absence', () => {
+      const registry = registryWith([]);
+
+      assert.strictEqual(
+        loadWindowsRegistry(() => registry),
+        registry,
+      );
+      assert.strictEqual(
+        loadWindowsRegistry(() => {
+          throw new Error('registry unavailable');
+        }),
+        undefined,
+      );
+    });
+  });
+
   describe('getWindowsMsiWebAppConfiguration', () => {
     it('reads and normalizes an HTTPS webapp URL from the product registry key', () => {
       const configuration = getWindowsMsiWebAppConfiguration(
@@ -57,6 +79,26 @@ describe('WindowsMsiConfiguration', () => {
           {isConfigured: true, issue: 'invalid-url'},
         );
       }
+    });
+
+    it('reports registry access and value type failures without falling back', () => {
+      const unreadableRegistry = registryWith([]);
+      unreadableRegistry.enumerateValues = () => {
+        throw new Error('access denied');
+      };
+
+      assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', null), {
+        isConfigured: false,
+        issue: 'registry-unavailable',
+      });
+      assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', unreadableRegistry), {
+        isConfigured: false,
+        issue: 'registry-read-failed',
+      });
+      assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', registryWith([{name: 'WebAppUrl', data: 42}])), {
+        isConfigured: true,
+        issue: 'invalid-registry-type',
+      });
     });
   });
 
