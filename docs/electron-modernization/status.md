@@ -1,17 +1,17 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-08-21
+updated: 2026-08-26
 milestone: M3
 active_work_item: CAP-001
-state: m3-cap001-account-selection-validation
+state: m3-upstream-sync-before-cap001-continuation
 integration_branch: integration/electron-modernization
-integration_base_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
-integration_head_commit: e08ab2a97eeb71114f5692818a0a367461aa5b08
+integration_base_commit: e548edeb65a31a75b01933a81c1c34926639b0b0
+integration_head_commit: 9ffd69fb74c26f524a16b3baeb0e9997aba35d04
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
-upstream_commit: e1ba98c50dce28b26b05466169fbdf941f0285f3
-related_pending_branch: feature/WPB-5221-windows-native-msi
+upstream_commit: e548edeb65a31a75b01933a81c1c34926639b0b0
+related_pending_branch: null
 next_work_item: CAP-001
 blockers: []
 ---
@@ -20,25 +20,27 @@ blockers: []
 
 ## Current outcome
 
-M0, M1, and M2 are complete. M3 is active through [draft PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8), which extends the opt-in secure shell from one account to an exact-target, main-owned account collection. The legacy product path remains available while CAP-001 migrates one bounded lifecycle slice at a time.
+M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 after all required build, lint, CodeQL, package, and authenticated E2E checks passed. It extends the opt-in secure shell from one account to an exact-target, main-owned account collection. The legacy product path remains available while CAP-001 migrates one bounded lifecycle slice at a time.
+
+Upstream has since merged the native Windows MSI work in PR #9722. The current synchronization branch merges upstream commit `e548edeb65a31a75b01933a81c1c34926639b0b0` without textual conflicts before M3 implementation resumes. Electron remains pinned at `43.4.0`; adoption of Electron 44 is intentionally deferred and is not an M3 gate.
 
 ## Active work
 
-| Field         | Value                                                           |
-| ------------- | --------------------------------------------------------------- |
-| Work item     | CAP-001 — Migrate account and multi-account lifecycle           |
-| Owner         | `adamlow-wire`                                                  |
-| Active branch | `cap/CAP-001-account-selection`                                 |
-| Goal          | Prove secure add/switch/targeted-remove account selection       |
-| Starting gate | ARC-002 and TST-004 complete; legacy fallback remains available |
+| Field         | Value                                                          |
+| ------------- | -------------------------------------------------------------- |
+| Work item     | CAP-001 — Migrate account and multi-account lifecycle          |
+| Owner         | `adamlow-wire`                                                 |
+| Active branch | `gov/GOV-001-upstream-sync-2026-08-26`                         |
+| Goal          | Synchronize merged MSI work and restore accurate durable state |
+| Starting gate | PR #8 merged green; upstream synchronization is conflict-free  |
 
 ## Next executable sequence
 
-1. Complete hosted build, coverage, Windows/macOS/Linux package, and authenticated Windows/macOS E2E validation for PR #8.
-2. Merge PR #8 only after its final head is green and the maintained evidence is recorded in the PR.
-3. Start a new CAP-001 branch for logout and per-account data deletion characterization.
-4. Prove deletion targets only the selected account's partition before connecting it to the secure account collection.
-5. Keep enterprise and automated SSO under CAP-002; do not expand the account-selection PR into SSO.
+1. Merge the upstream synchronization through a dedicated PR after build, unit/integration, Windows/macOS/Linux package, and authenticated Windows/macOS E2E checks pass.
+2. Start a new CAP-001 branch for logout and per-account data deletion characterization.
+3. Prove deletion targets only the selected account's partition before connecting it to the secure account collection.
+4. Complete the remaining M3 security-policy and capability items in dependency order, one primary work item per PR.
+5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
 
@@ -86,6 +88,9 @@ M0, M1, and M2 are complete. M3 is active through [draft PR #8](https://github.c
 | Capability matrix review | ARC-002 proves architecture/security boundaries but does not migrate product capabilities; confidence rows remain unchanged for CAP-001 | 2026-08-21 |
 | CAP-001 account selection characterization | Legacy reducer 8/8 passed; changing exact selection from equality to inequality failed the new lifecycle test, then the reverted test passed | 2026-08-21 |
 | CAP-001 secure account selection | Local Electron main suite 73 passed / 3 owned CAP-002 targets pending; secure-shell subset 19/19; target mutation failed both visibility/isolation tests; types and lint passed | 2026-08-21 |
+| CAP-001 hosted account selection | PR #8 final head: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged report all passed | 2026-08-21 |
+| Upstream synchronization preflight | Upstream PR #9722 is 15 commits ahead; three-way merge completed without conflicts on the dedicated synchronization branch | 2026-08-26 |
+| MSI/Electron-builder compatibility | The imported MSI configuration suite initially failed because Electron Builder 26 loaded an ESM-only transitive module under Jest; deferring the runtime import until packaging preserved behavior and the suite passed 10/10, followed by Jest 19/19 suites and 62/62 tests | 2026-08-26 |
 
 ## Handoff notes
 
@@ -94,8 +99,9 @@ M0, M1, and M2 are complete. M3 is active through [draft PR #8](https://github.c
 - PR #6 contains a sensitivity-proven regression test for Linux packaging error propagation; do not restore the prior catch-and-log behavior.
 - PR #6 also contains sensitivity-proven Electron 43 unread-state compatibility tests; hidden accounts may increase but not clear unread state until visible.
 - ARC-002 is a proof path, not a claim that legacy `@electron/remote`, `<webview>`, or broad IPC has been removed globally. CAP-001 begins migration; the global security work items remain open until the fallback is removed.
-- PR #8 does not yet route production account actions through the secure collection and does not delete partition data. It establishes the tested main-owned selection boundary required for those later CAP-001 slices.
-- The modernization branch is based on `origin/dev`; the separate MSI feature must arrive through normal upstream synchronization after it is merged.
+- PR #8 is merged but does not yet route production account actions through the secure collection or delete partition data. It establishes the tested main-owned selection boundary required for those later CAP-001 slices.
+- The native MSI feature is now part of upstream `dev` and is being incorporated through the normal synchronization PR; do not treat it as a pending side branch.
+- Electron 44 is available but intentionally deferred. Do not change the `43.4.0` pin during M3; resolve Windows ia32 scope before the next runtime upgrade.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.
 - The authoritative `BackendConnection staging` values work. Do not add credential normalization or workarounds without new evidence of a credential defect.
 - Local Linux is useful for build/unit/integration filtering but cannot currently replace the hosted E2E gate: the wrapper opens and the expected `<webview>` page is not surfaced as a second Playwright window.

@@ -1,19 +1,19 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.0.0
+revision: 1.2.0
 status: draft
-updated: 2026-08-21
+updated: 2026-08-26
 owners:
   technical: adamlow-wire
   security: adamlow-wire
   product: adamlow-wire
 operating_model: solo AI-assisted maintainer
 source_branch: integration/electron-modernization
-upstream_base: e1ba98c50dce28b26b05466169fbdf941f0285f3
+upstream_base: e548edeb65a31a75b01933a81c1c34926639b0b0
 current_electron: 43.4.0
-reference_latest_stable_electron: 43.4.0
-reference_latest_checked: 2026-08-21
+reference_latest_stable_electron: 44.0.0
+reference_latest_checked: 2026-08-26
 target_electron_rule: latest stable Electron at each release-candidate cut
 priority_order:
   - supported Electron runtime
@@ -230,7 +230,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 - Acceptance:
   - Upstream can review the architecture before full migration cost is incurred.
   - Material feedback is represented as decisions, risks, or work-item changes here.
-- Evidence: [Draft PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) is the first bounded slice: legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. Product action routing and per-account data deletion remain open, so CAP-001 is not complete.
+- Evidence: TBD; fork PR #8 is CAP-001 implementation evidence, not an upstream architecture draft
 
 #### GOV-003 — Establish durable human and AI project memory
 
@@ -627,7 +627,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
-- Evidence: TBD
+- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. Product action routing and per-account data deletion remain open.
 
 #### CAP-002 — Migrate enterprise and automated SSO
 
@@ -838,6 +838,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | DEC-004 | 2026-08-18 | accepted | Use `WebContentsView` for remote account content | Electron discourages `<webview>`; main ownership improves policy control | The M2 spike identifies a safer supported architecture or an unresolvable platform constraint |
 | DEC-005 | 2026-08-18 | accepted | Target latest stable Electron dynamically, not version 43 permanently | Prevents this plan becoming stale during a long migration | Electron release/support policy materially changes |
 | DEC-006 | 2026-08-18 | accepted | Operate as a solo AI-assisted maintainer with PR-only integration and zero required external approvals | Preserves traceability and automated gates without pretending unavailable organizational review exists | Additional maintainers join or upstream mandates another process |
+| DEC-007 | 2026-08-26 | accepted | Keep Electron 43.4.0 during M3 and defer Electron 44 adoption | Electron 43.4.0 completed M1 with cross-platform evidence; Electron 44 is not an M3 gate and removes Windows ia32 artifacts, so adopting it now would mix a platform-scope decision into security-critical capability migration | Before the next Electron upgrade or any release-candidate cut |
 
 ## 16. Open questions
 
@@ -852,11 +853,13 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | Q-007 | What staged rollout and telemetry are permissible for this security-sensitive product? | REL-002 | Product/privacy/security | TBD |
 | Q-008 | Who are the accountable technical, security, product, platform, SSO, and release-engineering approvers? | M0 | adamlow-wire | `adamlow-wire` is the accountable solo maintainer for each role; PR merges record self-review, not independent review |
 | Q-009 | Which existing Wire CI credentials and runners may be provisioned to the fork for E2E, signing, and package evidence? | M0 | adamlow-wire | Raw E2E values use private `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` Actions secrets; unsigned development macOS testing is valid before release qualification; signing is deferred to M5; Jira is not used by the fork |
+| Q-010 | Must the first modernized release retain Windows 32-bit (ia32) packages? | Next Electron upgrade | adamlow-wire | TBD; Electron 44 adoption is deferred until this is resolved |
 
 ## 17. Change log
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.2.0 | 2026-08-26 | Codex | Reconciled merged PR #8 evidence, incorporated upstream native MSI work, corrected CAP-001 evidence ownership, and recorded the decision to keep Electron 43.4.0 during M3 while Windows ia32 scope remains unresolved | GOV-001, GOV-002, CAP-001, DEC-007, Q-010, RSK-003 |
 | 1.1.0 | 2026-08-21 | Codex | Started M3 with a bounded, test-first account-selection slice that preserves stable identities and proves exact-target isolation in the secure shell; retained product routing and data deletion as explicit CAP-001 follow-up work | CAP-001, DCP-002, INV-003, INV-004, INV-010 |
 | 1.0.0 | 2026-08-21 | Codex | Closed the bounded M2 secure-shell proof with cross-platform integration/package evidence, hostile-boundary tests, passing changed-code coverage, and authenticated legacy E2E; made the proof and its regression suite the executable prerequisites for M3 account migration | ARC-002, TST-004, CAP-001, SEC-007 |
 | 0.9.0 | 2026-08-21 | Codex | Closed the Electron 43 runtime milestone and bounded M2 as an opt-in secure-shell proof; retained production fuse, signing, and integrity qualification in M5 | ELC-002, ARC-002, INV-009, SEC-011 |
