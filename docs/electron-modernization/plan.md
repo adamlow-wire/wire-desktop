@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.3.0
+revision: 1.3.1
 status: draft
 updated: 2026-08-26
 owners:
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.3.1 | 2026-08-26 | Codex | Recorded the green upstream synchronization and retained Electron 43.4.0 as the explicit M3 runtime baseline | GOV-001, CAP-001, DEC-007 |
 | 1.3.0 | 2026-08-26 | Codex | Added a bounded CAP-001 data-deletion slice that removes view authority before clearing only the targeted persistent session and prevents same-account recreation during deletion | CAP-001, DCP-004, INV-004, INV-010 |
 | 1.2.0 | 2026-08-26 | Codex | Reconciled merged PR #8 evidence, incorporated upstream native MSI work, corrected CAP-001 evidence ownership, and recorded the decision to keep Electron 43.4.0 during M3 while Windows ia32 scope remains unresolved | GOV-001, GOV-002, CAP-001, DEC-007, Q-010, RSK-003 |
 | 1.1.0 | 2026-08-21 | Codex | Started M3 with a bounded, test-first account-selection slice that preserves stable identities and proves exact-target isolation in the secure shell; retained product routing and data deletion as explicit CAP-001 follow-up work | CAP-001, DCP-002, INV-003, INV-004, INV-010 |
