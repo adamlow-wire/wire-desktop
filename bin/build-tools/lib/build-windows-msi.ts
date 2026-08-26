@@ -17,7 +17,7 @@
  *
  */
 
-import * as electronBuilder from 'electron-builder';
+import type {Arch, Configuration} from 'electron-builder';
 import fs from 'fs-extra';
 
 import path from 'path';
@@ -39,7 +39,7 @@ const DEFAULT_MSI_IDENTITIES = {
 } as const;
 
 interface WindowsMsiConfigResult {
-  builderConfig: electronBuilder.Configuration;
+  builderConfig: Configuration;
   windowsMsiConfig: WindowsMsiConfig;
 }
 
@@ -173,7 +173,7 @@ export async function buildWindowsMsiConfig(
     upgradeCode,
   };
 
-  const builderConfig: electronBuilder.Configuration = {
+  const builderConfig: Configuration = {
     appId: windowsMsiConfig.appId,
     buildVersion: commonConfig.version.replace(/-.*$/, ''),
     copyright: commonConfig.copyright,
@@ -235,19 +235,21 @@ export async function validateWindowsMsiAppDirectory(appDirectory: string, execu
 }
 
 export async function buildWindowsMsi(
-  builderConfig: electronBuilder.Configuration,
+  builderConfig: Configuration,
   packageJsonPath: string,
   wireJsonPath: string,
   envFilePath: string,
-  architecture: electronBuilder.Arch = electronBuilder.Arch.x64,
+  architecture?: Arch,
 ): Promise<void> {
+  const electronBuilder = await import('electron-builder');
+  const resolvedArchitecture = architecture ?? electronBuilder.Arch.x64;
   const wireJsonResolved = path.resolve(wireJsonPath);
   const packageJsonResolved = path.resolve(packageJsonPath);
   const envFileResolved = path.resolve(envFilePath);
   const {commonConfig} = await getCommonConfig(envFileResolved, wireJsonResolved);
-  const architectureName = electronBuilder.Arch[architecture];
+  const architectureName = electronBuilder.Arch[resolvedArchitecture];
   const appDirectory = path.resolve(`${commonConfig.buildDir}/${commonConfig.name}-win32-${architectureName}`);
-  const targets = electronBuilder.Platform.WINDOWS.createTarget(['msi'], architecture);
+  const targets = electronBuilder.Platform.WINDOWS.createTarget(['msi'], resolvedArchitecture);
 
   logger.info(`Building ${commonConfig.name} ${commonConfig.version} MSI for Windows ...`);
 
