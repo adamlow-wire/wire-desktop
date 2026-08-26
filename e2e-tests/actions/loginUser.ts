@@ -35,8 +35,12 @@ const fillLoginCredentials = async (page: Page, user: User) => {
 
 const accountIdFromUrl = (url: string) => new URL(url).searchParams.get('id');
 
-const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
-  const accountId = accountIdFromUrl(loginPage.url());
+const waitForAuthenticatedPage = async (
+  loginPage: Page,
+  user: User,
+  accountId: string | null,
+  pagesBeforeLogin: ReadonlySet<Page>,
+) => {
   let authenticatedPage: Page | undefined;
 
   await expect
@@ -45,7 +49,12 @@ const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
         const candidatePages = loginPage
           .context()
           .pages()
-          .filter(page => page === loginPage || (accountId !== null && accountIdFromUrl(page.url()) === accountId));
+          .filter(
+            page =>
+              page === loginPage ||
+              !pagesBeforeLogin.has(page) ||
+              (accountId !== null && accountIdFromUrl(page.url()) === accountId),
+          );
 
         for (const candidatePage of [...candidatePages].reverse()) {
           try {
@@ -69,14 +78,18 @@ const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
 
 /* Visit the sso page and execute the login for the user */
 export const loginUser = async (page: Page, user: User) => {
+  const accountId = accountIdFromUrl(page.url());
+  const pagesBeforeLogin = new Set(page.context().pages());
   await fillLoginCredentials(page, user);
-  return waitForAuthenticatedPage(page, user);
+  return waitForAuthenticatedPage(page, user, accountId, pagesBeforeLogin);
 };
 
 export const loginUserAfterDataCleanup = async (page: Page, user: User) => {
+  const accountId = accountIdFromUrl(page.url());
+  const pagesBeforeLogin = new Set(page.context().pages());
   await fillLoginCredentials(page, user);
   const historyConfirmButton = loginPage(page).historyConfirmButton;
   await historyConfirmButton.click();
 
-  return waitForAuthenticatedPage(page, user);
+  return waitForAuthenticatedPage(page, user, accountId, pagesBeforeLogin);
 };
