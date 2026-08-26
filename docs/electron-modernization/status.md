@@ -62,7 +62,7 @@ Upstream has since merged the native Windows MSI work in PR #9722. The current s
 ## Last verified state
 
 | Check | Result | Date |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- |
 | Plan formatting | `prettier --check` passed | 2026-08-20 |
 | Work item identifiers | Unique | 2026-08-18 |
 | Work item dependencies | All identifiers resolve; graph is acyclic | 2026-08-18 |
@@ -91,7 +91,7 @@ Upstream has since merged the native Windows MSI work in PR #9722. The current s
 | CAP-001 hosted account selection | PR #8 final head: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged report all passed | 2026-08-21 |
 | Upstream synchronization preflight | Upstream PR #9722 is 15 commits ahead; three-way merge completed without conflicts on the dedicated synchronization branch | 2026-08-26 |
 | MSI/Electron-builder compatibility | The imported MSI configuration suite initially failed because Electron Builder 26 loaded an ESM-only transitive module under Jest; deferring the runtime import until packaging preserved behavior and the suite passed 10/10, followed by Jest 19/19 suites and 62/62 tests | 2026-08-26 |
-| Upstream MSI changed-code coverage | PR #9 first hosted run correctly rejected 58.97% changed-statement coverage; focused registry, managed-endpoint, MSI/Squirrel, and missing-updater tests raised the same local gate to 38/39 statements (97.44%). Replacing the MSI-only `&&` guard with ` |  | ` failed the new lifecycle test and the mutation was reverted | 2026-08-26 |
+| Upstream MSI changed-code coverage | PR #9 first hosted run correctly rejected 58.97% changed-statement coverage; focused registry, managed-endpoint, MSI/Squirrel, and missing-updater tests raised the same local gate to 38/39 statements (97.44%). Replacing the MSI-only logical AND guard with logical OR failed the new lifecycle test and the mutation was reverted | 2026-08-26 |
 
 ## Handoff notes
 
