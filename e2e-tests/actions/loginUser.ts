@@ -35,8 +35,15 @@ const fillLoginCredentials = async (page: Page, user: User) => {
 
 const accountIdFromUrl = (url: string) => new URL(url).searchParams.get('id');
 
-const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
-  const accountId = accountIdFromUrl(loginPage.url());
+const requireAccountId = (page: Page): string => {
+  const accountId = accountIdFromUrl(page.url());
+  if (!accountId) {
+    throw new Error('Cannot log in without a stable account ID.');
+  }
+  return accountId;
+};
+
+const waitForAuthenticatedPage = async (loginPage: Page, user: User, accountId: string) => {
   let authenticatedPage: Page | undefined;
 
   await expect
@@ -45,7 +52,7 @@ const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
         const candidatePages = loginPage
           .context()
           .pages()
-          .filter(page => page === loginPage || (accountId !== null && accountIdFromUrl(page.url()) === accountId));
+          .filter(page => page === loginPage || accountIdFromUrl(page.url()) === accountId);
 
         for (const candidatePage of [...candidatePages].reverse()) {
           try {
@@ -69,14 +76,16 @@ const waitForAuthenticatedPage = async (loginPage: Page, user: User) => {
 
 /* Visit the sso page and execute the login for the user */
 export const loginUser = async (page: Page, user: User) => {
+  const accountId = requireAccountId(page);
   await fillLoginCredentials(page, user);
-  return waitForAuthenticatedPage(page, user);
+  return waitForAuthenticatedPage(page, user, accountId);
 };
 
 export const loginUserAfterDataCleanup = async (page: Page, user: User) => {
+  const accountId = requireAccountId(page);
   await fillLoginCredentials(page, user);
   const historyConfirmButton = loginPage(page).historyConfirmButton;
   await historyConfirmButton.click();
 
-  return waitForAuthenticatedPage(page, user);
+  return waitForAuthenticatedPage(page, user, accountId);
 };
