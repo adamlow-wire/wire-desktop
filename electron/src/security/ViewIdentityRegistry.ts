@@ -23,11 +23,15 @@ interface FrameIdentity {
 
 type SessionIdentity = object;
 
-interface WebContentsIdentity {
+export interface WebContentsIdentity {
   readonly id: number;
   readonly mainFrame: FrameIdentity;
   readonly session: SessionIdentity;
   isDestroyed(): boolean;
+}
+
+export interface LifecycleWebContentsIdentity extends WebContentsIdentity {
+  once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;
 }
 
 export type ViewType = 'about' | 'account' | 'application-shell' | 'picture-in-picture' | 'proxy-prompt' | 'sso';
@@ -49,6 +53,11 @@ export interface AuthorizedViewIdentity extends ViewRegistration {
 export interface SenderIdentity {
   readonly sender: WebContentsIdentity;
   readonly senderFrame: FrameIdentity | null;
+}
+
+export interface RegisteredViewIdentity {
+  readonly identity: AuthorizedViewIdentity;
+  revoke(): void;
 }
 
 const hasAllowedOrigin = (value: string, allowedOrigin: string): boolean => {
@@ -116,3 +125,15 @@ export class ViewIdentityRegistry {
     return identity;
   }
 }
+
+export const registerViewIdentity = (
+  registry: ViewIdentityRegistry,
+  registration: Omit<ViewRegistration, 'webContents'> & {readonly webContents: LifecycleWebContentsIdentity},
+): RegisteredViewIdentity => {
+  const identity = registry.register(registration);
+  const webContentsId = registration.webContents.id;
+  const revoke = (): void => registry.unregister(webContentsId);
+  registration.webContents.once('destroyed', revoke);
+  registration.webContents.once('render-process-gone', revoke);
+  return Object.freeze({identity, revoke});
+};

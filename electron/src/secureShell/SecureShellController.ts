@@ -25,7 +25,7 @@ import {SECURE_SHELL_ORIGIN, SECURE_SHELL_RUNTIME_INFO_CAPABILITY} from './const
 import {createSecureAccountPartition, isAllowedAccountNavigation, parseSecureAccountUrl} from './policy';
 
 import {getLogger} from '../logging/getLogger';
-import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
+import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 const logger = getLogger(path.basename(__filename));
 
@@ -44,6 +44,7 @@ export class SecureShellController {
   private readonly configuredSessions = new WeakSet<Session>();
   private readonly deletingAccountIds = new Set<string>();
   private readonly registry: ViewIdentityRegistry;
+  private revokeShellIdentity: (() => void) | undefined;
   private readonly options: SecureShellControllerOptions;
   private window: BrowserWindow | undefined;
 
@@ -73,8 +74,7 @@ export class SecureShellController {
     });
     this.window = window;
     const shellWebContents = window.webContents;
-    const shellWebContentsId = shellWebContents.id;
-    this.registry.register({
+    const shellRegistration = registerViewIdentity(this.registry, {
       allowedOrigin: SECURE_SHELL_ORIGIN,
       capabilities: [],
       partition: 'default',
@@ -82,8 +82,7 @@ export class SecureShellController {
       viewType: 'application-shell',
       webContents: shellWebContents,
     });
-    shellWebContents.once('destroyed', () => this.registry.unregister(shellWebContentsId));
-    shellWebContents.once('render-process-gone', () => this.registry.unregister(shellWebContentsId));
+    this.revokeShellIdentity = shellRegistration.revoke;
     shellWebContents.on('will-navigate', event => event.preventDefault());
     shellWebContents.setWindowOpenHandler(() => ({action: 'deny'}));
     window.on('resize', () => this.layoutAccountViews());
@@ -183,9 +182,10 @@ export class SecureShellController {
   dispose(): void {
     this.disposeAccountViews();
     if (this.window && !this.window.isDestroyed()) {
-      this.registry.unregister(this.window.webContents.id);
+      this.revokeShellIdentity?.();
       this.window.destroy();
     }
+    this.revokeShellIdentity = undefined;
     this.window = undefined;
   }
 

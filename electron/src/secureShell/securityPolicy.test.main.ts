@@ -29,7 +29,12 @@ import {
 } from './policy';
 import {CONTENT_SECURITY_POLICY, createSecureShellResponse} from './protocol';
 
-import {SenderIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
+import {
+  LifecycleWebContentsIdentity,
+  registerViewIdentity,
+  SenderIdentity,
+  ViewIdentityRegistry,
+} from '../security/ViewIdentityRegistry';
 
 const createSender = (id: number, url = 'https://app.wire.test/account', session = {}) => {
   const frame = {url};
@@ -103,6 +108,41 @@ describe('secure shell policy', () => {
 });
 
 describe('secure shell view authority', () => {
+  it('[security-target][INV-003][SEC-002] revokes registered view authority on owner disposal and process loss', () => {
+    for (const eventName of ['destroyed', 'render-process-gone'] as const) {
+      const registry = new ViewIdentityRegistry();
+      const listeners = new Map<string, () => void>();
+      const session = {};
+      const webContents: LifecycleWebContentsIdentity = {
+        id: eventName === 'destroyed' ? 33 : 34,
+        isDestroyed: () => false,
+        mainFrame: {url: 'https://app.wire.test/account'},
+        once(event, listener) {
+          listeners.set(event, listener);
+          return this;
+        },
+        session,
+      };
+      const registered = registerViewIdentity(registry, {
+        accountId: 'account-a',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'persist:wire-secure-a',
+        session,
+        viewType: 'account',
+        webContents,
+      });
+
+      assert.strictEqual(registry.has(webContents.id), true);
+      assert.strictEqual(Object.isFrozen(registered), true);
+      listeners.get(eventName)?.();
+      assert.strictEqual(registry.has(webContents.id), false);
+
+      registered.revoke();
+      assert.strictEqual(registry.has(webContents.id), false);
+    }
+  });
+
   it('[security-target][INV-003][INV-004][SEC-002] binds immutable view type and exact session identity', () => {
     const registry = new ViewIdentityRegistry();
     const session = {};
