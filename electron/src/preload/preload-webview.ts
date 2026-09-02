@@ -30,6 +30,7 @@ import {EVENT_TYPE} from '../lib/eventType';
 import {forwardWrapperReloadRequest} from '../lib/forwardWrapperReloadRequest';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
 
 const remote = require('@electron/remote');
@@ -293,7 +294,7 @@ process.once('loaded', () => {
   // The main-process handler returns a pre-read, memoized value, so the blocking call is negligible.
   let managedConfig = {applockOverride: false};
   try {
-    managedConfig = ipcRenderer.sendSync(EVENT_TYPE.MANAGED.GET_CONFIG) ?? {applockOverride: false};
+    managedConfig = ipcRenderer.sendSync(MANAGED_CONFIG_CHANNEL) ?? {applockOverride: false};
   } catch (error) {
     logger.warn('Failed to read managed config from the main process, treating the device as unmanaged:', error);
   }

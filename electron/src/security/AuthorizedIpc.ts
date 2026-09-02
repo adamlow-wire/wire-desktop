@@ -35,6 +35,15 @@ interface IpcMainBinding {
   removeHandler(channel: string): void;
 }
 
+interface SyncSenderIdentity extends SenderIdentity {
+  returnValue?: unknown;
+}
+
+interface IpcMainSyncBinding {
+  on(channel: string, listener: (event: SyncSenderIdentity, request: unknown) => void): void;
+  removeListener(channel: string, listener: (event: SyncSenderIdentity, request: unknown) => void): void;
+}
+
 interface RequestRateLimiter {
   consume(webContentsId: number): void;
 }
@@ -43,6 +52,8 @@ type AuthorizedIpcHandler<Request, Response> = (
   identity: AuthorizedViewIdentity,
   request: Request,
 ) => Response | Promise<Response>;
+
+type AuthorizedSyncIpcHandler<Request, Response> = (identity: AuthorizedViewIdentity, request: Request) => Response;
 
 const validateContractPolicy = <Request, Response>(contract: AuthorizedIpcContract<Request, Response>): void => {
   const rateLimit = contract.rateLimit;
@@ -89,6 +100,22 @@ export const executeAuthorizedIpc = async <Request, Response>(
   handler: AuthorizedIpcHandler<Request, Response>,
   rateLimiter?: RequestRateLimiter,
 ): Promise<Response> => {
+  const authorized = authorizeIpcRequest(registry, contract, event, request, rateLimiter);
+
+  const response = await handler(authorized.identity, authorized.request);
+  if (!contract.isResponse(response)) {
+    throw new Error('IPC response payload is invalid.');
+  }
+  return response;
+};
+
+const authorizeIpcRequest = <Request, Response>(
+  registry: ViewIdentityRegistry,
+  contract: AuthorizedIpcContract<Request, Response>,
+  event: SenderIdentity,
+  request: unknown,
+  rateLimiter?: RequestRateLimiter,
+): Readonly<{identity: AuthorizedViewIdentity; request: Request}> => {
   validateContractPolicy(contract);
   const identity = registry.authorize(event, contract.capability);
 
@@ -104,8 +131,19 @@ export const executeAuthorizedIpc = async <Request, Response>(
   if (!contract.isRequest(request)) {
     throw new Error('IPC request payload is invalid.');
   }
+  return {identity, request};
+};
 
-  const response = await handler(identity, request);
+export const executeAuthorizedSyncIpc = <Request, Response>(
+  registry: ViewIdentityRegistry,
+  contract: AuthorizedIpcContract<Request, Response>,
+  event: SenderIdentity,
+  request: unknown,
+  handler: AuthorizedSyncIpcHandler<Request, Response>,
+  rateLimiter?: RequestRateLimiter,
+): Response => {
+  const authorized = authorizeIpcRequest(registry, contract, event, request, rateLimiter);
+  const response = handler(authorized.identity, authorized.request);
   if (!contract.isResponse(response)) {
     throw new Error('IPC response payload is invalid.');
   }
@@ -125,4 +163,20 @@ export const bindAuthorizedIpc = <Request, Response>(
     executeAuthorizedIpc(registry, contract, event, request, handler, rateLimiter),
   );
   return () => ipc.removeHandler(contract.channel);
+};
+
+export const bindAuthorizedSyncIpc = <Request, Response>(
+  ipc: IpcMainSyncBinding,
+  registry: ViewIdentityRegistry,
+  contract: AuthorizedIpcContract<Request, Response>,
+  handler: AuthorizedSyncIpcHandler<Request, Response>,
+  now: () => number = Date.now,
+): (() => void) => {
+  validateContractPolicy(contract);
+  const rateLimiter = createRequestRateLimiter(contract.rateLimit, now);
+  const listener = (event: SyncSenderIdentity, request: unknown): void => {
+    event.returnValue = executeAuthorizedSyncIpc(registry, contract, event, request, handler, rateLimiter);
+  };
+  ipc.on(contract.channel, listener);
+  return () => ipc.removeListener(contract.channel, listener);
 };

@@ -20,6 +20,7 @@
 import {strict as assert} from 'assert';
 
 import {registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
+import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 
@@ -66,6 +67,7 @@ describe('registerLegacyAccountViewIdentity', () => {
     assert.deepStrictEqual(registered.identity.capabilities, [
       SAFE_STORAGE_ENCRYPT_CAPABILITY,
       SAFE_STORAGE_DECRYPT_CAPABILITY,
+      MANAGED_CONFIG_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');

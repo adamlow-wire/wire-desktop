@@ -10,7 +10,8 @@ Read in this order:
 2. [Authoritative plan](./plan.md) — scope, priorities, dependencies, gates, risks, and decisions.
 3. [Testing strategy](./testing.md) — baseline-first characterization and security testing rules.
 4. [Capability matrix](./capabilities.md) — product behavior that must be understood and protected.
-5. [Architecture decisions](./decisions/README.md) — detailed ADRs for choices referenced by the plan.
+5. [Privileged IPC inventory](./ipc-inventory.md) — renderer-to-main migration checklist for SEC-003.
+6. [Architecture decisions](./decisions/README.md) — detailed ADRs for choices referenced by the plan.
 
 M0 evidence:
 
@@ -27,6 +28,7 @@ Repository-wide agent instructions are in [`AGENTS.md`](../../AGENTS.md).
 | --------------------------------------------- | ----------------------------------------------------- |
 | Project scope and priority                    | `plan.md`, sections 7 and 10                          |
 | Non-negotiable security behavior              | `plan.md`, section 5                                  |
+| Privileged renderer-to-main IPC migration     | `ipc-inventory.md`                                    |
 | Current work and handoff                      | `status.md`                                           |
 | Required product behavior and test confidence | `capabilities.md`                                     |
 | Test construction and evidence                | `testing.md`                                          |

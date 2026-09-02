@@ -84,6 +84,7 @@ import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
 import {registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
+import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {config} from './settings/config';
@@ -251,11 +252,7 @@ const bindIpcEvents = (): void => {
   ipcMain.on(EVENT_TYPE.WRAPPER.RELAUNCH, () => lifecycle.relaunch());
   ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow(viewIdentityRegistry));
 
-  // Answered synchronously: the webview preload reads this via `ipcRenderer.sendSync` while it builds
-  // `window.desktopAppConfig`. The value is pre-read and memoized, so the handler does no I/O here.
-  ipcMain.on(EVENT_TYPE.MANAGED.GET_CONFIG, event => {
-    event.returnValue = getManagedConfig();
-  });
+  bindManagedConfigIpc(ipcMain, viewIdentityRegistry, getManagedConfig);
 
   ipcMain.handle(EVENT_TYPE.ACTION.GET_OG_DATA, (_event, url) => getOpenGraphDataAsync(url));
 
