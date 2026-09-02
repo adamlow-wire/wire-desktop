@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.4.5
+revision: 1.4.6
 status: draft
 updated: 2026-09-02
 owners:
@@ -345,7 +345,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: [PR #14](https://github.com/adamlow-wire/wire-desktop/pull/14) merged as `63f7fa9b` after every required check passed. It introduces a fail-closed contract executor that authorizes registered sender identity before request validation, explicitly declares view-type, registered-origin, rate-limit, request/response schema, and failure policy, and never exposes Electron events or arbitrary channel selection to handlers. The first bounded migration converts secure-shell runtime-info IPC. [PR #15](https://github.com/adamlow-wire/wire-desktop/pull/15) merged as `4d0168b2` after every required check passed; it adds per-view quotas and migrates account safe-storage encryption/decryption to versioned, account-only, size-bounded contracts. The current managed-configuration slice adds an authorized synchronous contract while retaining the cached bootstrap behavior. Unsafe payload-validation perturbations failed the intended tests and were reverted. Product-wide channel migration, DCP-016 ciphertext ownership, and CAP-005 packaged managed-device evidence remain open.
+- Evidence: [PR #14](https://github.com/adamlow-wire/wire-desktop/pull/14) merged as `63f7fa9b` after every required check passed. It introduces the fail-closed contract executor and migrates secure-shell runtime-info IPC. [PR #15](https://github.com/adamlow-wire/wire-desktop/pull/15) merged as `4d0168b2` after every required check passed; it adds per-view quotas and migrates account safe-storage encryption/decryption to versioned, account-only, size-bounded contracts. [PR #16](https://github.com/adamlow-wire/wire-desktop/pull/16) merged as `98337fc5` after every required check passed; it adds synchronous contract support and migrates managed-configuration reads without changing cached bootstrap timing. The current save-picture slice constrains native save prompts to authorized account views, exact bounded image requests, and per-view quotas. Unsafe payload-validation perturbations failed the intended tests and were reverted. Product-wide channel migration, DCP-016 ciphertext ownership, and CAP-005 packaged managed-device evidence remain open.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.4.6 | 2026-09-02 | Codex | Recorded green hosted managed-configuration evidence and the sensitivity-proven bounded save-picture IPC contract | SEC-003, CAP-005, DCP-013, DCP-014 |
 | 1.4.5 | 2026-09-02 | Codex | Recorded green hosted safe-storage evidence and the sensitivity-proven synchronous managed-configuration contract plus the authoritative privileged incoming IPC inventory | SEC-003, CAP-005, DCP-013, DCP-016 |
 | 1.4.4 | 2026-09-02 | Codex | Recorded the green hosted typed-IPC foundation and a sensitivity-proven, bounded safe-storage contract slice while retaining ciphertext ownership and packaged key-store evidence as explicit gaps | SEC-003, DCP-016, INV-003, INV-004, INV-010 |
 | 1.4.3 | 2026-09-02 | Codex | Closed SEC-002 with green hosted platform evidence and started SEC-003 with a fail-closed typed IPC contract foundation plus the first bounded channel migration | SEC-002, SEC-003 |

@@ -29,6 +29,7 @@ import {
 
 import {EVENT_TYPE} from '../../lib/eventType';
 import * as locale from '../../locale';
+import {SAVE_PICTURE_CHANNEL} from '../../security/SavePictureContract';
 import {config} from '../../settings/config';
 import {sendToWebContents} from '../../window/WindowUtil';
 
@@ -46,7 +47,7 @@ const savePicture = async (url: RequestInfo, timestamp?: string): Promise<void> 
     },
   });
   const bytes = await response.arrayBuffer();
-  ipcRenderer.send(EVENT_TYPE.ACTION.SAVE_PICTURE, new Uint8Array(bytes), timestamp);
+  await ipcRenderer.invoke(SAVE_PICTURE_CHANNEL, {bytes: new Uint8Array(bytes), timestamp});
 };
 
 const copyPicture = async (url: RequestInfo): Promise<void> => {

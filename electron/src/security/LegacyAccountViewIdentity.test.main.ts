@@ -22,6 +22,7 @@ import {strict as assert} from 'assert';
 import {registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
+import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 const accountId = '6f350266-15de-4cab-b38c-9f986fdc6b18';
@@ -68,6 +69,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       SAFE_STORAGE_ENCRYPT_CAPABILITY,
       SAFE_STORAGE_DECRYPT_CAPABILITY,
       MANAGED_CONFIG_CAPABILITY,
+      SAVE_PICTURE_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');
