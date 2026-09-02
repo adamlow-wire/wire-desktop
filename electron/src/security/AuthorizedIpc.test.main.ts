@@ -21,7 +21,12 @@ import {spy} from 'sinon';
 
 import * as assert from 'assert';
 
-import {AuthorizedIpcContract, bindAuthorizedIpc, executeAuthorizedIpc} from './AuthorizedIpc';
+import {
+  AuthorizedIpcContract,
+  bindAuthorizedIpc,
+  bindAuthorizedSyncIpc,
+  executeAuthorizedIpc,
+} from './AuthorizedIpc';
 import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 interface TestRequest {
@@ -156,6 +161,33 @@ describe('authorized IPC contract', () => {
     assert.deepStrictEqual(await handlers.get(contract.channel)?.(event, {contractVersion: 1}), {
       accountId: 'account-a',
     });
+    dispose();
+    assert.strictEqual(handlers.has(contract.channel), false);
+  });
+
+  it('[security-target][INV-003][SEC-003] binds a fixed synchronous contract without exposing its event', () => {
+    type SyncEvent = SenderIdentity & {returnValue?: unknown};
+    const handlers = new Map<string, (event: SyncEvent, request: unknown) => void>();
+    const ipc = {
+      on: (channel: string, handler: (event: SyncEvent, request: unknown) => void) => {
+        handlers.set(channel, handler);
+      },
+      removeListener: (channel: string, handler: (event: SyncEvent, request: unknown) => void) => {
+        if (handlers.get(channel) === handler) {
+          handlers.delete(channel);
+        }
+      },
+    };
+    const {event, registry} = createSender(7);
+    const syncEvent = event as SyncEvent;
+    const handler = spy(identity => ({accountId: identity.accountId!}));
+    const dispose = bindAuthorizedSyncIpc(ipc, registry, contract, handler);
+
+    handlers.get(contract.channel)?.(syncEvent, {contractVersion: 1});
+    assert.deepStrictEqual(syncEvent.returnValue, {accountId: 'account-a'});
+    assert.strictEqual(handler.firstCall.args.length, 2);
+    assert.strictEqual(handler.firstCall.firstArg.accountId, 'account-a');
+
     dispose();
     assert.strictEqual(handlers.has(contract.channel), false);
   });
