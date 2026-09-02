@@ -9,6 +9,7 @@ Before changing Electron architecture, security boundaries, tests, packaging, in
 3. `docs/electron-modernization/plan.md`
 4. `docs/electron-modernization/testing.md`
 5. `docs/electron-modernization/capabilities.md`
+6. `docs/electron-modernization/ipc-inventory.md`
 
 The plan's work item register and security invariants are authoritative. Do not create an overlapping task when an existing work item can be updated.
 
