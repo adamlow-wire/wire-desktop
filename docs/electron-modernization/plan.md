@@ -585,7 +585,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Platform branches are tested through injectable adapters or platform CI.
   - macOS tests assert `dock.bounce` rather than unconditionally passing.
   - Packaged smoke tests cover visible platform integration where automation is practical.
-- Evidence: Local branch `tst/TST-003-tray-characterization-2026-09-02`, commit `ea559431`, passes 9/9 focused tray tests and the full Electron main suite (164 passing with 3 owned CAP-002 targets pending). Temporary macOS/non-macOS platform perturbations failed the intended tests and were reverted. Types, lint, formatting, and the changed-statement gate (27/31, 87.10%) pass; hosted package validation remains pending.
+- Evidence: Local branch `tst/TST-003-tray-characterization-2026-09-02`, commit `a0c91987`, passes 9/9 focused tray tests and the full Electron main suite (164 passing with 3 owned CAP-002 targets pending). Temporary macOS/non-macOS platform perturbations failed the intended tests and were reverted. Types, lint, formatting, and the changed-statement gate (27/31, 87.10%) pass; hosted package validation remains pending.
 
 #### TST-004 — Add security-boundary regression tests
 
