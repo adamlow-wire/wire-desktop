@@ -175,13 +175,46 @@ describe('secure shell view authority', () => {
         webContents: missingAccount.webContents,
       }),
     );
-    const ssoWithAccount = createSender(35);
+    const aboutWithAccount = createSender(35);
     assert.throws(() =>
       registry.register({
         ...registration,
-        session: ssoWithAccount.webContents.session,
-        viewType: 'sso',
-        webContents: ssoWithAccount.webContents,
+        session: aboutWithAccount.webContents.session,
+        viewType: 'about',
+        webContents: aboutWithAccount.webContents,
+      }),
+    );
+  });
+
+  it('[security-target][INV-003][INV-004][SEC-002] preserves account identity on account-scoped child views', () => {
+    for (const [id, viewType] of [
+      [48, 'picture-in-picture'],
+      [49, 'sso'],
+    ] as const) {
+      const registry = new ViewIdentityRegistry();
+      const registered = createSender(id);
+      const identity = registry.register({
+        accountId: 'account-a',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [],
+        partition: 'persist:wire-secure-a',
+        session: registered.webContents.session,
+        viewType,
+        webContents: registered.webContents,
+      });
+
+      assert.strictEqual(identity.accountId, 'account-a');
+    }
+
+    const unboundPictureInPicture = createSender(50);
+    assert.throws(() =>
+      new ViewIdentityRegistry().register({
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [],
+        partition: 'persist:wire-secure-a',
+        session: unboundPictureInPicture.webContents.session,
+        viewType: 'picture-in-picture',
+        webContents: unboundPictureInPicture.webContents,
       }),
     );
   });

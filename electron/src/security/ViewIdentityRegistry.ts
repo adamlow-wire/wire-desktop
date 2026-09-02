@@ -73,10 +73,15 @@ export class ViewIdentityRegistry {
   private readonly identities = new Map<number, AuthorizedViewIdentity>();
 
   register(registration: ViewRegistration): AuthorizedViewIdentity {
-    const hasValidAccountBinding =
-      registration.viewType === 'account'
-        ? typeof registration.accountId === 'string' && registration.accountId.length > 0
-        : typeof registration.accountId === 'undefined';
+    const hasAccountId = typeof registration.accountId === 'string' && registration.accountId.length > 0;
+    const requiresAccountId = registration.viewType === 'account' || registration.viewType === 'picture-in-picture';
+    const permitsAccountId = requiresAccountId || registration.viewType === 'sso';
+    let hasValidAccountBinding = typeof registration.accountId === 'undefined';
+    if (requiresAccountId) {
+      hasValidAccountBinding = hasAccountId;
+    } else if (permitsAccountId) {
+      hasValidAccountBinding = typeof registration.accountId === 'undefined' || hasAccountId;
+    }
     const hasValidAllowedUrl =
       typeof registration.allowedUrl === 'undefined' ||
       hasAllowedOrigin(registration.allowedUrl, registration.allowedOrigin);
