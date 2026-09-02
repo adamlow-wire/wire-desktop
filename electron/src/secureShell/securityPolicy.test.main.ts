@@ -392,7 +392,7 @@ describe('secure shell view authority', () => {
     assert.strictEqual(registry.has(registered.webContents.id), false);
   });
 
-  it('[security-target][INV-003][ARC-002] authorizes before validating payload and returns an immutable contract', () => {
+  it('[security-target][INV-003][ARC-002] authorizes before validating payload and returns an immutable contract', async () => {
     const registry = new ViewIdentityRegistry();
     const registered = createSender(44);
     registry.register({
@@ -405,10 +405,10 @@ describe('secure shell view authority', () => {
       webContents: registered.webContents,
     });
 
-    const response = authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1});
+    const response = await authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1});
     assert.deepStrictEqual(response, {accountId: 'account-a', contractVersion: 1});
     assert.strictEqual(Object.isFrozen(response), true);
-    assert.throws(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 2}));
-    assert.throws(() => authorizeRuntimeInfoRequest(registry, createSender(45).event, {contractVersion: 1}));
+    await assert.rejects(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 2}));
+    await assert.rejects(() => authorizeRuntimeInfoRequest(registry, createSender(45).event, {contractVersion: 1}));
   });
 });
