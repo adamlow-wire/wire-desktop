@@ -7,9 +7,9 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | Operation | Current expected sender | Risk / side effect | State | Owning follow-up |
 | --- | --- | --- | --- | --- |
 | `wire-desktop:secure-shell:runtime-info:v1` | secure account proof | Runtime metadata read | merged in PR #14 | SEC-003 |
-| `wire-desktop:safe-storage:encrypt:v1` | account | OS key-store encryption | PR #15 validation | SEC-003, DCP-016 |
-| `wire-desktop:safe-storage:decrypt:v1` | account | OS key-store decryption | PR #15 validation | SEC-003, DCP-016 |
-| `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | local typed-contract slice | SEC-003, CAP-005 |
+| `wire-desktop:safe-storage:encrypt:v1` | account | OS key-store encryption | merged in PR #15 | SEC-003, DCP-016 |
+| `wire-desktop:safe-storage:decrypt:v1` | account | OS key-store decryption | merged in PR #15 | SEC-003, DCP-016 |
+| `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | current PR validation | SEC-003, CAP-005 |
 | `ACTION.SAVE_PICTURE` | account context action | Network-sized bytes, native dialog, file write | unmigrated | SEC-003, SEC-004 |
 | `ACTION.NOTIFICATION_CLICK` | account | Global window activation | unmigrated | SEC-003, CAP-004 |
 | `WEBAPP.APP_LOADED` | account | Flushes global queued actions | unmigrated | SEC-003, CAP-001 |

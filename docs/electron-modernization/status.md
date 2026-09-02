@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-02
 milestone: M3
 active_work_item: SEC-003
-state: m3-safe-storage-contract-validation
+state: m3-managed-config-contract-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 63f7fa9beb2b5db95b7daf846dae2327b223224f
+integration_head_commit: 4d0168b2d5f935692b5b5b6520847448ef51dcd0
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-safe-storage-contract-2026-09-02
-next_work_item: SEC-003-managed-config-slice
+related_pending_branch: sec/SEC-003-managed-config-contract-2026-09-02
+next_work_item: SEC-003-save-picture-slice
 blockers: []
 ---
 
@@ -34,20 +34,22 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #14](https://github.com/adamlow-wire/wire-desktop/pull/14) merged as `63f7fa9b` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. SEC-003 now has a fail-closed typed contract primitive and the secure-shell runtime-info proof channel uses it; product-wide privileged-channel migration remains open.
 
+[PR #15](https://github.com/adamlow-wire/wire-desktop/pull/15) merged as `4d0168b2` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Account safe-storage encryption and decryption now use authorized, size-bounded, rate-limited contracts; ciphertext ownership and packaged key-store behavior remain explicit DCP-016 gaps.
+
 ## Active work
 
-| Field         | Value                                                  |
-| ------------- | ------------------------------------------------------ |
-| Work item     | SEC-003 — Typed, validated, capability-specific IPC    |
-| Owner         | `adamlow-wire`                                         |
-| Active branch | `sec/SEC-003-safe-storage-contract-2026-09-02`         |
-| Goal          | Authorize and bound the legacy safe-storage IPC bridge |
-| Starting gate | PR #14 merged green at `63f7fa9b`                      |
+| Field         | Value                                                     |
+| ------------- | --------------------------------------------------------- |
+| Work item     | SEC-003 — Typed, validated, capability-specific IPC       |
+| Owner         | `adamlow-wire`                                            |
+| Active branch | `sec/SEC-003-managed-config-contract-2026-09-02`          |
+| Goal          | Authorize the synchronous managed-configuration read path |
+| Starting gate | PR #15 merged green at `4d0168b2`                         |
 
 ## Next executable sequence
 
-1. Validate and merge SEC-003's safe-storage contract slice.
-2. Migrate managed configuration through an authorized immutable contract, then continue the remaining privileged IPC inventory.
+1. Validate and merge SEC-003's managed-configuration contract slice.
+2. Migrate save-picture through an authorized, size-bounded resource/file-write contract, then continue the remaining privileged IPC inventory.
 3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
 4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
@@ -114,7 +116,9 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-002 hosted view-authority validation | [PR #13](https://github.com/adamlow-wire/wire-desktop/pull/13) merged as `0281c134`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33669377166`, `33669377078`, and `33669377162` | 2026-09-02 |
 | SEC-003 typed-IPC foundation | Clean full coverage: 186 Electron main tests passing with 3 owned CAP-002 targets pending; changed statements 23/23 and changed security branches 20/20. Moving payload validation before sender authorization failed the strengthened ordering test and was reverted. The capability matrix was reviewed and remains unchanged because this slice migrates only the secure-shell proof channel | 2026-09-02 |
 | SEC-003 typed-IPC foundation hosted validation | [PR #14](https://github.com/adamlow-wire/wire-desktop/pull/14) merged as `63f7fa9b`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33678117522`, `33678117108`, and `33678161971` | 2026-09-02 |
-| SEC-003 safe-storage contract | Focused security tests pass 7/7; clean full coverage passes with 190 Electron main tests plus 3 owned CAP-002 targets pending, 48/51 changed statements (94.12%), and 28/28 changed security branches (100%). The versioned account-only encrypt/decrypt contracts authorize registered view identity before bounded request validation, validate bounded responses, rate-limit each operation per view, and preserve legacy byte conversion. Unsafe schema and quota-consumption perturbations failed the intended tests and were reverted; rejected requests are proven not to reach the key-store boundary. Hosted validation remains pending | 2026-09-02 |
+| SEC-003 safe-storage contract | Focused security tests pass 7/7; clean full coverage passes with 190 Electron main tests plus 3 owned CAP-002 targets pending, 48/51 changed statements (94.12%), and 28/28 changed security branches (100%). The versioned account-only encrypt/decrypt contracts authorize registered view identity before bounded request validation, validate bounded responses, rate-limit each operation per view, and preserve legacy byte conversion. Unsafe schema and quota-consumption perturbations failed the intended tests and were reverted; rejected requests are proven not to reach the key-store boundary | 2026-09-02 |
+| SEC-003 safe-storage hosted validation | [PR #15](https://github.com/adamlow-wire/wire-desktop/pull/15) merged as `4d0168b2`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33682579090`, `33682579089`, and `33682595868` | 2026-09-02 |
+| SEC-003 managed-configuration contract | Focused security tests pass 13/13; clean full coverage passes with 194 Electron main tests plus 3 owned CAP-002 targets pending, 30/32 changed statements (93.75%), and 10/10 changed security branches (100%). The cached synchronous read preserves bootstrap timing while enforcing account identity, registered origin, exact request/response schemas, and an event-free handler. A temporary payload-validation bypass failed the hostile-input test and was reverted. Hosted validation remains pending | 2026-09-02 |
 
 ## Handoff notes
 
