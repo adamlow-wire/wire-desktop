@@ -31,6 +31,7 @@ import {forwardWrapperReloadRequest} from '../lib/forwardWrapperReloadRequest';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
+import {requestNotificationActivation} from '../security/NotificationActivationIpc';
 import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
 
 const remote = require('@electron/remote');
@@ -123,7 +124,7 @@ const subscribeToWebappEvents = (): void => {
 
   window.amplify.subscribe(WebAppEvents.NOTIFICATION.CLICK, () => {
     logger.info(`Received amplify event "${WebAppEvents.NOTIFICATION.CLICK}", forwarding event ...`);
-    ipcRenderer.send(EVENT_TYPE.ACTION.NOTIFICATION_CLICK);
+    void requestNotificationActivation(ipcRenderer, logger);
     ipcRenderer.sendToHost(EVENT_TYPE.ACTION.NOTIFICATION_CLICK);
   });
 

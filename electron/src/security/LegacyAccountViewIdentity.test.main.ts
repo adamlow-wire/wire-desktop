@@ -21,6 +21,7 @@ import {strict as assert} from 'assert';
 
 import {registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
+import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
@@ -70,6 +71,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       SAFE_STORAGE_DECRYPT_CAPABILITY,
       MANAGED_CONFIG_CAPABILITY,
       SAVE_PICTURE_CAPABILITY,
+      NOTIFICATION_ACTIVATION_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');
