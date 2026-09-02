@@ -100,11 +100,19 @@ describe('safe storage IPC contracts', () => {
     };
     const registry = new ViewIdentityRegistry();
     const event = createSender(registry);
+    let decryptCalls = 0;
     let decryptResponse = 'value';
+    let encryptCalls = 0;
     let encryptResponse = Buffer.from([1]);
     const storage = {
-      decryptString: () => decryptResponse,
-      encryptString: () => encryptResponse,
+      decryptString: () => {
+        decryptCalls += 1;
+        return decryptResponse;
+      },
+      encryptString: () => {
+        encryptCalls += 1;
+        return encryptResponse;
+      },
     };
     bindSafeStorageIpc(ipc, registry, storage);
     const encrypt = handlers.get(SAFE_STORAGE_ENCRYPT_CHANNEL);
@@ -119,6 +127,8 @@ describe('safe storage IPC contracts', () => {
     await assert.rejects(() => encrypt(event, 'x'.repeat(MAX_SAFE_STORAGE_PLAINTEXT_BYTES + 1)), /payload/);
     await assert.rejects(() => decrypt(event, []), /payload/);
     await assert.rejects(() => decrypt(event, new Uint8Array(MAX_SAFE_STORAGE_CIPHERTEXT_BYTES + 1)), /payload/);
+    assert.strictEqual(encryptCalls, 0);
+    assert.strictEqual(decryptCalls, 0);
 
     encryptResponse = Buffer.alloc(MAX_SAFE_STORAGE_CIPHERTEXT_BYTES + 1);
     await assert.rejects(() => encrypt(event, 'value'), /response/);
