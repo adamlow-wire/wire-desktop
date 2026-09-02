@@ -27,6 +27,8 @@ import {EVENT_TYPE} from '../lib/eventType';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 
+const mutableApp = app as typeof app & {setAppPath(appPath: string): void};
+
 const getLastWebPreferences = (window: BrowserWindow): WebPreferences => {
   const webContents = window.webContents as Electron.WebContents & {getLastWebPreferences(): WebPreferences};
   return webContents.getLastWebPreferences();
@@ -40,13 +42,13 @@ describe('auxiliary window identity', () => {
 
   before(async () => {
     await app.whenReady();
-    app.setAppPath(process.cwd());
+    mutableApp.setAppPath(process.cwd());
     ({AboutWindow} = await import('./AboutWindow'));
     ({ProxyPromptWindow} = await import('./ProxyPromptWindow'));
   });
 
   after(() => {
-    app.setAppPath(originalAppPath);
+    mutableApp.setAppPath(originalAppPath);
   });
 
   afterEach(() => {
