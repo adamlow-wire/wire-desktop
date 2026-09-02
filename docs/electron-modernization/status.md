@@ -1,16 +1,16 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-08-26
+updated: 2026-09-02
 milestone: M3
-active_work_item: CAP-001
-state: m3-cap001-account-data-deletion-validation
+active_work_item: GOV-001
+state: m3-upstream-synchronization-validation
 integration_branch: integration/electron-modernization
-integration_base_commit: e548edeb65a31a75b01933a81c1c34926639b0b0
-integration_head_commit: a86ad1303a26af4313a738ee275d9322a92ff064
+integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
+integration_head_commit: efac1b46438bd9e56df1febd7830138246b57658
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
-upstream_commit: e548edeb65a31a75b01933a81c1c34926639b0b0
+upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 related_pending_branch: null
 next_work_item: CAP-001
 blockers: []
@@ -24,22 +24,25 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #9](https://github.com/adamlow-wire/wire-desktop/pull/9) merged upstream commit `e548edeb65a31a75b01933a81c1c34926639b0b0`, including native Windows MSI support, into the integration branch after all required checks passed. Electron remains pinned at `43.4.0`; adoption of Electron 44 is intentionally deferred and is not an M3 gate.
 
+[PR #10](https://github.com/adamlow-wire/wire-desktop/pull/10) merged on 2026-09-02 after every required build, lint, CodeQL, package, and authenticated Windows/macOS E2E check passed. CAP-001 now removes view authority before clearing only the targeted secure account session; production account action routing remains open.
+
 ## Active work
 
-| Field         | Value                                                    |
-| ------------- | -------------------------------------------------------- |
-| Work item     | CAP-001 — Migrate account and multi-account lifecycle    |
-| Owner         | `adamlow-wire`                                           |
-| Active branch | `cap/CAP-001-account-data-deletion`                      |
-| Goal          | Prove deletion clears only the targeted secure partition |
-| Starting gate | PR #9 merged green; targeted deletion tests are green    |
+| Field         | Value                                                     |
+| ------------- | --------------------------------------------------------- |
+| Work item     | GOV-001 — Synchronize the integration baseline            |
+| Owner         | `adamlow-wire`                                            |
+| Active branch | `gov/GOV-001-upstream-sync-2026-09-02`                    |
+| Goal          | Integrate upstream `dev` without regressing M3 boundaries |
+| Starting gate | PR #10 merged green; upstream advanced to `6f9b6a99`      |
 
 ## Next executable sequence
 
-1. Publish the CAP-001 deletion PR against the synchronized integration branch.
-2. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
-3. Complete the remaining M3 security-policy and capability items in dependency order, one primary work item per PR.
-4. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
+1. Validate and merge the 2026-09-02 GOV-001 upstream synchronization PR.
+2. Rebase and publish the sensitivity-proven TST-003 tray characterization branch.
+3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
+4. Complete the product-wide M3 security boundary and critical capability items in dependency order, one primary work item per PR.
+5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
 
@@ -93,6 +96,8 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | Upstream MSI changed-code coverage | PR #9 first hosted run correctly rejected 58.97% changed-statement coverage; focused registry, managed-endpoint, MSI/Squirrel, and missing-updater tests raised the same local gate to 38/39 statements (97.44%). Replacing the MSI-only logical AND guard with logical OR failed the new lifecycle test and the mutation was reverted | 2026-08-26 |
 | Upstream synchronization hosted validation | [PR #9](https://github.com/adamlow-wire/wire-desktop/pull/9) merged as `a86ad130`: build/test, lint, CodeQL, Windows/macOS/Linux packages, authenticated Windows/macOS E2E, and the merged report passed in [run 32973656020](https://github.com/adamlow-wire/wire-desktop/actions/runs/32973656020) | 2026-08-26 |
 | CAP-001 targeted deletion | The real-Electron test initially retained account A local storage under a remove-only perturbation, then passed after exact-session storage/cache clearing; account B local storage and cookies remained intact. Secure-shell suite: 20/20 passed; types, test types, lint, and formatting passed | 2026-08-26 |
+| CAP-001 targeted deletion hosted validation | [PR #10](https://github.com/adamlow-wire/wire-desktop/pull/10) merged as `efac1b46`: build/test, lint, CodeQL, Windows/macOS/Linux packages, authenticated Windows/macOS E2E, and merged report passed | 2026-09-02 |
+| Upstream synchronization local validation | Integrated upstream `6f9b6a99`; ported secure-shell startup through upstream's split main-process entrypoint; application/test types and lint passed, Jest 19/19 suites and 63/63 tests passed, renderer 2/2 and build tools 35/35 passed, and Electron main coverage passed with 160 tests plus 3 owned CAP-002 targets pending. Copy-aware changed-code coverage initially failed at 44.93%, then passed unchanged at 471/588 statements (80.10%) after sensitivity-proven deletion, download, log-write, cleanup, and collision characterization | 2026-09-02 |
 
 ## Handoff notes
 
@@ -101,7 +106,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 - PR #6 contains a sensitivity-proven regression test for Linux packaging error propagation; do not restore the prior catch-and-log behavior.
 - PR #6 also contains sensitivity-proven Electron 43 unread-state compatibility tests; hidden accounts may increase but not clear unread state until visible.
 - ARC-002 is a proof path, not a claim that legacy `@electron/remote`, `<webview>`, or broad IPC has been removed globally. CAP-001 begins migration; the global security work items remain open until the fallback is removed.
-- PR #8 is merged but does not yet route production account actions through the secure collection or delete partition data. It establishes the tested main-owned selection boundary required for those later CAP-001 slices.
+- PR #10 completes targeted secure partition deletion. CAP-001 still does not route production account actions and account-targeted events through the secure collection.
 - The native MSI feature is part of upstream `dev` and integration through merged PR #9; do not treat it as a pending side branch.
 - Electron 44 is available but intentionally deferred. Do not change the `43.4.0` pin during M3; resolve Windows ia32 scope before the next runtime upgrade.
 - PR #2 was intentionally closed without merge on 2026-08-20. Do not recreate its credential normalizer or preflight unless evidence from the authoritative vault value demonstrates a real defect.

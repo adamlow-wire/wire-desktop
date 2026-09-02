@@ -1,16 +1,16 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.3.1
+revision: 1.4.0
 status: draft
-updated: 2026-08-26
+updated: 2026-09-02
 owners:
   technical: adamlow-wire
   security: adamlow-wire
   product: adamlow-wire
 operating_model: solo AI-assisted maintainer
 source_branch: integration/electron-modernization
-upstream_base: e548edeb65a31a75b01933a81c1c34926639b0b0
+upstream_base: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 current_electron: 43.4.0
 reference_latest_stable_electron: 44.0.0
 reference_latest_checked: 2026-08-26
@@ -324,7 +324,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Bind every `WebContents` and frame to a known view type, account identifier where applicable, allowed origins, session, and capability set.
 - Acceptance:
@@ -337,7 +337,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
 - Acceptance:
@@ -351,7 +351,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Replace `nativeTheme` and context-menu use of remote APIs with explicit main-process capabilities.
 - Acceptance:
@@ -364,7 +364,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Use `contextBridge` to expose immutable, capability-specific APIs to the local shell and remote account content.
 - Acceptance:
@@ -378,7 +378,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: SEC-005
 - Scope: Enable application-wide sandboxing with explicitly justified exceptions only if unavoidable.
 - Acceptance:
@@ -392,7 +392,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: ARC-001, SEC-005, SEC-006
 - Scope: Implement account content with main-process-owned `WebContentsView` instances and preserve isolated persistent sessions.
 - Acceptance:
@@ -406,7 +406,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Enforce allowed origins, navigation types, external destinations, SSO windows, PiP windows, and denial behavior.
 - Acceptance:
@@ -434,7 +434,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 
 - Priority: `P0`
 - Status: `proposed`
-- Milestone: `M2`
+- Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
 - Acceptance:
@@ -476,7 +476,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### SEC-013 — Harden deep-link and external-link handling
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-003, SEC-008
 - Scope: Parse custom-protocol and external-link inputs with strict schemas and explicit action routing.
@@ -484,7 +484,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Happy paths, malformed input, oversized input, encoded-delimiter, protocol-confusion, and recursion cases are tested.
   - Deep links cannot invoke arbitrary IPC or navigation.
   - External links cannot invoke dangerous local protocols.
-- Evidence: TBD
+- Evidence: Local branch `sec/SEC-013-deep-link-policy` contains sensitivity-proven fail-closed parsing and external-protocol policy tests; rebase and dependency reconciliation are required before publication.
 
 ### 10.3 Electron and dependency currency
 
@@ -577,7 +577,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### TST-003 — Characterize tray, badge, notification, and menu behavior
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: BASE-002
 - Scope: Extend unit/platform tests for tray clicks, menu actions, zero/nonzero icon transitions, tooltip, app badge, Windows overlay, macOS bounce, and Linux icon variants.
@@ -585,7 +585,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Platform branches are tested through injectable adapters or platform CI.
   - macOS tests assert `dock.bounce` rather than unconditionally passing.
   - Packaged smoke tests cover visible platform integration where automation is practical.
-- Evidence: TBD
+- Evidence: Local branch `tst/TST-003-tray-characterization` has sensitivity-proven platform-branch coverage; rebase and hosted package validation are pending.
 
 #### TST-004 — Add security-boundary regression tests
 
@@ -627,7 +627,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
-- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. The follow-up deletion slice proves exact-session local-storage/cookie clearing while another account remains intact; hosted evidence is pending. Production action routing remains open.
+- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. [PR #10](https://github.com/adamlow-wire/wire-desktop/pull/10) merged on 2026-09-02 with exact-session local-storage/cookie clearing while another account remains intact; all required hosted checks passed. Production action routing remains open.
 
 #### CAP-002 — Migrate enterprise and automated SSO
 
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.4.0 | 2026-09-02 | Codex | Recorded merged CAP-001 targeted deletion, synchronized upstream through `6f9b6a99`, and moved the still-product-wide security work from the completed bounded M2 proof into M3 | GOV-001, SEC-002 through SEC-008, SEC-010, SEC-013, TST-003, CAP-001 |
 | 1.3.1 | 2026-08-26 | Codex | Recorded the green upstream synchronization and retained Electron 43.4.0 as the explicit M3 runtime baseline | GOV-001, CAP-001, DEC-007 |
 | 1.3.0 | 2026-08-26 | Codex | Added a bounded CAP-001 data-deletion slice that removes view authority before clearing only the targeted persistent session and prevents same-account recreation during deletion | CAP-001, DCP-004, INV-004, INV-010 |
 | 1.2.0 | 2026-08-26 | Codex | Reconciled merged PR #8 evidence, incorporated upstream native MSI work, corrected CAP-001 evidence ownership, and recorded the decision to keep Electron 43.4.0 during M3 while Windows ia32 scope remains unresolved | GOV-001, GOV-002, CAP-001, DEC-007, Q-010, RSK-003 |

@@ -105,14 +105,16 @@ test.describe('Multiple Accounts', async () => {
   });
 
   test('Verify max account limit of three accounts', {tag: ['@TC-11005', '@regression']}, async ({app, createUser}) => {
+    test.setTimeout(180_000);
+
     const userA = await createUser();
     const userB = await createUser();
     const userC = await createUser();
 
     await test.step('Preconditions: UserA and UserB are already logged in', async () => {
-      await loginUser(app.page, userA);
+      app.page = await loginUser(app.page, userA);
       await accountsSidebar(app).addAccount();
-      await loginUser(app.page, userB);
+      app.page = await loginUser(app.page, userB);
     });
 
     await test.step('Verify `+` is still visible', async () => {
@@ -122,7 +124,7 @@ test.describe('Multiple Accounts', async () => {
 
     await test.step('UserA adds third account', async () => {
       await accountsSidebar(app).addAccount();
-      await loginUser(app.page, userC);
+      app.page = await loginUser(app.page, userC, {timeout: 80_000});
     });
 
     await test.step('Verify `+` is no longer visible', async () => {

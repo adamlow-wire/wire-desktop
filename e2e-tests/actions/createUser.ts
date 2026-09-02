@@ -22,6 +22,15 @@ import {faker} from '@faker-js/faker';
 import {BrigApiClient} from '../backend/BrigApiClient';
 import {PublicApiClient, RegisteredUser} from '../backend/PublicApiClient';
 
+const runRegistrationStep = async <T>(step: string, operation: () => Promise<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`User registration failed during ${step}: ${detail}`, {cause: error});
+  }
+};
+
 export type User = {
   firstName: string;
   lastName: string;
@@ -67,23 +76,27 @@ export const registerUser = async (
   {publicApi, brigApi}: {publicApi: PublicApiClient; brigApi: BrigApiClient},
   options?: {telemetryDataSharing?: boolean},
 ): Promise<RegisteredUser> => {
-  const {id, zuidCookie} = await publicApi.registerUser(user);
+  const {id, zuidCookie} = await runRegistrationStep('account creation', () => publicApi.registerUser(user));
 
   if (id === undefined) {
     throw new Error(`Failed to register user`);
   }
 
-  const activationCode = await brigApi.getUserActivationCode(user.email);
-  await publicApi.activateAccount(user.email, activationCode);
+  const activationCode = await runRegistrationStep('activation-code lookup', () =>
+    brigApi.getUserActivationCode(user.email),
+  );
+  await runRegistrationStep('account activation', () => publicApi.activateAccount(user.email, activationCode));
 
-  const accessToken = await publicApi.requestAccessToken(zuidCookie);
+  const accessToken = await runRegistrationStep('access-token request', () => publicApi.requestAccessToken(zuidCookie));
 
-  await publicApi.setUsername(accessToken, user.username);
+  await runRegistrationStep('username assignment', () => publicApi.setUsername(accessToken, user.username));
 
   const registeredUser = {...user, id, token: accessToken};
 
   if (options?.telemetryDataSharing !== undefined) {
-    await publicApi.setProperties(registeredUser, {telemetryDataSharing: options.telemetryDataSharing});
+    await runRegistrationStep('telemetry preference update', () =>
+      publicApi.setProperties(registeredUser, {telemetryDataSharing: options.telemetryDataSharing}),
+    );
   }
 
   return registeredUser;

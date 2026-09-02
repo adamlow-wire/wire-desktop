@@ -40,6 +40,7 @@ const waitForAuthenticatedPage = async (
   user: User,
   accountId: string | null,
   pagesBeforeLogin: ReadonlySet<Page>,
+  timeout: number,
 ) => {
   let authenticatedPage: Page | undefined;
 
@@ -69,7 +70,7 @@ const waitForAuthenticatedPage = async (
 
         return false;
       },
-      {message: `Wait for ${user.initials}'s authenticated account page`, timeout: LOGIN_TIMEOUT},
+      {message: `Wait for ${user.initials}'s authenticated account page`, timeout},
     )
     .toBe(true);
 
@@ -77,11 +78,11 @@ const waitForAuthenticatedPage = async (
 };
 
 /* Visit the sso page and execute the login for the user */
-export const loginUser = async (page: Page, user: User) => {
+export const loginUser = async (page: Page, user: User, options?: {timeout?: number}) => {
   const accountId = accountIdFromUrl(page.url());
   const pagesBeforeLogin = new Set(page.context().pages());
   await fillLoginCredentials(page, user);
-  return waitForAuthenticatedPage(page, user, accountId, pagesBeforeLogin);
+  return waitForAuthenticatedPage(page, user, accountId, pagesBeforeLogin, options?.timeout ?? LOGIN_TIMEOUT);
 };
 
 export const loginUserAfterDataCleanup = async (page: Page, user: User) => {
@@ -91,5 +92,5 @@ export const loginUserAfterDataCleanup = async (page: Page, user: User) => {
   const historyConfirmButton = loginPage(page).historyConfirmButton;
   await historyConfirmButton.click();
 
-  return waitForAuthenticatedPage(page, user, accountId, pagesBeforeLogin);
+  return waitForAuthenticatedPage(page, user, accountId, pagesBeforeLogin, LOGIN_TIMEOUT);
 };

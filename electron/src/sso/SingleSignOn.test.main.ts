@@ -18,6 +18,7 @@
  */
 
 import {BrowserWindow, Event as ElectronEvent, ProtocolRequest, Session, WebContents} from 'electron';
+import {Maybe} from 'true-myth';
 
 import * as assert from 'assert';
 import {createServer} from 'http';
@@ -164,7 +165,8 @@ describe('SingleSignOn', () => {
       } as unknown as WebContents;
       const singleSignOn = new SingleSignOn(
         {} as BrowserWindow,
-        {sender} as unknown as ElectronEvent,
+        sender,
+        Maybe.nothing<string>(),
         'https://app.wire.com',
         {},
       );
@@ -266,7 +268,8 @@ describe('SingleSignOn', () => {
       } as unknown as WebContents;
       const singleSignOn = new SingleSignOn(
         {} as BrowserWindow,
-        {sender} as unknown as ElectronEvent,
+        sender,
+        Maybe.nothing<string>(),
         'https://app.wire.com',
         {},
       );
@@ -329,7 +332,8 @@ describe('SingleSignOn', () => {
       const windowOptions = {webPreferences: {preload: '/legacy/preload.js'}};
       const singleSignOn = new SingleSignOn(
         ssoWindow,
-        {sender} as unknown as ElectronEvent,
+        sender,
+        Maybe.nothing<string>(),
         'https://app.wire.com',
         windowOptions,
       );
@@ -371,12 +375,7 @@ describe('SingleSignOn', () => {
           setWindowOpenHandler: () => {},
         },
       } as unknown as BrowserWindow;
-      const singleSignOn = new SingleSignOn(
-        ssoWindow,
-        {sender} as unknown as ElectronEvent,
-        'https://app.wire.com',
-        {},
-      );
+      const singleSignOn = new SingleSignOn(ssoWindow, sender, Maybe.nothing<string>(), 'https://app.wire.com', {});
       singleSignOn['setupBrowserWindow']();
       let preventCount = 0;
       const event = {
@@ -420,12 +419,9 @@ describe('SingleSignOn', () => {
           sandbox: true,
         },
       });
-      const singleSignOn = new SingleSignOn(
-        ssoWindow,
-        {sender: senderWindow.webContents} as unknown as ElectronEvent,
-        fixtureUrl,
-        {webPreferences: {partition: 'sso'}},
-      );
+      const singleSignOn = new SingleSignOn(ssoWindow, senderWindow.webContents, Maybe.nothing<string>(), fixtureUrl, {
+        webPreferences: {partition: 'sso'},
+      });
 
       try {
         await senderWindow.loadURL(

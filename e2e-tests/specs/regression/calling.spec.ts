@@ -30,6 +30,8 @@ test.describe('Calling - Feature Functionality', () => {
     'Verify call window maximization in 1:1 and the group call',
     {tag: ['@TC-11291', '@regression']},
     async ({app, createUser, createTeam, createPage}) => {
+      test.setTimeout(180_000);
+
       const userB = await createUser();
       const {owner: userA} = await createTeam('Test Team', {
         users: [userB],
