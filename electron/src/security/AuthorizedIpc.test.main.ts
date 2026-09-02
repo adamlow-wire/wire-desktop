@@ -126,6 +126,8 @@ describe('authorized IPC contract', () => {
     for (const invalidPolicy of [
       {...contract, failureMode: 'log-and-continue'},
       {...contract, originPolicy: 'any-origin'},
+      {...contract, rateLimit: {maxRequests: 0, windowMs: 1_000}},
+      {...contract, rateLimit: {maxRequests: 1, windowMs: 0}},
     ]) {
       await assert.rejects(() =>
         executeAuthorizedIpc(
@@ -177,6 +179,15 @@ describe('authorized IPC contract', () => {
     } as const;
     const first = createSender(5);
     const second = createSender(6);
+    await assert.rejects(() =>
+      executeAuthorizedIpc(
+        first.registry,
+        limitedContract,
+        first.event,
+        {contractVersion: 1},
+        async identity => ({accountId: identity.accountId!}),
+      ),
+    );
     const dispose = bindAuthorizedIpc(
       ipc,
       first.registry,
