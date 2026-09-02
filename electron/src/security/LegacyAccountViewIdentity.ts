@@ -21,6 +21,7 @@ import {ValidationUtil} from '@wireapp/commons';
 
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
+import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
 import {
   RegisteredViewIdentity,
   registerViewIdentity,
@@ -53,7 +54,12 @@ export const registerLegacyAccountViewIdentity = (
   return registerViewIdentity(registry, {
     accountId,
     allowedOrigin: accountUrl.origin,
-    capabilities: [SAFE_STORAGE_ENCRYPT_CAPABILITY, SAFE_STORAGE_DECRYPT_CAPABILITY, MANAGED_CONFIG_CAPABILITY],
+    capabilities: [
+      SAFE_STORAGE_ENCRYPT_CAPABILITY,
+      SAFE_STORAGE_DECRYPT_CAPABILITY,
+      MANAGED_CONFIG_CAPABILITY,
+      SAVE_PICTURE_CAPABILITY,
+    ],
     partition,
     session: webContents.session,
     viewType: 'account',

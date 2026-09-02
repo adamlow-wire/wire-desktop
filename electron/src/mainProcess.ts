@@ -86,6 +86,7 @@ import {SecureShellController} from './secureShell/SecureShellController';
 import {registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
+import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
@@ -230,12 +231,9 @@ app.commandLine.appendSwitch('force-webrtc-ip-handling-policy', 'default_public_
 
 // IPC events
 const bindIpcEvents = (): void => {
-  ipcMain.on(EVENT_TYPE.ACTION.SAVE_PICTURE, (_event, bytes: Uint8Array, timestamp: unknown) => {
-    const imageTimestamp =
-      typeof timestamp === 'string' && timestamp.length > 0 ? Maybe.just(timestamp) : Maybe.nothing<string>();
-
-    return downloadImage(bytes, imageTimestamp);
-  });
+  bindSavePictureIpc(ipcMain, viewIdentityRegistry, (bytes, timestamp) =>
+    downloadImage(bytes, timestamp ? Maybe.just(timestamp) : Maybe.nothing<string>()),
+  );
 
   ipcMain.on(EVENT_TYPE.ACTION.NOTIFICATION_CLICK, () => WindowManager.showPrimaryWindow());
   ipcMain.on(EVENT_TYPE.WEBAPP.APP_LOADED, () => WindowManager.flushActionsQueue());
