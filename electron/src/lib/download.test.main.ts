@@ -121,7 +121,7 @@ describe('download', () => {
     '[characterization] does not write a file when the save dialog is cancelled',
     withTemporaryDirectory('wire-download-cancel-', async temporaryDirectory => {
       const destinationPath = path.join(temporaryDirectory, 'cancelled.bin');
-      const showSaveDialog = stub(dialog, 'showSaveDialog').resolves({canceled: true});
+      const showSaveDialog = stub(dialog, 'showSaveDialog').resolves({canceled: true, filePath: ''});
 
       try {
         await downloadFile(Uint8Array.from([1, 2, 3]), destinationPath, {});
