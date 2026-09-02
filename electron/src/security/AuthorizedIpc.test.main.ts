@@ -53,6 +53,7 @@ const contract: AuthorizedIpcContract<TestRequest, TestResponse> = Object.freeze
         typeof (value as {accountId?: unknown}).accountId === 'string',
     ),
   originPolicy: 'registered-view-origin',
+  rateLimit: 'not-required',
   viewTypes: Object.freeze(['account'] as const),
 });
 
@@ -156,5 +157,43 @@ describe('authorized IPC contract', () => {
     });
     dispose();
     assert.strictEqual(handlers.has(contract.channel), false);
+  });
+
+  it('[security-target][INV-003][INV-010][SEC-003] rate-limits authorized requests per view', async () => {
+    const handlers = new Map<string, (event: SenderIdentity, request: unknown) => Promise<unknown>>();
+    const ipc = {
+      handle: (channel: string, handler: (event: SenderIdentity, request: unknown) => Promise<unknown>) => {
+        handlers.set(channel, handler);
+      },
+      removeHandler: (channel: string) => {
+        handlers.delete(channel);
+      },
+    };
+    let now = 1_000;
+    const limitedContract = {
+      ...contract,
+      channel: 'wire-desktop:v1:test:limited',
+      rateLimit: Object.freeze({maxRequests: 2, windowMs: 1_000}),
+    } as const;
+    const first = createSender(5);
+    const second = createSender(6);
+    const dispose = bindAuthorizedIpc(
+      ipc,
+      first.registry,
+      limitedContract,
+      async identity => ({accountId: identity.accountId!}),
+      () => now,
+    );
+    const handler = handlers.get(limitedContract.channel);
+    assert.ok(handler);
+
+    await handler(first.event, {contractVersion: 1});
+    await handler(first.event, {contractVersion: 1});
+    await assert.rejects(() => handler(first.event, {contractVersion: 1}), /rate limit/);
+    await assert.rejects(() => handler(second.event, {contractVersion: 1}), /not authorized/);
+
+    now += 1_000;
+    assert.deepStrictEqual(await handler(first.event, {contractVersion: 1}), {accountId: 'account-a'});
+    dispose();
   });
 });

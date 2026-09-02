@@ -53,6 +53,7 @@ const runtimeInfoContract: AuthorizedIpcContract<RuntimeInfoRequest, RuntimeInfo
   isRequest: isRuntimeInfoRequest,
   isResponse: isRuntimeInfoResponse,
   originPolicy: 'registered-view-origin',
+  rateLimit: 'not-required',
   viewTypes: Object.freeze(['account'] as const),
 });
 
