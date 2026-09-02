@@ -37,6 +37,7 @@ import {executeJavaScriptWithoutResult} from '../lib/ElectronUtil';
 import {writeBoundedLogMessage} from '../logging/desktopLogWriter';
 import {ENABLE_LOGGING, getLogger} from '../logging/getLogger';
 import {getLogDirectory, getSsoLogPath} from '../logging/logPaths';
+import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import * as WindowUtil from '../window/WindowUtil';
 
@@ -67,6 +68,7 @@ export class SingleSignOn {
   private ssoWindow: BrowserWindow | undefined;
   private readonly senderWebContents: WebContents;
   private readonly accountId: Maybe<string>;
+  private readonly registry: ViewIdentityRegistry;
   private readonly windowOptions: BrowserWindowConstructorOptions;
   private readonly windowOriginUrl: URL;
   public onClose = () => {};
@@ -77,11 +79,13 @@ export class SingleSignOn {
     accountId: Maybe<string>,
     windowOriginURL: string,
     windowOptions: BrowserWindowConstructorOptions,
+    registry: ViewIdentityRegistry,
   ) {
     this.windowOptions = windowOptions;
     this.ssoWindow = ssoWindow;
     this.senderWebContents = senderWebContents;
     this.accountId = accountId;
+    this.registry = registry;
     this.windowOriginUrl = new URL(windowOriginURL);
   }
 
@@ -91,6 +95,19 @@ export class SingleSignOn {
 
     // Disable browser permissions (microphone, camera...)
     this.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+
+    if (!this.ssoWindow || this.ssoWindow.webContents.session !== this.session) {
+      throw new Error('SSO window is not using the isolated SSO session.');
+    }
+    registerViewIdentity(this.registry, {
+      accountId: this.accountId.isJust ? this.accountId.value : undefined,
+      allowedOrigin: this.windowOriginUrl.origin,
+      capabilities: [],
+      partition: SingleSignOn.SSO_SESSION_NAME,
+      session: this.session,
+      viewType: 'sso',
+      webContents: this.ssoWindow.webContents,
+    });
 
     // User-agent normalization
     this.session.webRequest.onBeforeSendHeaders(({requestHeaders}: any, callback) => {

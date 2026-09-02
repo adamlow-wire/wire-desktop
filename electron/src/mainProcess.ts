@@ -668,6 +668,7 @@ class ElectronWrapperInit {
           parameters.accountId,
           parameters.url,
           parameters.options,
+          viewIdentityRegistry,
         ).init();
 
         return new Promise(() => {
