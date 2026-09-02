@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.4.3
+revision: 1.4.4
 status: draft
 updated: 2026-09-02
 owners:
@@ -345,7 +345,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: Local branch `sec/SEC-003-typed-ipc-2026-09-02` introduces a fail-closed contract executor that authorizes registered sender identity before request validation, explicitly declares view-type and registered-origin policy, validates request and response schemas, and never exposes Electron events or arbitrary channel selection to handlers. The first bounded migration converts secure-shell runtime-info IPC. A clean full coverage run passes with 186 Electron main tests plus 3 owned CAP-002 targets pending, 23/23 changed statements, and 20/20 changed security branches. Moving request validation before sender authorization failed the strengthened ordering test and was reverted. Product-wide channel migration remains open.
+- Evidence: [PR #14](https://github.com/adamlow-wire/wire-desktop/pull/14) merged as `63f7fa9b` after every required check passed. It introduces a fail-closed contract executor that authorizes registered sender identity before request validation, explicitly declares view-type, registered-origin, rate-limit, request/response schema, and failure policy, and never exposes Electron events or arbitrary channel selection to handlers. The first bounded migration converts secure-shell runtime-info IPC. Local branch `sec/SEC-003-safe-storage-contract-2026-09-02` adds per-view quotas and migrates legacy account safe-storage encryption/decryption to versioned, account-only, size-bounded contracts. Unsafe validation and quota perturbations failed the intended tests and were reverted. Product-wide channel migration and DCP-016 ciphertext ownership remain open.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.4.4 | 2026-09-02 | Codex | Recorded the green hosted typed-IPC foundation and a sensitivity-proven, bounded safe-storage contract slice while retaining ciphertext ownership and packaged key-store evidence as explicit gaps | SEC-003, DCP-016, INV-003, INV-004, INV-010 |
 | 1.4.3 | 2026-09-02 | Codex | Closed SEC-002 with green hosted platform evidence and started SEC-003 with a fail-closed typed IPC contract foundation plus the first bounded channel migration | SEC-002, SEC-003 |
 | 1.4.2 | 2026-09-02 | Codex | Closed TST-003 with green hosted platform evidence and recorded the sensitivity-proven SEC-002 central view-authority implementation pending hosted validation | TST-003, SEC-002, DCP-003, DCP-005, DCP-009, DCP-011 |
 | 1.4.1 | 2026-09-02 | Codex | Recorded sensitivity-proven TST-003 tray platform characterization and its remaining hosted package gate | TST-003, DCP-005 |
