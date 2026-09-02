@@ -2,17 +2,17 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-02
 milestone: M3
-active_work_item: SEC-002
-state: m3-view-identity-registry-validation
+active_work_item: SEC-003
+state: m3-typed-ipc-migration
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 37f8b5e3d58a31563706eae8693860df298c12b1
+integration_head_commit: 0281c1349aa812e127396d5032dc17ec39d32fb8
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-002-view-identity-registry-2026-09-02
-next_work_item: SEC-003
+related_pending_branch: sec/SEC-003-typed-ipc-2026-09-02
+next_work_item: SEC-003-channel-inventory
 blockers: []
 ---
 
@@ -30,41 +30,44 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #12](https://github.com/adamlow-wire/wire-desktop/pull/12) merged on 2026-09-02 after every required check passed. TST-003 now locks down tray click, tooltip, icon-selection, unread, badge, and macOS/non-macOS flashing branches; CAP-004 retains visible packaged tray behavior.
 
+[PR #13](https://github.com/adamlow-wire/wire-desktop/pull/13) merged as `0281c134` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and merged reports passed. SEC-002 now gives every current application, account, SSO, auxiliary, picture-in-picture, and developer-tool view an immutable main-owned identity; SEC-003 owns applying that authority to every privileged IPC channel.
+
 ## Active work
 
-| Field         | Value                                                        |
-| ------------- | ------------------------------------------------------------ |
-| Work item     | SEC-002 — Central view identity and capability registry      |
-| Owner         | `adamlow-wire`                                               |
-| Active branch | `sec/SEC-002-view-identity-registry-2026-09-02`              |
-| Goal          | Bind every legitimate view to immutable main-owned authority |
-| Starting gate | PR #12 merged green at `37f8b5e3`                            |
+| Field         | Value                                                    |
+| ------------- | -------------------------------------------------------- |
+| Work item     | SEC-003 — Typed, validated, capability-specific IPC      |
+| Owner         | `adamlow-wire`                                           |
+| Active branch | `sec/SEC-003-typed-ipc-2026-09-02`                       |
+| Goal          | Establish the contract primitive and migrate one channel |
+| Starting gate | PR #13 merged green at `0281c134`                        |
 
 ## Next executable sequence
 
-1. Publish and validate SEC-002's central view identity registry.
-2. Build SEC-003's typed, validated IPC contracts on the merged registry.
+1. Validate and merge SEC-003's contract foundation and secure-shell runtime-info migration.
+2. Inventory every remaining privileged IPC channel and migrate SEC-003 slices without exposing raw channels or Electron events.
 3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
 4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
 
-| Work item                                               | Evidence                                          |
-| ------------------------------------------------------- | ------------------------------------------------- |
-| GOV-001 — Establish fork and integration workflow       | GitHub API readback on 2026-08-18                 |
-| GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155` |
-| ELC-001 — Inventory Electron compatibility blockers     | `electron-compatibility.md`                       |
-| TST-001 — Make coverage reporting accurate              | Commits `c27cfa6a`, `d96baaad`                    |
-| BASE-001 — Capture a reproducible legacy baseline       | PR #3 run `32364188026`                           |
-| BASE-002 — Create the capability acceptance matrix      | PR #1                                             |
-| ARC-001 — Approve target process and view architecture  | ADR 0001; PR #1                                   |
-| SEC-001 — Threat model the desktop wrapper              | `threat-model.md`; PR #1                          |
-| TST-002 — Characterize enterprise SSO                   | 18 passing / 3 CAP-002 security targets pending   |
-| ELC-002 — Upgrade Electron to latest stable             | PR #6; Electron 43.4.0; final package/E2E green   |
-| ARC-002 — Implement secure single-account shell proof   | PR #7; 17 security-target tests; all-platform CI  |
-| TST-004 — Add security-boundary regression tests        | PR #7; sensitivity proof; mandatory all-platform  |
-| TST-003 — Characterize tray/native integration          | PR #12; sensitivity proof; all-platform CI        |
+| Work item                                               | Evidence                                                |
+| ------------------------------------------------------- | ------------------------------------------------------- |
+| GOV-001 — Establish fork and integration workflow       | GitHub API readback on 2026-08-18                       |
+| GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155`       |
+| ELC-001 — Inventory Electron compatibility blockers     | `electron-compatibility.md`                             |
+| TST-001 — Make coverage reporting accurate              | Commits `c27cfa6a`, `d96baaad`                          |
+| BASE-001 — Capture a reproducible legacy baseline       | PR #3 run `32364188026`                                 |
+| BASE-002 — Create the capability acceptance matrix      | PR #1                                                   |
+| ARC-001 — Approve target process and view architecture  | ADR 0001; PR #1                                         |
+| SEC-001 — Threat model the desktop wrapper              | `threat-model.md`; PR #1                                |
+| TST-002 — Characterize enterprise SSO                   | 18 passing / 3 CAP-002 security targets pending         |
+| ELC-002 — Upgrade Electron to latest stable             | PR #6; Electron 43.4.0; final package/E2E green         |
+| ARC-002 — Implement secure single-account shell proof   | PR #7; 17 security-target tests; all-platform CI        |
+| TST-004 — Add security-boundary regression tests        | PR #7; sensitivity proof; mandatory all-platform        |
+| TST-003 — Characterize tray/native integration          | PR #12; sensitivity proof; all-platform CI              |
+| SEC-002 — Central view identity/capability registry     | PR #13; 100% changed security branches; all-platform CI |
 
 ## Last verified state
 
@@ -106,7 +109,8 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | GOV-001 upstream synchronization hosted validation | [PR #11](https://github.com/adamlow-wire/wire-desktop/pull/11) merged as `2e641a46`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged report passed in run `33656582101` | 2026-09-02 |
 | TST-003 local tray characterization | Commit `a0c91987`: focused tray tests 9/9 and full Electron main coverage 164 passing with 3 owned CAP-002 targets pending; types, lint, formatting, and changed-statement coverage (27/31, 87.10%) passed. Temporary macOS/non-macOS platform mutations failed the intended tests and were reverted | 2026-09-02 |
 | TST-003 hosted validation | [PR #12](https://github.com/adamlow-wire/wire-desktop/pull/12) merged as `37f8b5e3`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged report passed | 2026-09-02 |
-| SEC-002 local view-authority validation | Clean full coverage: 183 Electron main tests passing with 3 owned CAP-002 targets pending; changed statements 85/106 (80.19%) and changed security branches 41/41 (100%). Picture-in-picture rejection and developer-tool authority mutations failed their target tests and were reverted; test compilation, types, lint, formatting, and `prestart` pass. Hosted PR #13 validation is pending after CI exposed and locally resolved the clean-coverage and native-test timeout gaps | 2026-09-02 |
+| SEC-002 hosted view-authority validation | [PR #13](https://github.com/adamlow-wire/wire-desktop/pull/13) merged as `0281c134`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33669377166`, `33669377078`, and `33669377162` | 2026-09-02 |
+| SEC-003 typed-IPC foundation | Clean full coverage: 186 Electron main tests passing with 3 owned CAP-002 targets pending; changed statements 23/23 and changed security branches 20/20. Moving payload validation before sender authorization failed the strengthened ordering test and was reverted. The capability matrix was reviewed and remains unchanged because this slice migrates only the secure-shell proof channel | 2026-09-02 |
 
 ## Handoff notes
 

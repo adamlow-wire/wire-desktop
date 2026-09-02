@@ -20,7 +20,7 @@
 import * as assert from 'assert';
 
 import {SECURE_SHELL_CONTRACT_VERSION, SECURE_SHELL_RUNTIME_INFO_CAPABILITY} from './constants';
-import {authorizeRuntimeInfoRequest} from './ipc';
+import {authorizeRuntimeInfoRequest, isRuntimeInfoResponse} from './ipc';
 import {
   createSecureAccountPartition,
   isAllowedAccountNavigation,
@@ -76,6 +76,11 @@ describe('secure shell policy', () => {
     assert.strictEqual(isRuntimeInfoRequest({contractVersion: 2}), false);
     assert.strictEqual(isRuntimeInfoRequest({contractVersion: 1, channel: 'arbitrary'}), false);
     assert.strictEqual(isRuntimeInfoRequest(null), false);
+    assert.strictEqual(isRuntimeInfoResponse({accountId: 'account-a', contractVersion: 1}), true);
+    assert.strictEqual(isRuntimeInfoResponse(null), false);
+    assert.strictEqual(isRuntimeInfoResponse([]), false);
+    assert.strictEqual(isRuntimeInfoResponse({accountId: 1, contractVersion: 1}), false);
+    assert.strictEqual(isRuntimeInfoResponse({accountId: 'account-a', contractVersion: 1, extra: true}), false);
   });
 
   it('[security-target][INV-004][ARC-002] derives stable non-identifying isolated partitions', () => {
@@ -329,7 +334,7 @@ describe('secure shell view authority', () => {
     assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
   });
 
-  it('[security-target][INV-003][SEC-002] binds opaque local content to its exact URL', () => {
+  it('[security-target][INV-003][SEC-002] binds opaque local content to its exact URL', async () => {
     const registry = new ViewIdentityRegistry();
     const aboutUrl = 'file:///opt/wire/electron/html/about.html';
     const registered = createSender(46, aboutUrl);
@@ -344,7 +349,7 @@ describe('secure shell view authority', () => {
     });
 
     assert.strictEqual(registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY).viewType, 'about');
-    assert.throws(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1}));
+    await assert.rejects(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1}));
     registered.frame.url = 'file:///tmp/attacker.html';
     assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
 
@@ -392,7 +397,7 @@ describe('secure shell view authority', () => {
     assert.strictEqual(registry.has(registered.webContents.id), false);
   });
 
-  it('[security-target][INV-003][ARC-002] authorizes before validating payload and returns an immutable contract', () => {
+  it('[security-target][INV-003][ARC-002] authorizes before validating payload and returns an immutable contract', async () => {
     const registry = new ViewIdentityRegistry();
     const registered = createSender(44);
     registry.register({
@@ -405,10 +410,14 @@ describe('secure shell view authority', () => {
       webContents: registered.webContents,
     });
 
-    const response = authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1});
+    const response = await authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1});
     assert.deepStrictEqual(response, {accountId: 'account-a', contractVersion: 1});
     assert.strictEqual(Object.isFrozen(response), true);
-    assert.throws(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 2}));
-    assert.throws(() => authorizeRuntimeInfoRequest(registry, createSender(45).event, {contractVersion: 1}));
+    await assert.rejects(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 2}));
+    await assert.rejects(() => authorizeRuntimeInfoRequest(registry, createSender(45).event, {contractVersion: 1}));
+    const invalidRegistry = {
+      authorize: () => Object.freeze({accountId: undefined, viewType: 'account'}),
+    } as unknown as ViewIdentityRegistry;
+    await assert.rejects(() => authorizeRuntimeInfoRequest(invalidRegistry, registered.event, {contractVersion: 1}));
   });
 });

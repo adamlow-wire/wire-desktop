@@ -24,35 +24,54 @@ import {
   SECURE_SHELL_RUNTIME_INFO_CAPABILITY,
   SECURE_SHELL_RUNTIME_INFO_CHANNEL,
 } from './constants';
-import {isRuntimeInfoRequest} from './policy';
+import {isRuntimeInfoRequest, RuntimeInfoRequest} from './policy';
 
-import {SenderIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
+import {AuthorizedIpcContract, bindAuthorizedIpc, executeAuthorizedIpc} from '../security/AuthorizedIpc';
+import {AuthorizedViewIdentity, SenderIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
-export const authorizeRuntimeInfoRequest = (
-  registry: ViewIdentityRegistry,
-  event: SenderIdentity,
-  request: unknown,
-): Readonly<{accountId: string; contractVersion: typeof SECURE_SHELL_CONTRACT_VERSION}> => {
-  const identity = registry.authorize(event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY);
+type RuntimeInfoResponse = Readonly<{
+  accountId: string;
+  contractVersion: typeof SECURE_SHELL_CONTRACT_VERSION;
+}>;
 
-  if (identity.viewType !== 'account' || !identity.accountId) {
+export const isRuntimeInfoResponse = (value: unknown): value is RuntimeInfoResponse => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    Object.keys(record).length === 2 &&
+    typeof record.accountId === 'string' &&
+    record.contractVersion === SECURE_SHELL_CONTRACT_VERSION
+  );
+};
+
+const runtimeInfoContract: AuthorizedIpcContract<RuntimeInfoRequest, RuntimeInfoResponse> = Object.freeze({
+  capability: SECURE_SHELL_RUNTIME_INFO_CAPABILITY,
+  channel: SECURE_SHELL_RUNTIME_INFO_CHANNEL,
+  failureMode: 'reject',
+  isRequest: isRuntimeInfoRequest,
+  isResponse: isRuntimeInfoResponse,
+  originPolicy: 'registered-view-origin',
+  viewTypes: Object.freeze(['account'] as const),
+});
+
+const createRuntimeInfoResponse = (identity: AuthorizedViewIdentity): RuntimeInfoResponse => {
+  if (!identity.accountId) {
     throw new Error('Secure shell account identity is invalid.');
   }
-
-  if (!isRuntimeInfoRequest(request)) {
-    throw new Error('Secure shell request payload is invalid.');
-  }
-
   return Object.freeze({
     accountId: identity.accountId,
     contractVersion: SECURE_SHELL_CONTRACT_VERSION,
   });
 };
 
-export const bindSecureShellIpc = (registry: ViewIdentityRegistry): (() => void) => {
-  ipcMain.handle(SECURE_SHELL_RUNTIME_INFO_CHANNEL, (event, request: unknown) => {
-    return authorizeRuntimeInfoRequest(registry, event, request);
-  });
+export const authorizeRuntimeInfoRequest = (
+  registry: ViewIdentityRegistry,
+  event: SenderIdentity,
+  request: unknown,
+): Promise<RuntimeInfoResponse> =>
+  executeAuthorizedIpc(registry, runtimeInfoContract, event, request, createRuntimeInfoResponse);
 
-  return () => ipcMain.removeHandler(SECURE_SHELL_RUNTIME_INFO_CHANNEL);
-};
+export const bindSecureShellIpc = (registry: ViewIdentityRegistry): (() => void) =>
+  bindAuthorizedIpc(ipcMain, registry, runtimeInfoContract, createRuntimeInfoResponse);
