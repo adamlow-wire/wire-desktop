@@ -20,7 +20,7 @@
 import * as assert from 'assert';
 
 import {SECURE_SHELL_CONTRACT_VERSION, SECURE_SHELL_RUNTIME_INFO_CAPABILITY} from './constants';
-import {authorizeRuntimeInfoRequest} from './ipc';
+import {authorizeRuntimeInfoRequest, isRuntimeInfoResponse} from './ipc';
 import {
   createSecureAccountPartition,
   isAllowedAccountNavigation,
@@ -76,6 +76,11 @@ describe('secure shell policy', () => {
     assert.strictEqual(isRuntimeInfoRequest({contractVersion: 2}), false);
     assert.strictEqual(isRuntimeInfoRequest({contractVersion: 1, channel: 'arbitrary'}), false);
     assert.strictEqual(isRuntimeInfoRequest(null), false);
+    assert.strictEqual(isRuntimeInfoResponse({accountId: 'account-a', contractVersion: 1}), true);
+    assert.strictEqual(isRuntimeInfoResponse(null), false);
+    assert.strictEqual(isRuntimeInfoResponse([]), false);
+    assert.strictEqual(isRuntimeInfoResponse({accountId: 1, contractVersion: 1}), false);
+    assert.strictEqual(isRuntimeInfoResponse({accountId: 'account-a', contractVersion: 1, extra: true}), false);
   });
 
   it('[security-target][INV-004][ARC-002] derives stable non-identifying isolated partitions', () => {
@@ -410,5 +415,9 @@ describe('secure shell view authority', () => {
     assert.strictEqual(Object.isFrozen(response), true);
     await assert.rejects(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 2}));
     await assert.rejects(() => authorizeRuntimeInfoRequest(registry, createSender(45).event, {contractVersion: 1}));
+    const invalidRegistry = {
+      authorize: () => Object.freeze({accountId: undefined, viewType: 'account'}),
+    } as unknown as ViewIdentityRegistry;
+    await assert.rejects(() => authorizeRuntimeInfoRequest(invalidRegistry, registered.event, {contractVersion: 1}));
   });
 });

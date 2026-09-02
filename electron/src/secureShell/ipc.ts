@@ -34,7 +34,7 @@ type RuntimeInfoResponse = Readonly<{
   contractVersion: typeof SECURE_SHELL_CONTRACT_VERSION;
 }>;
 
-const isRuntimeInfoResponse = (value: unknown): value is RuntimeInfoResponse => {
+export const isRuntimeInfoResponse = (value: unknown): value is RuntimeInfoResponse => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return false;
   }
