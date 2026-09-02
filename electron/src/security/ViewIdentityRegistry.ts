@@ -149,3 +149,18 @@ export const registerViewIdentity = (
   registration.webContents.once('render-process-gone', revoke);
   return Object.freeze({identity, revoke});
 };
+
+export const registerApplicationShellIdentity = (
+  registry: ViewIdentityRegistry,
+  webContents: LifecycleWebContentsIdentity,
+  allowedUrl: string,
+): RegisteredViewIdentity =>
+  registerViewIdentity(registry, {
+    allowedOrigin: new URL(allowedUrl).origin,
+    allowedUrl,
+    capabilities: [],
+    partition: 'default',
+    session: webContents.session,
+    viewType: 'application-shell',
+    webContents,
+  });

@@ -82,7 +82,7 @@ import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
-import {ViewIdentityRegistry} from './security/ViewIdentityRegistry';
+import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
@@ -360,6 +360,8 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   );
 
   main = new BrowserWindow(options);
+  const mainURL = getMainWindowUrl();
+  registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href);
 
   remoteMain.enable(main.webContents);
 
@@ -438,7 +440,6 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
 
   main.webContents.setZoomFactor(1);
 
-  const mainURL = getMainWindowUrl();
   await main.loadURL(mainURL.href);
   const wrapperCSSContent = await fs.readFile(WRAPPER_CSS, 'utf8');
   await main.webContents.insertCSS(wrapperCSSContent);

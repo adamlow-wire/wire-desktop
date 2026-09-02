@@ -31,6 +31,7 @@ import {CONTENT_SECURITY_POLICY, createSecureShellResponse} from './protocol';
 
 import {
   LifecycleWebContentsIdentity,
+  registerApplicationShellIdentity,
   registerViewIdentity,
   SenderIdentity,
   ViewIdentityRegistry,
@@ -108,6 +109,34 @@ describe('secure shell policy', () => {
 });
 
 describe('secure shell view authority', () => {
+  it('[security-target][INV-003][SEC-002] binds the legacy application shell to its exact local URL', () => {
+    const registry = new ViewIdentityRegistry();
+    const listeners = new Map<string, () => void>();
+    const session = {};
+    const webContents: LifecycleWebContentsIdentity = {
+      id: 55,
+      isDestroyed: () => false,
+      mainFrame: {url: 'file:///opt/wire/electron/renderer/index.html?focus=true'},
+      once(event, listener) {
+        listeners.set(event, listener);
+        return this;
+      },
+      session,
+    };
+
+    const registered = registerApplicationShellIdentity(
+      registry,
+      webContents,
+      'file:///opt/wire/electron/renderer/index.html?focus=true',
+    );
+
+    assert.strictEqual(registered.identity.viewType, 'application-shell');
+    assert.strictEqual(registered.identity.allowedOrigin, 'null');
+    assert.strictEqual(registered.identity.allowedUrl, webContents.mainFrame.url);
+    assert.strictEqual(registered.identity.partition, 'default');
+    assert.deepStrictEqual(registered.identity.capabilities, []);
+  });
+
   it('[security-target][INV-003][SEC-002] revokes registered view authority on owner disposal and process loss', () => {
     for (const eventName of ['destroyed', 'render-process-gone'] as const) {
       const registry = new ViewIdentityRegistry();
