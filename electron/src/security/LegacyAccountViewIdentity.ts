@@ -25,6 +25,7 @@ import {
   ViewIdentityRegistry,
   WebContentsIdentity,
 } from './ViewIdentityRegistry';
+import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 
 export interface LegacyAccountWebContentsIdentity extends WebContentsIdentity {
   once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;
@@ -51,7 +52,7 @@ export const registerLegacyAccountViewIdentity = (
   return registerViewIdentity(registry, {
     accountId,
     allowedOrigin: accountUrl.origin,
-    capabilities: [],
+    capabilities: [SAFE_STORAGE_ENCRYPT_CAPABILITY, SAFE_STORAGE_DECRYPT_CAPABILITY],
     partition,
     session: webContents.session,
     viewType: 'account',

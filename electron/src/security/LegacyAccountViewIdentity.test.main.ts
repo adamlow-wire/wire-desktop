@@ -20,6 +20,7 @@
 import {strict as assert} from 'assert';
 
 import {registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
+import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 const accountId = '6f350266-15de-4cab-b38c-9f986fdc6b18';
@@ -62,7 +63,10 @@ describe('registerLegacyAccountViewIdentity', () => {
     assert.ok(registered);
     assert.strictEqual(registered.identity.accountId, accountId);
     assert.strictEqual(registered.identity.allowedOrigin, 'https://app.example.test');
-    assert.strictEqual(registered.identity.capabilities.length, 0);
+    assert.deepStrictEqual(registered.identity.capabilities, [
+      SAFE_STORAGE_ENCRYPT_CAPABILITY,
+      SAFE_STORAGE_DECRYPT_CAPABILITY,
+    ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');
     assert.strictEqual(registered.identity.session, view.session);
