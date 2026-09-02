@@ -22,8 +22,10 @@ import {AuthorizedViewIdentity, SenderIdentity, ViewIdentityRegistry, ViewType} 
 export interface AuthorizedIpcContract<Request, Response> {
   readonly capability: string;
   readonly channel: string;
+  readonly failureMode: 'reject';
   readonly isRequest: (value: unknown) => value is Request;
   readonly isResponse: (value: unknown) => value is Response;
+  readonly originPolicy: 'registered-view-origin';
   readonly viewTypes: readonly ViewType[];
 }
 
@@ -44,6 +46,9 @@ export const executeAuthorizedIpc = async <Request, Response>(
   request: unknown,
   handler: AuthorizedIpcHandler<Request, Response>,
 ): Promise<Response> => {
+  if (contract.failureMode !== 'reject' || contract.originPolicy !== 'registered-view-origin') {
+    throw new Error('IPC contract policy is invalid.');
+  }
   const identity = registry.authorize(event, contract.capability);
 
   if (!contract.viewTypes.includes(identity.viewType)) {

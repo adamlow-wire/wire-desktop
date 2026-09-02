@@ -49,8 +49,10 @@ export const isRuntimeInfoResponse = (value: unknown): value is RuntimeInfoRespo
 const runtimeInfoContract: AuthorizedIpcContract<RuntimeInfoRequest, RuntimeInfoResponse> = Object.freeze({
   capability: SECURE_SHELL_RUNTIME_INFO_CAPABILITY,
   channel: SECURE_SHELL_RUNTIME_INFO_CHANNEL,
+  failureMode: 'reject',
   isRequest: isRuntimeInfoRequest,
   isResponse: isRuntimeInfoResponse,
+  originPolicy: 'registered-view-origin',
   viewTypes: Object.freeze(['account'] as const),
 });
 

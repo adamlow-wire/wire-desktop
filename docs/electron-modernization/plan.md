@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.4.2
+revision: 1.4.3
 status: draft
 updated: 2026-09-02
 owners:
@@ -323,7 +323,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### SEC-002 — Create a central view identity and capability registry
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Bind every `WebContents` and frame to a known view type, account identifier where applicable, allowed origins, session, and capability set.
@@ -331,12 +331,12 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Unknown, destroyed, unexpected-frame, and origin-mismatched senders fail closed.
   - Identity cannot be supplied or overridden by renderer payload data.
   - Unit and integration tests cover authorized and unauthorized senders.
-- Evidence: Local branch `sec/SEC-002-view-identity-registry-2026-09-02` binds the application shells, legacy and secure account views, About, proxy prompt, SSO, picture-in-picture, and WebRTC-internals window to immutable central authority. A clean full coverage run passes with 183 Electron main tests and 3 owned CAP-002 targets pending; changed statements are 85/106 (80.19%) and changed security branches are 41/41 (100%). Picture-in-picture rejection and developer-tool authority registrations were sensitivity-proven with temporary perturbations that were reverted. [PR #13](https://github.com/adamlow-wire/wire-desktop/pull/13) hosted validation remains pending on the corrected head.
+- Evidence: [PR #13](https://github.com/adamlow-wire/wire-desktop/pull/13) merged as `0281c134` after build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed. It binds the application shells, legacy and secure account views, About, proxy prompt, SSO, picture-in-picture, and WebRTC-internals window to immutable central authority. The clean full coverage gate passed with 183 Electron main tests plus 3 owned CAP-002 targets pending, 85/106 changed statements (80.19%), and 41/41 changed security branches (100%). Picture-in-picture rejection and developer-tool authority registrations were sensitivity-proven with temporary perturbations that were reverted.
 
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
@@ -345,7 +345,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: TBD
+- Evidence: Local branch `sec/SEC-003-typed-ipc-2026-09-02` introduces a fail-closed contract executor that authorizes registered sender identity before request validation, explicitly declares view-type and registered-origin policy, validates request and response schemas, and never exposes Electron events or arbitrary channel selection to handlers. The first bounded migration converts secure-shell runtime-info IPC. A clean full coverage run passes with 186 Electron main tests plus 3 owned CAP-002 targets pending, 23/23 changed statements, and 20/20 changed security branches. Moving request validation before sender authorization failed the strengthened ordering test and was reverted. Product-wide channel migration remains open.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.4.3 | 2026-09-02 | Codex | Closed SEC-002 with green hosted platform evidence and started SEC-003 with a fail-closed typed IPC contract foundation plus the first bounded channel migration | SEC-002, SEC-003 |
 | 1.4.2 | 2026-09-02 | Codex | Closed TST-003 with green hosted platform evidence and recorded the sensitivity-proven SEC-002 central view-authority implementation pending hosted validation | TST-003, SEC-002, DCP-003, DCP-005, DCP-009, DCP-011 |
 | 1.4.1 | 2026-09-02 | Codex | Recorded sensitivity-proven TST-003 tray platform characterization and its remaining hosted package gate | TST-003, DCP-005 |
 | 1.4.0 | 2026-09-02 | Codex | Recorded merged CAP-001 targeted deletion, synchronized upstream through `6f9b6a99`, and moved the still-product-wide security work from the completed bounded M2 proof into M3 | GOV-001, SEC-002 through SEC-008, SEC-010, SEC-013, TST-003, CAP-001 |

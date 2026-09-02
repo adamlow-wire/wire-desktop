@@ -35,6 +35,7 @@ interface TestResponse {
 const contract: AuthorizedIpcContract<TestRequest, TestResponse> = Object.freeze({
   capability: 'test:read',
   channel: 'wire-desktop:v1:test:read',
+  failureMode: 'reject',
   isRequest: (value: unknown): value is TestRequest =>
     Boolean(
       value &&
@@ -51,6 +52,7 @@ const contract: AuthorizedIpcContract<TestRequest, TestResponse> = Object.freeze
         Object.keys(value).length === 1 &&
         typeof (value as {accountId?: unknown}).accountId === 'string',
     ),
+  originPolicy: 'registered-view-origin',
   viewTypes: Object.freeze(['account'] as const),
 });
 
@@ -90,6 +92,21 @@ describe('authorized IPC contract', () => {
     await assert.rejects(() =>
       executeAuthorizedIpc(new ViewIdentityRegistry(), contract, event, {contractVersion: 1}, handler),
     );
+    let requestValidationCount = 0;
+    const requestValidator = (value: unknown): value is TestRequest => {
+      requestValidationCount += 1;
+      return contract.isRequest(value);
+    };
+    await assert.rejects(() =>
+      executeAuthorizedIpc(
+        new ViewIdentityRegistry(),
+        {...contract, isRequest: requestValidator},
+        event,
+        {accountId: 'attacker'},
+        handler,
+      ),
+    );
+    assert.strictEqual(requestValidationCount, 0);
     assert.strictEqual(handler.callCount, 1);
   });
 
@@ -104,6 +121,21 @@ describe('authorized IPC contract', () => {
     await assert.rejects(() =>
       executeAuthorizedIpc(account.registry, contract, account.event, {contractVersion: 1}, async () => ({})),
     );
+
+    for (const invalidPolicy of [
+      {...contract, failureMode: 'log-and-continue'},
+      {...contract, originPolicy: 'any-origin'},
+    ]) {
+      await assert.rejects(() =>
+        executeAuthorizedIpc(
+          account.registry,
+          invalidPolicy as unknown as AuthorizedIpcContract<TestRequest, TestResponse>,
+          account.event,
+          {contractVersion: 1},
+          handler,
+        ),
+      );
+    }
   });
 
   it('[security-target][INV-003][SEC-003] binds and removes only the declared channel', async () => {

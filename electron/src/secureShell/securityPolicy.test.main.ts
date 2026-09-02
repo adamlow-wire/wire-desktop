@@ -334,7 +334,7 @@ describe('secure shell view authority', () => {
     assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
   });
 
-  it('[security-target][INV-003][SEC-002] binds opaque local content to its exact URL', () => {
+  it('[security-target][INV-003][SEC-002] binds opaque local content to its exact URL', async () => {
     const registry = new ViewIdentityRegistry();
     const aboutUrl = 'file:///opt/wire/electron/html/about.html';
     const registered = createSender(46, aboutUrl);
@@ -349,7 +349,7 @@ describe('secure shell view authority', () => {
     });
 
     assert.strictEqual(registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY).viewType, 'about');
-    assert.throws(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1}));
+    await assert.rejects(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1}));
     registered.frame.url = 'file:///tmp/attacker.html';
     assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
 
