@@ -57,12 +57,15 @@ const contract: AuthorizedIpcContract<TestRequest, TestResponse> = Object.freeze
   viewTypes: Object.freeze(['account'] as const),
 });
 
-const createSender = (id: number, viewType: 'account' | 'sso' = 'account') => {
+const createSender = (
+  id: number,
+  viewType: 'account' | 'sso' = 'account',
+  registry = new ViewIdentityRegistry(),
+) => {
   const frame = {url: 'https://app.wire.test/account'};
   const session = {};
   const webContents = {id, isDestroyed: () => false, mainFrame: frame, session};
   const event = {sender: webContents, senderFrame: frame} as SenderIdentity;
-  const registry = new ViewIdentityRegistry();
   registry.register({
     accountId: viewType === 'account' ? 'account-a' : undefined,
     allowedOrigin: 'https://app.wire.test',
@@ -178,7 +181,7 @@ describe('authorized IPC contract', () => {
       rateLimit: Object.freeze({maxRequests: 2, windowMs: 1_000}),
     } as const;
     const first = createSender(5);
-    const second = createSender(6);
+    const second = createSender(6, 'account', first.registry);
     await assert.rejects(() =>
       executeAuthorizedIpc(first.registry, limitedContract, first.event, {contractVersion: 1}, async identity => ({
         accountId: identity.accountId!,
@@ -197,7 +200,7 @@ describe('authorized IPC contract', () => {
     await handler(first.event, {contractVersion: 1});
     await handler(first.event, {contractVersion: 1});
     await assert.rejects(() => handler(first.event, {contractVersion: 1}), /rate limit/);
-    await assert.rejects(() => handler(second.event, {contractVersion: 1}), /not authorized/);
+    assert.deepStrictEqual(await handler(second.event, {contractVersion: 1}), {accountId: 'account-a'});
 
     now += 1_000;
     assert.deepStrictEqual(await handler(first.event, {contractVersion: 1}), {accountId: 'account-a'});
