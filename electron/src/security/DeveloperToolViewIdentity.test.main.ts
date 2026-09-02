@@ -23,7 +23,7 @@ import {registerDeveloperToolViewIdentity} from './DeveloperToolViewIdentity';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 describe('developer tool view identity', () => {
-  it('binds WebRTC internals to its exact opaque URL and session', () => {
+  it('[security-target][INV-003][INV-004][SEC-002] binds WebRTC internals to its exact opaque URL and session', () => {
     const registry = new ViewIdentityRegistry();
     const listeners = new Map<string, () => void>();
     const session = {};

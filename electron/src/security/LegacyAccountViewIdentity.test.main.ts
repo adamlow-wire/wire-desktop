@@ -48,7 +48,7 @@ const createWebContents = () => {
 };
 
 describe('registerLegacyAccountViewIdentity', () => {
-  it('binds an exact account, origin, session, frame, and lifecycle', () => {
+  it('[security-target][INV-003][INV-004][SEC-002] binds an exact account, origin, session, frame, and lifecycle', () => {
     const registry = new ViewIdentityRegistry();
     const view = createWebContents();
 
@@ -78,7 +78,7 @@ describe('registerLegacyAccountViewIdentity', () => {
     'https://app.example.test/?id=renderer-chosen-account',
     `file:///tmp/account.html?id=${accountId}`,
   ]) {
-    it(`rejects an account identity from ${url}`, () => {
+    it(`[security-target][INV-003][INV-010][SEC-002] rejects an account identity from ${url}`, () => {
       const registry = new ViewIdentityRegistry();
       const view = createWebContents();
 
