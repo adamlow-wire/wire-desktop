@@ -34,7 +34,14 @@ export interface LifecycleWebContentsIdentity extends WebContentsIdentity {
   once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;
 }
 
-export type ViewType = 'about' | 'account' | 'application-shell' | 'picture-in-picture' | 'proxy-prompt' | 'sso';
+export type ViewType =
+  | 'about'
+  | 'account'
+  | 'application-shell'
+  | 'developer-tool'
+  | 'picture-in-picture'
+  | 'proxy-prompt'
+  | 'sso';
 
 export interface ViewRegistration {
   readonly accountId?: string;

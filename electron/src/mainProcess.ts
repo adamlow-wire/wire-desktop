@@ -72,7 +72,7 @@ import {scheduleLogCleanup} from './logging/logCleanupScheduler';
 import {getLogDirectory, getMainProcessLogPath, getWebViewLogPath} from './logging/logPaths';
 import {initializeDesktopLogLifecycle} from './logging/logStartup';
 import {getManagedConfig} from './managed/ManagedConfig';
-import {developerMenu, openDevTools} from './menu/developer';
+import {createDeveloperMenu, openDevTools} from './menu/developer';
 import * as systemMenu from './menu/system';
 import {TrayHandler} from './menu/TrayHandler';
 import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUserData';
@@ -110,6 +110,7 @@ const mainProcessFireAndForgetInvoker = createFireAndForgetInvoker({
 });
 const configuredUserDataPath = getConfiguredPortableUserDataPath();
 const viewIdentityRegistry = new ViewIdentityRegistry();
+const developerMenu = createDeveloperMenu(viewIdentityRegistry);
 
 type OpenLinkInNewWindowParameters = {
   accountId: Maybe<string>;

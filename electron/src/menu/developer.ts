@@ -22,6 +22,8 @@ import {BrowserWindow, MenuItem, MenuItemConstructorOptions} from 'electron';
 import {executeJavaScriptWithoutResult} from '../lib/ElectronUtil';
 import {getAvailableEnvironments, setEnvironment} from '../runtime/EnvironmentUtil';
 import * as lifecycle from '../runtime/lifecycle';
+import {registerDeveloperToolViewIdentity, WEBRTC_INTERNALS_URL} from '../security/DeveloperToolViewIdentity';
+import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import {WindowManager} from '../window/WindowManager';
 
@@ -106,7 +108,7 @@ const separatorTemplate: MenuItemConstructorOptions = {
   type: 'separator',
 };
 
-const openWebRTCInternals = () => {
+const openWebRTCInternals = (registry: ViewIdentityRegistry) => {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -120,22 +122,23 @@ const openWebRTCInternals = () => {
     action: 'allow',
   }));
 
-  win.loadURL('chrome://webrtc-internals/');
+  registerDeveloperToolViewIdentity(registry, win.webContents);
+  void win.loadURL(WEBRTC_INTERNALS_URL);
 };
 
-const webRTCInternalsTemplate: MenuItemConstructorOptions = {
+const createWebRTCInternalsTemplate = (registry: ViewIdentityRegistry): MenuItemConstructorOptions => ({
   label: 'Toggle WebRTC Internals',
-  click: () => openWebRTCInternals(),
-};
+  click: () => openWebRTCInternals(registry),
+});
 
-const menuTemplate: MenuItemConstructorOptions = {
+const createMenuTemplate = (registry: ViewIdentityRegistry): MenuItemConstructorOptions => ({
   id: 'Developer',
   label: '&Developer',
   submenu: [
     devToolsTemplate,
     reloadTemplate,
     separatorTemplate,
-    webRTCInternalsTemplate,
+    createWebRTCInternalsTemplate(registry),
     separatorTemplate,
     {
       enabled: false,
@@ -147,6 +150,7 @@ const menuTemplate: MenuItemConstructorOptions = {
     chromeVersionTemplate,
     electronVersionTemplate,
   ],
-};
+});
 
-export const developerMenu = new MenuItem(menuTemplate);
+export const createDeveloperMenu = (registry: ViewIdentityRegistry): MenuItem =>
+  new MenuItem(createMenuTemplate(registry));
