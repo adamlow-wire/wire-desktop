@@ -27,6 +27,7 @@ import {
   Event as ElectronEvent,
   ipcMain,
   Menu,
+  session,
   WebContents,
   desktopCapturer,
   safeStorage,
@@ -82,6 +83,7 @@ import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
+import {registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
@@ -725,6 +727,25 @@ class ElectronWrapperInit {
           break;
         }
         case 'webview': {
+          const registerAccountIdentity = (url: string): void => {
+            if (viewIdentityRegistry.has(contents.id)) {
+              return;
+            }
+
+            registerLegacyAccountViewIdentity(
+              viewIdentityRegistry,
+              contents,
+              url,
+              contents.session === session.defaultSession ? 'default' : 'persisted-account',
+            );
+          };
+          registerAccountIdentity(contents.getURL());
+          contents.on('did-start-navigation', (_event, url, _isInPlace, isMainFrame) => {
+            if (isMainFrame) {
+              registerAccountIdentity(url);
+            }
+          });
+
           if (proxyInfoArg?.origin && contents.session) {
             this.logger.log('Found proxy settings in arguments, applying settings on the webview...');
             await applyProxySettings(proxyInfoArg, contents);

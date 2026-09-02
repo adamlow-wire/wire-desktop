@@ -1,0 +1,89 @@
+/*
+ * Wire
+ * Copyright (C) 2026 Wire Swiss GmbH
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
+import {strict as assert} from 'assert';
+
+import {registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
+import {ViewIdentityRegistry} from './ViewIdentityRegistry';
+
+const accountId = '6f350266-15de-4cab-b38c-9f986fdc6b18';
+
+const createWebContents = () => {
+  const listeners = new Map<string, () => void>();
+  const session = {};
+  const mainFrame = {url: `https://app.example.test/?id=${accountId}`};
+  return {
+    contents: {
+      id: 42,
+      isDestroyed: () => false,
+      mainFrame,
+      once(event: 'destroyed' | 'render-process-gone', listener: () => void) {
+        listeners.set(event, listener);
+        return this;
+      },
+      session,
+    },
+    emit(event: 'destroyed' | 'render-process-gone') {
+      listeners.get(event)?.();
+    },
+    mainFrame,
+    session,
+  };
+};
+
+describe('registerLegacyAccountViewIdentity', () => {
+  it('binds an exact account, origin, session, frame, and lifecycle', () => {
+    const registry = new ViewIdentityRegistry();
+    const view = createWebContents();
+
+    const registered = registerLegacyAccountViewIdentity(
+      registry,
+      view.contents,
+      `https://app.example.test/?id=${accountId}`,
+      'persist:legacy-session',
+    );
+
+    assert.ok(registered);
+    assert.strictEqual(registered.identity.accountId, accountId);
+    assert.strictEqual(registered.identity.allowedOrigin, 'https://app.example.test');
+    assert.strictEqual(registered.identity.capabilities.length, 0);
+    assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
+    assert.strictEqual(registered.identity.partition, 'persist:legacy-session');
+    assert.strictEqual(registered.identity.session, view.session);
+    assert.strictEqual(registry.has(view.contents.id), true);
+
+    view.emit('render-process-gone');
+    assert.strictEqual(registry.has(view.contents.id), false);
+  });
+
+  for (const url of [
+    'not a URL',
+    'https://app.example.test/',
+    'https://app.example.test/?id=renderer-chosen-account',
+    `file:///tmp/account.html?id=${accountId}`,
+  ]) {
+    it(`rejects an account identity from ${url}`, () => {
+      const registry = new ViewIdentityRegistry();
+      const view = createWebContents();
+
+      assert.strictEqual(registerLegacyAccountViewIdentity(registry, view.contents, url, 'default'), undefined);
+      assert.strictEqual(registry.has(view.contents.id), false);
+    });
+  }
+});
