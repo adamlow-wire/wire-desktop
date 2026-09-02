@@ -23,9 +23,9 @@ import * as path from 'path';
 
 import {SECURE_SHELL_ORIGIN, SECURE_SHELL_RUNTIME_INFO_CAPABILITY} from './constants';
 import {createSecureAccountPartition, isAllowedAccountNavigation, parseSecureAccountUrl} from './policy';
-import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 import {getLogger} from '../logging/getLogger';
+import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 const logger = getLogger(path.basename(__filename));
 
@@ -44,6 +44,7 @@ export class SecureShellController {
   private readonly configuredSessions = new WeakSet<Session>();
   private readonly deletingAccountIds = new Set<string>();
   private readonly registry: ViewIdentityRegistry;
+  private revokeShellIdentity: (() => void) | undefined;
   private readonly options: SecureShellControllerOptions;
   private window: BrowserWindow | undefined;
 
@@ -72,8 +73,18 @@ export class SecureShellController {
       width: 1024,
     });
     this.window = window;
-    window.webContents.on('will-navigate', event => event.preventDefault());
-    window.webContents.setWindowOpenHandler(() => ({action: 'deny'}));
+    const shellWebContents = window.webContents;
+    const shellRegistration = registerViewIdentity(this.registry, {
+      allowedOrigin: SECURE_SHELL_ORIGIN,
+      capabilities: [],
+      partition: 'default',
+      session: shellWebContents.session,
+      viewType: 'application-shell',
+      webContents: shellWebContents,
+    });
+    this.revokeShellIdentity = shellRegistration.revoke;
+    shellWebContents.on('will-navigate', event => event.preventDefault());
+    shellWebContents.setWindowOpenHandler(() => ({action: 'deny'}));
     window.on('resize', () => this.layoutAccountViews());
     window.on('closed', () => this.disposeAccountViews());
 
@@ -171,8 +182,10 @@ export class SecureShellController {
   dispose(): void {
     this.disposeAccountViews();
     if (this.window && !this.window.isDestroyed()) {
+      this.revokeShellIdentity?.();
       this.window.destroy();
     }
+    this.revokeShellIdentity = undefined;
     this.window = undefined;
   }
 
@@ -203,6 +216,8 @@ export class SecureShellController {
       allowedOrigin: this.accountUrl.origin,
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition,
+      session: webContents.session,
+      viewType: 'account',
       webContents,
     });
 

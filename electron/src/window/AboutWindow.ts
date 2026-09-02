@@ -25,6 +25,7 @@ import {pathToFileURL} from 'url';
 import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import {WindowManager} from '../window/WindowManager';
 import * as WindowUtil from '../window/WindowUtil';
@@ -32,6 +33,7 @@ import * as WindowUtil from '../window/WindowUtil';
 let webappVersion = '';
 let webappAVSVersion: string | undefined;
 let aboutWindow: BrowserWindow | undefined;
+let aboutWindowRegistry: ViewIdentityRegistry | undefined;
 
 const VERSION_REQUEST_TIMEOUT_MS = 1500;
 const AVS_VERSION_GRACE_PERIOD_MS = 50;
@@ -165,7 +167,7 @@ ipcMain.on(EVENT_TYPE.ABOUT.LOCALE_VALUES, (event, labels: locale.i18nLanguageId
   event.reply(EVENT_TYPE.ABOUT.LOCALE_RENDER, localeValues);
 });
 
-const showWindow = async () => {
+const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow> => {
   // let aboutWindow: BrowserWindow | undefined;
   const activeWebappVersions = await requestActiveWebappVersions();
 
@@ -194,6 +196,16 @@ const showWindow = async () => {
       },
       width: WINDOW_SIZE.WIDTH,
     });
+    registerViewIdentity(registry, {
+      allowedOrigin: new URL(ABOUT_HTML).origin,
+      allowedUrl: ABOUT_HTML,
+      capabilities: [EVENT_TYPE.ABOUT.LOCALE_VALUES],
+      partition: 'about-window',
+      session: aboutWindow.webContents.session,
+      viewType: 'about',
+      webContents: aboutWindow.webContents,
+    });
+    aboutWindowRegistry = registry;
     aboutWindow.setMenuBarVisibility(false);
 
     // Prevent any kind of navigation
@@ -229,13 +241,19 @@ const showWindow = async () => {
 
     aboutWindow.on('closed', () => {
       aboutWindow = undefined;
+      aboutWindowRegistry = undefined;
     });
 
     await aboutWindow.loadURL(ABOUT_HTML);
   }
 
+  if (aboutWindowRegistry !== registry) {
+    throw new Error('About window belongs to a different view identity registry.');
+  }
+
   renderAboutWindow(activeWebappVersions);
   aboutWindow.show();
+  return aboutWindow;
 };
 
 export const AboutWindow = {showWindow};

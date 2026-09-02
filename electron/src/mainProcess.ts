@@ -27,6 +27,7 @@ import {
   Event as ElectronEvent,
   ipcMain,
   Menu,
+  session,
   WebContents,
   desktopCapturer,
   safeStorage,
@@ -46,7 +47,11 @@ import {URL, pathToFileURL} from 'url';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import * as ProxyAuth from './auth/ProxyAuth';
-import {getPictureInPictureCallWindowOptions, isPictureInPictureCallWindow} from './calling/PictureInPictureCall';
+import {
+  bindPictureInPictureCallIdentity,
+  getPictureInPictureCallWindowOptions,
+  isPictureInPictureCallWindow,
+} from './calling/PictureInPictureCall';
 import {initializeFirstInstance} from './lib/applicationBootstrap';
 import {
   attachTo as attachCertificateVerifyProcManagerTo,
@@ -67,7 +72,7 @@ import {scheduleLogCleanup} from './logging/logCleanupScheduler';
 import {getLogDirectory, getMainProcessLogPath, getWebViewLogPath} from './logging/logPaths';
 import {initializeDesktopLogLifecycle} from './logging/logStartup';
 import {getManagedConfig} from './managed/ManagedConfig';
-import {developerMenu, openDevTools} from './menu/developer';
+import {createDeveloperMenu, openDevTools} from './menu/developer';
 import * as systemMenu from './menu/system';
 import {TrayHandler} from './menu/TrayHandler';
 import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUserData';
@@ -78,6 +83,8 @@ import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
+import {registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
+import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
@@ -102,6 +109,8 @@ const mainProcessFireAndForgetInvoker = createFireAndForgetInvoker({
   },
 });
 const configuredUserDataPath = getConfiguredPortableUserDataPath();
+const viewIdentityRegistry = new ViewIdentityRegistry();
+const developerMenu = createDeveloperMenu(viewIdentityRegistry);
 
 type OpenLinkInNewWindowParameters = {
   accountId: Maybe<string>;
@@ -239,7 +248,7 @@ const bindIpcEvents = (): void => {
   });
   ipcMain.on(EVENT_TYPE.WRAPPER.RELOAD, () => forwardWrapperReloadRequest(main.webContents));
   ipcMain.on(EVENT_TYPE.WRAPPER.RELAUNCH, () => lifecycle.relaunch());
-  ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow());
+  ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow(viewIdentityRegistry));
 
   // Answered synchronously: the webview preload reads this via `ipcRenderer.sendSync` while it builds
   // `window.desktopAppConfig`. The value is pre-read and memoized, so the handler does no I/O here.
@@ -354,6 +363,8 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   );
 
   main = new BrowserWindow(options);
+  const mainURL = getMainWindowUrl();
+  registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href);
 
   remoteMain.enable(main.webContents);
 
@@ -432,7 +443,6 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
 
   main.webContents.setZoomFactor(1);
 
-  const mainURL = getMainWindowUrl();
   await main.loadURL(mainURL.href);
   const wrapperCSSContent = await fs.readFile(WRAPPER_CSS, 'utf8');
   await main.webContents.insertCSS(wrapperCSSContent);
@@ -513,7 +523,7 @@ const handleAppEvents = (): void => {
           }
         });
 
-        await ProxyPromptWindow.showWindow();
+        await ProxyPromptWindow.showWindow(viewIdentityRegistry);
       }
     }
   });
@@ -666,6 +676,7 @@ class ElectronWrapperInit {
           parameters.accountId,
           parameters.url,
           parameters.options,
+          viewIdentityRegistry,
         ).init();
 
         return new Promise(() => {
@@ -717,6 +728,25 @@ class ElectronWrapperInit {
           break;
         }
         case 'webview': {
+          const registerAccountIdentity = (url: string): void => {
+            if (viewIdentityRegistry.has(contents.id)) {
+              return;
+            }
+
+            registerLegacyAccountViewIdentity(
+              viewIdentityRegistry,
+              contents,
+              url,
+              contents.session === session.defaultSession ? 'default' : 'persisted-account',
+            );
+          };
+          registerAccountIdentity(contents.getURL());
+          contents.on('did-start-navigation', (_event, url, _isInPlace, isMainFrame) => {
+            if (isMainFrame) {
+              registerAccountIdentity(url);
+            }
+          });
+
           if (proxyInfoArg?.origin && contents.session) {
             this.logger.log('Found proxy settings in arguments, applying settings on the webview...');
             await applyProxySettings(proxyInfoArg, contents);
@@ -725,6 +755,21 @@ class ElectronWrapperInit {
           contents.setWindowOpenHandler(openLinkInNewWindowHandler);
           contents.on('did-create-window', async (win, windowCreationDetails) => {
             const {frameName, options, url} = windowCreationDetails;
+
+            if (
+              !bindPictureInPictureCallIdentity({
+                allowedUrl: url,
+                destroy: () => win.destroy(),
+                frameName,
+                logRejection: error => logger.error('Rejected unbound picture-in-picture window.', error),
+                partition: options.webPreferences?.partition ?? '',
+                registry: viewIdentityRegistry,
+                resolveAccountId: () => lifecycle.getAccountId(contents).unwrapOr('') || undefined,
+                webContents: win.webContents,
+              })
+            ) {
+              return;
+            }
 
             await openLinkInNewWindow(this, {
               accountId: lifecycle.getAccountId(contents),

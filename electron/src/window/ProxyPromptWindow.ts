@@ -24,6 +24,7 @@ import {pathToFileURL} from 'url';
 
 import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
+import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 
 const appPath = path.join(app.getAppPath(), config.electronDirectory);
@@ -37,7 +38,7 @@ const windowSize = {
   WIDTH: 550,
 };
 
-const showWindow = async () => {
+const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow> => {
   let proxyPromptWindow: BrowserWindow | undefined;
 
   if (!proxyPromptWindow) {
@@ -62,6 +63,19 @@ const showWindow = async () => {
         webviewTag: false,
       },
       width: windowSize.WIDTH,
+    });
+    registerViewIdentity(registry, {
+      allowedOrigin: new URL(promptHtmlPath).origin,
+      allowedUrl: promptHtmlPath,
+      capabilities: [
+        EVENT_TYPE.PROXY_PROMPT.LOCALE_VALUES,
+        EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
+        EVENT_TYPE.PROXY_PROMPT.CANCELED,
+      ],
+      partition: 'proxy-prompt-window',
+      session: proxyPromptWindow.webContents.session,
+      viewType: 'proxy-prompt',
+      webContents: proxyPromptWindow.webContents,
     });
     proxyPromptWindow.setMenuBarVisibility(false);
 
@@ -98,6 +112,7 @@ const showWindow = async () => {
   }
 
   proxyPromptWindow.show();
+  return proxyPromptWindow;
 };
 
 export const ProxyPromptWindow = {showWindow};

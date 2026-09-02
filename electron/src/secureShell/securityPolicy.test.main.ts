@@ -28,14 +28,22 @@ import {
   parseSecureAccountUrl,
 } from './policy';
 import {CONTENT_SECURITY_POLICY, createSecureShellResponse} from './protocol';
-import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
-const createSender = (id: number, url = 'https://app.wire.test/account') => {
+import {
+  LifecycleWebContentsIdentity,
+  registerApplicationShellIdentity,
+  registerViewIdentity,
+  SenderIdentity,
+  ViewIdentityRegistry,
+} from '../security/ViewIdentityRegistry';
+
+const createSender = (id: number, url = 'https://app.wire.test/account', session = {}) => {
   const frame = {url};
   let destroyed = false;
   const webContents = {
     id,
     mainFrame: frame,
+    session,
     isDestroyed: () => destroyed,
   };
   return {
@@ -101,6 +109,198 @@ describe('secure shell policy', () => {
 });
 
 describe('secure shell view authority', () => {
+  it('[security-target][INV-003][SEC-002] binds the legacy application shell to its exact local URL', () => {
+    const registry = new ViewIdentityRegistry();
+    const listeners = new Map<string, () => void>();
+    const session = {};
+    const webContents: LifecycleWebContentsIdentity = {
+      id: 55,
+      isDestroyed: () => false,
+      mainFrame: {url: 'file:///opt/wire/electron/renderer/index.html?focus=true'},
+      once(event, listener) {
+        listeners.set(event, listener);
+        return this;
+      },
+      session,
+    };
+
+    const registered = registerApplicationShellIdentity(
+      registry,
+      webContents,
+      'file:///opt/wire/electron/renderer/index.html?focus=true',
+    );
+
+    assert.strictEqual(registered.identity.viewType, 'application-shell');
+    assert.strictEqual(registered.identity.allowedOrigin, 'null');
+    assert.strictEqual(registered.identity.allowedUrl, webContents.mainFrame.url);
+    assert.strictEqual(registered.identity.partition, 'default');
+    assert.deepStrictEqual(registered.identity.capabilities, []);
+  });
+
+  it('[security-target][INV-003][SEC-002] revokes registered view authority on owner disposal and process loss', () => {
+    for (const eventName of ['destroyed', 'render-process-gone'] as const) {
+      const registry = new ViewIdentityRegistry();
+      const listeners = new Map<string, () => void>();
+      const session = {};
+      const webContents: LifecycleWebContentsIdentity = {
+        id: eventName === 'destroyed' ? 33 : 34,
+        isDestroyed: () => false,
+        mainFrame: {url: 'https://app.wire.test/account'},
+        once(event, listener) {
+          listeners.set(event, listener);
+          return this;
+        },
+        session,
+      };
+      const registered = registerViewIdentity(registry, {
+        accountId: 'account-a',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'persist:wire-secure-a',
+        session,
+        viewType: 'account',
+        webContents,
+      });
+
+      assert.strictEqual(registry.has(webContents.id), true);
+      assert.strictEqual(Object.isFrozen(registered), true);
+      listeners.get(eventName)?.();
+      assert.strictEqual(registry.has(webContents.id), false);
+
+      registered.revoke();
+      assert.strictEqual(registry.has(webContents.id), false);
+    }
+  });
+
+  it('[security-target][INV-003][INV-004][SEC-002] binds immutable view type and exact session identity', () => {
+    const registry = new ViewIdentityRegistry();
+    const session = {};
+    const registered = createSender(38, 'https://app.wire.test/account', session);
+    const registration = {
+      accountId: 'account-a',
+      allowedOrigin: 'https://app.wire.test',
+      capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+      partition: 'persist:wire-secure-a',
+      session,
+      viewType: 'account' as const,
+      webContents: registered.webContents,
+    };
+    const identity = registry.register(registration);
+
+    assert.strictEqual(identity.viewType, 'account');
+    assert.strictEqual(identity.session, session);
+
+    registered.webContents.session = {};
+    assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
+
+    const mismatched = createSender(37);
+    assert.throws(() => registry.register({...registration, session: {}, webContents: mismatched.webContents}));
+    const missingAccount = createSender(36);
+    assert.throws(() =>
+      registry.register({
+        ...registration,
+        accountId: undefined,
+        session: missingAccount.webContents.session,
+        webContents: missingAccount.webContents,
+      }),
+    );
+    const aboutWithAccount = createSender(35);
+    assert.throws(() =>
+      registry.register({
+        ...registration,
+        session: aboutWithAccount.webContents.session,
+        viewType: 'about',
+        webContents: aboutWithAccount.webContents,
+      }),
+    );
+  });
+
+  it('[security-target][INV-003][INV-004][SEC-002] preserves account identity on account-scoped child views', () => {
+    for (const [id, viewType] of [
+      [48, 'picture-in-picture'],
+      [49, 'sso'],
+    ] as const) {
+      const registry = new ViewIdentityRegistry();
+      const registered = createSender(id);
+      const identity = registry.register({
+        accountId: 'account-a',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [],
+        partition: 'persist:wire-secure-a',
+        session: registered.webContents.session,
+        viewType,
+        webContents: registered.webContents,
+      });
+
+      assert.strictEqual(identity.accountId, 'account-a');
+    }
+
+    const unboundPictureInPicture = createSender(50);
+    assert.throws(() =>
+      new ViewIdentityRegistry().register({
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [],
+        partition: 'persist:wire-secure-a',
+        session: unboundPictureInPicture.webContents.session,
+        viewType: 'picture-in-picture',
+        webContents: unboundPictureInPicture.webContents,
+      }),
+    );
+  });
+
+  it('[security-target][INV-003][SEC-002] rejects destroyed, duplicate, and same-id replacement contents', () => {
+    const registry = new ViewIdentityRegistry();
+    const registered = createSender(40);
+    const capabilities = [SECURE_SHELL_RUNTIME_INFO_CAPABILITY];
+    const identity = registry.register({
+      accountId: 'account-a',
+      allowedOrigin: 'https://app.wire.test',
+      capabilities,
+      partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
+      webContents: registered.webContents,
+    });
+
+    capabilities.length = 0;
+    assert.strictEqual(Object.isFrozen(identity), true);
+    assert.strictEqual(Object.isFrozen(identity.capabilities), true);
+    assert.deepStrictEqual(identity.capabilities, [SECURE_SHELL_RUNTIME_INFO_CAPABILITY]);
+    assert.throws(() =>
+      registry.register({
+        accountId: 'account-b',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'persist:wire-secure-b',
+        session: registered.webContents.session,
+        viewType: 'account',
+        webContents: registered.webContents,
+      }),
+    );
+
+    const replacement = createSender(40);
+    assert.throws(() =>
+      registry.authorize(
+        {sender: replacement.webContents, senderFrame: registered.frame},
+        SECURE_SHELL_RUNTIME_INFO_CAPABILITY,
+      ),
+    );
+
+    const destroyed = createSender(39);
+    destroyed.destroy();
+    assert.throws(() =>
+      registry.register({
+        accountId: 'account-c',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'persist:wire-secure-c',
+        session: destroyed.webContents.session,
+        viewType: 'account',
+        webContents: destroyed.webContents,
+      }),
+    );
+  });
+
   it('[security-target][INV-003][ARC-002] authorizes only the registered main frame, origin, and capability', () => {
     const registry = new ViewIdentityRegistry();
     const registered = createSender(41);
@@ -109,6 +309,8 @@ describe('secure shell view authority', () => {
       allowedOrigin: 'https://app.wire.test',
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
       webContents: registered.webContents,
     });
 
@@ -127,6 +329,50 @@ describe('secure shell view authority', () => {
     assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
   });
 
+  it('[security-target][INV-003][SEC-002] binds opaque local content to its exact URL', () => {
+    const registry = new ViewIdentityRegistry();
+    const aboutUrl = 'file:///opt/wire/electron/html/about.html';
+    const registered = createSender(46, aboutUrl);
+    registry.register({
+      allowedOrigin: 'null',
+      allowedUrl: aboutUrl,
+      capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+      partition: 'about-window',
+      session: registered.webContents.session,
+      viewType: 'about',
+      webContents: registered.webContents,
+    });
+
+    assert.strictEqual(registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY).viewType, 'about');
+    assert.throws(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1}));
+    registered.frame.url = 'file:///tmp/attacker.html';
+    assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
+
+    const mismatched = createSender(47, aboutUrl);
+    assert.throws(() =>
+      registry.register({
+        allowedOrigin: 'https://app.wire.test',
+        allowedUrl: aboutUrl,
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'about-window',
+        session: mismatched.webContents.session,
+        viewType: 'about',
+        webContents: mismatched.webContents,
+      }),
+    );
+    assert.throws(() =>
+      registry.register({
+        allowedOrigin: 'null',
+        allowedUrl: 'not a URL',
+        capabilities: [],
+        partition: 'about-window',
+        session: mismatched.webContents.session,
+        viewType: 'about',
+        webContents: mismatched.webContents,
+      }),
+    );
+  });
+
   it('[security-target][INV-003][INV-010][ARC-002] removes destroyed and explicitly revoked authority', () => {
     const registry = new ViewIdentityRegistry();
     const registered = createSender(43);
@@ -135,6 +381,8 @@ describe('secure shell view authority', () => {
       allowedOrigin: 'https://app.wire.test',
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
       webContents: registered.webContents,
     });
 
@@ -152,6 +400,8 @@ describe('secure shell view authority', () => {
       allowedOrigin: 'https://app.wire.test',
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
       webContents: registered.webContents,
     });
 

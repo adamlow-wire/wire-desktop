@@ -17,6 +17,12 @@
  *
  */
 
+import {
+  LifecycleWebContentsIdentity,
+  RegisteredViewIdentity,
+  registerViewIdentity,
+  ViewIdentityRegistry,
+} from '../security/ViewIdentityRegistry';
 import {getNewWindowOptions} from '../window/WindowUtil';
 
 const PICTURE_IN_PICTURE_CALL_FRAME_NAME = 'WIRE_PICTURE_IN_PICTURE_CALL';
@@ -36,4 +42,68 @@ export const getPictureInPictureCallWindowOptions = (): Electron.BrowserWindowCo
     alwaysOnTop: false,
     minimizable: true,
   });
+};
+
+export const registerPictureInPictureCallIdentity = ({
+  accountId,
+  allowedUrl,
+  partition,
+  registry,
+  webContents,
+}: {
+  readonly accountId?: string;
+  readonly allowedUrl: string;
+  readonly partition: string;
+  readonly registry: ViewIdentityRegistry;
+  readonly webContents: LifecycleWebContentsIdentity;
+}): RegisteredViewIdentity => {
+  const allowedOrigin = new URL(allowedUrl).origin;
+  return registerViewIdentity(registry, {
+    accountId,
+    allowedOrigin,
+    capabilities: [],
+    partition,
+    session: webContents.session,
+    viewType: 'picture-in-picture',
+    webContents,
+  });
+};
+
+export const bindPictureInPictureCallIdentity = ({
+  allowedUrl,
+  destroy,
+  frameName,
+  logRejection,
+  partition,
+  registry,
+  resolveAccountId,
+  webContents,
+}: {
+  readonly allowedUrl: string;
+  readonly destroy: () => void;
+  readonly frameName: string;
+  readonly logRejection: (error: unknown) => void;
+  readonly partition: string;
+  readonly registry: ViewIdentityRegistry;
+  readonly resolveAccountId: () => string | undefined;
+  readonly webContents: LifecycleWebContentsIdentity;
+}): boolean => {
+  if (!isPictureInPictureCallWindow(frameName)) {
+    return true;
+  }
+
+  try {
+    registerPictureInPictureCallIdentity({
+      accountId: resolveAccountId(),
+      allowedUrl,
+      partition,
+      registry,
+      webContents,
+    });
+    return true;
+  } catch (error) {
+    destroy();
+    logRejection(error);
+    return false;
+  }
 };

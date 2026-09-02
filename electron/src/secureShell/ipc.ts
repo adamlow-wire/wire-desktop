@@ -25,7 +25,8 @@ import {
   SECURE_SHELL_RUNTIME_INFO_CHANNEL,
 } from './constants';
 import {isRuntimeInfoRequest} from './policy';
-import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
+
+import {SenderIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 export const authorizeRuntimeInfoRequest = (
   registry: ViewIdentityRegistry,
@@ -33,6 +34,10 @@ export const authorizeRuntimeInfoRequest = (
   request: unknown,
 ): Readonly<{accountId: string; contractVersion: typeof SECURE_SHELL_CONTRACT_VERSION}> => {
   const identity = registry.authorize(event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY);
+
+  if (identity.viewType !== 'account' || !identity.accountId) {
+    throw new Error('Secure shell account identity is invalid.');
+  }
 
   if (!isRuntimeInfoRequest(request)) {
     throw new Error('Secure shell request payload is invalid.');

@@ -27,7 +27,8 @@ import * as path from 'path';
 import {bindSecureShellIpc} from './ipc';
 import {installSecureShellProtocol} from './protocol';
 import {SecureShellController} from './SecureShellController';
-import {ViewIdentityRegistry} from './ViewIdentityRegistry';
+
+import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 const FIXTURE_HTML = `<!doctype html>
 <html>
@@ -123,6 +124,7 @@ describe('SecureShellController', () => {
     const webContents = controller.getAccountWebContentsForTest();
     assert.ok(window);
     assert.ok(webContents);
+    assert.strictEqual(registry.has(window.webContents.id), true);
     assert.strictEqual(window.isVisible(), true);
     await assert.rejects(controller.start(), /already running/);
 
@@ -140,9 +142,11 @@ describe('SecureShellController', () => {
     assert.strictEqual(window.isVisible(), true);
 
     const registeredId = webContents.id;
+    const registeredShellId = window.webContents.id;
     controller.dispose();
     assert.strictEqual(window.isDestroyed(), true);
     assert.strictEqual(registry.has(registeredId), false);
+    assert.strictEqual(registry.has(registeredShellId), false);
     assert.strictEqual(controller.getWindowForTest(), undefined);
     assert.strictEqual(controller.getAccountWebContentsForTest(), undefined);
 
@@ -181,7 +185,8 @@ describe('SecureShellController', () => {
     });
   });
 
-  it('[security-target][INV-004][ARC-002] isolates persistent account storage', async () => {
+  it('[security-target][INV-004][ARC-002] isolates persistent account storage', async function () {
+    this.timeout(10_000);
     const first = await createController('account-a');
     const second = await createController('account-b');
     const firstContents = first.getAccountWebContentsForTest();

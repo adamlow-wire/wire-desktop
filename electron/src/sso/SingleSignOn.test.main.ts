@@ -17,7 +17,7 @@
  *
  */
 
-import {BrowserWindow, Event as ElectronEvent, ProtocolRequest, Session, WebContents} from 'electron';
+import {app, BrowserWindow, Event as ElectronEvent, ProtocolRequest, Session, WebContents} from 'electron';
 import {Maybe} from 'true-myth';
 
 import * as assert from 'assert';
@@ -25,6 +25,8 @@ import {createServer} from 'http';
 import {AddressInfo} from 'net';
 
 import {SingleSignOn} from './SingleSignOn';
+
+import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 type ProtocolHandler = (request: ProtocolRequest) => void;
 
@@ -81,6 +83,25 @@ describe('SingleSignOn', () => {
     it('[characterization][DCP-003] hides approved backend origins and displays other origins', () => {
       assert.strictEqual(SingleSignOn.getWindowTitle('https://prod-nginz-https.wire.com'), '');
       assert.strictEqual(SingleSignOn.getWindowTitle('https://login.example.com'), 'https://login.example.com');
+    });
+
+    it('[security-target][INV-003][INV-004][SEC-002] rejects an SSO window outside its isolated session', async () => {
+      await app.whenReady();
+      const wrongSessionWindow = new BrowserWindow({show: false, webPreferences: {partition: 'not-sso'}});
+      const singleSignOn = new SingleSignOn(
+        wrongSessionWindow,
+        wrongSessionWindow.webContents,
+        Maybe.nothing<string>(),
+        'https://login.example.test',
+        {},
+        new ViewIdentityRegistry(),
+      );
+
+      try {
+        await assert.rejects(singleSignOn.init(), /not using the isolated SSO session/);
+      } finally {
+        wrongSessionWindow.destroy();
+      }
     });
   });
 
@@ -169,6 +190,7 @@ describe('SingleSignOn', () => {
         Maybe.nothing<string>(),
         'https://app.wire.com',
         {},
+        new ViewIdentityRegistry(),
       );
 
       await singleSignOn['finalizeLogin']('AUTH_ERROR_COOKIE');
@@ -272,6 +294,7 @@ describe('SingleSignOn', () => {
         Maybe.nothing<string>(),
         'https://app.wire.com',
         {},
+        new ViewIdentityRegistry(),
       );
       singleSignOn['session'] = sourceSession;
       return {scripts, singleSignOn};
@@ -336,6 +359,7 @@ describe('SingleSignOn', () => {
         Maybe.nothing<string>(),
         'https://app.wire.com',
         windowOptions,
+        new ViewIdentityRegistry(),
       );
       singleSignOn['session'] = ephemeralSession;
       singleSignOn.onClose = () => {
@@ -375,7 +399,14 @@ describe('SingleSignOn', () => {
           setWindowOpenHandler: () => {},
         },
       } as unknown as BrowserWindow;
-      const singleSignOn = new SingleSignOn(ssoWindow, sender, Maybe.nothing<string>(), 'https://app.wire.com', {});
+      const singleSignOn = new SingleSignOn(
+        ssoWindow,
+        sender,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
       singleSignOn['setupBrowserWindow']();
       let preventCount = 0;
       const event = {
@@ -392,7 +423,7 @@ describe('SingleSignOn', () => {
       assert.strictEqual(title, oversizedOrigin);
     });
 
-    it('[characterization][DCP-003] completes a deterministic local SSO flow with permissions denied', async () => {
+    it('[characterization][security-target][INV-003][SEC-002][DCP-003] completes a deterministic local SSO flow with permissions denied', async () => {
       let receivedUserAgent: string | undefined;
       const server = createServer((request, response) => {
         receivedUserAgent = request.headers['user-agent'];
@@ -419,15 +450,23 @@ describe('SingleSignOn', () => {
           sandbox: true,
         },
       });
-      const singleSignOn = new SingleSignOn(ssoWindow, senderWindow.webContents, Maybe.nothing<string>(), fixtureUrl, {
-        webPreferences: {partition: 'sso'},
-      });
+      const registry = new ViewIdentityRegistry();
+      const ssoWebContentsId = ssoWindow.webContents.id;
+      const singleSignOn = new SingleSignOn(
+        ssoWindow,
+        senderWindow.webContents,
+        Maybe.nothing<string>(),
+        fixtureUrl,
+        {webPreferences: {partition: 'sso'}},
+        registry,
+      );
 
       try {
         await senderWindow.loadURL(
           "data:text/html,<script>window.ssoResponses=[];window.addEventListener('message',event=>window.ssoResponses.push(event.data.type))</script>",
         );
         await singleSignOn.init();
+        assert.strictEqual(registry.has(ssoWebContentsId), true);
 
         assert.strictEqual(
           receivedUserAgent,
@@ -461,6 +500,7 @@ describe('SingleSignOn', () => {
           });
           ssoWindow.destroy();
           await closed;
+          assert.strictEqual(registry.has(ssoWebContentsId), false);
           assert.strictEqual(ephemeralSession.protocol.isProtocolRegistered('wire-sso'), false);
         }
         if (!senderWindow.isDestroyed()) {
