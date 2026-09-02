@@ -23,6 +23,7 @@ import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
+import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
 import {
   RegisteredViewIdentity,
   registerViewIdentity,
@@ -61,6 +62,7 @@ export const registerLegacyAccountViewIdentity = (
       MANAGED_CONFIG_CAPABILITY,
       SAVE_PICTURE_CAPABILITY,
       NOTIFICATION_ACTIVATION_CAPABILITY,
+      WEBAPP_LOADED_CAPABILITY,
     ],
     partition,
     session: webContents.session,

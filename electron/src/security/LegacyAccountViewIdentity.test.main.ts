@@ -25,6 +25,7 @@ import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContra
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
+import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
 
 const accountId = '6f350266-15de-4cab-b38c-9f986fdc6b18';
 
@@ -72,6 +73,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       MANAGED_CONFIG_CAPABILITY,
       SAVE_PICTURE_CAPABILITY,
       NOTIFICATION_ACTIVATION_CAPABILITY,
+      WEBAPP_LOADED_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');
