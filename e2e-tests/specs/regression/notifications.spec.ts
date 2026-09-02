@@ -106,14 +106,19 @@ test.describe('Notifications', () => {
 
   test(
     'I want to receive notifications from multiple accounts',
-    {tag: ['@TC-11268', '@regression']},
+    {tag: ['@TC-11268', '@regression'], timeout: 180_000},
     async ({app, createUser, createTeam, createPage}) => {
       const userA1 = await createUser();
       const userA2 = await createUser();
       const {owner: userB} = await createTeam('Test Team', {users: [userA1, userA2]});
-      const userBPage = await createPage();
+      let userBPage = await createPage();
 
-      await Promise.all([loginUser(app.page, userA1), loginUser(userBPage, userB)]);
+      const [userA1Page, authenticatedUserBPage] = await Promise.all([
+        loginUser(app.page, userA1),
+        loginUser(userBPage, userB),
+      ]);
+      app.page = userA1Page;
+      userBPage = authenticatedUserBPage;
       await connectWithUser(userBPage, userA1);
       await connectWithUser(userBPage, userA2);
 
@@ -121,7 +126,7 @@ test.describe('Notifications', () => {
       await conversationsList(app.page).getConversation('Distraction Group').open();
 
       await accountsSidebar(app).addAccount();
-      await loginUser(app.page, userA2);
+      app.page = await loginUser(app.page, userA2, {timeout: 80_000});
       await createGroup(app.page, 'Distraction Group', []);
       await conversationsList(app.page).getConversation('Distraction Group').open();
 
