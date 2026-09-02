@@ -68,3 +68,42 @@ export const registerPictureInPictureCallIdentity = ({
     webContents,
   });
 };
+
+export const bindPictureInPictureCallIdentity = ({
+  allowedUrl,
+  destroy,
+  frameName,
+  logRejection,
+  partition,
+  registry,
+  resolveAccountId,
+  webContents,
+}: {
+  readonly allowedUrl: string;
+  readonly destroy: () => void;
+  readonly frameName: string;
+  readonly logRejection: (error: unknown) => void;
+  readonly partition: string;
+  readonly registry: ViewIdentityRegistry;
+  readonly resolveAccountId: () => string | undefined;
+  readonly webContents: LifecycleWebContentsIdentity;
+}): boolean => {
+  if (!isPictureInPictureCallWindow(frameName)) {
+    return true;
+  }
+
+  try {
+    registerPictureInPictureCallIdentity({
+      accountId: resolveAccountId(),
+      allowedUrl,
+      partition,
+      registry,
+      webContents,
+    });
+    return true;
+  } catch (error) {
+    destroy();
+    logRejection(error);
+    return false;
+  }
+};

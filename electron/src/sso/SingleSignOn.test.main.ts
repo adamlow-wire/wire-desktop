@@ -17,7 +17,7 @@
  *
  */
 
-import {BrowserWindow, Event as ElectronEvent, ProtocolRequest, Session, WebContents} from 'electron';
+import {app, BrowserWindow, Event as ElectronEvent, ProtocolRequest, Session, WebContents} from 'electron';
 import {Maybe} from 'true-myth';
 
 import * as assert from 'assert';
@@ -83,6 +83,25 @@ describe('SingleSignOn', () => {
     it('[characterization][DCP-003] hides approved backend origins and displays other origins', () => {
       assert.strictEqual(SingleSignOn.getWindowTitle('https://prod-nginz-https.wire.com'), '');
       assert.strictEqual(SingleSignOn.getWindowTitle('https://login.example.com'), 'https://login.example.com');
+    });
+
+    it('[security-target][INV-003][INV-004][SEC-002] rejects an SSO window outside its isolated session', async () => {
+      await app.whenReady();
+      const wrongSessionWindow = new BrowserWindow({show: false, webPreferences: {partition: 'not-sso'}});
+      const singleSignOn = new SingleSignOn(
+        wrongSessionWindow,
+        wrongSessionWindow.webContents,
+        Maybe.nothing<string>(),
+        'https://login.example.test',
+        {},
+        new ViewIdentityRegistry(),
+      );
+
+      try {
+        await assert.rejects(singleSignOn.init(), /not using the isolated SSO session/);
+      } finally {
+        wrongSessionWindow.destroy();
+      }
     });
   });
 

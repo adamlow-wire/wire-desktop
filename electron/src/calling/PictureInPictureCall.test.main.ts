@@ -19,7 +19,7 @@
 
 import * as assert from 'assert';
 
-import {registerPictureInPictureCallIdentity} from './PictureInPictureCall';
+import {bindPictureInPictureCallIdentity, registerPictureInPictureCallIdentity} from './PictureInPictureCall';
 
 import {LifecycleWebContentsIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
@@ -86,5 +86,56 @@ describe('picture-in-picture call identity', () => {
         webContents: createWebContents(54),
       }),
     );
+  });
+
+  it('[characterization][security-target][INV-003][INV-010][SEC-002] destroys only rejected picture-in-picture children', () => {
+    const createWebContents = (id: number): LifecycleWebContentsIdentity => ({
+      id,
+      isDestroyed: () => false,
+      mainFrame: {url: 'https://app.wire.test/calling'},
+      once: () => createWebContents(id),
+      session: {},
+    });
+    let destroyed = false;
+    let rejection: unknown;
+    let resolvedAccountCount = 0;
+    const shared = {
+      allowedUrl: 'https://app.wire.test/calling',
+      destroy: () => {
+        destroyed = true;
+      },
+      logRejection: (error: unknown) => {
+        rejection = error;
+      },
+      partition: 'persist:account-a',
+      registry: new ViewIdentityRegistry(),
+      resolveAccountId: () => {
+        resolvedAccountCount += 1;
+        return 'account-a';
+      },
+      webContents: createWebContents(55),
+    };
+
+    assert.strictEqual(bindPictureInPictureCallIdentity({...shared, frameName: 'ordinary-child'}), true);
+    assert.strictEqual(destroyed, false);
+    assert.strictEqual(shared.registry.has(shared.webContents.id), false);
+    assert.strictEqual(resolvedAccountCount, 0);
+
+    assert.strictEqual(bindPictureInPictureCallIdentity({...shared, frameName: 'WIRE_PICTURE_IN_PICTURE_CALL'}), true);
+    assert.strictEqual(shared.registry.has(shared.webContents.id), true);
+    assert.strictEqual(resolvedAccountCount, 1);
+
+    assert.strictEqual(
+      bindPictureInPictureCallIdentity({
+        ...shared,
+        frameName: 'WIRE_PICTURE_IN_PICTURE_CALL',
+        registry: new ViewIdentityRegistry(),
+        resolveAccountId: () => undefined,
+        webContents: createWebContents(56),
+      }),
+      false,
+    );
+    assert.strictEqual(destroyed, true);
+    assert.ok(rejection instanceof Error);
   });
 });

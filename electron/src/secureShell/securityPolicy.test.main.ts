@@ -344,6 +344,7 @@ describe('secure shell view authority', () => {
     });
 
     assert.strictEqual(registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY).viewType, 'about');
+    assert.throws(() => authorizeRuntimeInfoRequest(registry, registered.event, {contractVersion: 1}));
     registered.frame.url = 'file:///tmp/attacker.html';
     assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
 
@@ -353,6 +354,17 @@ describe('secure shell view authority', () => {
         allowedOrigin: 'https://app.wire.test',
         allowedUrl: aboutUrl,
         capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'about-window',
+        session: mismatched.webContents.session,
+        viewType: 'about',
+        webContents: mismatched.webContents,
+      }),
+    );
+    assert.throws(() =>
+      registry.register({
+        allowedOrigin: 'null',
+        allowedUrl: 'not a URL',
+        capabilities: [],
         partition: 'about-window',
         session: mismatched.webContents.session,
         viewType: 'about',

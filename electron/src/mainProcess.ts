@@ -48,9 +48,9 @@ import {WebAppEvents} from '@wireapp/webapp-events';
 
 import * as ProxyAuth from './auth/ProxyAuth';
 import {
+  bindPictureInPictureCallIdentity,
   getPictureInPictureCallWindowOptions,
   isPictureInPictureCallWindow,
-  registerPictureInPictureCallIdentity,
 } from './calling/PictureInPictureCall';
 import {initializeFirstInstance} from './lib/applicationBootstrap';
 import {
@@ -756,21 +756,19 @@ class ElectronWrapperInit {
           contents.on('did-create-window', async (win, windowCreationDetails) => {
             const {frameName, options, url} = windowCreationDetails;
 
-            if (isPictureInPictureCallWindow(frameName)) {
-              const accountId = lifecycle.getAccountId(contents);
-              try {
-                registerPictureInPictureCallIdentity({
-                  accountId: accountId.isJust ? accountId.value : undefined,
-                  allowedUrl: url,
-                  partition: options.webPreferences?.partition ?? '',
-                  registry: viewIdentityRegistry,
-                  webContents: win.webContents,
-                });
-              } catch (error) {
-                win.destroy();
-                logger.error('Rejected unbound picture-in-picture window.', error);
-                return;
-              }
+            if (
+              !bindPictureInPictureCallIdentity({
+                allowedUrl: url,
+                destroy: () => win.destroy(),
+                frameName,
+                logRejection: error => logger.error('Rejected unbound picture-in-picture window.', error),
+                partition: options.webPreferences?.partition ?? '',
+                registry: viewIdentityRegistry,
+                resolveAccountId: () => lifecycle.getAccountId(contents).unwrapOr('') || undefined,
+                webContents: win.webContents,
+              })
+            ) {
+              return;
             }
 
             await openLinkInNewWindow(this, {

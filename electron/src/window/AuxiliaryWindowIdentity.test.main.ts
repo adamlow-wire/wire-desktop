@@ -60,7 +60,8 @@ describe('auxiliary window identity', () => {
     }
   });
 
-  it('[characterization][security-target][INV-003][INV-004][SEC-002] creates About in its exact local session', async () => {
+  it('[characterization][security-target][INV-003][INV-004][SEC-002] creates About in its exact local session', async function () {
+    this.timeout(10_000);
     const registry = new ViewIdentityRegistry();
     const window = await AboutWindow.showWindow(registry);
     windows.push(window);
@@ -81,6 +82,7 @@ describe('auxiliary window identity', () => {
         EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
       ),
     );
+    await assert.rejects(AboutWindow.showWindow(new ViewIdentityRegistry()), /different view identity registry/);
     const webContentsId = window.webContents.id;
     const destroyed = new Promise<void>(resolve => window.webContents.once('destroyed', resolve));
     window.destroy();

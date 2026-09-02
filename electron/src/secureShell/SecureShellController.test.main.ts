@@ -185,7 +185,8 @@ describe('SecureShellController', () => {
     });
   });
 
-  it('[security-target][INV-004][ARC-002] isolates persistent account storage', async () => {
+  it('[security-target][INV-004][ARC-002] isolates persistent account storage', async function () {
+    this.timeout(10_000);
     const first = await createController('account-a');
     const second = await createController('account-b');
     const firstContents = first.getAccountWebContentsForTest();

@@ -331,7 +331,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Unknown, destroyed, unexpected-frame, and origin-mismatched senders fail closed.
   - Identity cannot be supplied or overridden by renderer payload data.
   - Unit and integration tests cover authorized and unauthorized senders.
-- Evidence: Local branch `sec/SEC-002-view-identity-registry-2026-09-02` binds the application shells, legacy and secure account views, About, proxy prompt, SSO, picture-in-picture, and WebRTC-internals window to immutable central authority. The full Electron main suite passes with 180 tests and 3 owned CAP-002 targets pending; changed statements are 189/218 (86.70%) and changed security branches are 134/135 (99.26%). Legacy-account and developer-tool registrations were sensitivity-proven with temporary perturbations that were reverted; hosted validation remains pending.
+- Evidence: Local branch `sec/SEC-002-view-identity-registry-2026-09-02` binds the application shells, legacy and secure account views, About, proxy prompt, SSO, picture-in-picture, and WebRTC-internals window to immutable central authority. A clean full coverage run passes with 183 Electron main tests and 3 owned CAP-002 targets pending; changed statements are 85/106 (80.19%) and changed security branches are 41/41 (100%). Picture-in-picture rejection and developer-tool authority registrations were sensitivity-proven with temporary perturbations that were reverted. [PR #13](https://github.com/adamlow-wire/wire-desktop/pull/13) hosted validation remains pending on the corrected head.
 
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
