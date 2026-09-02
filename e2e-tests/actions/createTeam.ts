@@ -33,6 +33,15 @@ export type Team = {
   addTeamMember: (member: RegisteredUser, options?: {role?: TeamRole}) => Promise<void>;
 };
 
+const runTeamSetupStep = async <T>(step: string, operation: () => Promise<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Team setup failed during ${step}: ${detail}`, {cause: error});
+  }
+};
+
 export const createTeam = async (
   api: {publicApi: PublicApiClient; brigApi: BrigApiClient; galleyApi: GalleyApiClient; ibisApi: IbisApiClient},
   teamName: string,
@@ -46,19 +55,21 @@ export const createTeam = async (
     };
   },
 ) => {
-  const user = await registerUser(
-    createUser(),
-    {publicApi: api.publicApi, brigApi: api.brigApi},
-    {telemetryDataSharing: false},
+  const user = await runTeamSetupStep('owner registration', () =>
+    registerUser(createUser(), {publicApi: api.publicApi, brigApi: api.brigApi}, {telemetryDataSharing: false}),
   );
 
-  const {teamId} = await api.publicApi.upgradeUserToTeamOwner(user, teamName);
+  const {teamId} = await runTeamSetupStep('owner upgrade', () => api.publicApi.upgradeUserToTeamOwner(user, teamName));
   const owner: TeamOwner = {...user, teamId};
 
   const addTeamMember: Team['addTeamMember'] = async (member, options) => {
-    const invitationId = await api.publicApi.sendTeamInvitation(owner, member.email, options?.role ?? 'member');
-    const invitationCode = await api.brigApi.getTeamActivationCode(owner.teamId, invitationId);
-    await api.publicApi.acceptTeamInvitation(member, invitationCode);
+    const invitationId = await runTeamSetupStep('member invitation', () =>
+      api.publicApi.sendTeamInvitation(owner, member.email, options?.role ?? 'member'),
+    );
+    const invitationCode = await runTeamSetupStep('invitation-code lookup', () =>
+      api.brigApi.getTeamActivationCode(owner.teamId, invitationId),
+    );
+    await runTeamSetupStep('invitation acceptance', () => api.publicApi.acceptTeamInvitation(member, invitationCode));
   };
 
   if (options?.users) {
@@ -73,10 +84,10 @@ export const createTeam = async (
   }
 
   if (options?.features && Object.values(options.features).some(Boolean)) {
-    await api.ibisApi.upgradeTeam(owner);
+    await runTeamSetupStep('team feature upgrade', () => api.ibisApi.upgradeTeam(owner));
 
     if (options.features.conferenceCalling) {
-      await api.galleyApi.unlockConferenceCallingFeature(teamId);
+      await runTeamSetupStep('conference-calling unlock', () => api.galleyApi.unlockConferenceCallingFeature(teamId));
     }
   }
 
