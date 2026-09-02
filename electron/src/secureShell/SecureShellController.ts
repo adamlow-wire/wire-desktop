@@ -72,8 +72,20 @@ export class SecureShellController {
       width: 1024,
     });
     this.window = window;
-    window.webContents.on('will-navigate', event => event.preventDefault());
-    window.webContents.setWindowOpenHandler(() => ({action: 'deny'}));
+    const shellWebContents = window.webContents;
+    const shellWebContentsId = shellWebContents.id;
+    this.registry.register({
+      allowedOrigin: SECURE_SHELL_ORIGIN,
+      capabilities: [],
+      partition: 'default',
+      session: shellWebContents.session,
+      viewType: 'application-shell',
+      webContents: shellWebContents,
+    });
+    shellWebContents.once('destroyed', () => this.registry.unregister(shellWebContentsId));
+    shellWebContents.once('render-process-gone', () => this.registry.unregister(shellWebContentsId));
+    shellWebContents.on('will-navigate', event => event.preventDefault());
+    shellWebContents.setWindowOpenHandler(() => ({action: 'deny'}));
     window.on('resize', () => this.layoutAccountViews());
     window.on('closed', () => this.disposeAccountViews());
 
@@ -171,6 +183,7 @@ export class SecureShellController {
   dispose(): void {
     this.disposeAccountViews();
     if (this.window && !this.window.isDestroyed()) {
+      this.registry.unregister(this.window.webContents.id);
       this.window.destroy();
     }
     this.window = undefined;
