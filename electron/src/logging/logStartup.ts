@@ -17,12 +17,18 @@
  *
  */
 
-import {configurePortableUserDataAtStartup} from './runtime/configurePortableUserData';
+export type InitializeDesktopLogLifecycleOptions = {
+  reportCleanupFailure: (error: unknown) => void;
+  runInitialCleanup: () => Promise<void>;
+  schedulePeriodicCleanup: () => void;
+};
 
-configurePortableUserDataAtStartup();
+export async function initializeDesktopLogLifecycle(options: InitializeDesktopLogLifecycleOptions): Promise<void> {
+  try {
+    await options.runInitialCleanup();
+  } catch (error) {
+    options.reportCleanupFailure(error);
+  }
 
-function loadMainProcess(): void {
-  require('./mainProcess');
+  options.schedulePeriodicCleanup();
 }
-
-loadMainProcess();
