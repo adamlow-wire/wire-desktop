@@ -45,7 +45,7 @@ const resolveBase = () => {
 const readChangedLines = base => {
   const output = execFileSync(
     'git',
-    ['diff', '--unified=0', '--diff-filter=ACMR', `${base}...HEAD`, '--', ...SOURCE_ROOTS],
+    ['diff', '--unified=0', '--diff-filter=ACMR', '--find-copies-harder', `${base}...HEAD`, '--', ...SOURCE_ROOTS],
     {encoding: 'utf8'},
   );
   const changed = new Map();
@@ -143,11 +143,15 @@ const main = () => {
   const securityBranchRate = percentage(coveredSecurityBranches, changedSecurityBranches.length);
 
   console.info(
-    `Changed statements: ${coveredStatements}/${changedStatements.length} (${lineRate.toFixed(2)}%, required ${CHANGED_LINE_THRESHOLD}%).`,
+    `Changed statements: ${coveredStatements}/${changedStatements.length} (${lineRate.toFixed(
+      2,
+    )}%, required ${CHANGED_LINE_THRESHOLD}%).`,
   );
   if (changedSecurityBranches.length > 0) {
     console.info(
-      `Changed security branches: ${coveredSecurityBranches}/${changedSecurityBranches.length} (${securityBranchRate.toFixed(2)}%, required ${SECURITY_BRANCH_THRESHOLD}%).`,
+      `Changed security branches: ${coveredSecurityBranches}/${
+        changedSecurityBranches.length
+      } (${securityBranchRate.toFixed(2)}%, required ${SECURITY_BRANCH_THRESHOLD}%).`,
     );
   }
 

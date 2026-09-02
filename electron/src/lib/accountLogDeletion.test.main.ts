@@ -64,6 +64,7 @@ describe('account log deletion', () => {
       `backup_2_2026_07_10_12_34_56_${accountId}`,
       `2_invalid_${accountId}`,
       `-1_2026_07_10_12_34_56_${accountId}`,
+      `9007199254740992_2026_07_10_12_34_56_${accountId}`,
     ];
 
     assert.strictEqual(parsedDirectory.isJust, true);
@@ -155,5 +156,31 @@ describe('account log deletion', () => {
       ].toSorted(),
     );
     assert.deepStrictEqual(prunedDirectories, removedDirectories);
+  });
+
+  it('reports ancestor cleanup failures after removing an account directory', async () => {
+    const failures: string[] = [];
+
+    await deleteAccountLogDirectories({
+      accountId,
+      dependencies: {
+        async isSafeDirectory(): Promise<boolean> {
+          return true;
+        },
+        async removeEmptyDirectoryAncestors(): Promise<LogDirectoryCleanupResult> {
+          return Result.err(new Error('controlled cleanup failure'));
+        },
+        async removeDirectory(): Promise<void> {},
+        reportFailure(message: string): void {
+          failures.push(message);
+        },
+      },
+      filePaths: [logDirectory],
+      logDirectory,
+    });
+
+    assert.deepStrictEqual(failures, [
+      `Failed to delete account log directory "${path.join(logDirectory, accountId)}"`,
+    ]);
   });
 });

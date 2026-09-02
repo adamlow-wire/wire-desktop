@@ -222,6 +222,36 @@ describe('bounded desktop log writer', () => {
   );
 
   it(
+    'retries rotation with a new path when the filesystem reports a destination collision',
+    withTemporaryDirectory('wire-bounded-log-move-collision-', async (temporaryLogDirectory: string) => {
+      const logFilePath = path.join(temporaryLogDirectory, 'electron.log');
+      const dependencies = createTestFileSystemDependencies(4);
+      const moveFile = dependencies.moveFile;
+      let moveAttemptCount = 0;
+      dependencies.moveFile = async (sourceFilePath: string, destinationFilePath: string): Promise<void> => {
+        moveAttemptCount += 1;
+        if (moveAttemptCount === 1) {
+          throw Object.assign(new Error('controlled destination collision'), {code: 'EEXIST'});
+        }
+
+        await moveFile(sourceFilePath, destinationFilePath);
+      };
+      const boundedLogWriter = createBoundedLogWriter({
+        afterWrite: ignorePostWriteCleanup,
+        dependencies,
+        maintenanceCoordinator: createTestMaintenanceCoordinator(),
+        maximumFileSizeBytes: 10,
+      });
+
+      await boundedLogWriter.write({logFilePath, message: '12345'});
+      await boundedLogWriter.write({logFilePath, message: '6789'});
+
+      assert.strictEqual(moveAttemptCount, 2);
+      assert.strictEqual(await fs.readFile(`${logFilePath}.4-1.old`, 'utf8'), '12345\n');
+    }),
+  );
+
+  it(
     'allows an individual entry larger than the configured file size',
     withTemporaryDirectory('wire-bounded-log-large-entry-', async (temporaryLogDirectory: string) => {
       const logFilePath = path.join(temporaryLogDirectory, 'electron.log');

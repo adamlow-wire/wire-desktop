@@ -17,11 +17,17 @@
  *
  */
 
+import {dialog} from 'electron';
+import * as fs from 'fs-extra';
+import {stub} from 'sinon';
 import {Maybe} from 'true-myth';
 
 import * as assert from 'assert';
+import * as path from 'path';
 
-import {downloadLogArchive, suggestFileName} from './download';
+import {chooseLogDownloadPath, downloadFile, downloadImage, downloadLogArchive, suggestFileName} from './download';
+
+import {withTemporaryDirectory} from '../../test/withTemporaryDirectory';
 
 describe('download', () => {
   it('converts colons to dashes because colons cannot be used in filenames on Windows', async () => {
@@ -63,4 +69,67 @@ describe('download', () => {
 
     assert.deepStrictEqual(events, ['choose-destination', 'write-archive']);
   });
+
+  it('[characterization] suggests a dated ZIP path and returns the selected destination', async () => {
+    const showSaveDialog = stub(dialog, 'showSaveDialog').resolves({
+      canceled: false,
+      filePath: '/tmp/wire-selected-logs.zip',
+    });
+
+    try {
+      const actualPath = await chooseLogDownloadPath(new Date('2026-09-02T10:45:00.000Z'));
+
+      assert.strictEqual(actualPath.unwrapOr(''), '/tmp/wire-selected-logs.zip');
+      assert.strictEqual(showSaveDialog.firstCall.firstArg.defaultPath, 'wire-logs-2026-09-02-10-45.zip');
+    } finally {
+      showSaveDialog.restore();
+    }
+  });
+
+  it('[characterization] fails closed when choosing a log destination throws', async () => {
+    const showSaveDialog = stub(dialog, 'showSaveDialog').rejects(new Error('controlled dialog failure'));
+
+    try {
+      const actualPath = await chooseLogDownloadPath(new Date('2026-09-02T10:45:00.000Z'));
+
+      assert.strictEqual(actualPath.isNothing, true);
+    } finally {
+      showSaveDialog.restore();
+    }
+  });
+
+  it(
+    '[characterization] writes image bytes only to the selected path and preserves the detected extension',
+    withTemporaryDirectory('wire-download-', async temporaryDirectory => {
+      const destinationPath = path.join(temporaryDirectory, 'image.png');
+      const pngBytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      const showSaveDialog = stub(dialog, 'showSaveDialog').resolves({canceled: false, filePath: destinationPath});
+
+      try {
+        await downloadImage(pngBytes, Maybe.just('1588599720000'));
+
+        assert.deepStrictEqual(await fs.readFile(destinationPath), Buffer.from(pngBytes));
+        assert.match(showSaveDialog.firstCall.firstArg.defaultPath ?? '', /\.png$/);
+        assert.deepStrictEqual(showSaveDialog.firstCall.firstArg.filters, [{extensions: ['png'], name: 'Images'}]);
+      } finally {
+        showSaveDialog.restore();
+      }
+    }),
+  );
+
+  it(
+    '[characterization] does not write a file when the save dialog is cancelled',
+    withTemporaryDirectory('wire-download-cancel-', async temporaryDirectory => {
+      const destinationPath = path.join(temporaryDirectory, 'cancelled.bin');
+      const showSaveDialog = stub(dialog, 'showSaveDialog').resolves({canceled: true});
+
+      try {
+        await downloadFile(Uint8Array.from([1, 2, 3]), destinationPath, {});
+
+        assert.strictEqual(await fs.pathExists(destinationPath), false);
+      } finally {
+        showSaveDialog.restore();
+      }
+    }),
+  );
 });

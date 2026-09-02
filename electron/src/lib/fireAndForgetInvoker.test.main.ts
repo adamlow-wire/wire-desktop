@@ -71,6 +71,31 @@ describe('fire-and-forget invoker', () => {
     assert.deepStrictEqual(failures, [expectedFailure]);
   });
 
+  it('reports an unexpected observer failure without leaving the action active', async () => {
+    const failures: unknown[] = [];
+    const actionFailure = new Error('action failure');
+    const observationFailure = new Error('observation failure');
+    let reportCount = 0;
+    const invoker = createFireAndForgetInvoker({
+      reportFailure(error: unknown): void {
+        reportCount += 1;
+        if (reportCount === 1) {
+          throw observationFailure;
+        }
+
+        failures.push(error);
+      },
+    });
+
+    invoker.fireAndForget(async (): Promise<void> => {
+      throw actionFailure;
+    });
+    await invoker.waitUntilAllSettled();
+    await Promise.resolve();
+
+    assert.deepStrictEqual(failures, [observationFailure]);
+  });
+
   it('waits for active actions to settle', async () => {
     let resolveFirstAction: () => void = () => {
       // The resolver is replaced by the Promise constructor.
