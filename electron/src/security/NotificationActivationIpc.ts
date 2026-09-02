@@ -36,6 +36,14 @@ interface IpcMainBinding {
   removeHandler(channel: string): void;
 }
 
+interface IpcRendererInvoker {
+  invoke(channel: string): Promise<unknown>;
+}
+
+interface FailureLogger {
+  error(message: string, error: unknown): void;
+}
+
 type NotificationActivationBoundary = () => void;
 
 const notificationActivationContract: AuthorizedIpcContract<undefined, void> = Object.freeze({
@@ -48,6 +56,17 @@ const notificationActivationContract: AuthorizedIpcContract<undefined, void> = O
   rateLimit: Object.freeze({maxRequests: MAX_NOTIFICATION_ACTIVATIONS_PER_MINUTE, windowMs: 60_000}),
   viewTypes: Object.freeze(['account'] as const),
 });
+
+export const requestNotificationActivation = async (
+  ipc: IpcRendererInvoker,
+  logger: FailureLogger,
+): Promise<void> => {
+  try {
+    await ipc.invoke(NOTIFICATION_ACTIVATION_CHANNEL);
+  } catch (error) {
+    logger.error('Failed to activate the application from a notification.', error);
+  }
+};
 
 export const bindNotificationActivationIpc = (
   ipc: IpcMainBinding,

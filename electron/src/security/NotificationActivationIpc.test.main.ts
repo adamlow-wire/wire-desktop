@@ -24,6 +24,7 @@ import {
   MAX_NOTIFICATION_ACTIVATIONS_PER_MINUTE,
   NOTIFICATION_ACTIVATION_CAPABILITY,
   NOTIFICATION_ACTIVATION_CHANNEL,
+  requestNotificationActivation,
 } from './NotificationActivationIpc';
 import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
@@ -55,6 +56,36 @@ const createIpc = (handlers: Map<string, BoundHandler>) => ({
 });
 
 describe('notification-activation IPC contract', () => {
+  it('[security-target][INV-002][INV-003][SEC-003][DCP-006] invokes only the fixed activation channel', async () => {
+    const calls: unknown[][] = [];
+    const errors: unknown[][] = [];
+
+    await requestNotificationActivation(
+      {
+        invoke: async (...args: unknown[]) => {
+          calls.push(args);
+          return undefined;
+        },
+      },
+      {error: (...args: unknown[]) => errors.push(args)},
+    );
+
+    assert.deepStrictEqual(calls, [[NOTIFICATION_ACTIVATION_CHANNEL]]);
+    assert.deepStrictEqual(errors, []);
+  });
+
+  it('[security-target][INV-010][SEC-003][DCP-006] reports rejected activation requests', async () => {
+    const controlledFailure = new Error('controlled activation failure');
+    const errors: unknown[][] = [];
+
+    await requestNotificationActivation(
+      {invoke: async () => Promise.reject(controlledFailure)},
+      {error: (...args: unknown[]) => errors.push(args)},
+    );
+
+    assert.deepStrictEqual(errors, [['Failed to activate the application from a notification.', controlledFailure]]);
+  });
+
   it('[characterization][security-target][INV-003][SEC-003][DCP-006] brings the primary window forward', async () => {
     const handlers = new Map<string, BoundHandler>();
     const registry = new ViewIdentityRegistry();
