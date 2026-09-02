@@ -19,13 +19,13 @@
 
 import {ValidationUtil} from '@wireapp/commons';
 
+import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {
   RegisteredViewIdentity,
   registerViewIdentity,
   ViewIdentityRegistry,
   WebContentsIdentity,
 } from './ViewIdentityRegistry';
-import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 
 export interface LegacyAccountWebContentsIdentity extends WebContentsIdentity {
   once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;

@@ -52,11 +52,7 @@ const validateContractPolicy = <Request, Response>(contract: AuthorizedIpcContra
       rateLimit.maxRequests > 0 &&
       Number.isSafeInteger(rateLimit.windowMs) &&
       rateLimit.windowMs > 0);
-  if (
-    contract.failureMode !== 'reject' ||
-    contract.originPolicy !== 'registered-view-origin' ||
-    !hasValidRateLimit
-  ) {
+  if (contract.failureMode !== 'reject' || contract.originPolicy !== 'registered-view-origin' || !hasValidRateLimit) {
     throw new Error('IPC contract policy is invalid.');
   }
 };

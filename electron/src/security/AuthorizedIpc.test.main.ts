@@ -180,13 +180,9 @@ describe('authorized IPC contract', () => {
     const first = createSender(5);
     const second = createSender(6);
     await assert.rejects(() =>
-      executeAuthorizedIpc(
-        first.registry,
-        limitedContract,
-        first.event,
-        {contractVersion: 1},
-        async identity => ({accountId: identity.accountId!}),
-      ),
+      executeAuthorizedIpc(first.registry, limitedContract, first.event, {contractVersion: 1}, async identity => ({
+        accountId: identity.accountId!,
+      })),
     );
     const dispose = bindAuthorizedIpc(
       ipc,

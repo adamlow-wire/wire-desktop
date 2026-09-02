@@ -73,8 +73,10 @@ describe('safe storage IPC contracts', () => {
       },
     });
 
-    assert.deepStrictEqual(await handlers.get(SAFE_STORAGE_ENCRYPT_CHANNEL)?.(event, 'plaintext-value'),
-      Buffer.from([1, 2, 3]));
+    assert.deepStrictEqual(
+      await handlers.get(SAFE_STORAGE_ENCRYPT_CHANNEL)?.(event, 'plaintext-value'),
+      Buffer.from([1, 2, 3]),
+    );
     assert.strictEqual(
       await handlers.get(SAFE_STORAGE_DECRYPT_CHANNEL)?.(event, new Uint8Array([4, 5, 6])),
       'decrypted-value',
@@ -116,10 +118,7 @@ describe('safe storage IPC contracts', () => {
     await assert.rejects(() => encrypt(event, 42), /payload/);
     await assert.rejects(() => encrypt(event, 'x'.repeat(MAX_SAFE_STORAGE_PLAINTEXT_BYTES + 1)), /payload/);
     await assert.rejects(() => decrypt(event, []), /payload/);
-    await assert.rejects(
-      () => decrypt(event, new Uint8Array(MAX_SAFE_STORAGE_CIPHERTEXT_BYTES + 1)),
-      /payload/,
-    );
+    await assert.rejects(() => decrypt(event, new Uint8Array(MAX_SAFE_STORAGE_CIPHERTEXT_BYTES + 1)), /payload/);
 
     encryptResponse = Buffer.alloc(MAX_SAFE_STORAGE_CIPHERTEXT_BYTES + 1);
     await assert.rejects(() => encrypt(event, 'value'), /response/);
