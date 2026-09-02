@@ -27,6 +27,39 @@ import * as lifecycle from '../runtime/lifecycle';
 import {config} from '../settings/config';
 import {WindowManager} from '../window/WindowManager';
 
+export interface TrayHandlerRuntime {
+  readonly bounceDockIcon: (type: 'informational') => void;
+  readonly isGnomeX11: boolean;
+  readonly isLinux: boolean;
+  readonly isMacOS: boolean;
+  readonly quit: () => void;
+  readonly setBadgeCount: (count: number) => void;
+  readonly showPrimaryWindow: () => void;
+}
+
+const defaultRuntime: TrayHandlerRuntime = {
+  bounceDockIcon: type => {
+    app.dock?.bounce(type);
+  },
+  isGnomeX11: linuxDesktop.isGnomeX11,
+  isLinux: platform.IS_LINUX,
+  isMacOS: process.platform === 'darwin',
+  quit: () => lifecycle.quit(),
+  setBadgeCount: count => app.setBadgeCount(count),
+  showPrimaryWindow: () => WindowManager.showPrimaryWindow(),
+};
+
+export const resolveTrayIconNames = (
+  runtime: Pick<TrayHandlerRuntime, 'isGnomeX11' | 'isLinux'>,
+): Readonly<{tray: string; trayWithBadge: string}> => {
+  if (!runtime.isLinux) {
+    return {tray: 'tray.png', trayWithBadge: 'tray.badge.png'};
+  }
+  return runtime.isGnomeX11
+    ? {tray: 'tray.gnome.png', trayWithBadge: 'tray.badge.gnome.png'}
+    : {tray: 'tray@3x.png', trayWithBadge: 'tray.badge@3x.png'};
+};
+
 export class TrayHandler {
   private icons?: {
     badge: NativeImage;
@@ -34,27 +67,23 @@ export class TrayHandler {
     trayWithBadge: NativeImage;
   };
   private lastUnreadCount: number;
+  private readonly runtime: TrayHandlerRuntime;
   private trayIcon?: Tray;
 
-  constructor() {
+  constructor(runtime: TrayHandlerRuntime = defaultRuntime) {
     this.lastUnreadCount = 0;
+    this.runtime = runtime;
   }
 
   initTray(trayIcon = new Tray(nativeImage.createEmpty())): void {
     const IMAGE_ROOT = path.join(app.getAppPath(), config.electronDirectory, 'img');
 
-    let trayPng = 'tray.png';
-    let trayBadgePng = 'tray.badge.png';
-
-    if (platform.IS_LINUX) {
-      trayPng = `tray${linuxDesktop.isGnomeX11 ? '.gnome' : '@3x'}.png`;
-      trayBadgePng = `tray.badge${linuxDesktop.isGnomeX11 ? '.gnome' : '@3x'}.png`;
-    }
+    const iconNames = resolveTrayIconNames(this.runtime);
 
     const iconPaths = {
       badge: path.join(IMAGE_ROOT, 'taskbar.overlay.png'),
-      tray: path.join(IMAGE_ROOT, 'tray-icon/tray', trayPng),
-      trayWithBadge: path.join(IMAGE_ROOT, 'tray-icon/tray-with-badge', trayBadgePng),
+      tray: path.join(IMAGE_ROOT, 'tray-icon/tray', iconNames.tray),
+      trayWithBadge: path.join(IMAGE_ROOT, 'tray-icon/tray-with-badge', iconNames.trayWithBadge),
     };
 
     this.icons = {
@@ -82,16 +111,16 @@ export class TrayHandler {
   private buildTrayMenu(): void {
     const contextMenu = Menu.buildFromTemplate([
       {
-        click: () => WindowManager.showPrimaryWindow(),
+        click: () => this.runtime.showPrimaryWindow(),
         label: locale.getText('trayOpen'),
       },
       {
-        click: () => lifecycle.quit(),
+        click: () => this.runtime.quit(),
         label: locale.getText('trayQuit'),
       },
     ]);
 
-    this.trayIcon?.on('click', () => WindowManager.showPrimaryWindow());
+    this.trayIcon?.on('click', () => this.runtime.showPrimaryWindow());
     this.trayIcon?.setContextMenu(contextMenu);
     this.trayIcon?.setToolTip(config.name);
   }
@@ -105,8 +134,8 @@ export class TrayHandler {
        By calling the dock.bounce() directly, we avoid this behavior. the "informational"
        is optional (default), but makes it easier to read
     */
-      if (process.platform === 'darwin') {
-        app.dock?.bounce('informational');
+      if (this.runtime.isMacOS) {
+        this.runtime.bounceDockIcon('informational');
       } else {
         win.flashFrame(true);
       }
@@ -115,7 +144,7 @@ export class TrayHandler {
 
   private updateBadgeCount(count?: number): void {
     if (typeof count !== 'undefined') {
-      app.setBadgeCount(count);
+      this.runtime.setBadgeCount(count);
       this.lastUnreadCount = count;
     }
   }
