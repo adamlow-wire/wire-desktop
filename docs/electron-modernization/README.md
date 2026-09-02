@@ -27,6 +27,7 @@ Repository-wide agent instructions are in [`AGENTS.md`](../../AGENTS.md).
 | --------------------------------------------- | ----------------------------------------------------- |
 | Project scope and priority                    | `plan.md`, sections 7 and 10                          |
 | Non-negotiable security behavior              | `plan.md`, section 5                                  |
+| Privileged renderer-to-main IPC migration     | `ipc-inventory.md`                                    |
 | Current work and handoff                      | `status.md`                                           |
 | Required product behavior and test confidence | `capabilities.md`                                     |
 | Test construction and evidence                | `testing.md`                                          |
