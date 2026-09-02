@@ -84,6 +84,7 @@ import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
 import {registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
+import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
@@ -357,10 +358,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   };
 
   ipcMain.handle(EVENT_TYPE.ACTION.GET_DESKTOP_SOURCES, (event, opts) => desktopCapturer.getSources(opts));
-  ipcMain.handle(EVENT_TYPE.ACTION.ENCRYPT, (event, plaintext: string) => safeStorage.encryptString(plaintext));
-  ipcMain.handle(EVENT_TYPE.ACTION.DECRYPT, (event, encrypted: Uint8Array) =>
-    safeStorage.decryptString(Buffer.from(encrypted)),
-  );
+  bindSafeStorageIpc(ipcMain, viewIdentityRegistry, safeStorage);
 
   main = new BrowserWindow(options);
   const mainURL = getMainWindowUrl();

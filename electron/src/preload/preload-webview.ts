@@ -30,6 +30,7 @@ import {EVENT_TYPE} from '../lib/eventType';
 import {forwardWrapperReloadRequest} from '../lib/forwardWrapperReloadRequest';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
 
 const remote = require('@electron/remote');
 
@@ -280,10 +281,10 @@ process.once('loaded', () => {
   };
   global.systemCrypto = {
     decrypt: async (encrypted: Uint8Array): Promise<string> => {
-      return ipcRenderer.invoke(EVENT_TYPE.ACTION.DECRYPT, encrypted);
+      return ipcRenderer.invoke(SAFE_STORAGE_DECRYPT_CHANNEL, encrypted);
     },
     encrypt: (value: string): Promise<Uint8Array> => {
-      return ipcRenderer.invoke(EVENT_TYPE.ACTION.ENCRYPT, value);
+      return ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value);
     },
     version: 1,
   };

@@ -26,6 +26,7 @@ export interface AuthorizedIpcContract<Request, Response> {
   readonly isRequest: (value: unknown) => value is Request;
   readonly isResponse: (value: unknown) => value is Response;
   readonly originPolicy: 'registered-view-origin';
+  readonly rateLimit: 'not-required' | Readonly<{maxRequests: number; windowMs: number}>;
   readonly viewTypes: readonly ViewType[];
 }
 
@@ -34,10 +35,51 @@ interface IpcMainBinding {
   removeHandler(channel: string): void;
 }
 
+interface RequestRateLimiter {
+  consume(webContentsId: number): void;
+}
+
 type AuthorizedIpcHandler<Request, Response> = (
   identity: AuthorizedViewIdentity,
   request: Request,
 ) => Response | Promise<Response>;
+
+const validateContractPolicy = <Request, Response>(contract: AuthorizedIpcContract<Request, Response>): void => {
+  const rateLimit = contract.rateLimit;
+  const hasValidRateLimit =
+    rateLimit === 'not-required' ||
+    (Number.isSafeInteger(rateLimit.maxRequests) &&
+      rateLimit.maxRequests > 0 &&
+      Number.isSafeInteger(rateLimit.windowMs) &&
+      rateLimit.windowMs > 0);
+  if (contract.failureMode !== 'reject' || contract.originPolicy !== 'registered-view-origin' || !hasValidRateLimit) {
+    throw new Error('IPC contract policy is invalid.');
+  }
+};
+
+const createRequestRateLimiter = (
+  rateLimit: AuthorizedIpcContract<unknown, unknown>['rateLimit'],
+  now: () => number,
+): RequestRateLimiter | undefined => {
+  if (rateLimit === 'not-required') {
+    return undefined;
+  }
+  const states = new Map<number, {count: number; resetAt: number}>();
+  return {
+    consume: webContentsId => {
+      const timestamp = now();
+      const state = states.get(webContentsId);
+      if (!state || timestamp >= state.resetAt) {
+        states.set(webContentsId, {count: 1, resetAt: timestamp + rateLimit.windowMs});
+        return;
+      }
+      if (state.count >= rateLimit.maxRequests) {
+        throw new Error('IPC request rate limit exceeded.');
+      }
+      state.count += 1;
+    },
+  };
+};
 
 export const executeAuthorizedIpc = async <Request, Response>(
   registry: ViewIdentityRegistry,
@@ -45,14 +87,19 @@ export const executeAuthorizedIpc = async <Request, Response>(
   event: SenderIdentity,
   request: unknown,
   handler: AuthorizedIpcHandler<Request, Response>,
+  rateLimiter?: RequestRateLimiter,
 ): Promise<Response> => {
-  if (contract.failureMode !== 'reject' || contract.originPolicy !== 'registered-view-origin') {
-    throw new Error('IPC contract policy is invalid.');
-  }
+  validateContractPolicy(contract);
   const identity = registry.authorize(event, contract.capability);
 
   if (!contract.viewTypes.includes(identity.viewType)) {
     throw new Error('IPC sender view type is not authorized.');
+  }
+  if (contract.rateLimit !== 'not-required') {
+    if (!rateLimiter) {
+      throw new Error('IPC contract requires a bound rate limiter.');
+    }
+    rateLimiter.consume(identity.webContents.id);
   }
   if (!contract.isRequest(request)) {
     throw new Error('IPC request payload is invalid.');
@@ -70,7 +117,12 @@ export const bindAuthorizedIpc = <Request, Response>(
   registry: ViewIdentityRegistry,
   contract: AuthorizedIpcContract<Request, Response>,
   handler: AuthorizedIpcHandler<Request, Response>,
+  now: () => number = Date.now,
 ): (() => void) => {
-  ipc.handle(contract.channel, (event, request) => executeAuthorizedIpc(registry, contract, event, request, handler));
+  validateContractPolicy(contract);
+  const rateLimiter = createRequestRateLimiter(contract.rateLimit, now);
+  ipc.handle(contract.channel, (event, request) =>
+    executeAuthorizedIpc(registry, contract, event, request, handler, rateLimiter),
+  );
   return () => ipc.removeHandler(contract.channel);
 };

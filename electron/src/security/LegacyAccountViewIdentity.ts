@@ -19,6 +19,7 @@
 
 import {ValidationUtil} from '@wireapp/commons';
 
+import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {
   RegisteredViewIdentity,
   registerViewIdentity,
@@ -51,7 +52,7 @@ export const registerLegacyAccountViewIdentity = (
   return registerViewIdentity(registry, {
     accountId,
     allowedOrigin: accountUrl.origin,
-    capabilities: [],
+    capabilities: [SAFE_STORAGE_ENCRYPT_CAPABILITY, SAFE_STORAGE_DECRYPT_CAPABILITY],
     partition,
     session: webContents.session,
     viewType: 'account',
