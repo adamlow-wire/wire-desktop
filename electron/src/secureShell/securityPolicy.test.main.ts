@@ -101,6 +101,53 @@ describe('secure shell policy', () => {
 });
 
 describe('secure shell view authority', () => {
+  it('[security-target][INV-003][SEC-002] rejects destroyed, duplicate, and same-id replacement contents', () => {
+    const registry = new ViewIdentityRegistry();
+    const registered = createSender(40);
+    const capabilities = [SECURE_SHELL_RUNTIME_INFO_CAPABILITY];
+    const identity = registry.register({
+      accountId: 'account-a',
+      allowedOrigin: 'https://app.wire.test',
+      capabilities,
+      partition: 'persist:wire-secure-a',
+      webContents: registered.webContents,
+    });
+
+    capabilities.length = 0;
+    assert.strictEqual(Object.isFrozen(identity), true);
+    assert.strictEqual(Object.isFrozen(identity.capabilities), true);
+    assert.deepStrictEqual(identity.capabilities, [SECURE_SHELL_RUNTIME_INFO_CAPABILITY]);
+    assert.throws(() =>
+      registry.register({
+        accountId: 'account-b',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'persist:wire-secure-b',
+        webContents: registered.webContents,
+      }),
+    );
+
+    const replacement = createSender(40);
+    assert.throws(() =>
+      registry.authorize(
+        {sender: replacement.webContents, senderFrame: registered.frame},
+        SECURE_SHELL_RUNTIME_INFO_CAPABILITY,
+      ),
+    );
+
+    const destroyed = createSender(39);
+    destroyed.destroy();
+    assert.throws(() =>
+      registry.register({
+        accountId: 'account-c',
+        allowedOrigin: 'https://app.wire.test',
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'persist:wire-secure-c',
+        webContents: destroyed.webContents,
+      }),
+    );
+  });
+
   it('[security-target][INV-003][ARC-002] authorizes only the registered main frame, origin, and capability', () => {
     const registry = new ViewIdentityRegistry();
     const registered = createSender(41);
