@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.4.0
+revision: 1.4.1
 status: draft
 updated: 2026-09-02
 owners:
@@ -585,7 +585,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Platform branches are tested through injectable adapters or platform CI.
   - macOS tests assert `dock.bounce` rather than unconditionally passing.
   - Packaged smoke tests cover visible platform integration where automation is practical.
-- Evidence: Local branch `tst/TST-003-tray-characterization` has sensitivity-proven platform-branch coverage; rebase and hosted package validation are pending.
+- Evidence: Local branch `tst/TST-003-tray-characterization-2026-09-02`, commit `ea559431`, passes 9/9 focused tray tests and the full Electron main suite (164 passing with 3 owned CAP-002 targets pending). Temporary macOS/non-macOS platform perturbations failed the intended tests and were reverted. Types, lint, formatting, and the changed-statement gate (27/31, 87.10%) pass; hosted package validation remains pending.
 
 #### TST-004 — Add security-boundary regression tests
 
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.4.1 | 2026-09-02 | Codex | Recorded sensitivity-proven TST-003 tray platform characterization and its remaining hosted package gate | TST-003, DCP-005 |
 | 1.4.0 | 2026-09-02 | Codex | Recorded merged CAP-001 targeted deletion, synchronized upstream through `6f9b6a99`, and moved the still-product-wide security work from the completed bounded M2 proof into M3 | GOV-001, SEC-002 through SEC-008, SEC-010, SEC-013, TST-003, CAP-001 |
 | 1.3.1 | 2026-08-26 | Codex | Recorded the green upstream synchronization and retained Electron 43.4.0 as the explicit M3 runtime baseline | GOV-001, CAP-001, DEC-007 |
 | 1.3.0 | 2026-08-26 | Codex | Added a bounded CAP-001 data-deletion slice that removes view authority before clearing only the targeted persistent session and prevents same-account recreation during deletion | CAP-001, DCP-004, INV-004, INV-010 |
