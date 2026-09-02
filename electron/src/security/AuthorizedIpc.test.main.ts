@@ -21,12 +21,7 @@ import {spy} from 'sinon';
 
 import * as assert from 'assert';
 
-import {
-  AuthorizedIpcContract,
-  bindAuthorizedIpc,
-  bindAuthorizedSyncIpc,
-  executeAuthorizedIpc,
-} from './AuthorizedIpc';
+import {AuthorizedIpcContract, bindAuthorizedIpc, bindAuthorizedSyncIpc, executeAuthorizedIpc} from './AuthorizedIpc';
 import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 interface TestRequest {

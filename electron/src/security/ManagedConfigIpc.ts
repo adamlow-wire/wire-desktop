@@ -17,11 +17,11 @@
  *
  */
 
-import type {ManagedConfig} from '../managed/ManagedConfig';
-
 import {AuthorizedIpcContract, bindAuthorizedSyncIpc} from './AuthorizedIpc';
 import {MANAGED_CONFIG_CAPABILITY, MANAGED_CONFIG_CHANNEL} from './ManagedConfigContract';
 import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
+
+import type {ManagedConfig} from '../managed/ManagedConfig';
 
 export {MANAGED_CONFIG_CAPABILITY, MANAGED_CONFIG_CHANNEL} from './ManagedConfigContract';
 
