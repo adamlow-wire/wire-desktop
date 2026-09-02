@@ -88,10 +88,12 @@ describe('save-picture IPC contract', () => {
     const unknownEvent = {...event, sender: {...event.sender, id: 92}};
     const validBytes = Uint8Array.from([1]);
     await assert.rejects(() => handler(unknownEvent, {bytes: validBytes}), /not authorized/);
+    await assert.rejects(() => handler(event, undefined), /payload/);
     await assert.rejects(() => handler(event, {bytes: []}), /payload/);
     await assert.rejects(() => handler(event, {bytes: new Uint8Array()}), /payload/);
     await assert.rejects(() => handler(event, {bytes: new Uint8Array(MAX_SAVE_PICTURE_BYTES + 1)}), /payload/);
     await assert.rejects(() => handler(event, {bytes: validBytes, timestamp: 'not-a-timestamp'}), /payload/);
+    await assert.rejects(() => handler(event, {bytes: validBytes, timestamp: '9007199254740991'}), /payload/);
     await assert.rejects(() => handler(event, {bytes: validBytes, rendererChosenPath: '/tmp/image'}), /payload/);
     assert.strictEqual(saveCalls, 0);
   });
