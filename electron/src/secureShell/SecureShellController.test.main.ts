@@ -227,6 +227,36 @@ describe('SecureShellController', () => {
     });
   });
 
+  it('[security-target][INV-004][INV-010][DCP-004][CAP-001] deletes only the targeted account storage', async function () {
+    this.timeout(10_000);
+    const controller = await createController('account-a');
+    const firstContents = controller.getAccountWebContentsForTest('account-a');
+    assert.ok(firstContents);
+    await firstContents.executeJavaScript("localStorage.setItem('deletion-proof', 'account-a')");
+    await firstContents.session.cookies.set({name: 'deletion-proof', url: accountUrl, value: 'account-a'});
+
+    await controller.addAccount('account-b');
+    const secondContents = controller.getAccountWebContentsForTest('account-b');
+    assert.ok(secondContents);
+    await secondContents.executeJavaScript("localStorage.setItem('deletion-proof', 'account-b')");
+    await secondContents.session.cookies.set({name: 'deletion-proof', url: accountUrl, value: 'account-b'});
+
+    controller.switchAccount('account-a');
+    await controller.deleteAccount('account-a');
+    await waitFor(() => firstContents.isDestroyed());
+
+    assert.deepStrictEqual(controller.getAccountIds(), ['account-b']);
+    assert.strictEqual(controller.getActiveAccountId(), 'account-b');
+    assert.strictEqual(await secondContents.executeJavaScript("localStorage.getItem('deletion-proof')"), 'account-b');
+    assert.strictEqual((await secondContents.session.cookies.get({name: 'deletion-proof'}))[0]?.value, 'account-b');
+
+    await controller.addAccount('account-a');
+    const replacementContents = controller.getAccountWebContentsForTest('account-a');
+    assert.ok(replacementContents);
+    assert.strictEqual(await replacementContents.executeJavaScript("localStorage.getItem('deletion-proof')"), null);
+    assert.deepStrictEqual(await replacementContents.session.cookies.get({name: 'deletion-proof'}), []);
+  });
+
   it('[security-target][INV-003][INV-010][CAP-001] fails closed for duplicate or unknown account targets', async () => {
     const controller = await createController('account-a');
     const firstContents = controller.getAccountWebContentsForTest('account-a');
@@ -235,6 +265,7 @@ describe('SecureShellController', () => {
     await assert.rejects(controller.addAccount('account-a'), /already exists/);
     assert.throws(() => controller.switchAccount('unknown-account'), /Unknown secure account/);
     assert.throws(() => controller.removeAccount('unknown-account'), /Unknown secure account/);
+    await assert.rejects(controller.deleteAccount('unknown-account'), /Unknown secure account/);
     assert.deepStrictEqual(controller.getAccountIds(), ['account-a']);
     assert.strictEqual(controller.getActiveAccountId(), 'account-a');
     assert.deepStrictEqual(getVisibleAccountContentsIds(controller), [firstContents.id]);

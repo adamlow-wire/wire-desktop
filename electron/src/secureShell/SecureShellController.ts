@@ -42,6 +42,7 @@ export class SecureShellController {
   private readonly accountViews = new Map<string, WebContentsView>();
   private readonly accountUrl: URL;
   private readonly configuredSessions = new WeakSet<Session>();
+  private readonly deletingAccountIds = new Set<string>();
   private readonly registry: ViewIdentityRegistry;
   private readonly options: SecureShellControllerOptions;
   private window: BrowserWindow | undefined;
@@ -92,8 +93,8 @@ export class SecureShellController {
     if (!this.window || this.window.isDestroyed()) {
       throw new Error('Secure shell is not running.');
     }
-    if (this.accountViews.has(accountId)) {
-      throw new Error(`Secure account "${accountId}" already exists.`);
+    if (this.accountViews.has(accountId) || this.deletingAccountIds.has(accountId)) {
+      throw new Error(`Secure account "${accountId}" already exists or is being deleted.`);
     }
 
     try {
@@ -130,6 +131,24 @@ export class SecureShellController {
       if (fallbackId) {
         this.switchAccount(fallbackId);
       }
+    }
+  }
+
+  async deleteAccount(accountId: string): Promise<void> {
+    const view = this.accountViews.get(accountId);
+    if (!view) {
+      throw new Error(`Unknown secure account "${accountId}".`);
+    }
+
+    const accountSession = view.webContents.session;
+    this.deletingAccountIds.add(accountId);
+    this.removeAccount(accountId);
+    try {
+      await accountSession.clearStorageData();
+      await accountSession.clearCache();
+      accountSession.flushStorageData();
+    } finally {
+      this.deletingAccountIds.delete(accountId);
     }
   }
 
