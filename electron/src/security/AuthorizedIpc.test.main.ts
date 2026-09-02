@@ -57,11 +57,7 @@ const contract: AuthorizedIpcContract<TestRequest, TestResponse> = Object.freeze
   viewTypes: Object.freeze(['account'] as const),
 });
 
-const createSender = (
-  id: number,
-  viewType: 'account' | 'sso' = 'account',
-  registry = new ViewIdentityRegistry(),
-) => {
+const createSender = (id: number, viewType: 'account' | 'sso' = 'account', registry = new ViewIdentityRegistry()) => {
   const frame = {url: 'https://app.wire.test/account'};
   const session = {};
   const webContents = {id, isDestroyed: () => false, mainFrame: frame, session};
