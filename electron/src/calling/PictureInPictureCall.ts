@@ -17,6 +17,12 @@
  *
  */
 
+import {
+  LifecycleWebContentsIdentity,
+  RegisteredViewIdentity,
+  registerViewIdentity,
+  ViewIdentityRegistry,
+} from '../security/ViewIdentityRegistry';
 import {getNewWindowOptions} from '../window/WindowUtil';
 
 const PICTURE_IN_PICTURE_CALL_FRAME_NAME = 'WIRE_PICTURE_IN_PICTURE_CALL';
@@ -35,5 +41,30 @@ export const getPictureInPictureCallWindowOptions = (): Electron.BrowserWindowCo
     maximizable: true,
     alwaysOnTop: false,
     minimizable: true,
+  });
+};
+
+export const registerPictureInPictureCallIdentity = ({
+  accountId,
+  allowedUrl,
+  partition,
+  registry,
+  webContents,
+}: {
+  readonly accountId?: string;
+  readonly allowedUrl: string;
+  readonly partition: string;
+  readonly registry: ViewIdentityRegistry;
+  readonly webContents: LifecycleWebContentsIdentity;
+}): RegisteredViewIdentity => {
+  const allowedOrigin = new URL(allowedUrl).origin;
+  return registerViewIdentity(registry, {
+    accountId,
+    allowedOrigin,
+    capabilities: [],
+    partition,
+    session: webContents.session,
+    viewType: 'picture-in-picture',
+    webContents,
   });
 };
