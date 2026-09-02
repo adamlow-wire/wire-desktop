@@ -57,10 +57,7 @@ const notificationActivationContract: AuthorizedIpcContract<undefined, void> = O
   viewTypes: Object.freeze(['account'] as const),
 });
 
-export const requestNotificationActivation = async (
-  ipc: IpcRendererInvoker,
-  logger: FailureLogger,
-): Promise<void> => {
+export const requestNotificationActivation = async (ipc: IpcRendererInvoker, logger: FailureLogger): Promise<void> => {
   try {
     await ipc.invoke(NOTIFICATION_ACTIVATION_CHANNEL);
   } catch (error) {
