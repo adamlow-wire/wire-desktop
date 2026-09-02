@@ -32,6 +32,7 @@ import * as locale from '../../locale';
 import {SAVE_PICTURE_CHANNEL} from '../../security/SavePictureContract';
 import {config} from '../../settings/config';
 import {sendToWebContents} from '../../window/WindowUtil';
+import {selectContextMenuAction} from './contextMenuPolicy';
 
 const remote = require('@electron/remote');
 
@@ -129,20 +130,24 @@ const webContents = remote.getCurrentWebContents();
 
 webContents.on('context-menu', (_event: Event, params: ContextMenuParams) => {
   const window = remote.getCurrentWindow();
+  const action = selectContextMenuAction({
+    canCopy: params.editFlags.canCopy,
+    canSelectAll: params.editFlags.canSelectAll,
+    isEditable: params.isEditable,
+    linkURL: params.linkURL,
+    mediaType: params.mediaType,
+    selectionText: params.selectionText,
+  });
 
-  if (params.isEditable) {
+  if (action.kind === 'editable') {
     const textMenu = createTextMenu(params, webContents);
     textMenu.popup({window});
-  } else if (params.mediaType === 'image') {
+  } else if (action.kind === 'image') {
     imageMenu.image = params.srcURL;
     imageMenu.popup({window});
-  } else if (!!params.linkURL) {
-    const copyContext = params.linkURL.replace(/^mailto:/, '');
-    createDefaultMenu(copyContext).popup({window});
-  } else if (!!params.selectionText || params.editFlags.canCopy) {
-    const copyContext = params.selectionText;
-    createDefaultMenu(copyContext).popup({window});
-  } else if (params.editFlags.canSelectAll) {
+  } else if (action.kind === 'copy') {
+    createDefaultMenu(action.text).popup({window});
+  } else if (action.kind === 'select-all-fallback') {
     let element = document.elementFromPoint(params.x, params.y) as HTMLElement;
 
     // Maybe we are in a code block _inside_ an element with the 'text' class?
