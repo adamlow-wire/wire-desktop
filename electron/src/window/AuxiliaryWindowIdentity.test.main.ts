@@ -23,6 +23,8 @@ import * as assert from 'assert';
 import * as path from 'path';
 import {pathToFileURL} from 'url';
 
+import {EVENT_TYPE} from '../lib/eventType';
+import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 
 const getLastWebPreferences = (window: BrowserWindow): WebPreferences => {
@@ -57,17 +59,36 @@ describe('auxiliary window identity', () => {
   });
 
   it('[characterization][SEC-002] creates About in its exact local session', async () => {
-    const window = await AboutWindow.showWindow();
+    const registry = new ViewIdentityRegistry();
+    const window = await AboutWindow.showWindow(registry);
     windows.push(window);
 
     const expectedUrl = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, 'html/about.html')).href;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('about-window'));
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
+    const identity = registry.authorize(
+      {sender: window.webContents, senderFrame: window.webContents.mainFrame},
+      EVENT_TYPE.ABOUT.LOCALE_VALUES,
+    );
+    assert.strictEqual(identity.viewType, 'about');
+    assert.strictEqual(identity.allowedUrl, expectedUrl);
+    assert.throws(() =>
+      registry.authorize(
+        {sender: window.webContents, senderFrame: window.webContents.mainFrame},
+        EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
+      ),
+    );
+    const webContentsId = window.webContents.id;
+    const destroyed = new Promise<void>(resolve => window.webContents.once('destroyed', resolve));
+    window.destroy();
+    await destroyed;
+    assert.strictEqual(registry.has(webContentsId), false);
   });
 
   it('[characterization][SEC-002] creates the proxy prompt in its exact local session', async () => {
-    const window = await ProxyPromptWindow.showWindow();
+    const registry = new ViewIdentityRegistry();
+    const window = await ProxyPromptWindow.showWindow(registry);
     windows.push(window);
 
     const expectedUrl = pathToFileURL(
@@ -76,5 +97,22 @@ describe('auxiliary window identity', () => {
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('proxy-prompt-window'));
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
+    const identity = registry.authorize(
+      {sender: window.webContents, senderFrame: window.webContents.mainFrame},
+      EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
+    );
+    assert.strictEqual(identity.viewType, 'proxy-prompt');
+    assert.strictEqual(identity.allowedUrl, expectedUrl);
+    assert.throws(() =>
+      registry.authorize(
+        {sender: window.webContents, senderFrame: window.webContents.mainFrame},
+        EVENT_TYPE.ABOUT.LOCALE_VALUES,
+      ),
+    );
+    const webContentsId = window.webContents.id;
+    const destroyed = new Promise<void>(resolve => window.webContents.once('destroyed', resolve));
+    window.destroy();
+    await destroyed;
+    assert.strictEqual(registry.has(webContentsId), false);
   });
 });

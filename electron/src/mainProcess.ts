@@ -78,6 +78,7 @@ import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
+import {ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
@@ -102,6 +103,7 @@ const mainProcessFireAndForgetInvoker = createFireAndForgetInvoker({
   },
 });
 const configuredUserDataPath = getConfiguredPortableUserDataPath();
+const viewIdentityRegistry = new ViewIdentityRegistry();
 
 type OpenLinkInNewWindowParameters = {
   accountId: Maybe<string>;
@@ -239,7 +241,7 @@ const bindIpcEvents = (): void => {
   });
   ipcMain.on(EVENT_TYPE.WRAPPER.RELOAD, () => forwardWrapperReloadRequest(main.webContents));
   ipcMain.on(EVENT_TYPE.WRAPPER.RELAUNCH, () => lifecycle.relaunch());
-  ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow());
+  ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow(viewIdentityRegistry));
 
   // Answered synchronously: the webview preload reads this via `ipcRenderer.sendSync` while it builds
   // `window.desktopAppConfig`. The value is pre-read and memoized, so the handler does no I/O here.
@@ -513,7 +515,7 @@ const handleAppEvents = (): void => {
           }
         });
 
-        await ProxyPromptWindow.showWindow();
+        await ProxyPromptWindow.showWindow(viewIdentityRegistry);
       }
     }
   });
