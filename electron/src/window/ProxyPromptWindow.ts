@@ -37,7 +37,7 @@ const windowSize = {
   WIDTH: 550,
 };
 
-const showWindow = async () => {
+const showWindow = async (): Promise<BrowserWindow> => {
   let proxyPromptWindow: BrowserWindow | undefined;
 
   if (!proxyPromptWindow) {
@@ -98,6 +98,7 @@ const showWindow = async () => {
   }
 
   proxyPromptWindow.show();
+  return proxyPromptWindow;
 };
 
 export const ProxyPromptWindow = {showWindow};
