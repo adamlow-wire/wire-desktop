@@ -267,6 +267,38 @@ describe('secure shell view authority', () => {
     assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
   });
 
+  it('[security-target][INV-003][SEC-002] binds opaque local content to its exact URL', () => {
+    const registry = new ViewIdentityRegistry();
+    const aboutUrl = 'file:///opt/wire/electron/html/about.html';
+    const registered = createSender(46, aboutUrl);
+    registry.register({
+      allowedOrigin: 'null',
+      allowedUrl: aboutUrl,
+      capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+      partition: 'about-window',
+      session: registered.webContents.session,
+      viewType: 'about',
+      webContents: registered.webContents,
+    });
+
+    assert.strictEqual(registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY).viewType, 'about');
+    registered.frame.url = 'file:///tmp/attacker.html';
+    assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
+
+    const mismatched = createSender(47, aboutUrl);
+    assert.throws(() =>
+      registry.register({
+        allowedOrigin: 'https://app.wire.test',
+        allowedUrl: aboutUrl,
+        capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+        partition: 'about-window',
+        session: mismatched.webContents.session,
+        viewType: 'about',
+        webContents: mismatched.webContents,
+      }),
+    );
+  });
+
   it('[security-target][INV-003][INV-010][ARC-002] removes destroyed and explicitly revoked authority', () => {
     const registry = new ViewIdentityRegistry();
     const registered = createSender(43);

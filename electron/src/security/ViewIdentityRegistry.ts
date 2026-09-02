@@ -39,6 +39,7 @@ export type ViewType = 'about' | 'account' | 'application-shell' | 'picture-in-p
 export interface ViewRegistration {
   readonly accountId?: string;
   readonly allowedOrigin: string;
+  readonly allowedUrl?: string;
   readonly capabilities: readonly string[];
   readonly partition: string;
   readonly session: SessionIdentity;
@@ -76,8 +77,12 @@ export class ViewIdentityRegistry {
       registration.viewType === 'account'
         ? typeof registration.accountId === 'string' && registration.accountId.length > 0
         : typeof registration.accountId === 'undefined';
+    const hasValidAllowedUrl =
+      typeof registration.allowedUrl === 'undefined' ||
+      hasAllowedOrigin(registration.allowedUrl, registration.allowedOrigin);
     if (
       !hasValidAccountBinding ||
+      !hasValidAllowedUrl ||
       registration.webContents.isDestroyed() ||
       registration.webContents.session !== registration.session ||
       this.identities.has(registration.webContents.id)
@@ -88,6 +93,7 @@ export class ViewIdentityRegistry {
     const identity = Object.freeze({
       accountId: registration.accountId,
       allowedOrigin: registration.allowedOrigin,
+      allowedUrl: registration.allowedUrl,
       capabilities: Object.freeze([...registration.capabilities]),
       partition: registration.partition,
       session: registration.session,
@@ -116,6 +122,7 @@ export class ViewIdentityRegistry {
       sender.sender.session === identity.session &&
       sender.senderFrame === identity.mainFrame &&
       hasAllowedOrigin(sender.senderFrame.url, identity.allowedOrigin) &&
+      (typeof identity.allowedUrl === 'undefined' || sender.senderFrame.url === identity.allowedUrl) &&
       identity.capabilities.includes(capability);
 
     if (!authorized) {
