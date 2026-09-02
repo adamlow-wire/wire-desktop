@@ -20,7 +20,8 @@
 import {App} from 'electron';
 
 import {SecureShellControllerOptions} from './SecureShellController';
-import {ViewIdentityRegistry} from './ViewIdentityRegistry';
+
+import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 interface SecureShellControllerLifecycle {
   dispose(): void;

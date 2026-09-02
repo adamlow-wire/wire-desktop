@@ -27,7 +27,8 @@ import * as path from 'path';
 import {bindSecureShellIpc} from './ipc';
 import {installSecureShellProtocol} from './protocol';
 import {SecureShellController} from './SecureShellController';
-import {ViewIdentityRegistry} from './ViewIdentityRegistry';
+
+import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 const FIXTURE_HTML = `<!doctype html>
 <html>

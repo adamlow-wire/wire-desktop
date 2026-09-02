@@ -23,9 +23,9 @@ import * as path from 'path';
 
 import {SECURE_SHELL_ORIGIN, SECURE_SHELL_RUNTIME_INFO_CAPABILITY} from './constants';
 import {createSecureAccountPartition, isAllowedAccountNavigation, parseSecureAccountUrl} from './policy';
-import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 import {getLogger} from '../logging/getLogger';
+import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 const logger = getLogger(path.basename(__filename));
 
@@ -203,6 +203,8 @@ export class SecureShellController {
       allowedOrigin: this.accountUrl.origin,
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition,
+      session: webContents.session,
+      viewType: 'account',
       webContents,
     });
 

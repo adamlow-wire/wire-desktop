@@ -28,14 +28,16 @@ import {
   parseSecureAccountUrl,
 } from './policy';
 import {CONTENT_SECURITY_POLICY, createSecureShellResponse} from './protocol';
-import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
-const createSender = (id: number, url = 'https://app.wire.test/account') => {
+import {SenderIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
+
+const createSender = (id: number, url = 'https://app.wire.test/account', session = {}) => {
   const frame = {url};
   let destroyed = false;
   const webContents = {
     id,
     mainFrame: frame,
+    session,
     isDestroyed: () => destroyed,
   };
   return {
@@ -101,6 +103,49 @@ describe('secure shell policy', () => {
 });
 
 describe('secure shell view authority', () => {
+  it('[security-target][INV-003][INV-004][SEC-002] binds immutable view type and exact session identity', () => {
+    const registry = new ViewIdentityRegistry();
+    const session = {};
+    const registered = createSender(38, 'https://app.wire.test/account', session);
+    const registration = {
+      accountId: 'account-a',
+      allowedOrigin: 'https://app.wire.test',
+      capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
+      partition: 'persist:wire-secure-a',
+      session,
+      viewType: 'account' as const,
+      webContents: registered.webContents,
+    };
+    const identity = registry.register(registration);
+
+    assert.strictEqual(identity.viewType, 'account');
+    assert.strictEqual(identity.session, session);
+
+    registered.webContents.session = {};
+    assert.throws(() => registry.authorize(registered.event, SECURE_SHELL_RUNTIME_INFO_CAPABILITY));
+
+    const mismatched = createSender(37);
+    assert.throws(() => registry.register({...registration, session: {}, webContents: mismatched.webContents}));
+    const missingAccount = createSender(36);
+    assert.throws(() =>
+      registry.register({
+        ...registration,
+        accountId: undefined,
+        session: missingAccount.webContents.session,
+        webContents: missingAccount.webContents,
+      }),
+    );
+    const ssoWithAccount = createSender(35);
+    assert.throws(() =>
+      registry.register({
+        ...registration,
+        session: ssoWithAccount.webContents.session,
+        viewType: 'sso',
+        webContents: ssoWithAccount.webContents,
+      }),
+    );
+  });
+
   it('[security-target][INV-003][SEC-002] rejects destroyed, duplicate, and same-id replacement contents', () => {
     const registry = new ViewIdentityRegistry();
     const registered = createSender(40);
@@ -110,6 +155,8 @@ describe('secure shell view authority', () => {
       allowedOrigin: 'https://app.wire.test',
       capabilities,
       partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
       webContents: registered.webContents,
     });
 
@@ -123,6 +170,8 @@ describe('secure shell view authority', () => {
         allowedOrigin: 'https://app.wire.test',
         capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
         partition: 'persist:wire-secure-b',
+        session: registered.webContents.session,
+        viewType: 'account',
         webContents: registered.webContents,
       }),
     );
@@ -143,6 +192,8 @@ describe('secure shell view authority', () => {
         allowedOrigin: 'https://app.wire.test',
         capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
         partition: 'persist:wire-secure-c',
+        session: destroyed.webContents.session,
+        viewType: 'account',
         webContents: destroyed.webContents,
       }),
     );
@@ -156,6 +207,8 @@ describe('secure shell view authority', () => {
       allowedOrigin: 'https://app.wire.test',
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
       webContents: registered.webContents,
     });
 
@@ -182,6 +235,8 @@ describe('secure shell view authority', () => {
       allowedOrigin: 'https://app.wire.test',
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
       webContents: registered.webContents,
     });
 
@@ -199,6 +254,8 @@ describe('secure shell view authority', () => {
       allowedOrigin: 'https://app.wire.test',
       capabilities: [SECURE_SHELL_RUNTIME_INFO_CAPABILITY],
       partition: 'persist:wire-secure-a',
+      session: registered.webContents.session,
+      viewType: 'account',
       webContents: registered.webContents,
     });
 

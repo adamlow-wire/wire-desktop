@@ -17,32 +17,32 @@
  *
  */
 
-import {isAllowedAccountNavigation} from './policy';
-
 interface FrameIdentity {
   readonly url: string;
 }
 
+type SessionIdentity = object;
+
 interface WebContentsIdentity {
   readonly id: number;
   readonly mainFrame: FrameIdentity;
+  readonly session: SessionIdentity;
   isDestroyed(): boolean;
 }
 
+export type ViewType = 'about' | 'account' | 'application-shell' | 'picture-in-picture' | 'proxy-prompt' | 'sso';
+
 export interface ViewRegistration {
-  readonly accountId: string;
+  readonly accountId?: string;
   readonly allowedOrigin: string;
   readonly capabilities: readonly string[];
   readonly partition: string;
+  readonly session: SessionIdentity;
+  readonly viewType: ViewType;
   readonly webContents: WebContentsIdentity;
 }
 
-export interface AuthorizedViewIdentity {
-  readonly accountId: string;
-  readonly allowedOrigin: string;
-  readonly capabilities: readonly string[];
-  readonly partition: string;
-  readonly webContents: WebContentsIdentity;
+export interface AuthorizedViewIdentity extends ViewRegistration {
   readonly mainFrame: FrameIdentity;
 }
 
@@ -51,12 +51,29 @@ export interface SenderIdentity {
   readonly senderFrame: FrameIdentity | null;
 }
 
+const hasAllowedOrigin = (value: string, allowedOrigin: string): boolean => {
+  try {
+    return new URL(value).origin === allowedOrigin;
+  } catch {
+    return false;
+  }
+};
+
 export class ViewIdentityRegistry {
   private readonly identities = new Map<number, AuthorizedViewIdentity>();
 
   register(registration: ViewRegistration): AuthorizedViewIdentity {
-    if (registration.webContents.isDestroyed() || this.identities.has(registration.webContents.id)) {
-      throw new Error('Secure shell view cannot be registered.');
+    const hasValidAccountBinding =
+      registration.viewType === 'account'
+        ? typeof registration.accountId === 'string' && registration.accountId.length > 0
+        : typeof registration.accountId === 'undefined';
+    if (
+      !hasValidAccountBinding ||
+      registration.webContents.isDestroyed() ||
+      registration.webContents.session !== registration.session ||
+      this.identities.has(registration.webContents.id)
+    ) {
+      throw new Error('View cannot be registered.');
     }
 
     const identity = Object.freeze({
@@ -64,6 +81,8 @@ export class ViewIdentityRegistry {
       allowedOrigin: registration.allowedOrigin,
       capabilities: Object.freeze([...registration.capabilities]),
       partition: registration.partition,
+      session: registration.session,
+      viewType: registration.viewType,
       webContents: registration.webContents,
       mainFrame: registration.webContents.mainFrame,
     });
@@ -85,12 +104,13 @@ export class ViewIdentityRegistry {
       identity &&
       identity.webContents === sender.sender &&
       !sender.sender.isDestroyed() &&
+      sender.sender.session === identity.session &&
       sender.senderFrame === identity.mainFrame &&
-      isAllowedAccountNavigation(sender.senderFrame.url, identity.allowedOrigin) &&
+      hasAllowedOrigin(sender.senderFrame.url, identity.allowedOrigin) &&
       identity.capabilities.includes(capability);
 
     if (!authorized) {
-      throw new Error('Secure shell request is not authorized.');
+      throw new Error('View request is not authorized.');
     }
 
     return identity;
