@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.4.1
+revision: 1.4.2
 status: draft
 updated: 2026-09-02
 owners:
@@ -323,7 +323,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### SEC-002 — Create a central view identity and capability registry
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Bind every `WebContents` and frame to a known view type, account identifier where applicable, allowed origins, session, and capability set.
@@ -331,7 +331,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Unknown, destroyed, unexpected-frame, and origin-mismatched senders fail closed.
   - Identity cannot be supplied or overridden by renderer payload data.
   - Unit and integration tests cover authorized and unauthorized senders.
-- Evidence: TBD
+- Evidence: Local branch `sec/SEC-002-view-identity-registry-2026-09-02` binds the application shells, legacy and secure account views, About, proxy prompt, SSO, picture-in-picture, and WebRTC-internals window to immutable central authority. The full Electron main suite passes with 180 tests and 3 owned CAP-002 targets pending; changed statements are 189/218 (86.70%) and changed security branches are 134/135 (99.26%). Legacy-account and developer-tool registrations were sensitivity-proven with temporary perturbations that were reverted; hosted validation remains pending.
 
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
@@ -577,7 +577,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
 #### TST-003 — Characterize tray, badge, notification, and menu behavior
 
 - Priority: `P1`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: BASE-002
 - Scope: Extend unit/platform tests for tray clicks, menu actions, zero/nonzero icon transitions, tooltip, app badge, Windows overlay, macOS bounce, and Linux icon variants.
@@ -585,7 +585,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Platform branches are tested through injectable adapters or platform CI.
   - macOS tests assert `dock.bounce` rather than unconditionally passing.
   - Packaged smoke tests cover visible platform integration where automation is practical.
-- Evidence: Local branch `tst/TST-003-tray-characterization-2026-09-02`, commit `a0c91987`, passes 9/9 focused tray tests and the full Electron main suite (164 passing with 3 owned CAP-002 targets pending). Temporary macOS/non-macOS platform perturbations failed the intended tests and were reverted. Types, lint, formatting, and the changed-statement gate (27/31, 87.10%) pass; hosted package validation remains pending.
+- Evidence: [PR #12](https://github.com/adamlow-wire/wire-desktop/pull/12) merged as `37f8b5e3` after build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and the merged report passed. Commit `a0c91987` passes 9/9 focused tray tests and the full Electron main suite (164 passing with 3 owned CAP-002 targets pending). Temporary macOS/non-macOS platform perturbations failed the intended tests and were reverted; visible tray automation remains part of CAP-004's packaged native smoke rather than this characterization gate.
 
 #### TST-004 — Add security-boundary regression tests
 
@@ -859,6 +859,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.4.2 | 2026-09-02 | Codex | Closed TST-003 with green hosted platform evidence and recorded the sensitivity-proven SEC-002 central view-authority implementation pending hosted validation | TST-003, SEC-002, DCP-003, DCP-005, DCP-009, DCP-011 |
 | 1.4.1 | 2026-09-02 | Codex | Recorded sensitivity-proven TST-003 tray platform characterization and its remaining hosted package gate | TST-003, DCP-005 |
 | 1.4.0 | 2026-09-02 | Codex | Recorded merged CAP-001 targeted deletion, synchronized upstream through `6f9b6a99`, and moved the still-product-wide security work from the completed bounded M2 proof into M3 | GOV-001, SEC-002 through SEC-008, SEC-010, SEC-013, TST-003, CAP-001 |
 | 1.3.1 | 2026-08-26 | Codex | Recorded the green upstream synchronization and retained Electron 43.4.0 as the explicit M3 runtime baseline | GOV-001, CAP-001, DEC-007 |

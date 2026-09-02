@@ -2,17 +2,17 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-02
 milestone: M3
-active_work_item: TST-003
-state: m3-tray-characterization-validation
+active_work_item: SEC-002
+state: m3-view-identity-registry-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 2e641a467f5ea31fb903e7170db1caa4f272dd14
+integration_head_commit: 37f8b5e3d58a31563706eae8693860df298c12b1
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: tst/TST-003-tray-characterization-2026-09-02
-next_work_item: SEC-002
+related_pending_branch: sec/SEC-002-view-identity-registry-2026-09-02
+next_work_item: SEC-003
 blockers: []
 ---
 
@@ -28,22 +28,24 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #11](https://github.com/adamlow-wire/wire-desktop/pull/11) merged on 2026-09-02 after every required check passed. It synchronizes upstream `dev` through `6f9b6a99`, preserves Electron `43.4.0`, and makes the authenticated E2E fixtures resilient to Electron account-view replacement and measured staging latency without weakening behavioral assertions.
 
+[PR #12](https://github.com/adamlow-wire/wire-desktop/pull/12) merged on 2026-09-02 after every required check passed. TST-003 now locks down tray click, tooltip, icon-selection, unread, badge, and macOS/non-macOS flashing branches; CAP-004 retains visible packaged tray behavior.
+
 ## Active work
 
-| Field         | Value                                                    |
-| ------------- | -------------------------------------------------------- |
-| Work item     | TST-003 — Characterize tray and native integration       |
-| Owner         | `adamlow-wire`                                           |
-| Active branch | `tst/TST-003-tray-characterization-2026-09-02`           |
-| Goal          | Lock down tray platform branches before capability moves |
-| Starting gate | PR #11 merged green at `2e641a46`                        |
+| Field         | Value                                                        |
+| ------------- | ------------------------------------------------------------ |
+| Work item     | SEC-002 — Central view identity and capability registry      |
+| Owner         | `adamlow-wire`                                               |
+| Active branch | `sec/SEC-002-view-identity-registry-2026-09-02`              |
+| Goal          | Bind every legitimate view to immutable main-owned authority |
+| Starting gate | PR #12 merged green at `37f8b5e3`                            |
 
 ## Next executable sequence
 
-1. Publish and validate the sensitivity-proven TST-003 tray characterization branch.
-2. Rebase and publish SEC-002's central view identity registry.
+1. Publish and validate SEC-002's central view identity registry.
+2. Build SEC-003's typed, validated IPC contracts on the merged registry.
 3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
-4. Complete the product-wide M3 security boundary and critical capability items in dependency order, one primary work item per PR.
+4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
@@ -62,6 +64,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | ELC-002 — Upgrade Electron to latest stable             | PR #6; Electron 43.4.0; final package/E2E green   |
 | ARC-002 — Implement secure single-account shell proof   | PR #7; 17 security-target tests; all-platform CI  |
 | TST-004 — Add security-boundary regression tests        | PR #7; sensitivity proof; mandatory all-platform  |
+| TST-003 — Characterize tray/native integration          | PR #12; sensitivity proof; all-platform CI        |
 
 ## Last verified state
 
@@ -101,7 +104,9 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | CAP-001 targeted deletion hosted validation | [PR #10](https://github.com/adamlow-wire/wire-desktop/pull/10) merged as `efac1b46`: build/test, lint, CodeQL, Windows/macOS/Linux packages, authenticated Windows/macOS E2E, and merged report passed | 2026-09-02 |
 | Upstream synchronization local validation | Integrated upstream `6f9b6a99`; ported secure-shell startup through upstream's split main-process entrypoint; application/test types and lint passed, Jest 19/19 suites and 63/63 tests passed, renderer 2/2 and build tools 35/35 passed, and Electron main coverage passed with 160 tests plus 3 owned CAP-002 targets pending. Copy-aware changed-code coverage initially failed at 44.93%, then passed unchanged at 471/588 statements (80.10%) after sensitivity-proven deletion, download, log-write, cleanup, and collision characterization | 2026-09-02 |
 | GOV-001 upstream synchronization hosted validation | [PR #11](https://github.com/adamlow-wire/wire-desktop/pull/11) merged as `2e641a46`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged report passed in run `33656582101` | 2026-09-02 |
-| TST-003 local tray characterization | Commit `a0c91987`: focused tray tests 9/9 and full Electron main coverage 164 passing with 3 owned CAP-002 targets pending; types, lint, formatting, and changed-statement coverage (27/31, 87.10%) passed. Temporary macOS/non-macOS platform mutations failed the intended tests and were reverted; hosted package validation remains pending | 2026-09-02 |
+| TST-003 local tray characterization | Commit `a0c91987`: focused tray tests 9/9 and full Electron main coverage 164 passing with 3 owned CAP-002 targets pending; types, lint, formatting, and changed-statement coverage (27/31, 87.10%) passed. Temporary macOS/non-macOS platform mutations failed the intended tests and were reverted | 2026-09-02 |
+| TST-003 hosted validation | [PR #12](https://github.com/adamlow-wire/wire-desktop/pull/12) merged as `37f8b5e3`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged report passed | 2026-09-02 |
+| SEC-002 local view-authority validation | Full Electron main coverage: 180 passing with 3 owned CAP-002 targets pending; changed statements 189/218 (86.70%) and security branches 134/135 (99.26%). Legacy-account and developer-tool mutations failed their target tests and were reverted; types, lint, formatting, and `prestart` pass | 2026-09-02 |
 
 ## Handoff notes
 
