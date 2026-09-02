@@ -58,7 +58,7 @@ describe('auxiliary window identity', () => {
     }
   });
 
-  it('[characterization][SEC-002] creates About in its exact local session', async () => {
+  it('[characterization][security-target][INV-003][INV-004][SEC-002] creates About in its exact local session', async () => {
     const registry = new ViewIdentityRegistry();
     const window = await AboutWindow.showWindow(registry);
     windows.push(window);
@@ -86,7 +86,7 @@ describe('auxiliary window identity', () => {
     assert.strictEqual(registry.has(webContentsId), false);
   });
 
-  it('[characterization][SEC-002] creates the proxy prompt in its exact local session', async () => {
+  it('[characterization][security-target][INV-003][INV-004][SEC-002] creates the proxy prompt in its exact local session', async () => {
     const registry = new ViewIdentityRegistry();
     const window = await ProxyPromptWindow.showWindow(registry);
     windows.push(window);

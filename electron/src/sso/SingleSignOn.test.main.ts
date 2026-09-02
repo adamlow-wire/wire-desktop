@@ -404,7 +404,7 @@ describe('SingleSignOn', () => {
       assert.strictEqual(title, oversizedOrigin);
     });
 
-    it('[characterization][DCP-003] completes a deterministic local SSO flow with permissions denied', async () => {
+    it('[characterization][security-target][INV-003][SEC-002][DCP-003] completes a deterministic local SSO flow with permissions denied', async () => {
       let receivedUserAgent: string | undefined;
       const server = createServer((request, response) => {
         receivedUserAgent = request.headers['user-agent'];
