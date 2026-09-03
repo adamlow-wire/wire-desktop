@@ -29,6 +29,7 @@ import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {requestDesktopSources} from '../security/DesktopSourcesIpc';
 import {requestDownloadLocationUpdate} from '../security/DownloadLocationIpc';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
@@ -282,7 +283,7 @@ process.once('loaded', () => {
    * Example: https://github.com/electron/electron/issues/16513#issuecomment-602070250
    */
   global.desktopCapturer = {
-    getDesktopSources: opts => ipcRenderer.invoke(EVENT_TYPE.ACTION.GET_DESKTOP_SOURCES, opts),
+    getDesktopSources: opts => requestDesktopSources(ipcRenderer, opts),
   };
   global.systemCrypto = {
     decrypt: async (encrypted: Uint8Array): Promise<string> => {
