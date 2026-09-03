@@ -63,4 +63,16 @@ describe('dispatchDeepLink', () => {
     await protocolHandler['dispatchDeepLink']('wire://start-login');
     assert.ok(sendActionSpy.calledWith(EVENT_TYPE.ACTION.START_LOGIN));
   });
+
+  it('[characterization][SEC-003][SEC-013][CAP-006] preserves conversation join parameters', async () => {
+    await protocolHandler['dispatchDeepLink']('wire://conversation-join?code=invite-code&key=invite-key&domain=wire.test');
+
+    assert.ok(
+      sendActionSpy.calledWith(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {
+        code: 'invite-code',
+        domain: 'wire.test',
+        key: 'invite-key',
+      }),
+    );
+  });
 });
