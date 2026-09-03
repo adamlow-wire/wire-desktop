@@ -23,7 +23,7 @@ import {EVENT_TYPE} from './eventType';
 import {forwardWrapperReloadRequest} from './forwardWrapperReloadRequest';
 
 describe('forwardWrapperReloadRequest', () => {
-  it('forwards a wrapper reload request', () => {
+  it('[characterization][INV-003][SEC-003][DCP-002] forwards one reload command to the application shell', () => {
     const forwardedEventTypes: string[] = [];
 
     function send(eventType: string): void {
