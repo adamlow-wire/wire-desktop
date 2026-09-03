@@ -55,6 +55,7 @@ describe('initSquirrelListener', () => {
     replace(Squirrel, 'installUpdate', installUpdate);
 
     await initSquirrelListener();
+    assert.strictEqual(ipcMain.listenerCount(EVENT_TYPE.WRAPPER.UPDATE), 1);
     ipcMain.emit(EVENT_TYPE.WRAPPER.UPDATE, {} as Electron.IpcMainEvent);
 
     assert.strictEqual(handleSquirrelArgs.callCount, 1);
