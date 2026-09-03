@@ -19,6 +19,7 @@
 
 import {strict as assert} from 'assert';
 
+import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
@@ -95,6 +96,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       WRAPPER_RELOAD_CAPABILITY,
       WRAPPER_RELAUNCH_CAPABILITY,
       OPEN_GRAPH_FETCH_CAPABILITY,
+      DOWNLOAD_LOCATION_UPDATE_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');

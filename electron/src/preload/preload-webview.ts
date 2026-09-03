@@ -29,6 +29,7 @@ import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {requestDownloadLocationUpdate} from '../security/DownloadLocationIpc';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
 import {requestOpenGraphData} from '../security/OpenGraphIpc';
@@ -145,7 +146,7 @@ const subscribeToWebappEvents = (): void => {
   window.amplify.subscribe(WebAppEvents.TEAM.DOWNLOAD_PATH_UPDATE, (downloadPath?: string) => {
     logger.info(`Received amplify event ${WebAppEvents.TEAM.DOWNLOAD_PATH_UPDATE}:`, `"${downloadPath}",`);
     logger.info('forwarding last event ...');
-    ipcRenderer.send(EVENT_TYPE.ACTION.CHANGE_DOWNLOAD_LOCATION, downloadPath);
+    void requestDownloadLocationUpdate(ipcRenderer, logger, downloadPath);
   });
 
   window.addEventListener(WebAppEvents.LIFECYCLE.CHANGE_ENVIRONMENT, event => {

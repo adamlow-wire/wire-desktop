@@ -41,11 +41,7 @@ describe('download location update', () => {
 
     updateDownloadLocation('downloads', dependencies);
 
-    assert.deepStrictEqual(calls, [
-      'ensure:C:\\Users\\wire\\downloads',
-      'save:downloads',
-      'persist',
-    ]);
+    assert.deepStrictEqual(calls, ['ensure:C:\\Users\\wire\\downloads', 'save:downloads', 'persist']);
   });
 
   it('[characterization][CAP-005] clears the Windows setting without creating a directory', () => {

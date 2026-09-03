@@ -86,6 +86,7 @@ import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from '.
 import {SecureShellController} from './secureShell/SecureShellController';
 import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
+import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNotificationActivationIpc} from './security/NotificationActivationIpc';
@@ -257,7 +258,7 @@ const bindIpcEvents = (): void => {
 
   bindOpenGraphIpc(ipcMain, viewIdentityRegistry, getOpenGraphDataAsync);
 
-  ipcMain.on(EVENT_TYPE.ACTION.CHANGE_DOWNLOAD_LOCATION, (_event, downloadPath?: string) => {
+  bindDownloadLocationIpc(ipcMain, viewIdentityRegistry, downloadPath => {
     updateDownloadLocation(downloadPath, {
       ensureDirectory: fs.ensureDirSync,
       isWindows: EnvironmentUtil.platform.IS_WINDOWS,
