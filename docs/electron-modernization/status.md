@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: m3-open-graph-contract-validation
+state: m3-download-location-contract-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: cf1985cb396e72e9fbad1c16d73980848d7d527c
+integration_head_commit: 5653a2538bc3f67a879df2553bc1bf637d10885f
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-open-graph-contract-2026-09-03
-next_work_item: SEC-003-change-download-location-slice
+related_pending_branch: sec/SEC-003-download-location-contract-2026-09-03
+next_work_item: SEC-003-desktop-sources-slice
 blockers: []
 ---
 
@@ -52,20 +52,22 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #23](https://github.com/adamlow-wire/wire-desktop/pull/23) merged as `cf1985cb` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Wrapper relaunch requests now use an account-only, no-payload contract with response validation and a per-view quota while preserving macOS reload behavior and non-macOS relaunch ordering.
 
+[PR #24](https://github.com/adamlow-wire/wire-desktop/pull/24) merged as `5653a253` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Open Graph retrieval now uses an account-only, bounded, response-validated contract with a per-view quota while SEC-012 retains the unresolved network-destination policy. The first Windows E2E attempt encountered notification, login, and registration staging instability; one evidence-based rerun passed Windows and macOS without a code change.
+
 ## Active work
 
 | Field         | Value                                               |
 | ------------- | --------------------------------------------------- |
 | Work item     | SEC-003 — Typed, validated, capability-specific IPC |
 | Owner         | `adamlow-wire`                                      |
-| Active branch | `sec/SEC-003-open-graph-contract-2026-09-03`        |
-| Goal          | Authorize and bound account Open Graph IPC requests |
-| Starting gate | PR #23 merged green at `cf1985cb`                   |
+| Active branch | `sec/SEC-003-download-location-contract-2026-09-03` |
+| Goal          | Authorize and bound account download-path updates   |
+| Starting gate | PR #24 merged green at `5653a253`                   |
 
 ## Next executable sequence
 
-1. Validate and merge SEC-003's account-only Open Graph IPC contract slice; do not claim that it completes SEC-012 network policy.
-2. Constrain download-location mutation through an authorized contract, then continue the remaining privileged IPC inventory.
+1. Validate and merge SEC-003's account-only download-location IPC contract slice; retain path-containment policy as an explicit CAP-005 gap.
+2. Constrain desktop-source enumeration through an authorized contract, then continue the remaining privileged IPC inventory.
 3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
 4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
@@ -149,7 +151,9 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-003 wrapper reload hosted validation | [PR #22](https://github.com/adamlow-wire/wire-desktop/pull/22) merged as `6d918515`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33708165035`, `33708165067`, and `33708205270` | 2026-09-03 |
 | SEC-003 wrapper relaunch contract | Focused relaunch authority, lifecycle, and account-identity tests pass 15/15; clean full coverage passes with 234 Electron main tests plus 3 owned CAP-002 targets pending, 11/13 changed statements (84.62%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract accepts no request payload, validates the void response in main and preload, permits at most 5 requests per minute per view, reports rejected invocations, removes the raw incoming event, and preserves the macOS reload-listener fallback plus non-macOS relaunch-before-quit ordering. Removing the macOS listener notification failed the characterization test and was reverted. Hosted validation remains pending | 2026-09-03 |
 | SEC-003 wrapper relaunch hosted validation | [PR #23](https://github.com/adamlow-wire/wire-desktop/pull/23) merged as `cf1985cb`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33710635927`, `33710636237`, and `33710646534` | 2026-09-03 |
-| SEC-003 Open Graph IPC contract | Focused authorization, metadata, and account-identity tests pass 20/20; clean full coverage passes with 241 Electron main tests plus 3 owned CAP-002 targets pending, 29/32 changed statements (90.63%), 27/29 changed security branches (93.10%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract accepts an exact non-empty URL string bounded to 8,192 characters, validates structured metadata responses in main and preload, permits at most 60 requests per minute per view, and preserves the requested URL and parsed metadata. Altering returned metadata and forwarding a different URL failed the intended characterization tests and both perturbations were reverted. SEC-012 still owns protocol, address, DNS, redirect, credential, timeout, and response-byte policy; hosted validation remains pending | 2026-09-03 |
+| SEC-003 Open Graph IPC contract | Focused authorization, metadata, and account-identity tests pass 20/20; clean full coverage passes with 241 Electron main tests plus 3 owned CAP-002 targets pending, 29/32 changed statements (90.63%), 27/29 changed security branches (93.10%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract accepts an exact non-empty URL string bounded to 8,192 characters, validates structured metadata responses in main and preload, permits at most 60 requests per minute per view, and preserves the requested URL and parsed metadata. Altering returned metadata and forwarding a different URL failed the intended characterization tests and both perturbations were reverted. SEC-012 still owns protocol, address, DNS, redirect, credential, timeout, and response-byte policy; hosted validation passed in PR #24 | 2026-09-03 |
+| SEC-003 Open Graph hosted validation | [PR #24](https://github.com/adamlow-wire/wire-desktop/pull/24) merged as `5653a253`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33714056950`, `33714056943`, and `33714081032`; the single evidence-based E2E rerun passed after the initial Windows attempt encountered unrelated staging instability | 2026-09-03 |
+| SEC-003 download-location contract | Focused behavior, authorization, and account-identity tests pass 14/14; clean full coverage passes with 249 Electron main tests plus 3 owned CAP-002 targets pending, 20/22 changed statements (90.91%), 12/12 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract accepts exactly one optional string value bounded to 4,096 characters, validates the void response in main and preload, permits at most 12 updates per minute per view, and preserves Windows directory creation plus settings persistence and the non-Windows no-op. Removing directory creation and accepting additional payload fields failed the intended tests; both perturbations were reverted. CAP-005 still owns path-containment policy and packaged managed-device evidence; hosted validation remains pending | 2026-09-03 |
 
 ## Handoff notes
 
