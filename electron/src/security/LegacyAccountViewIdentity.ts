@@ -21,6 +21,7 @@ import * as path from 'path';
 
 import {ValidationUtil} from '@wireapp/commons';
 
+import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
 import {OPEN_GRAPH_FETCH_CAPABILITY} from './OpenGraphContract';
@@ -89,6 +90,7 @@ export const registerLegacyAccountViewIdentity = (
       WRAPPER_RELOAD_CAPABILITY,
       WRAPPER_RELAUNCH_CAPABILITY,
       OPEN_GRAPH_FETCH_CAPABILITY,
+      DOWNLOAD_LOCATION_UPDATE_CAPABILITY,
     ],
     partition,
     session: webContents.session,
