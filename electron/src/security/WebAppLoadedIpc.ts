@@ -65,6 +65,15 @@ export const notifyWebAppLoaded = async (ipc: IpcRendererInvoker, logger: Failur
   }
 };
 
+export const handleWebAppLoaded = (
+  ipc: IpcRendererInvoker,
+  logger: FailureLogger,
+  checkTheme: () => void,
+): void => {
+  void notifyWebAppLoaded(ipc, logger);
+  checkTheme();
+};
+
 export const bindWebAppLoadedIpc = (
   ipc: IpcMainBinding,
   registry: ViewIdentityRegistry,

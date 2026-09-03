@@ -21,6 +21,7 @@ import {strict as assert} from 'assert';
 
 import {
   bindWebAppLoadedIpc,
+  handleWebAppLoaded,
   MAX_WEBAPP_LOADED_EVENTS_PER_MINUTE,
   notifyWebAppLoaded,
   WEBAPP_LOADED_CAPABILITY,
@@ -56,6 +57,23 @@ const createIpc = (handlers: Map<string, BoundHandler>) => ({
 });
 
 describe('webapp-loaded IPC contract', () => {
+  it('[characterization][DCP-002] reports loading before performing the existing theme check', () => {
+    const order: string[] = [];
+
+    handleWebAppLoaded(
+      {
+        invoke: async () => {
+          order.push('notify-main');
+          return undefined;
+        },
+      },
+      {error: () => undefined},
+      () => order.push('check-theme'),
+    );
+
+    assert.deepStrictEqual(order, ['notify-main', 'check-theme']);
+  });
+
   it('[security-target][INV-002][INV-003][SEC-003][DCP-002] invokes only the fixed loaded channel', async () => {
     const calls: unknown[][] = [];
     const errors: unknown[][] = [];
