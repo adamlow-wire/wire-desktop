@@ -23,6 +23,7 @@ import {ValidationUtil} from '@wireapp/commons';
 
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
+import {OPEN_GRAPH_FETCH_CAPABILITY} from './OpenGraphContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
 import {
@@ -87,6 +88,7 @@ export const registerLegacyAccountViewIdentity = (
       WEBAPP_LOADED_CAPABILITY,
       WRAPPER_RELOAD_CAPABILITY,
       WRAPPER_RELAUNCH_CAPABILITY,
+      OPEN_GRAPH_FETCH_CAPABILITY,
     ],
     partition,
     session: webContents.session,

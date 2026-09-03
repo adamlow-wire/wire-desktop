@@ -31,6 +31,7 @@ import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
+import {requestOpenGraphData} from '../security/OpenGraphIpc';
 import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
 import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
 import {requestWrapperRelaunch} from '../security/WrapperRelaunchIpc';
@@ -256,7 +257,7 @@ const subscribeToMainProcessEvents = (): void => {
 };
 
 function getOpenGraphDataViaChannel(url: string): Promise<OpenGraphResult> {
-  return ipcRenderer.invoke(EVENT_TYPE.ACTION.GET_OG_DATA, url);
+  return requestOpenGraphData(ipcRenderer, url);
 }
 
 function reportWebappVersion(): void {

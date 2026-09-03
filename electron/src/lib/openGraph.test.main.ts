@@ -21,7 +21,7 @@ import nock, {cleanAll} from 'nock';
 
 import * as assert from 'assert';
 
-import {axiosWithContentLimit, axiosWithCookie} from './openGraph';
+import {axiosWithContentLimit, axiosWithCookie, getOpenGraphDataAsync} from './openGraph';
 
 const exampleUrl = 'https://example.com';
 const defaultMessage = 'Hello from nock!';
@@ -66,6 +66,22 @@ const cookieRequest = (cookieText: string) => {
 
 describe('openGraph', () => {
   afterEach(() => cleanAll());
+
+  it('[characterization][SEC-003][SEC-012] returns parsed metadata for the requested page', async () => {
+    nock(exampleUrl)
+      .get('/article')
+      .reply(
+        200,
+        '<html><head><meta property="og:title" content="A title"><meta property="og:description" content="A description"></head></html>',
+        {'content-type': 'text/html; charset=utf-8'},
+      );
+
+    const result = await getOpenGraphDataAsync(`${exampleUrl}/article`);
+
+    assert.strictEqual(result.title, 'A title');
+    assert.strictEqual(result.description, 'A description');
+    assert.strictEqual(result.image, undefined);
+  });
 
   it('decodes a text encoded with UTF-8', async () => {
     const result = await contentLimitRequest('text/html; charset=utf-8', defaultMessageUtf8);

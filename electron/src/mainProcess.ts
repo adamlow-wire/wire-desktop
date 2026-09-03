@@ -88,6 +88,7 @@ import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIp
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNotificationActivationIpc} from './security/NotificationActivationIpc';
+import {bindOpenGraphIpc} from './security/OpenGraphIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
@@ -253,7 +254,7 @@ const bindIpcEvents = (): void => {
 
   bindManagedConfigIpc(ipcMain, viewIdentityRegistry, getManagedConfig);
 
-  ipcMain.handle(EVENT_TYPE.ACTION.GET_OG_DATA, (_event, url) => getOpenGraphDataAsync(url));
+  bindOpenGraphIpc(ipcMain, viewIdentityRegistry, getOpenGraphDataAsync);
 
   ipcMain.on(EVENT_TYPE.ACTION.CHANGE_DOWNLOAD_LOCATION, (_event, downloadPath?: string) => {
     if (EnvironmentUtil.platform.IS_WINDOWS) {
