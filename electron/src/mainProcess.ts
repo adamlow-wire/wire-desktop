@@ -65,6 +65,7 @@ import {forwardWrapperReloadRequest} from './lib/forwardWrapperReloadRequest';
 import {deleteAccount} from './lib/LocalAccountDeletion';
 import {getOpenGraphDataAsync} from './lib/openGraph';
 import {showErrorDialog} from './lib/showDialog';
+import {updateDownloadLocation} from './lib/updateDownloadLocation';
 import * as locale from './locale';
 import {runDesktopLogCleanup, writeBoundedLogMessage} from './logging/desktopLogWriter';
 import {ENABLE_LOGGING, getLogger} from './logging/getLogger';
@@ -257,14 +258,13 @@ const bindIpcEvents = (): void => {
   bindOpenGraphIpc(ipcMain, viewIdentityRegistry, getOpenGraphDataAsync);
 
   ipcMain.on(EVENT_TYPE.ACTION.CHANGE_DOWNLOAD_LOCATION, (_event, downloadPath?: string) => {
-    if (EnvironmentUtil.platform.IS_WINDOWS) {
-      if (downloadPath) {
-        fs.ensureDirSync(appHomePath(downloadPath));
-      }
-      //save the downloadPath locally
-      settings.save(SettingsType.DOWNLOAD_PATH, downloadPath);
-      settings.persistToFile();
-    }
+    updateDownloadLocation(downloadPath, {
+      ensureDirectory: fs.ensureDirSync,
+      isWindows: EnvironmentUtil.platform.IS_WINDOWS,
+      persist: () => settings.persistToFile(),
+      resolvePath: appHomePath,
+      save: value => settings.save(SettingsType.DOWNLOAD_PATH, value),
+    });
   });
 };
 
