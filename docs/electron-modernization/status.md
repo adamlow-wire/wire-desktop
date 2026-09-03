@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: m3-notification-activation-contract-validation
+state: m3-webapp-loaded-contract-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: f8c45d2b6ad4d5288a6b7a0ee34530503b66ef1a
+integration_head_commit: ca20e48eb9aaf786e1532080432bd68b50d394a9
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-notification-activation-contract-2026-09-03
-next_work_item: SEC-003-webapp-loaded-slice
+related_pending_branch: sec/SEC-003-webapp-loaded-contract-2026-09-03
+next_work_item: SEC-003-badge-count-slice
 blockers: []
 ---
 
@@ -40,20 +40,22 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #17](https://github.com/adamlow-wire/wire-desktop/pull/17) merged as `f8c45d2b` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Native save-picture requests are now account-only, origin-bound, size-bounded, rate-limited, and unable to supply a filesystem path.
 
+[PR #18](https://github.com/adamlow-wire/wire-desktop/pull/18) merged as `ca20e48e` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Notification activation now uses a fixed account-only contract with no renderer payload and a per-view quota while preserving the separate account-switch event.
+
 ## Active work
 
-| Field         | Value                                                     |
-| ------------- | --------------------------------------------------------- |
-| Work item     | SEC-003 — Typed, validated, capability-specific IPC       |
-| Owner         | `adamlow-wire`                                            |
-| Active branch | `sec/SEC-003-notification-activation-contract-2026-09-03` |
-| Goal          | Authorize and bound global window activation              |
-| Starting gate | PR #17 merged green at `f8c45d2b`                         |
+| Field         | Value                                               |
+| ------------- | --------------------------------------------------- |
+| Work item     | SEC-003 — Typed, validated, capability-specific IPC |
+| Owner         | `adamlow-wire`                                      |
+| Active branch | `sec/SEC-003-webapp-loaded-contract-2026-09-03`     |
+| Goal          | Authorize and bound queued-action flushing          |
+| Starting gate | PR #18 merged green at `ca20e48e`                   |
 
 ## Next executable sequence
 
-1. Validate and merge SEC-003's notification-activation contract slice.
-2. Migrate the webapp-loaded queue flush through an authorized account contract, then continue the remaining privileged IPC inventory.
+1. Validate and merge SEC-003's webapp-loaded queue-flush contract slice.
+2. Migrate application-shell badge updates through an authorized contract, then continue the remaining privileged IPC inventory.
 3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
 4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
@@ -126,6 +128,8 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-003 managed-configuration hosted validation | [PR #16](https://github.com/adamlow-wire/wire-desktop/pull/16) merged as `98337fc5`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33686374547`, `33686374389`, and `33686429383` | 2026-09-02 |
 | SEC-003 save-picture hosted validation | [PR #17](https://github.com/adamlow-wire/wire-desktop/pull/17) merged as `f8c45d2b`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33690651409`, `33690651333`, and `33690664684` | 2026-09-03 |
 | SEC-003 notification-activation contract | Focused security tests pass 15/15 across the shared authority, account identity, and activation suites; clean full coverage passes with 202 Electron main tests plus 3 owned CAP-002 targets pending, 13/16 changed statements (81.25%), Jest 19/19 suites and 63/63 tests, and Electron renderer 2/2. The versioned account-only contract accepts no payload, permits at most 30 focus requests per minute per view, reports rejected renderer invocations, and preserves the separate guest-to-host account-switch event. Replacing the activation boundary with a no-op failed the intended characterization test and was reverted. Hosted validation remains pending | 2026-09-03 |
+| SEC-003 notification-activation hosted validation | [PR #18](https://github.com/adamlow-wire/wire-desktop/pull/18) merged as `ca20e48e`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33694673667`, `33694673702`, and `33694734782` | 2026-09-03 |
+| SEC-003 webapp-loaded contract | Focused webapp-loaded and queue tests pass 7/7; clean full coverage passes with 209 Electron main tests plus 3 owned CAP-002 targets pending, 13/16 changed statements (81.25%), Jest 19/19 suites and 63/63 tests, and Electron renderer 2/2. The versioned account-only contract accepts no payload, permits at most 10 flush requests per minute per view, reports rejected renderer invocations, preserves notification-before-theme ordering, and forwards each queued action once before clearing the queue. Queue-retention, no-op boundary, and reordered lifecycle perturbations failed the intended tests and were reverted. Hosted validation remains pending | 2026-09-03 |
 
 ## Handoff notes
 

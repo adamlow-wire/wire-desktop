@@ -33,6 +33,7 @@ import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
 import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
+import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
 
 const remote = require('@electron/remote');
 
@@ -68,8 +69,7 @@ function subscribeToThemeChange(): void {
   }
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.LOADED, () => {
-    ipcRenderer.send(EVENT_TYPE.WEBAPP.APP_LOADED);
-    initialThemeCheck();
+    handleWebAppLoaded(ipcRenderer, logger, initialThemeCheck);
   });
   remote.nativeTheme.on('updated', () => updateWebAppTheme());
 }

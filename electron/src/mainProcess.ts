@@ -89,6 +89,7 @@ import {bindNotificationActivationIpc} from './security/NotificationActivationIp
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
+import {bindWebAppLoadedIpc} from './security/WebAppLoadedIpc';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
@@ -236,8 +237,7 @@ const bindIpcEvents = (): void => {
     downloadImage(bytes, timestamp ? Maybe.just(timestamp) : Maybe.nothing<string>()),
   );
   bindNotificationActivationIpc(ipcMain, viewIdentityRegistry, () => WindowManager.showPrimaryWindow());
-
-  ipcMain.on(EVENT_TYPE.WEBAPP.APP_LOADED, () => WindowManager.flushActionsQueue());
+  bindWebAppLoadedIpc(ipcMain, viewIdentityRegistry, () => WindowManager.flushActionsQueue());
 
   ipcMain.on(EVENT_TYPE.UI.BADGE_COUNT, (_event, {count, ignoreFlash}: {count?: number; ignoreFlash?: boolean}) => {
     tray.showUnreadCount(main, count, ignoreFlash);
