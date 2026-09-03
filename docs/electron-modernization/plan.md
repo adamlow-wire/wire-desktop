@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.0
+revision: 1.5.1
 status: draft
 updated: 2026-09-03
 owners:
@@ -357,7 +357,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: [PRs #14–27](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated runtime info, safe storage, managed configuration, picture saving, notification activation, webapp-loaded signaling, badge count, account deletion, wrapper reload/relaunch, Open Graph, download location, desktop-source enumeration, and deep-link submission. Every slice passed focused deny-path tests, changed-code coverage, required CI, all-platform packaging, and authenticated Windows/macOS E2E. Per-slice results are retained in `status.md`; the authoritative remaining operations are in `ipc-inventory.md`. Remaining SEC-003 work is grouped into SSO window control, auxiliary-window exchange, proxy-prompt control, and explicit disposition of dormant privileged listeners.
+- Evidence: [PRs #14–27](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated runtime info, safe storage, managed configuration, picture saving, notification activation, webapp-loaded signaling, badge count, account deletion, wrapper reload/relaunch, Open Graph, download location, desktop-source enumeration, and deep-link submission. Every merged slice passed focused deny-path tests, changed-code coverage, required CI, all-platform packaging, and authenticated Windows/macOS E2E. [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) adds fixed, rate-limited close/focus contracts and prevents cross-account SSO window control; hosted validation is pending. Per-slice results are retained in `status.md`; the authoritative remaining operations are in `ipc-inventory.md`. Remaining SEC-003 work is grouped into auxiliary-window exchange, proxy-prompt control, and explicit disposition of dormant privileged listeners.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -873,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.1 | 2026-09-03 | Codex | Recorded sensitivity-proven, account-owned SSO window close/focus contracts while retaining the broader SSO security targets under CAP-002 | SEC-003, CAP-002, DCP-003, INV-002, INV-003, INV-004, INV-010 |
 | 1.5.0 | 2026-09-03 | Codex | Recorded merged deep-link IPC evidence and reorganized remaining M3 work into five coherent execution checkpoints without changing any milestone acceptance criterion | SEC-003, SEC-004, SEC-005, SEC-006, SEC-007, SEC-008, SEC-009, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002, CAP-005, CAP-006, DEC-008 |
 | 1.4.16 | 2026-09-03 | Codex | Recorded green hosted desktop-source validation and the sensitivity-proven application-shell-only deep-link submission contract while retaining parser and lifecycle policy under SEC-013 and CAP-006 | SEC-003, SEC-009, SEC-013, CAP-003, CAP-006, DCP-008, DCP-010 |
 | 1.4.15 | 2026-09-03 | Codex | Recorded green hosted download-location validation and the sensitivity-proven account-only desktop-source enumeration contract while retaining user-gesture policy under SEC-009 | SEC-003, SEC-009, CAP-003, CAP-005, DCP-008, DCP-013 |
