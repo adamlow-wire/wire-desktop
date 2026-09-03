@@ -17,13 +17,13 @@
  *
  */
 
-import {ipcMain} from 'electron';
+import {app, ipcMain} from 'electron';
 import {fake, replace, restore} from 'sinon';
 
 import assert from 'node:assert';
 
 import * as EnvironmentUtil from './EnvironmentUtil';
-import {initSquirrelListener} from './lifecycle';
+import {addRelaunchListeners, initSquirrelListener, relaunch} from './lifecycle';
 
 import {EVENT_TYPE} from '../lib/eventType';
 import * as Squirrel from '../update/squirrel';
@@ -59,5 +59,44 @@ describe('initSquirrelListener', () => {
 
     assert.strictEqual(handleSquirrelArgs.callCount, 1);
     assert.strictEqual(installUpdate.callCount, 1);
+  });
+});
+
+describe('relaunch', () => {
+  afterEach(() => restore());
+
+  it('[characterization][SEC-003] reloads registered content instead of relaunching the application on macOS', async () => {
+    const reload = fake();
+    const electronRelaunch = fake();
+    const electronQuit = fake();
+    replace(EnvironmentUtil, 'platform', {IS_WINDOWS: false, IS_MAC_OS: true, IS_LINUX: false});
+    replace(app, 'relaunch', electronRelaunch);
+    replace(app, 'quit', electronQuit);
+    addRelaunchListeners(reload);
+
+    await relaunch();
+
+    assert.strictEqual(reload.callCount, 1);
+    assert.strictEqual(electronRelaunch.callCount, 0);
+    assert.strictEqual(electronQuit.callCount, 0);
+  });
+
+  it('[characterization][SEC-003] requests a relaunch before quitting on non-macOS platforms', async () => {
+    const order: string[] = [];
+    replace(EnvironmentUtil, 'platform', {IS_WINDOWS: true, IS_MAC_OS: false, IS_LINUX: false});
+    replace(
+      app,
+      'relaunch',
+      fake(() => order.push('relaunch')),
+    );
+    replace(
+      app,
+      'quit',
+      fake(() => order.push('quit')),
+    );
+
+    await relaunch();
+
+    assert.deepStrictEqual(order, ['relaunch', 'quit']);
   });
 });

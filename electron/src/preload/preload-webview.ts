@@ -33,6 +33,7 @@ import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
 import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
 import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
+import {requestWrapperRelaunch} from '../security/WrapperRelaunchIpc';
 import {requestWrapperReload} from '../security/WrapperReloadIpc';
 
 const remote = require('@electron/remote');
@@ -85,7 +86,7 @@ const subscribeToWebappEvents = (): void => {
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.RESTART, () => {
     logger.info(`Received amplify event "${WebAppEvents.LIFECYCLE.RESTART}", forwarding event ...`);
-    ipcRenderer.send(EVENT_TYPE.WRAPPER.RELAUNCH);
+    void requestWrapperRelaunch(ipcRenderer, logger);
   });
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.LOADED, () => {

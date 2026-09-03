@@ -15,8 +15,8 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:webapp:loaded:v1` | account | Flushes global queued actions | merged in PR #19 | SEC-003, CAP-001 |
 | `wire-desktop:badge-count:update:v1` | application shell | Tray, badge, dock, and flashing state | merged in PR #20 | SEC-003, CAP-004 |
 | `wire-desktop:account:delete-data:v1` | application shell | Exact-target session, partition, and log deletion | merged in PR #21 | SEC-003, CAP-001 |
-| `wire-desktop:wrapper:reload-request:v1` | account | Reloads all account content through the application shell | current PR validation | SEC-003, CAP-001 |
-| `WRAPPER.RELAUNCH` | account | Relaunches the application | unmigrated | SEC-003 |
+| `wire-desktop:wrapper:reload-request:v1` | account | Reloads all account content through the application shell | merged in PR #22 | SEC-003, CAP-001 |
+| `wire-desktop:wrapper:relaunch-request:v1` | account | Relaunches the application or reloads account content on macOS | current PR validation | SEC-003 |
 | `ACTION.GET_OG_DATA` | account | Main-process network fetch | unmigrated | SEC-003, SEC-012 |
 | `ACTION.CHANGE_DOWNLOAD_LOCATION` | account | Directory creation and persistent settings write | unmigrated | SEC-003, CAP-005 |
 | `ACTION.GET_DESKTOP_SOURCES` | account | Enumerates display/window capture sources | unmigrated | SEC-003, SEC-009, CAP-003 |
