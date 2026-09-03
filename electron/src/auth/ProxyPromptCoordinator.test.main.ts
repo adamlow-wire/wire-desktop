@@ -26,12 +26,20 @@ describe('ProxyPromptCoordinator', () => {
     const coordinator = new ProxyPromptCoordinator();
     const calls: unknown[] = [];
     coordinator.register(101, {
-      cancel: () => calls.push('cancel-101'),
-      submit: credentials => calls.push(credentials),
+      cancel: () => {
+        calls.push('cancel-101');
+      },
+      submit: credentials => {
+        calls.push(credentials);
+      },
     });
     coordinator.register(102, {
-      cancel: () => calls.push('cancel-102'),
-      submit: credentials => calls.push(credentials),
+      cancel: () => {
+        calls.push('cancel-102');
+      },
+      submit: credentials => {
+        calls.push(credentials);
+      },
     });
 
     await coordinator.submit(101, {password: 'secret', username: 'proxy-user'});
