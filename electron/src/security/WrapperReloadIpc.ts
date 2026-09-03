@@ -59,7 +59,10 @@ const wrapperReloadContract: AuthorizedIpcContract<undefined, void> = Object.fre
 
 export const requestWrapperReload = async (ipc: IpcRendererInvoker, logger: FailureLogger): Promise<void> => {
   try {
-    await ipc.invoke(WRAPPER_RELOAD_REQUEST_CHANNEL);
+    const response = await ipc.invoke(WRAPPER_RELOAD_REQUEST_CHANNEL);
+    if (typeof response !== 'undefined') {
+      throw new Error('Wrapper reload response payload is invalid.');
+    }
   } catch (error) {
     logger.error('Failed to request an application reload.', error);
   }

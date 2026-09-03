@@ -86,6 +86,19 @@ describe('wrapper-reload IPC contract', () => {
     assert.deepStrictEqual(errors, [['Failed to request an application reload.', controlledFailure]]);
   });
 
+  it('[security-target][INV-002][INV-010][SEC-003][DCP-002] rejects a malformed reload response', async () => {
+    const errors: unknown[][] = [];
+
+    await requestWrapperReload(
+      {invoke: async () => ({accepted: true})},
+      {error: (...args: unknown[]) => errors.push(args)},
+    );
+
+    assert.strictEqual(errors.length, 1);
+    assert.strictEqual(errors[0][0], 'Failed to request an application reload.');
+    assert.match(String(errors[0][1]), /response payload is invalid/);
+  });
+
   it('[characterization][security-target][INV-003][SEC-003][DCP-002] preserves the application reload boundary', async () => {
     const handlers = new Map<string, BoundHandler>();
     const registry = new ViewIdentityRegistry();
