@@ -26,6 +26,7 @@ import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from '
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
+import {WRAPPER_RELOAD_CAPABILITY} from './WrapperReloadContract';
 
 const accountId = '6f350266-15de-4cab-b38c-9f986fdc6b18';
 
@@ -89,6 +90,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       SAVE_PICTURE_CAPABILITY,
       NOTIFICATION_ACTIVATION_CAPABILITY,
       WEBAPP_LOADED_CAPABILITY,
+      WRAPPER_RELOAD_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');

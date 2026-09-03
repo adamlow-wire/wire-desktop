@@ -17,21 +17,6 @@
  *
  */
 
-import * as assert from 'assert';
-
-import {EVENT_TYPE} from './eventType';
-import {forwardWrapperReloadRequest} from './forwardWrapperReloadRequest';
-
-describe('forwardWrapperReloadRequest', () => {
-  it('[characterization][INV-003][SEC-003][DCP-002] forwards one reload command to the application shell', () => {
-    const forwardedEventTypes: string[] = [];
-
-    function send(eventType: string): void {
-      forwardedEventTypes.push(eventType);
-    }
-
-    forwardWrapperReloadRequest({send});
-
-    assert.deepStrictEqual(forwardedEventTypes, [EVENT_TYPE.WRAPPER.RELOAD]);
-  });
-});
+export const WRAPPER_RELOAD_REQUEST_CHANNEL = 'wire-desktop:wrapper:reload-request:v1';
+export const WRAPPER_RELOAD_CAPABILITY = 'wrapper:reload';
+export const MAX_WRAPPER_RELOAD_REQUESTS_PER_MINUTE = 20;

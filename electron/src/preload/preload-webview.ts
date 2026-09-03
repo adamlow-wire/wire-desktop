@@ -27,13 +27,13 @@ import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import {EVENT_TYPE} from '../lib/eventType';
-import {forwardWrapperReloadRequest} from '../lib/forwardWrapperReloadRequest';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
 import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
 import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
+import {requestWrapperReload} from '../security/WrapperReloadIpc';
 
 const remote = require('@electron/remote');
 
@@ -80,7 +80,7 @@ webFrame.setVisualZoomLevelLimits(1, 1);
 const subscribeToWebappEvents = (): void => {
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.REFRESH, () => {
     logger.info(`Received amplify event "${WebAppEvents.LIFECYCLE.REFRESH}", forwarding event ...`);
-    forwardWrapperReloadRequest(ipcRenderer);
+    void requestWrapperReload(ipcRenderer, logger);
   });
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.RESTART, () => {

@@ -32,6 +32,7 @@ import {
   WebContentsIdentity,
 } from './ViewIdentityRegistry';
 import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
+import {WRAPPER_RELOAD_CAPABILITY} from './WrapperReloadContract';
 
 export interface LegacyAccountWebContentsIdentity extends WebContentsIdentity {
   once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;
@@ -83,6 +84,7 @@ export const registerLegacyAccountViewIdentity = (
       SAVE_PICTURE_CAPABILITY,
       NOTIFICATION_ACTIVATION_CAPABILITY,
       WEBAPP_LOADED_CAPABILITY,
+      WRAPPER_RELOAD_CAPABILITY,
     ],
     partition,
     session: webContents.session,
