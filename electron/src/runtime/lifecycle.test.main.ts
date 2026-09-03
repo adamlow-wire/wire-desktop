@@ -17,7 +17,7 @@
  *
  */
 
-import {app, ipcMain} from 'electron';
+import {app} from 'electron';
 import {fake, replace, restore} from 'sinon';
 
 import assert from 'node:assert';
@@ -25,12 +25,10 @@ import assert from 'node:assert';
 import * as EnvironmentUtil from './EnvironmentUtil';
 import {addRelaunchListeners, initSquirrelListener, relaunch} from './lifecycle';
 
-import {EVENT_TYPE} from '../lib/eventType';
 import * as Squirrel from '../update/squirrel';
 
 describe('initSquirrelListener', () => {
   afterEach(() => {
-    ipcMain.removeAllListeners(EVENT_TYPE.WRAPPER.UPDATE);
     restore();
   });
 
@@ -43,10 +41,9 @@ describe('initSquirrelListener', () => {
     await initSquirrelListener();
 
     assert.strictEqual(handleSquirrelArgs.callCount, 0);
-    assert.strictEqual(ipcMain.listenerCount(EVENT_TYPE.WRAPPER.UPDATE), 0);
   });
 
-  it('initializes updates only for a Squirrel installation on Windows', async () => {
+  it('initializes Squirrel without registering dormant renderer update authority', async () => {
     const handleSquirrelArgs = fake.resolves(undefined);
     const installUpdate = fake.resolves(undefined);
     replace(EnvironmentUtil, 'platform', {IS_WINDOWS: true, IS_MAC_OS: false, IS_LINUX: false});
@@ -55,11 +52,9 @@ describe('initSquirrelListener', () => {
     replace(Squirrel, 'installUpdate', installUpdate);
 
     await initSquirrelListener();
-    assert.strictEqual(ipcMain.listenerCount(EVENT_TYPE.WRAPPER.UPDATE), 1);
-    ipcMain.emit(EVENT_TYPE.WRAPPER.UPDATE, {} as Electron.IpcMainEvent);
 
     assert.strictEqual(handleSquirrelArgs.callCount, 1);
-    assert.strictEqual(installUpdate.callCount, 1);
+    assert.strictEqual(installUpdate.callCount, 0);
   });
 });
 

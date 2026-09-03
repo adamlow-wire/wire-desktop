@@ -18,13 +18,12 @@
  */
 
 import type {WallClock} from '@enormora/wall-clock/wall-clock';
-import {ipcMain, Menu, MenuItem} from 'electron';
+import {Menu, MenuItem} from 'electron';
 
 import {strict as assert} from 'assert';
 
 import {createMenu} from './system';
 
-import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
 
 function findMenuItem(menu: Menu, label: string): MenuItem | undefined {
@@ -43,15 +42,12 @@ function findMenuItem(menu: Menu, label: string): MenuItem | undefined {
 }
 
 describe('system menu', () => {
-  afterEach(() => ipcMain.removeAllListeners(EVENT_TYPE.ABOUT.SHOW));
-
   it('[characterization][security-target][INV-003] opens About through the native menu action', () => {
     let showRequests = 0;
-    ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => {
+    const wallClock = {currentDate: new Date('2026-09-03T00:00:00Z')} as WallClock;
+    const menu = createMenu(false, wallClock, () => {
       showRequests += 1;
     });
-    const wallClock = {currentDate: new Date('2026-09-03T00:00:00Z')} as WallClock;
-    const menu = createMenu(false, wallClock);
     const about = findMenuItem(menu, locale.getText('menuAbout'));
 
     assert.ok(about);

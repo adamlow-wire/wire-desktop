@@ -63,7 +63,6 @@ import {
 import {CustomProtocolHandler} from './lib/CoreProtocol';
 import {downloadImage} from './lib/download';
 import {enumerateDesktopSources} from './lib/enumerateDesktopSources';
-import {EVENT_TYPE} from './lib/eventType';
 import {createFireAndForgetInvoker} from './lib/fireAndForgetInvoker';
 import {forwardWrapperReloadRequest} from './lib/forwardWrapperReloadRequest';
 import {deleteAccount} from './lib/LocalAccountDeletion';
@@ -281,7 +280,6 @@ const bindIpcEvents = (): void => {
   bindAccountDataDeletionIpc(ipcMain, viewIdentityRegistry, deleteAccount);
   bindWrapperReloadIpc(ipcMain, viewIdentityRegistry, () => forwardWrapperReloadRequest(main.webContents));
   bindWrapperRelaunchIpc(ipcMain, viewIdentityRegistry, lifecycle.relaunch);
-  ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow(viewIdentityRegistry));
 
   bindManagedConfigIpc(ipcMain, viewIdentityRegistry, getManagedConfig);
 
@@ -541,7 +539,13 @@ const handleAppEvents = (): void => {
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {
     const mainWindowState = initWindowStateKeeper();
-    const appMenu = systemMenu.createMenu(isFullScreen, wallClock);
+    const appMenu = systemMenu.createMenu(
+      isFullScreen,
+      wallClock,
+      /* istanbul ignore next -- composition root */ () => {
+        void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
+      },
+    );
     if (EnvironmentUtil.app.IS_DEVELOPMENT) {
       app.commandLine.appendSwitch('enable-webrtc-internals');
       appMenu.append(developerMenu);
@@ -556,7 +560,13 @@ const handleAppEvents = (): void => {
 
     app.on('ready', async () => {
       const mainWindowState = initWindowStateKeeper();
-      const appMenu = systemMenu.createMenu(isFullScreen, wallClock);
+      const appMenu = systemMenu.createMenu(
+        isFullScreen,
+        wallClock,
+        /* istanbul ignore next -- composition root */ () => {
+          void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
+        },
+      );
       if (EnvironmentUtil.app.IS_DEVELOPMENT) {
         appMenu.append(developerMenu);
       }
