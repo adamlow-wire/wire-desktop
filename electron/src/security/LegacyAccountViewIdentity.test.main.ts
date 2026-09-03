@@ -19,7 +19,7 @@
 
 import {strict as assert} from 'assert';
 
-import {registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
+import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
@@ -53,6 +53,21 @@ const createWebContents = () => {
 };
 
 describe('registerLegacyAccountViewIdentity', () => {
+  it('[security-target][INV-003][INV-004][SEC-002][SEC-003] derives only default or UUID account partitions', () => {
+    const defaultSession = {storagePath: '/tmp/default'};
+
+    assert.strictEqual(getLegacyAccountPartition(defaultSession, defaultSession), 'default');
+    assert.strictEqual(
+      getLegacyAccountPartition({storagePath: `/tmp/Partitions/${accountId}`}, defaultSession),
+      accountId,
+    );
+    assert.strictEqual(
+      getLegacyAccountPartition({storagePath: '/tmp/Partitions/not-a-uuid'}, defaultSession),
+      undefined,
+    );
+    assert.strictEqual(getLegacyAccountPartition({storagePath: null}, defaultSession), undefined);
+  });
+
   it('[security-target][INV-003][INV-004][SEC-002] binds an exact account, origin, session, frame, and lifecycle', () => {
     const registry = new ViewIdentityRegistry();
     const view = createWebContents();
