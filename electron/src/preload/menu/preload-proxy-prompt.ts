@@ -21,16 +21,16 @@ import {ipcRenderer} from 'electron';
 
 import {EVENT_TYPE} from '../../lib/eventType';
 
-ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOCALE_RENDER, (event, labels: string[]) => {
+export const renderProxyPromptLocales = (_event: unknown, labels: Record<string, string>): void => {
   for (const label in labels) {
     const labelElement = document.querySelector(`[data-string="${label}"]`);
     if (labelElement) {
       labelElement.textContent = labels[label];
     }
   }
-});
+};
 
-ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOADED, () => {
+export const loadedProxyPromptScreen = (): void => {
   const labels = [];
   const dataStrings = document.querySelectorAll<HTMLDivElement>('[data-string]');
 
@@ -74,4 +74,7 @@ ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOADED, () => {
       }
     });
   }
-});
+};
+
+ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOCALE_RENDER, renderProxyPromptLocales);
+ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOADED, loadedProxyPromptScreen);
