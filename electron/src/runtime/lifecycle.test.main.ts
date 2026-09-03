@@ -84,8 +84,16 @@ describe('relaunch', () => {
   it('[characterization][SEC-003] requests a relaunch before quitting on non-macOS platforms', async () => {
     const order: string[] = [];
     replace(EnvironmentUtil, 'platform', {IS_WINDOWS: true, IS_MAC_OS: false, IS_LINUX: false});
-    replace(app, 'relaunch', fake(() => order.push('relaunch')));
-    replace(app, 'quit', fake(() => order.push('quit')));
+    replace(
+      app,
+      'relaunch',
+      fake(() => order.push('relaunch')),
+    );
+    replace(
+      app,
+      'quit',
+      fake(() => order.push('quit')),
+    );
 
     await relaunch();
 
