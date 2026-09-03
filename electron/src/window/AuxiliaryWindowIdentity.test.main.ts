@@ -17,16 +17,18 @@
  *
  */
 
-import {app, BrowserWindow, ipcMain, session, WebPreferences} from 'electron';
+import {app, BrowserWindow, session, WebPreferences} from 'electron';
 
 import * as assert from 'assert';
 import * as path from 'path';
 import {pathToFileURL} from 'url';
 
+import {WindowManager} from './WindowManager';
+
 import {EVENT_TYPE} from '../lib/eventType';
+import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
-import {WindowManager} from './WindowManager';
 
 const mutableApp = app as typeof app & {setAppPath(appPath: string): void};
 
@@ -38,6 +40,7 @@ const getLastWebPreferences = (window: BrowserWindow): WebPreferences => {
 describe('auxiliary window identity', () => {
   const windows: BrowserWindow[] = [];
   const originalAppPath = app.getAppPath();
+  let acceptWebappVersions: typeof import('./AboutWindow').acceptWebappVersions;
   let AboutWindow: typeof import('./AboutWindow').AboutWindow;
   let requestActiveWebappVersions: typeof import('./AboutWindow').requestActiveWebappVersions;
   let ProxyPromptWindow: typeof import('./ProxyPromptWindow').ProxyPromptWindow;
@@ -45,7 +48,7 @@ describe('auxiliary window identity', () => {
   before(async () => {
     await app.whenReady();
     mutableApp.setAppPath(process.cwd());
-    ({AboutWindow, requestActiveWebappVersions} = await import('./AboutWindow'));
+    ({AboutWindow, acceptWebappVersions, requestActiveWebappVersions} = await import('./AboutWindow'));
     ({ProxyPromptWindow} = await import('./ProxyPromptWindow'));
   });
 
@@ -68,13 +71,17 @@ describe('auxiliary window identity', () => {
     WindowManager.setPrimaryWindowId(primaryWindow.id);
 
     const firstRequest = requestActiveWebappVersions();
-    ipcMain.emit(EVENT_TYPE.UI.WEBAPP_VERSION, {} as Electron.IpcMainEvent, 'webapp-1');
-    ipcMain.emit(EVENT_TYPE.UI.WEBAPP_AVS_VERSION, {} as Electron.IpcMainEvent, 'avs-1');
+    acceptWebappVersions({webappVersion: 'webapp-1', webappAVSVersion: 'avs-1'});
     assert.deepStrictEqual(await firstRequest, {webappVersion: 'webapp-1', webappAVSVersion: 'avs-1'});
 
     const secondRequest = requestActiveWebappVersions();
-    ipcMain.emit(EVENT_TYPE.UI.WEBAPP_VERSION, {} as Electron.IpcMainEvent, 'webapp-2');
+    acceptWebappVersions({webappVersion: 'webapp-2'});
     assert.deepStrictEqual(await secondRequest, {webappVersion: 'webapp-2', webappAVSVersion: undefined});
+
+    assert.deepStrictEqual(await requestActiveWebappVersions(1), {
+      webappVersion: 'webapp-2',
+      webappAVSVersion: undefined,
+    });
   });
 
   it('[characterization][security-target][INV-003][INV-004][SEC-002] creates About in its exact local session', async function () {
@@ -89,7 +96,7 @@ describe('auxiliary window identity', () => {
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
     const identity = registry.authorize(
       {sender: window.webContents, senderFrame: window.webContents.mainFrame},
-      EVENT_TYPE.ABOUT.LOCALE_VALUES,
+      ABOUT_LOCALE_READ_CAPABILITY,
     );
     assert.strictEqual(identity.viewType, 'about');
     assert.strictEqual(identity.allowedUrl, expectedUrl);
@@ -127,7 +134,7 @@ describe('auxiliary window identity', () => {
     assert.throws(() =>
       registry.authorize(
         {sender: window.webContents, senderFrame: window.webContents.mainFrame},
-        EVENT_TYPE.ABOUT.LOCALE_VALUES,
+        ABOUT_LOCALE_READ_CAPABILITY,
       ),
     );
     const webContentsId = window.webContents.id;

@@ -18,13 +18,13 @@
  */
 
 import {ipcRenderer} from 'electron';
-import {restore, spy} from 'sinon';
+import {restore, stub} from 'sinon';
 
 import * as assert from 'assert';
 
 import {loadedAboutScreen, updateAboutScreenVersions} from './preload-about';
 
-import {EVENT_TYPE} from '../../lib/eventType';
+import {ABOUT_LOCALE_READ_CHANNEL} from '../../security/AboutWindowContract';
 
 describe('loadedAboutScreen', () => {
   afterEach(() => {
@@ -32,15 +32,21 @@ describe('loadedAboutScreen', () => {
     document.body.innerHTML = '';
   });
 
-  it('[characterization][SEC-003] requests exactly the rendered locale labels', () => {
-    const sendSpy = spy(ipcRenderer, 'send');
+  it('[characterization][SEC-003] requests exactly the rendered locale labels', async () => {
+    const invokeStub = stub(ipcRenderer, 'invoke').resolves({
+      aboutReleases: 'Releases',
+      aboutReleasesUrl: 'https://example.test/releases',
+      aboutUpdatesUrl: 'https://example.test/updates',
+      aboutVersion: 'Desktop version',
+      aboutWebappVersion: 'Web version',
+    });
     document.body.innerHTML = `
       <span data-string="aboutVersion"></span>
       <span data-string="aboutWebappVersion"></span>
       <span data-string="aboutReleases"></span>
     `;
 
-    loadedAboutScreen(null, {
+    await loadedAboutScreen(null, {
       copyright: '&copy; Wire Swiss GmbH',
       electronVersion: 'Development',
       productName: 'Wire',
@@ -49,23 +55,24 @@ describe('loadedAboutScreen', () => {
     });
 
     assert.strictEqual(
-      sendSpy.calledOnceWith(EVENT_TYPE.ABOUT.LOCALE_VALUES, [
-        'aboutVersion',
-        'aboutWebappVersion',
-        'aboutReleases',
-      ]),
+      invokeStub.calledOnceWith(ABOUT_LOCALE_READ_CHANNEL, {
+        labels: ['aboutVersion', 'aboutWebappVersion', 'aboutReleases'],
+      }),
       true,
     );
   });
 
-  it('updates webapp version values without requesting locales again', () => {
-    const sendSpy = spy(ipcRenderer, 'send');
+  it('updates webapp version values without requesting locales again', async () => {
+    const invokeStub = stub(ipcRenderer, 'invoke').resolves({
+      aboutReleasesUrl: 'https://example.test/releases',
+      aboutUpdatesUrl: 'https://example.test/updates',
+    });
     document.body.innerHTML = `
       <span id="webappVersion"></span>
       <span id="webappAVSVersion">stale-avs-version</span>
     `;
 
-    loadedAboutScreen(null, {
+    await loadedAboutScreen(null, {
       copyright: '&copy; Wire Swiss GmbH',
       electronVersion: 'Development',
       productName: 'Wire',
@@ -92,6 +99,6 @@ describe('loadedAboutScreen', () => {
 
     assert.strictEqual(webappVersionElement.textContent, '2019.04.10.0902');
     assert.strictEqual(webappAVSVersionElement.textContent, '');
-    assert.strictEqual(sendSpy.calledOnceWith(EVENT_TYPE.ABOUT.LOCALE_VALUES, []), true);
+    assert.strictEqual(invokeStub.calledOnceWith(ABOUT_LOCALE_READ_CHANNEL, {labels: []}), true);
   });
 });

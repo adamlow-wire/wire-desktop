@@ -20,8 +20,11 @@
 import {ipcRenderer} from 'electron';
 
 import {EVENT_TYPE} from '../../lib/eventType';
+import {requestAboutLocaleValues} from '../../security/AboutWindowIpc';
 
-ipcRenderer.once(EVENT_TYPE.ABOUT.LOCALE_RENDER, (_event, labels: Record<string, string>) => {
+const logger = {error: (message: string, error: unknown): void => console.error(message, error)};
+
+const renderLocaleValues = (labels: Record<string, string>): void => {
   for (const [labelName, labelText] of Object.entries(labels)) {
     if (['aboutReleasesUrl', 'aboutUpdatesUrl'].includes(labelName)) {
       const labelElement = document.querySelector(`[data-href="${labelName}"]`);
@@ -35,7 +38,7 @@ ipcRenderer.once(EVENT_TYPE.ABOUT.LOCALE_RENDER, (_event, labels: Record<string,
       }
     }
   }
-});
+};
 
 interface Details {
   copyright: string;
@@ -57,7 +60,7 @@ function renderWebappVersions(details: Pick<Details, 'webappVersion' | 'webappAV
   }
 }
 
-export function loadedAboutScreen(_event: unknown, details: Details): void {
+export async function loadedAboutScreen(_event: unknown, details: Details): Promise<void> {
   const nameElement = document.getElementById('name');
   if (nameElement !== null) {
     nameElement.textContent = details.productName;
@@ -91,12 +94,15 @@ export function loadedAboutScreen(_event: unknown, details: Details): void {
     }
   }
 
-  ipcRenderer.send(EVENT_TYPE.ABOUT.LOCALE_VALUES, labels);
+  const localeValues = await requestAboutLocaleValues(ipcRenderer, labels, logger);
+  if (localeValues) {
+    renderLocaleValues(localeValues);
+  }
 }
 
 export function updateAboutScreenVersions(_event: unknown, details: Details): void {
   renderWebappVersions(details);
 }
 
-ipcRenderer.once(EVENT_TYPE.ABOUT.LOADED, loadedAboutScreen);
+ipcRenderer.once(EVENT_TYPE.ABOUT.LOADED, (event, details: Details) => void loadedAboutScreen(event, details));
 ipcRenderer.on(EVENT_TYPE.ABOUT.LOADED, updateAboutScreenVersions);

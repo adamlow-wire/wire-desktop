@@ -17,26 +17,25 @@
  *
  */
 
-import {app, BrowserWindow, ipcMain, session} from 'electron';
+import {app, BrowserWindow, session} from 'electron';
 
 import * as path from 'path';
 import {pathToFileURL} from 'url';
 
 import {EVENT_TYPE} from '../lib/eventType';
-import * as locale from '../locale';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {ABOUT_LOCALE_READ_CAPABILITY, WebappVersions} from '../security/AboutWindowContract';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import {WindowManager} from '../window/WindowManager';
 import * as WindowUtil from '../window/WindowUtil';
 
-let webappVersion = '';
-let webappAVSVersion: string | undefined;
+let cachedWebappVersions: WebappVersions = {webappVersion: ''};
 let aboutWindow: BrowserWindow | undefined;
 let aboutWindowRegistry: ViewIdentityRegistry | undefined;
+const pendingVersionRequests = new Set<(versions: WebappVersions) => void>();
 
 const VERSION_REQUEST_TIMEOUT_MS = 1500;
-const AVS_VERSION_GRACE_PERIOD_MS = 50;
 
 // Paths
 const APP_PATH = path.join(app.getAppPath(), config.electronDirectory);
@@ -57,24 +56,21 @@ const WINDOW_SIZE = {
   WIDTH: 304,
 };
 
-ipcMain.on(EVENT_TYPE.UI.WEBAPP_VERSION, (_event, version: string) => {
-  webappVersion = version;
-});
-
-ipcMain.on(EVENT_TYPE.UI.WEBAPP_AVS_VERSION, (_event, version: string) => {
-  webappAVSVersion = version;
-});
-
-interface WebappVersions {
-  webappVersion: string;
-  webappAVSVersion?: string;
-}
-
 function getCachedWebappVersions(): WebappVersions {
-  return {webappVersion, webappAVSVersion};
+  return {
+    webappAVSVersion: cachedWebappVersions.webappAVSVersion,
+    webappVersion: cachedWebappVersions.webappVersion,
+  };
 }
 
-export function requestActiveWebappVersions(): Promise<WebappVersions> {
+export function acceptWebappVersions(versions: WebappVersions): void {
+  cachedWebappVersions = {...versions};
+  for (const resolve of [...pendingVersionRequests]) {
+    resolve(getCachedWebappVersions());
+  }
+}
+
+export function requestActiveWebappVersions(timeoutMilliseconds = VERSION_REQUEST_TIMEOUT_MS): Promise<WebappVersions> {
   const primaryWindow = WindowManager.getPrimaryWindow();
 
   if (primaryWindow === undefined) {
@@ -82,55 +78,13 @@ export function requestActiveWebappVersions(): Promise<WebappVersions> {
   }
 
   return new Promise(resolve => {
-    let requestedVersion: string | undefined;
-    let requestedAVSVersion: string | undefined;
-    let hasResolved = false;
-    let hasReceivedVersion = false;
-    let gracePeriodId: ReturnType<typeof setTimeout> | undefined;
-
-    function resolveWithValues(): void {
-      if (hasResolved === true) {
-        return;
-      }
-      hasResolved = true;
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
-      if (gracePeriodId !== undefined) {
-        clearTimeout(gracePeriodId);
-      }
-      ipcMain.removeListener(EVENT_TYPE.UI.WEBAPP_VERSION, onVersion);
-      ipcMain.removeListener(EVENT_TYPE.UI.WEBAPP_AVS_VERSION, onAVSVersion);
-
-      if (hasReceivedVersion === false) {
-        resolve(getCachedWebappVersions());
-        return;
-      }
-
-      webappVersion = requestedVersion ?? webappVersion;
-      webappAVSVersion = requestedAVSVersion;
-      resolve({webappVersion, webappAVSVersion});
-    }
-
-    function onVersion(_event: Electron.IpcMainEvent, version: string): void {
-      hasReceivedVersion = true;
-      requestedVersion = version;
-      requestedAVSVersion = undefined;
-      if (gracePeriodId !== undefined) {
-        clearTimeout(gracePeriodId);
-      }
-      // Wait briefly for optional AVS version that can arrive right after main version.
-      gracePeriodId = setTimeout(resolveWithValues, AVS_VERSION_GRACE_PERIOD_MS);
-    }
-
-    function onAVSVersion(_event: Electron.IpcMainEvent, version: string): void {
-      requestedAVSVersion = version;
-      resolveWithValues();
-    }
-
-    ipcMain.on(EVENT_TYPE.UI.WEBAPP_VERSION, onVersion);
-    ipcMain.on(EVENT_TYPE.UI.WEBAPP_AVS_VERSION, onAVSVersion);
-    const timeoutId = setTimeout(resolveWithValues, VERSION_REQUEST_TIMEOUT_MS);
+    const resolveRequest = (versions: WebappVersions): void => {
+      clearTimeout(timeoutId);
+      pendingVersionRequests.delete(resolveRequest);
+      resolve(versions);
+    };
+    const timeoutId = setTimeout(() => resolveRequest(getCachedWebappVersions()), timeoutMilliseconds);
+    pendingVersionRequests.add(resolveRequest);
     primaryWindow.webContents.send(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
   });
 }
@@ -148,24 +102,6 @@ function renderAboutWindow(activeWebappVersions: WebappVersions): void {
     webappAVSVersion: activeWebappVersions.webappAVSVersion,
   });
 }
-
-ipcMain.on(EVENT_TYPE.ABOUT.LOCALE_VALUES, (event, labels: locale.i18nLanguageIdentifier[]) => {
-  if (aboutWindow === undefined) {
-    return;
-  }
-
-  if (event.sender.id !== aboutWindow.webContents.id) {
-    return;
-  }
-
-  const localeValues: Record<string, string> = {};
-  labels.forEach(label => {
-    localeValues[label] = locale.getText(label);
-  });
-  localeValues.aboutReleasesUrl = config.aboutReleasesUrl;
-  localeValues.aboutUpdatesUrl = config.aboutUpdatesUrl;
-  event.reply(EVENT_TYPE.ABOUT.LOCALE_RENDER, localeValues);
-});
 
 const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow> => {
   // let aboutWindow: BrowserWindow | undefined;
@@ -199,7 +135,7 @@ const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow
     registerViewIdentity(registry, {
       allowedOrigin: new URL(ABOUT_HTML).origin,
       allowedUrl: ABOUT_HTML,
-      capabilities: [EVENT_TYPE.ABOUT.LOCALE_VALUES],
+      capabilities: [ABOUT_LOCALE_READ_CAPABILITY],
       partition: 'about-window',
       session: aboutWindow.webContents.session,
       viewType: 'about',

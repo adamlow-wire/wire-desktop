@@ -85,6 +85,7 @@ import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
+import {AboutLocaleResponse, bindAboutWindowIpc} from './security/AboutWindowIpc';
 import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
@@ -107,7 +108,7 @@ import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
 import {SingleSignOn} from './sso/SingleSignOn';
 import {initMacAutoUpdater} from './update/macosAutoUpdater';
-import {AboutWindow} from './window/AboutWindow';
+import {AboutWindow, acceptWebappVersions} from './window/AboutWindow';
 import {ProxyPromptWindow} from './window/ProxyPromptWindow';
 import {WindowManager} from './window/WindowManager';
 import * as WindowUtil from './window/WindowUtil';
@@ -245,6 +246,18 @@ app.commandLine.appendSwitch('force-webrtc-ip-handling-policy', 'default_public_
 
 // IPC events
 const bindIpcEvents = (): void => {
+  bindAboutWindowIpc(ipcMain, viewIdentityRegistry, {
+    readLocaleValues(labels): AboutLocaleResponse {
+      const values: Record<string, string> = {};
+      for (const label of labels) {
+        values[label] = locale.getText(label as locale.i18nLanguageIdentifier);
+      }
+      values.aboutReleasesUrl = config.aboutReleasesUrl;
+      values.aboutUpdatesUrl = config.aboutUpdatesUrl;
+      return values;
+    },
+    reportWebappVersions: acceptWebappVersions,
+  });
   bindSavePictureIpc(ipcMain, viewIdentityRegistry, (bytes, timestamp) =>
     downloadImage(bytes, timestamp ? Maybe.just(timestamp) : Maybe.nothing<string>()),
   );

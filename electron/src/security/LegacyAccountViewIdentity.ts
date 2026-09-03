@@ -21,6 +21,7 @@ import * as path from 'path';
 
 import {ValidationUtil} from '@wireapp/commons';
 
+import {WEBAPP_VERSIONS_REPORT_CAPABILITY} from './AboutWindowContract';
 import {DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './DesktopSourcesContract';
 import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
@@ -96,6 +97,7 @@ export const registerLegacyAccountViewIdentity = (
       DESKTOP_SOURCES_ENUMERATE_CAPABILITY,
       SSO_WINDOW_CLOSE_CAPABILITY,
       SSO_WINDOW_FOCUS_CAPABILITY,
+      WEBAPP_VERSIONS_REPORT_CAPABILITY,
     ],
     partition,
     session: webContents.session,

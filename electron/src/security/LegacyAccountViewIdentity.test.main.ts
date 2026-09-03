@@ -19,6 +19,7 @@
 
 import {strict as assert} from 'assert';
 
+import {WEBAPP_VERSIONS_REPORT_CAPABILITY} from './AboutWindowContract';
 import {DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './DesktopSourcesContract';
 import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
@@ -102,6 +103,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       DESKTOP_SOURCES_ENUMERATE_CAPABILITY,
       SSO_WINDOW_CLOSE_CAPABILITY,
       SSO_WINDOW_FOCUS_CAPABILITY,
+      WEBAPP_VERSIONS_REPORT_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');
