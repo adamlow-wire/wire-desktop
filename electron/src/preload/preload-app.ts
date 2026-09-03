@@ -28,6 +28,7 @@ import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {requestAccountDataDeletion} from '../security/AccountDataDeletionIpc';
 import {requestBadgeCountUpdate} from '../security/BadgeCountIpc';
 import {AutomatedSingleSignOn} from '../sso/AutomatedSingleSignOn';
 
@@ -128,8 +129,10 @@ const setupIpcInterface = (): void => {
 
       logger.info(`Processing deletion of "${truncatedId}"`);
       const viewInstanceId = accountWebview.getWebContentsId();
-      ipcRenderer.on(EVENT_TYPE.ACCOUNT.DATA_DELETED, () => resolve());
-      ipcRenderer.send(EVENT_TYPE.ACCOUNT.DELETE_DATA, viewInstanceId, accountId, sessionID);
+      const request = sessionID
+        ? {accountId, partitionId: sessionID, webContentsId: viewInstanceId}
+        : {accountId, webContentsId: viewInstanceId};
+      void requestAccountDataDeletion(ipcRenderer, request).then(resolve, reject);
     });
   };
 

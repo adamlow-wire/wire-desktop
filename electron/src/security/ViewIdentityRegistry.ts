@@ -125,6 +125,26 @@ export class ViewIdentityRegistry {
     return this.identities.has(webContentsId);
   }
 
+  authorizeAccountTarget(webContentsId: number, accountId: string, partition: string): AuthorizedViewIdentity {
+    const identity = this.identities.get(webContentsId);
+    const authorized =
+      identity &&
+      identity.viewType === 'account' &&
+      identity.accountId === accountId &&
+      identity.partition === partition &&
+      identity.webContents.id === webContentsId &&
+      !identity.webContents.isDestroyed() &&
+      identity.webContents.session === identity.session &&
+      identity.webContents.mainFrame === identity.mainFrame &&
+      hasAllowedOrigin(identity.mainFrame.url, identity.allowedOrigin);
+
+    if (!authorized) {
+      throw new Error('Account deletion target is not authorized.');
+    }
+
+    return identity;
+  }
+
   authorize(sender: SenderIdentity, capability: string): AuthorizedViewIdentity {
     const identity = this.identities.get(sender.sender.id);
     const authorized =
