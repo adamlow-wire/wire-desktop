@@ -79,8 +79,13 @@ const accountDataDeletionContract: AuthorizedIpcContract<AccountDataDeletionRequ
 
 export const requestAccountDataDeletion = async (
   ipc: IpcRendererInvoker,
-  request: AccountDataDeletionRequest,
+  webContentsId: number,
+  accountId: string,
+  partitionId?: string,
 ): Promise<void> => {
+  const request: AccountDataDeletionRequest = partitionId
+    ? {accountId, partitionId, webContentsId}
+    : {accountId, webContentsId};
   await ipc.invoke(ACCOUNT_DATA_DELETE_CHANNEL, request);
 };
 

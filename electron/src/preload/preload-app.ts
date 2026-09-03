@@ -129,10 +129,7 @@ const setupIpcInterface = (): void => {
 
       logger.info(`Processing deletion of "${truncatedId}"`);
       const viewInstanceId = accountWebview.getWebContentsId();
-      const request = sessionID
-        ? {accountId, partitionId: sessionID, webContentsId: viewInstanceId}
-        : {accountId, webContentsId: viewInstanceId};
-      void requestAccountDataDeletion(ipcRenderer, request).then(resolve, reject);
+      void requestAccountDataDeletion(ipcRenderer, viewInstanceId, accountId, sessionID).then(resolve, reject);
     });
   };
 

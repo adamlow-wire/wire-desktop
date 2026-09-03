@@ -85,17 +85,20 @@ describe('account data deletion IPC contract', () => {
   it('[security-target][INV-002][INV-003][SEC-003][DCP-004] invokes only the fixed channel with the exact target', async () => {
     const calls: unknown[][] = [];
 
-    await requestAccountDataDeletion(
-      {
-        invoke: async (...args: unknown[]) => {
-          calls.push(args);
-          return undefined;
-        },
+    const ipc = {
+      invoke: async (...args: unknown[]) => {
+        calls.push(args);
+        return undefined;
       },
-      {accountId, partitionId, webContentsId: 122},
-    );
+    };
 
-    assert.deepStrictEqual(calls, [[ACCOUNT_DATA_DELETE_CHANNEL, {accountId, partitionId, webContentsId: 122}]]);
+    await requestAccountDataDeletion(ipc, 122, accountId, partitionId);
+    await requestAccountDataDeletion(ipc, 122, accountId);
+
+    assert.deepStrictEqual(calls, [
+      [ACCOUNT_DATA_DELETE_CHANNEL, {accountId, partitionId, webContentsId: 122}],
+      [ACCOUNT_DATA_DELETE_CHANNEL, {accountId, webContentsId: 122}],
+    ]);
   });
 
   it('[characterization][security-target][INV-003][INV-004][SEC-003][DCP-004] deletes only the correlated account target', async () => {
