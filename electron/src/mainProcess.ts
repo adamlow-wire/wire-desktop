@@ -92,6 +92,7 @@ import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {bindWebAppLoadedIpc} from './security/WebAppLoadedIpc';
+import {bindWrapperReloadIpc} from './security/WrapperReloadIpc';
 import {config} from './settings/config';
 import {settings} from './settings/ConfigurationPersistence';
 import {SettingsType} from './settings/SettingsType';
@@ -245,7 +246,7 @@ const bindIpcEvents = (): void => {
   );
 
   bindAccountDataDeletionIpc(ipcMain, viewIdentityRegistry, deleteAccount);
-  ipcMain.on(EVENT_TYPE.WRAPPER.RELOAD, () => forwardWrapperReloadRequest(main.webContents));
+  bindWrapperReloadIpc(ipcMain, viewIdentityRegistry, () => forwardWrapperReloadRequest(main.webContents));
   ipcMain.on(EVENT_TYPE.WRAPPER.RELAUNCH, () => lifecycle.relaunch());
   ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow(viewIdentityRegistry));
 
