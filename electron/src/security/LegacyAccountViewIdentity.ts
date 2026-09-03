@@ -28,6 +28,7 @@ import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContra
 import {OPEN_GRAPH_FETCH_CAPABILITY} from './OpenGraphContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
+import {SSO_WINDOW_CLOSE_CAPABILITY, SSO_WINDOW_FOCUS_CAPABILITY} from './SsoWindowControlContract';
 import {
   RegisteredViewIdentity,
   registerViewIdentity,
@@ -93,6 +94,8 @@ export const registerLegacyAccountViewIdentity = (
       OPEN_GRAPH_FETCH_CAPABILITY,
       DOWNLOAD_LOCATION_UPDATE_CAPABILITY,
       DESKTOP_SOURCES_ENUMERATE_CAPABILITY,
+      SSO_WINDOW_CLOSE_CAPABILITY,
+      SSO_WINDOW_FOCUS_CAPABILITY,
     ],
     partition,
     session: webContents.session,

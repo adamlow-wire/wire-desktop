@@ -327,6 +327,44 @@ describe('SingleSignOn', () => {
   });
 
   describe('window and session cleanup', () => {
+    it('[characterization][security-target][INV-004][SEC-003][CAP-002][DCP-003] focuses and closes only the owned active SSO window', () => {
+      let closeCount = 0;
+      let focusCount = 0;
+      const sender = {session: {} as Session} as WebContents;
+      const ssoWindow = {
+        close: () => {
+          closeCount += 1;
+        },
+        focus: () => {
+          focusCount += 1;
+        },
+      } as unknown as BrowserWindow;
+      const singleSignOn = new SingleSignOn(
+        ssoWindow,
+        sender,
+        Maybe.just('account-a'),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+
+      assert.strictEqual(singleSignOn.isOwnedByAccount('account-a'), true);
+      assert.strictEqual(singleSignOn.isOwnedByAccount('account-b'), false);
+
+      singleSignOn.focus();
+      assert.strictEqual(focusCount, 1);
+      assert.strictEqual(closeCount, 0);
+
+      singleSignOn.close();
+      assert.strictEqual(closeCount, 1);
+      assert.strictEqual(singleSignOn['ssoWindow'], undefined);
+
+      singleSignOn.focus();
+      singleSignOn.close();
+      assert.strictEqual(focusCount, 1);
+      assert.strictEqual(closeCount, 1);
+    });
+
     it('[characterization][DCP-003] clears the ephemeral session and unregisters the protocol on close or cancel', async () => {
       const windowListeners = new Map<string, () => Promise<void>>();
       let clearCount = 0;

@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: m3-execution-review
+state: sso-window-control-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 467793a300ac2aee11c27c5d3c0b094b570a3dea
+integration_head_commit: 18e337e3d17f59a7a9aa5137f603937afb16bb17
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: docs/M3-execution-review-2026-09-03
-next_work_item: SEC-003-remaining-ipc-groups
+related_pending_branch: sec/SEC-003-sso-window-control-2026-09-03
+next_work_item: SEC-003-auxiliary-window-exchange
 blockers: []
 ---
 
@@ -60,6 +60,10 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #27](https://github.com/adamlow-wire/wire-desktop/pull/27) merged as `467793a3` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Deep-link submission now uses an application-shell-only, exact, bounded contract while SEC-013 and CAP-006 retain strict parsing and lifecycle routing.
 
+[PR #28](https://github.com/adamlow-wire/wire-desktop/pull/28) merged as `18e337e3` after required build, lint, analysis, and all-platform package checks passed. It records the honest post-PR #27 M3 execution checkpoints and the proportionate E2E cadence in DEC-008. The first macOS package attempt hit an unchanged two-second Electron test timeout; the single failed-job rerun passed without a code change.
+
+[PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) is validating account-owned SSO window close/focus contracts. Local evidence is green; hosted required checks remain pending.
+
 The post-PR #27 audit confirms that M3 remains a production-boundary migration, not merely an IPC inventory exercise. The legacy product path still uses `@electron/remote`, an unsandboxed non-isolated local shell, DOM `<webview>`, `file://`, and a production CSP containing `unsafe-eval`; those release-blocking conditions remain explicitly owned by SEC-004 through SEC-010 and CAP-001.
 
 ## Active work
@@ -68,13 +72,13 @@ The post-PR #27 audit confirms that M3 remains a production-boundary migration, 
 | ------------- | --------------------------------------------------- |
 | Work item     | SEC-003 — Typed, validated, capability-specific IPC |
 | Owner         | `adamlow-wire`                                      |
-| Active branch | `docs/M3-execution-review-2026-09-03`               |
-| Goal          | Record the post-PR #27 M3 execution checkpoints     |
-| Starting gate | PR #27 merged green at `467793a3`                   |
+| Active branch | `sec/SEC-003-sso-window-control-2026-09-03`         |
+| Goal          | Authorize and account-bind SSO close/focus controls |
+| Starting gate | PR #28 merged green at `18e337e3`                   |
 
 ## Next executable sequence
 
-1. Complete SEC-003 in coherent IPC groups: SSO window control, About/version/locale exchange, and proxy prompt submission/cancellation; resolve the dormant updater listener explicitly.
+1. Complete the remaining SEC-003 groups: About/version/locale exchange and proxy prompt submission/cancellation; resolve the dormant updater listener explicitly.
 2. Complete the production secure-shell cutover through SEC-004–SEC-007, SEC-010, and CAP-001, retaining small reviewable PRs but treating the first production-path activation and final cutover as full E2E checkpoints.
 3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
@@ -167,6 +171,7 @@ The post-PR #27 audit confirms that M3 remains a production-boundary migration, 
 | SEC-003 desktop-source enumeration hosted validation | [PR #26](https://github.com/adamlow-wire/wire-desktop/pull/26) merged as `d658a091`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33724134412`, `33724134493`, and `33724161365` | 2026-09-03 |
 | SEC-003 deep-link submission contract | Focused behavior and authorization tests pass 10/10; clean full coverage passes with 262 Electron main tests plus 3 owned CAP-002 targets pending, 18/21 changed statements (85.71%), 10/10 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned application-shell-only contract accepts exactly one non-empty URL string bounded to 1,024 characters, validates the void response, permits at most 30 submissions per minute per shell, reports rejected invocations, removes the raw incoming event, and preserves existing dispatch plus conversation-join parameters. Altering a join parameter and accepting an oversized request each failed the intended test; both perturbations were reverted. SEC-013 and CAP-006 still own strict parsing and lifecycle routing; hosted validation remains pending | 2026-09-03 |
 | SEC-003 deep-link submission hosted validation | [PR #27](https://github.com/adamlow-wire/wire-desktop/pull/27) merged as `467793a3`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33728083664`, `33728083719`, and `33728107454` | 2026-09-03 |
+| SEC-003 SSO window-control contract | [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29): focused SSO behavior, authority, and account-identity suites pass 33 tests with 3 owned CAP-002 targets pending; clean full coverage passes with 270 Electron main tests plus those 3 pending targets, 36/43 changed statements (83.72%), 8/8 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The fixed account-only close/focus contracts accept no payload, validate void responses, allow 30 requests per minute per control and view, and refuse control of an SSO window owned by another account. Suppressing focus and bypassing account ownership failed the intended tests; both perturbations were reverted. Hosted validation remains pending | 2026-09-03 |
 
 ## Handoff notes
 
