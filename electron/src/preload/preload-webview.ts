@@ -29,6 +29,7 @@ import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {reportWebappVersions as submitWebappVersions} from '../security/AboutWindowIpc';
 import {requestDesktopSources} from '../security/DesktopSourcesIpc';
 import {requestDownloadLocationUpdate} from '../security/DownloadLocationIpc';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
@@ -229,7 +230,6 @@ const subscribeToMainProcessEvents = (): void => {
   ipcRenderer.on(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, () => {
     logger.info(`Received event "${EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION}", reporting versions ...`);
     reportWebappVersion();
-    reportWebappAVSVersion();
   });
   ipcRenderer.on(EVENT_TYPE.ACTION.SIGN_OUT, () => {
     logger.info(`Received event "${EVENT_TYPE.ACTION.SIGN_OUT}", forwarding to amplify ...`);
@@ -264,13 +264,15 @@ function getOpenGraphDataViaChannel(url: string): Promise<OpenGraphResult> {
 }
 
 function reportWebappVersion(): void {
-  ipcRenderer.send(EVENT_TYPE.UI.WEBAPP_VERSION, window.z.util.Environment.version(false));
-}
-function reportWebappAVSVersion(): void {
   const avsVersion = window.z.util.Environment.avsVersion?.();
-  if (avsVersion) {
-    ipcRenderer.send(EVENT_TYPE.UI.WEBAPP_AVS_VERSION, avsVersion);
-  }
+  void submitWebappVersions(
+    ipcRenderer,
+    {
+      webappVersion: window.z.util.Environment.version(false),
+      ...(avsVersion ? {webappAVSVersion: avsVersion} : {}),
+    },
+    logger,
+  );
 }
 
 // https://github.com/electron/electron/issues/2984
@@ -329,7 +331,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   subscribeToThemeChange();
   subscribeToWebappEvents();
   reportWebappVersion();
-  reportWebappAVSVersion();
   // include context menu
   await import('./menu/preload-context');
 });

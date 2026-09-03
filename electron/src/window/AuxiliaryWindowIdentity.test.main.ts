@@ -23,7 +23,10 @@ import * as assert from 'assert';
 import * as path from 'path';
 import {pathToFileURL} from 'url';
 
+import {WindowManager} from './WindowManager';
+
 import {EVENT_TYPE} from '../lib/eventType';
+import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 
@@ -37,13 +40,15 @@ const getLastWebPreferences = (window: BrowserWindow): WebPreferences => {
 describe('auxiliary window identity', () => {
   const windows: BrowserWindow[] = [];
   const originalAppPath = app.getAppPath();
+  let acceptWebappVersions: typeof import('./AboutWindow').acceptWebappVersions;
   let AboutWindow: typeof import('./AboutWindow').AboutWindow;
+  let requestActiveWebappVersions: typeof import('./AboutWindow').requestActiveWebappVersions;
   let ProxyPromptWindow: typeof import('./ProxyPromptWindow').ProxyPromptWindow;
 
   before(async () => {
     await app.whenReady();
     mutableApp.setAppPath(process.cwd());
-    ({AboutWindow} = await import('./AboutWindow'));
+    ({AboutWindow, acceptWebappVersions, requestActiveWebappVersions} = await import('./AboutWindow'));
     ({ProxyPromptWindow} = await import('./ProxyPromptWindow'));
   });
 
@@ -60,6 +65,25 @@ describe('auxiliary window identity', () => {
     }
   });
 
+  it('[characterization][SEC-003] returns the latest webapp version and clears an absent AVS version', async () => {
+    const primaryWindow = new BrowserWindow({show: false});
+    windows.push(primaryWindow);
+    WindowManager.setPrimaryWindowId(primaryWindow.id);
+
+    const firstRequest = requestActiveWebappVersions();
+    acceptWebappVersions({webappVersion: 'webapp-1', webappAVSVersion: 'avs-1'});
+    assert.deepStrictEqual(await firstRequest, {webappVersion: 'webapp-1', webappAVSVersion: 'avs-1'});
+
+    const secondRequest = requestActiveWebappVersions();
+    acceptWebappVersions({webappVersion: 'webapp-2'});
+    assert.deepStrictEqual(await secondRequest, {webappVersion: 'webapp-2', webappAVSVersion: undefined});
+
+    assert.deepStrictEqual(await requestActiveWebappVersions(1), {
+      webappVersion: 'webapp-2',
+      webappAVSVersion: undefined,
+    });
+  });
+
   it('[characterization][security-target][INV-003][INV-004][SEC-002] creates About in its exact local session', async function () {
     this.timeout(10_000);
     const registry = new ViewIdentityRegistry();
@@ -72,7 +96,7 @@ describe('auxiliary window identity', () => {
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
     const identity = registry.authorize(
       {sender: window.webContents, senderFrame: window.webContents.mainFrame},
-      EVENT_TYPE.ABOUT.LOCALE_VALUES,
+      ABOUT_LOCALE_READ_CAPABILITY,
     );
     assert.strictEqual(identity.viewType, 'about');
     assert.strictEqual(identity.allowedUrl, expectedUrl);
@@ -110,7 +134,7 @@ describe('auxiliary window identity', () => {
     assert.throws(() =>
       registry.authorize(
         {sender: window.webContents, senderFrame: window.webContents.mainFrame},
-        EVENT_TYPE.ABOUT.LOCALE_VALUES,
+        ABOUT_LOCALE_READ_CAPABILITY,
       ),
     );
     const webContentsId = window.webContents.id;

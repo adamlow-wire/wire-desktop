@@ -21,9 +21,9 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:download-location:update:v1` | account | Directory creation and persistent settings write | merged in PR #25; path policy remains open | SEC-003, CAP-005 |
 | `wire-desktop:desktop-sources:enumerate:v1` | account | Enumerates display/window capture sources | merged in PR #26; user-gesture policy remains open | SEC-003, SEC-009, CAP-003 |
 | `wire-desktop:deep-link:submit:v1` | application shell | Protocol/action dispatch | merged in PR #27; parser and lifecycle policy remain open | SEC-003, SEC-013, CAP-006 |
-| `wire-desktop:sso-window:close:v1` / `wire-desktop:sso-window:focus:v1` | owning account | Controls the account-owned SSO window | PR #29 validation pending | SEC-003, CAP-002 |
-| `UI.WEBAPP_VERSION` / `UI.WEBAPP_AVS_VERSION` | account | Supplies About-window version state | unmigrated | SEC-003 |
-| `ABOUT.LOCALE_VALUES` | About window | Localized resource lookup and reply | unmigrated | SEC-003 |
+| `wire-desktop:sso-window:close:v1` / `wire-desktop:sso-window:focus:v1` | owning account | Controls the account-owned SSO window | merged in PR #29 | SEC-003, CAP-002 |
+| `wire-desktop:webapp-versions:report:v1` | account | Supplies combined About-window version state | PR #30 validation pending | SEC-003 |
+| `wire-desktop:about:locale-read:v1` | About window | Bounded localized resource lookup | PR #30 validation pending | SEC-003 |
 | `PROXY_PROMPT.LOCALE_VALUES` | proxy prompt | Localized resource lookup and reply | unmigrated | SEC-003, CAP-005 |
 | `PROXY_PROMPT.SUBMITTED` / `PROXY_PROMPT.CANCELED` | active proxy prompt | Proxy credentials, session policy, reload | unmigrated | SEC-003, CAP-005 |
 | `ABOUT.SHOW` | native menu only | Opens privileged auxiliary window | internal event; no renderer producer | retain internal or replace direct call |
