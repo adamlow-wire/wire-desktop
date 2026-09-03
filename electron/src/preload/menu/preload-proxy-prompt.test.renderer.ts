@@ -22,9 +22,13 @@ import {restore, spy, stub} from 'sinon';
 
 import * as assert from 'assert';
 
-import {loadedProxyPromptScreen, renderProxyPromptLocales} from './preload-proxy-prompt';
+import {loadedProxyPromptScreen} from './preload-proxy-prompt';
 
-import {EVENT_TYPE} from '../../lib/eventType';
+import {
+  PROXY_PROMPT_CANCEL_CHANNEL,
+  PROXY_PROMPT_LOCALE_READ_CHANNEL,
+  PROXY_PROMPT_SUBMIT_CHANNEL,
+} from '../../security/ProxyPromptContract';
 
 describe('proxy prompt preload', () => {
   afterEach(() => {
@@ -32,8 +36,12 @@ describe('proxy prompt preload', () => {
     document.body.innerHTML = '';
   });
 
-  it('[characterization][SEC-003][CAP-005] preserves labels, credentials, and cancellation controls', () => {
-    const sendSpy = spy(ipcRenderer, 'send');
+  it('[characterization][SEC-003][CAP-005] preserves labels, credentials, and cancellation controls', async () => {
+    const invokeStub = stub(ipcRenderer, 'invoke').callsFake(async channel =>
+      channel === PROXY_PROMPT_LOCALE_READ_CHANNEL
+        ? {proxyPromptTitle: 'Proxy authentication', proxyPromptUsername: 'Username'}
+        : undefined,
+    );
     const closeStub = stub(window, 'close');
     document.body.innerHTML = `
       <form id="form">
@@ -49,23 +57,20 @@ describe('proxy prompt preload', () => {
     assert.ok(usernameInput);
     const focusSpy = spy(usernameInput, 'focus');
 
-    loadedProxyPromptScreen();
-    renderProxyPromptLocales(null, {
-      proxyPromptTitle: 'Proxy authentication',
-      proxyPromptUsername: 'Username',
-    });
+    await loadedProxyPromptScreen();
 
     assert.strictEqual(focusSpy.calledOnce, true);
-    assert.deepStrictEqual(sendSpy.firstCall.args, [
-      EVENT_TYPE.PROXY_PROMPT.LOCALE_VALUES,
-      ['proxyPromptTitle', 'proxyPromptUsername'],
+    assert.deepStrictEqual(invokeStub.firstCall.args, [
+      PROXY_PROMPT_LOCALE_READ_CHANNEL,
+      {labels: ['proxyPromptTitle', 'proxyPromptUsername']},
     ]);
     assert.strictEqual(document.querySelector('[data-string="proxyPromptTitle"]')?.textContent, 'Proxy authentication');
     assert.strictEqual(document.querySelector('[data-string="proxyPromptUsername"]')?.textContent, 'Username');
 
-    document.querySelector<HTMLFormElement>('#form')?.dispatchEvent(new Event('submit'));
-    assert.deepStrictEqual(sendSpy.secondCall.args, [
-      EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
+    document.querySelector<HTMLFormElement>('#form')?.dispatchEvent(new Event('submit', {cancelable: true}));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepStrictEqual(invokeStub.secondCall.args, [
+      PROXY_PROMPT_SUBMIT_CHANNEL,
       {
         password: 'proxy-password',
         username: 'proxy-user',
@@ -73,7 +78,33 @@ describe('proxy prompt preload', () => {
     ]);
 
     document.querySelector<HTMLButtonElement>('#cancelButton')?.click();
-    assert.deepStrictEqual(sendSpy.thirdCall.args, [EVENT_TYPE.PROXY_PROMPT.CANCELED]);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepStrictEqual(invokeStub.thirdCall.args, [PROXY_PROMPT_CANCEL_CHANNEL, undefined]);
     assert.strictEqual(closeStub.callCount, 2);
+  });
+
+  it('[security-target][INV-010][SEC-003] keeps the prompt open when submission is rejected', async () => {
+    stub(console, 'error');
+    stub(ipcRenderer, 'invoke').callsFake(async channel => {
+      if (channel === PROXY_PROMPT_LOCALE_READ_CHANNEL) {
+        return {};
+      }
+      throw new Error('controlled rejection');
+    });
+    const closeStub = stub(window, 'close');
+    document.body.innerHTML = `
+      <form id="form">
+        <input id="usernameInput" />
+        <input id="passwordInput" />
+        <button id="cancelButton" type="button"></button>
+        <button id="okButton" type="submit"></button>
+      </form>
+    `;
+
+    await loadedProxyPromptScreen();
+    document.querySelector<HTMLFormElement>('#form')?.dispatchEvent(new Event('submit', {cancelable: true}));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    assert.strictEqual(closeStub.called, false);
   });
 });

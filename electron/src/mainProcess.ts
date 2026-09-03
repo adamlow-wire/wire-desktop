@@ -47,6 +47,9 @@ import {URL, pathToFileURL} from 'url';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import * as ProxyAuth from './auth/ProxyAuth';
+import {createProxyPromptActions} from './auth/ProxyPromptActions';
+import {ProxyPromptCoordinator} from './auth/ProxyPromptCoordinator';
+import {showRegisteredProxyPrompt} from './auth/ProxyPromptRegistration';
 import {
   bindPictureInPictureCallIdentity,
   getPictureInPictureCallWindowOptions,
@@ -95,6 +98,7 @@ import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './se
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNotificationActivationIpc} from './security/NotificationActivationIpc';
 import {bindOpenGraphIpc} from './security/OpenGraphIpc';
+import {bindProxyPromptIpc, createProxyPromptBoundary} from './security/ProxyPromptIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {controlSsoWindowForAccount} from './security/SsoWindowControl';
@@ -128,6 +132,7 @@ const mainProcessFireAndForgetInvoker = createFireAndForgetInvoker({
 });
 const configuredUserDataPath = getConfiguredPortableUserDataPath();
 const viewIdentityRegistry = new ViewIdentityRegistry();
+const proxyPromptCoordinator = new ProxyPromptCoordinator();
 const developerMenu = createDeveloperMenu(viewIdentityRegistry);
 
 type OpenLinkInNewWindowParameters = {
@@ -267,6 +272,11 @@ const bindIpcEvents = (): void => {
     tray.showUnreadCount(main, count, ignoreFlash),
   );
   bindDeepLinkSubmitIpc(ipcMain, viewIdentityRegistry, url => customProtocolHandler.dispatchDeepLink(url));
+  bindProxyPromptIpc(
+    ipcMain,
+    viewIdentityRegistry,
+    createProxyPromptBoundary(proxyPromptCoordinator, label => locale.getText(label as locale.i18nLanguageIdentifier)),
+  );
 
   bindAccountDataDeletionIpc(ipcMain, viewIdentityRegistry, deleteAccount);
   bindWrapperReloadIpc(ipcMain, viewIdentityRegistry, () => forwardWrapperReloadRequest(main.webContents));
@@ -508,43 +518,22 @@ const handleAppEvents = (): void => {
       }
 
       if (proxyInfoArg) {
-        ipcMain.once(
-          EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
-          async (_event, promptData: {password: string; username: string}) => {
-            logger.log('Proxy info was submitted via prompt');
-
-            const {username, password} = promptData;
-            // remove the colon from the protocol to align it with other usages of `generateProxyURL`
-            const protocol = proxyInfoArg?.protocol?.replace(':', '');
-            proxyInfoArg = ProxyAuth.generateProxyURL(
-              {host, port},
-              {
-                ...promptData,
-                protocol,
-              },
-            );
-
-            logger.log('Proxy prompt was submitted, applying proxy settings on the main window...');
-            await applyProxySettings(proxyInfoArg, main.webContents);
-            callback(username, password);
-          },
-        );
-
-        ipcMain.once(EVENT_TYPE.PROXY_PROMPT.CANCELED, async () => {
-          logger.log('Proxy prompt was canceled');
-
-          // TODO: check if we should use `mode: 'auto_detect'` here
-          await webContents.session.setProxy({});
-
-          try {
-            main.reload();
-          } catch (error) {
-            showErrorDialog(`Could not reload the window: ${(error as any).message}`);
-            logger.error('Could not reload the window:', error);
-          }
+        await showRegisteredProxyPrompt({
+          actions: createProxyPromptActions({
+            applyProxySettings,
+            authenticate: callback,
+            authInfo: {host, port},
+            challengedSession: webContents.session,
+            getProxyInfo: () => proxyInfoArg,
+            logger,
+            mainWindow: main,
+            setProxyInfo: proxy => (proxyInfoArg = proxy),
+            showErrorDialog,
+          }),
+          coordinator: proxyPromptCoordinator,
+          fireAndForget: mainProcessFireAndForgetInvoker.fireAndForget,
+          showWindow: onCreated => ProxyPromptWindow.showWindow(viewIdentityRegistry, onCreated),
         });
-
-        await ProxyPromptWindow.showWindow(viewIdentityRegistry);
       }
     }
   });

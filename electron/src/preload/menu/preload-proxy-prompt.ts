@@ -20,6 +20,9 @@
 import {ipcRenderer} from 'electron';
 
 import {EVENT_TYPE} from '../../lib/eventType';
+import {cancelProxyPrompt, requestProxyPromptLocaleValues, submitProxyPrompt} from '../../security/ProxyPromptIpc';
+
+const logger = {error: (message: string, error: unknown): void => console.error(message, error)};
 
 export const renderProxyPromptLocales = (_event: unknown, labels: Record<string, string>): void => {
   for (const label in labels) {
@@ -30,18 +33,22 @@ export const renderProxyPromptLocales = (_event: unknown, labels: Record<string,
   }
 };
 
-export const loadedProxyPromptScreen = (): void => {
+export const loadedProxyPromptScreen = async (): Promise<void> => {
   const labels = [];
   const dataStrings = document.querySelectorAll<HTMLDivElement>('[data-string]');
 
   for (const index in dataStrings) {
     const label = dataStrings[index];
-    if (label.dataset) {
-      labels.push(label.dataset.string);
+    const localeLabel = label.dataset?.string;
+    if (localeLabel !== undefined) {
+      labels.push(localeLabel);
     }
   }
 
-  ipcRenderer.send(EVENT_TYPE.PROXY_PROMPT.LOCALE_VALUES, labels);
+  const localeValues = await requestProxyPromptLocaleValues(ipcRenderer, labels, logger);
+  if (localeValues) {
+    renderProxyPromptLocales(null, localeValues);
+  }
 
   const okButton = document.querySelector<HTMLButtonElement>('#okButton');
   const cancelButton = document.querySelector<HTMLButtonElement>('#cancelButton');
@@ -52,29 +59,41 @@ export const loadedProxyPromptScreen = (): void => {
   if (cancelButton && okButton && usernameInput && passwordInput && form) {
     usernameInput.focus();
 
-    const sendData = (): void => {
-      ipcRenderer.send(EVENT_TYPE.PROXY_PROMPT.SUBMITTED, {
-        password: passwordInput.value,
-        username: usernameInput.value,
-      });
-      window.close();
+    const sendData = async (): Promise<void> => {
+      const submitted = await submitProxyPrompt(
+        ipcRenderer,
+        {
+          password: passwordInput.value,
+          username: usernameInput.value,
+        },
+        logger,
+      );
+      if (submitted) {
+        window.close();
+      }
+    };
+
+    const cancel = async (): Promise<void> => {
+      if (await cancelProxyPrompt(ipcRenderer, logger)) {
+        window.close();
+      }
     };
 
     cancelButton.addEventListener('click', () => {
-      ipcRenderer.send(EVENT_TYPE.PROXY_PROMPT.CANCELED);
-      window.close();
+      void cancel();
     });
 
-    form.addEventListener('submit', () => sendData());
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      void sendData();
+    });
 
     window.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
-        ipcRenderer.send(EVENT_TYPE.PROXY_PROMPT.CANCELED);
-        window.close();
+        void cancel();
       }
     });
   }
 };
 
-ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOCALE_RENDER, renderProxyPromptLocales);
-ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOADED, loadedProxyPromptScreen);
+ipcRenderer.once(EVENT_TYPE.PROXY_PROMPT.LOADED, () => void loadedProxyPromptScreen());
