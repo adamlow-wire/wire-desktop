@@ -23,13 +23,13 @@ import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
-import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
 import {
   RegisteredViewIdentity,
   registerViewIdentity,
   ViewIdentityRegistry,
   WebContentsIdentity,
 } from './ViewIdentityRegistry';
+import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
 
 export interface LegacyAccountWebContentsIdentity extends WebContentsIdentity {
   once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;

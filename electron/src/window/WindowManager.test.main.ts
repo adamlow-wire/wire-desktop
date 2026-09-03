@@ -17,8 +17,9 @@
  *
  */
 
-import {strict as assert} from 'assert';
 import {assert as sinonAssert, replace, restore, spy} from 'sinon';
+
+import {strict as assert} from 'assert';
 
 import {WindowManager} from './WindowManager';
 

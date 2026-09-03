@@ -18,12 +18,12 @@
  */
 
 import {AuthorizedIpcContract, bindAuthorizedIpc} from './AuthorizedIpc';
+import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 import {
   MAX_WEBAPP_LOADED_EVENTS_PER_MINUTE,
   WEBAPP_LOADED_CAPABILITY,
   WEBAPP_LOADED_CHANNEL,
 } from './WebAppLoadedContract';
-import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 export {
   MAX_WEBAPP_LOADED_EVENTS_PER_MINUTE,
@@ -65,11 +65,7 @@ export const notifyWebAppLoaded = async (ipc: IpcRendererInvoker, logger: Failur
   }
 };
 
-export const handleWebAppLoaded = (
-  ipc: IpcRendererInvoker,
-  logger: FailureLogger,
-  checkTheme: () => void,
-): void => {
+export const handleWebAppLoaded = (ipc: IpcRendererInvoker, logger: FailureLogger, checkTheme: () => void): void => {
   void notifyWebAppLoaded(ipc, logger);
   checkTheme();
 };

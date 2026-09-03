@@ -19,6 +19,7 @@
 
 import {strict as assert} from 'assert';
 
+import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 import {
   bindWebAppLoadedIpc,
   handleWebAppLoaded,
@@ -27,7 +28,6 @@ import {
   WEBAPP_LOADED_CAPABILITY,
   WEBAPP_LOADED_CHANNEL,
 } from './WebAppLoadedIpc';
-import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 type BoundHandler = (event: SenderIdentity, request: unknown) => Promise<unknown>;
 
