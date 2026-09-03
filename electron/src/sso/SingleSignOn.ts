@@ -215,6 +215,8 @@ export class SingleSignOn {
     this.ssoWindow?.focus();
   };
 
+  isOwnedByAccount = (accountId: string): boolean => this.accountId.isJust && this.accountId.value === accountId;
+
   // Ensure authenticity of the window from within the code
   public static isSingleSignOnLoginWindow = (frameName: string) => SingleSignOn.SINGLE_SIGN_ON_FRAME_NAME === frameName;
 

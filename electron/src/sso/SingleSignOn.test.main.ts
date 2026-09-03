@@ -327,7 +327,7 @@ describe('SingleSignOn', () => {
   });
 
   describe('window and session cleanup', () => {
-    it('[characterization][SEC-003][CAP-002][DCP-003] focuses and closes the active SSO window', () => {
+    it('[characterization][security-target][INV-004][SEC-003][CAP-002][DCP-003] focuses and closes only the owned active SSO window', () => {
       let closeCount = 0;
       let focusCount = 0;
       const sender = {session: {} as Session} as WebContents;
@@ -342,11 +342,14 @@ describe('SingleSignOn', () => {
       const singleSignOn = new SingleSignOn(
         ssoWindow,
         sender,
-        Maybe.nothing<string>(),
+        Maybe.just('account-a'),
         'https://app.wire.com',
         {},
         new ViewIdentityRegistry(),
       );
+
+      assert.strictEqual(singleSignOn.isOwnedByAccount('account-a'), true);
+      assert.strictEqual(singleSignOn.isOwnedByAccount('account-b'), false);
 
       singleSignOn.focus();
       assert.strictEqual(focusCount, 1);

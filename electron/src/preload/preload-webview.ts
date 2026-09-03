@@ -35,6 +35,7 @@ import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
 import {requestOpenGraphData} from '../security/OpenGraphIpc';
 import {SAFE_STORAGE_DECRYPT_CHANNEL, SAFE_STORAGE_ENCRYPT_CHANNEL} from '../security/SafeStorageContract';
+import {requestSsoWindowClose, requestSsoWindowFocus} from '../security/SsoWindowControlIpc';
 import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
 import {requestWrapperRelaunch} from '../security/WrapperRelaunchIpc';
 import {requestWrapperReload} from '../security/WrapperReloadIpc';
@@ -111,12 +112,12 @@ const subscribeToWebappEvents = (): void => {
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSE, () => {
     logger.info(`Received amplify event "${WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSE}" event`);
-    ipcRenderer.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSE);
+    void requestSsoWindowClose(ipcRenderer, logger);
   });
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.SSO_WINDOW_FOCUS, () => {
     logger.info(`Received amplify event "${WebAppEvents.LIFECYCLE.SSO_WINDOW_FOCUS}" event`);
-    ipcRenderer.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_FOCUS);
+    void requestSsoWindowFocus(ipcRenderer, logger);
   });
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.UNREAD_COUNT, (count: string) => {

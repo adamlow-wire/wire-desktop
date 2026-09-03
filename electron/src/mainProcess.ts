@@ -96,6 +96,8 @@ import {bindNotificationActivationIpc} from './security/NotificationActivationIp
 import {bindOpenGraphIpc} from './security/OpenGraphIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
+import {controlSsoWindowForAccount} from './security/SsoWindowControl';
+import {bindSsoWindowControlIpc} from './security/SsoWindowControlIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {bindWebAppLoadedIpc} from './security/WebAppLoadedIpc';
 import {bindWrapperRelaunchIpc} from './security/WrapperRelaunchIpc';
@@ -618,8 +620,10 @@ class ElectronWrapperInit {
   constructor() {
     this.logger = getLogger('ElectronWrapperInit');
     this.ssoWindow = null;
-    ipcMain.on(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSE, this.closeSSOWindow);
-    ipcMain.on(WebAppEvents.LIFECYCLE.SSO_WINDOW_FOCUS, this.focusSSOWindow);
+    bindSsoWindowControlIpc(ipcMain, viewIdentityRegistry, {
+      close: this.closeSSOWindow,
+      focus: this.focusSSOWindow,
+    });
   }
 
   run(): void {
@@ -627,17 +631,12 @@ class ElectronWrapperInit {
     this.webviewProtection();
   }
 
-  closeSSOWindow = () => {
-    if (this.ssoWindow) {
-      this.ssoWindow?.close();
-      this.ssoWindow = null;
-    }
+  closeSSOWindow = (accountId: string | undefined) => {
+    this.ssoWindow = controlSsoWindowForAccount(this.ssoWindow, accountId, 'close');
   };
 
-  focusSSOWindow = () => {
-    if (this.ssoWindow) {
-      this.ssoWindow.focus();
-    }
+  focusSSOWindow = (accountId: string | undefined) => {
+    controlSsoWindowForAccount(this.ssoWindow, accountId, 'focus');
   };
 
   sendSSOWindowCloseEvent = () => {
