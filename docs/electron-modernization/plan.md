@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.4.16
+revision: 1.5.0
 status: draft
 updated: 2026-09-03
 owners:
@@ -189,6 +189,18 @@ M0 governance and reproducible baseline
 
 An Electron upgrade alone does not complete the security project. Conversely, the replacement shell MUST NOT ship on an end-of-life Electron release.
 
+### M3 execution checkpoints
+
+M3 work remains one primary work item per PR, but validation is organized around coherent security outcomes rather than one hosted E2E cycle per mechanical channel migration:
+
+1. **IPC completion:** migrate the remaining SSO, auxiliary-window, and proxy-prompt renderer-to-main operations; explicitly resolve dormant privileged listeners.
+2. **Production secure-shell cutover:** remove remote access, isolate bridges, enable sandboxing, replace product `<webview>` account rendering, move local content off `file://`, and complete production account routing.
+3. **Boundary policy:** complete navigation/window-open, permission, renderer-initiated fetch, and deep/external-link policy.
+4. **Critical capability parity:** complete SSO, enterprise network/configuration, and deep-link/single-instance behavior on the new boundary.
+5. **M3 closure:** audit every M3 acceptance criterion and run the complete cross-platform package and authenticated E2E gate.
+
+Each PR still requires its focused tests and protected-branch checks. Authenticated cross-platform E2E runs at behavior-changing PRs and the checkpoints above; schema-only migrations may rely on the next checkpoint when the deferred platform gap is explicit.
+
 ## 9. Milestones and gates
 
 | Milestone | Exit gate | Mandatory evidence |
@@ -345,9 +357,7 @@ An Electron upgrade alone does not complete the security project. Conversely, th
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: [PR #14](https://github.com/adamlow-wire/wire-desktop/pull/14) merged as `63f7fa9b` after every required check passed. It introduces the fail-closed contract executor and migrates secure-shell runtime-info IPC. [PR #15](https://github.com/adamlow-wire/wire-desktop/pull/15) merged as `4d0168b2` after every required check passed; it adds per-view quotas and migrates account safe-storage encryption/decryption to versioned, account-only, size-bounded contracts. [PR #16](https://github.com/adamlow-wire/wire-desktop/pull/16) merged as `98337fc5` after every required check passed; it adds synchronous contract support and migrates managed-configuration reads without changing cached bootstrap timing. [PR #17](https://github.com/adamlow-wire/wire-desktop/pull/17) merged as `f8c45d2b` after every required check passed; it constrains native save prompts to authorized account views, exact bounded image requests, and per-view quotas. [PR #18](https://github.com/adamlow-wire/wire-desktop/pull/18) merged as `ca20e48e` after every required check passed; it replaces global unauthenticated focus authority with a fixed, account-only, origin-bound, no-payload contract while preserving the separate guest-to-host account-switch event. [PR #19](https://github.com/adamlow-wire/wire-desktop/pull/19) merged as `2c3757b6` after every required check passed; it protects one-time queued-action forwarding and replaces raw global flush authority with an account-only, no-payload, rate-limited contract. [PR #20](https://github.com/adamlow-wire/wire-desktop/pull/20) merged as `46175fb5` after every required check passed; it constrains native badge updates to the registered application shell, an exact payload, and a per-view quota. [PR #21](https://github.com/adamlow-wire/wire-desktop/pull/21) merged as `4cc238d6` after every required check passed; it correlates each account-data deletion request with one live main-registered account view, account ID, session, and partition before any side effect. [PR #22](https://github.com/adamlow-wire/wire-desktop/pull/22) merged as `6d918515` after every required check passed; it replaces the raw wrapper reload request with an account-only, no-payload, rate-limited contract while preserving the shell broadcast. [PR #23](https://github.com/adamlow-wire/wire-desktop/pull/23) merged as `cf1985cb` after every required check passed; it protects the disruptive application restart boundary and preserves its platform-specific behavior. [PR #24](https://github.com/adamlow-wire/wire-desktop/pull/24) merged as `5653a253` after every required check passed; it authorizes bounded Open Graph requests while retaining full destination policy under SEC-012. The current download-location slice authorizes one exact bounded account request, rate-limits persistent writes, and preserves platform behavior while retaining path-containment policy under CAP-005. Sensitivity perturbations failed the intended tests and were reverted. Product-wide channel migration, account-targeted queued-action routing, DCP-016 ciphertext ownership, and CAP-005 packaged managed-device evidence remain open.
-- Evidence update (supersedes the preceding pre-merge state): [PR #25](https://github.com/adamlow-wire/wire-desktop/pull/25) merged as `4a2e0622` after every required check passed; it authorizes bounded download-location writes while retaining path policy under CAP-005. The current desktop-source slice authorizes and bounds enumeration while retaining user-gesture and OS permission policy under SEC-009. Its behavior and deny paths are sensitivity-proven. Product-wide channel migration remains open.
-- Evidence update: [PR #26](https://github.com/adamlow-wire/wire-desktop/pull/26) merged as `d658a091` after every required check passed; it authorizes and bounds desktop-source enumeration while retaining user-gesture and OS permission policy under SEC-009. The current deep-link submission slice replaces the raw renderer event with an application-shell-only, exact, bounded, response-validated, rate-limited contract. Existing dispatch behavior and conversation-join parameters are sensitivity-proven; strict parsing and lifecycle routing remain owned by SEC-013 and CAP-006. Product-wide channel migration remains open.
+- Evidence: [PRs #14–27](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated runtime info, safe storage, managed configuration, picture saving, notification activation, webapp-loaded signaling, badge count, account deletion, wrapper reload/relaunch, Open Graph, download location, desktop-source enumeration, and deep-link submission. Every slice passed focused deny-path tests, changed-code coverage, required CI, all-platform packaging, and authenticated Windows/macOS E2E. Per-slice results are retained in `status.md`; the authoritative remaining operations are in `ipc-inventory.md`. Remaining SEC-003 work is grouped into SSO window control, auxiliary-window exchange, proxy-prompt control, and explicit disposition of dormant privileged listeners.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -842,6 +852,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | DEC-005 | 2026-08-18 | accepted | Target latest stable Electron dynamically, not version 43 permanently | Prevents this plan becoming stale during a long migration | Electron release/support policy materially changes |
 | DEC-006 | 2026-08-18 | accepted | Operate as a solo AI-assisted maintainer with PR-only integration and zero required external approvals | Preserves traceability and automated gates without pretending unavailable organizational review exists | Additional maintainers join or upstream mandates another process |
 | DEC-007 | 2026-08-26 | accepted | Keep Electron 43.4.0 during M3 and defer Electron 44 adoption | Electron 43.4.0 completed M1 with cross-platform evidence; Electron 44 is not an M3 gate and removes Windows ia32 artifacts, so adopting it now would mix a platform-scope decision into security-critical capability migration | Before the next Electron upgrade or any release-candidate cut |
+| DEC-008 | 2026-09-03 | accepted | Run authenticated cross-platform E2E at behavior-changing PRs and coherent M3 checkpoints rather than every mechanical IPC schema migration | Required CI and focused security tests remain per PR; checkpoint E2E preserves product evidence while avoiding repeated long staging runs that provide no additional coverage for schema-only changes | A deferred E2E gap survives its checkpoint or a schema-only change causes an undetected product regression |
 
 ## 16. Open questions
 
@@ -862,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.0 | 2026-09-03 | Codex | Recorded merged deep-link IPC evidence and reorganized remaining M3 work into five coherent execution checkpoints without changing any milestone acceptance criterion | SEC-003, SEC-004, SEC-005, SEC-006, SEC-007, SEC-008, SEC-009, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002, CAP-005, CAP-006, DEC-008 |
 | 1.4.16 | 2026-09-03 | Codex | Recorded green hosted desktop-source validation and the sensitivity-proven application-shell-only deep-link submission contract while retaining parser and lifecycle policy under SEC-013 and CAP-006 | SEC-003, SEC-009, SEC-013, CAP-003, CAP-006, DCP-008, DCP-010 |
 | 1.4.15 | 2026-09-03 | Codex | Recorded green hosted download-location validation and the sensitivity-proven account-only desktop-source enumeration contract while retaining user-gesture policy under SEC-009 | SEC-003, SEC-009, CAP-003, CAP-005, DCP-008, DCP-013 |
 | 1.4.14 | 2026-09-03 | Codex | Recorded green hosted Open Graph validation and the sensitivity-proven account-only download-location update contract while retaining path policy under CAP-005 | SEC-003, SEC-012, CAP-005, DCP-013, DCP-015 |
