@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: m3-deep-link-submit-contract-validation
+state: m3-execution-review
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: d658a091980d16e2e4c38190b4b4387dca7a112e
+integration_head_commit: 467793a300ac2aee11c27c5d3c0b094b570a3dea
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-deep-link-submit-contract-2026-09-03
-next_work_item: SEC-003-sso-window-control-slice
+related_pending_branch: docs/M3-execution-review-2026-09-03
+next_work_item: SEC-003-remaining-ipc-groups
 blockers: []
 ---
 
@@ -58,22 +58,26 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #26](https://github.com/adamlow-wire/wire-desktop/pull/26) merged as `d658a091` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Desktop-source enumeration now uses an account-only, exact, bounded contract with response validation and a per-view quota while SEC-009 retains user-gesture and OS permission policy.
 
+[PR #27](https://github.com/adamlow-wire/wire-desktop/pull/27) merged as `467793a3` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Deep-link submission now uses an application-shell-only, exact, bounded contract while SEC-013 and CAP-006 retain strict parsing and lifecycle routing.
+
+The post-PR #27 audit confirms that M3 remains a production-boundary migration, not merely an IPC inventory exercise. The legacy product path still uses `@electron/remote`, an unsandboxed non-isolated local shell, DOM `<webview>`, `file://`, and a production CSP containing `unsafe-eval`; those release-blocking conditions remain explicitly owned by SEC-004 through SEC-010 and CAP-001.
+
 ## Active work
 
 | Field         | Value                                               |
 | ------------- | --------------------------------------------------- |
 | Work item     | SEC-003 — Typed, validated, capability-specific IPC |
 | Owner         | `adamlow-wire`                                      |
-| Active branch | `sec/SEC-003-deep-link-submit-contract-2026-09-03`  |
-| Goal          | Authorize and bound application-shell deep links    |
-| Starting gate | PR #26 merged green at `d658a091`                   |
+| Active branch | `docs/M3-execution-review-2026-09-03`               |
+| Goal          | Record the post-PR #27 M3 execution checkpoints     |
+| Starting gate | PR #27 merged green at `467793a3`                   |
 
 ## Next executable sequence
 
-1. Validate and merge SEC-003's application-shell-only deep-link submission contract; retain parsing and lifecycle policy as explicit SEC-013 and CAP-006 gaps.
-2. Constrain SSO-window close and focus controls, then continue the remaining privileged IPC inventory.
-3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
-4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
+1. Complete SEC-003 in coherent IPC groups: SSO window control, About/version/locale exchange, and proxy prompt submission/cancellation; resolve the dormant updater listener explicitly.
+2. Complete the production secure-shell cutover through SEC-004–SEC-007, SEC-010, and CAP-001, retaining small reviewable PRs but treating the first production-path activation and final cutover as full E2E checkpoints.
+3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
+4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
@@ -162,6 +166,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-003 desktop-source enumeration contract | Focused behavior, authorization, and account-identity tests pass 13/13; clean full coverage passes with 256 Electron main tests plus 3 owned CAP-002 targets pending, 38/43 changed statements (88.37%), 49/50 changed security branches (98.00%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract permits only unique screen/window source types, Boolean icon selection, bounded thumbnail dimensions, at most 512 schema-validated sources, and 30 enumeration requests per minute per view while preserving source objects and options. Cloning forwarded options and accepting unknown request fields failed the intended tests; both perturbations were reverted. SEC-009 still owns user-gesture and OS permission policy; hosted validation remains pending | 2026-09-03 |
 | SEC-003 desktop-source enumeration hosted validation | [PR #26](https://github.com/adamlow-wire/wire-desktop/pull/26) merged as `d658a091`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33724134412`, `33724134493`, and `33724161365` | 2026-09-03 |
 | SEC-003 deep-link submission contract | Focused behavior and authorization tests pass 10/10; clean full coverage passes with 262 Electron main tests plus 3 owned CAP-002 targets pending, 18/21 changed statements (85.71%), 10/10 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned application-shell-only contract accepts exactly one non-empty URL string bounded to 1,024 characters, validates the void response, permits at most 30 submissions per minute per shell, reports rejected invocations, removes the raw incoming event, and preserves existing dispatch plus conversation-join parameters. Altering a join parameter and accepting an oversized request each failed the intended test; both perturbations were reverted. SEC-013 and CAP-006 still own strict parsing and lifecycle routing; hosted validation remains pending | 2026-09-03 |
+| SEC-003 deep-link submission hosted validation | [PR #27](https://github.com/adamlow-wire/wire-desktop/pull/27) merged as `467793a3`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33728083664`, `33728083719`, and `33728107454` | 2026-09-03 |
 
 ## Handoff notes
 

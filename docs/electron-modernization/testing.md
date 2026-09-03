@@ -104,3 +104,7 @@ test_evidence:
 ```
 
 Only list platforms actually exercised. Unrun platforms are gaps, not implicit passes.
+
+## Validation cadence during M3
+
+Every PR must pass its focused characterization/security tests and the protected branch's required build, lint, and analysis checks. Authenticated cross-platform E2E is required when a PR changes observable product behavior, activates a new production boundary, or closes an M3 execution checkpoint. A schema-only migration inside an already characterized boundary may defer authenticated E2E to the next checkpoint when the PR records that gap; this reduces duplicated staging runs without weakening the M3 exit gate.
