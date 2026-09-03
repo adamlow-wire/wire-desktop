@@ -28,6 +28,7 @@ import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
 import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {requestBadgeCountUpdate} from '../security/BadgeCountIpc';
 import {AutomatedSingleSignOn} from '../sso/AutomatedSingleSignOn';
 
 const logger = getLogger(path.basename(__filename));
@@ -108,7 +109,7 @@ const subscribeToMainProcessEvents = (): void => {
 
 const setupIpcInterface = (): void => {
   window.sendBadgeCount = (count: number, ignoreFlash: boolean): void => {
-    ipcRenderer.send(EVENT_TYPE.UI.BADGE_COUNT, {count, ignoreFlash});
+    void requestBadgeCountUpdate(ipcRenderer, logger, count, ignoreFlash);
   };
 
   window.submitDeepLink = (url: string): void => {

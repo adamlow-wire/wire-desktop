@@ -161,11 +161,12 @@ export const registerApplicationShellIdentity = (
   registry: ViewIdentityRegistry,
   webContents: LifecycleWebContentsIdentity,
   allowedUrl: string,
+  capabilities: readonly string[] = [],
 ): RegisteredViewIdentity =>
   registerViewIdentity(registry, {
     allowedOrigin: new URL(allowedUrl).origin,
     allowedUrl,
-    capabilities: [],
+    capabilities,
     partition: 'default',
     session: webContents.session,
     viewType: 'application-shell',
