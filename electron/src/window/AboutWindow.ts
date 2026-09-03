@@ -74,7 +74,7 @@ function getCachedWebappVersions(): WebappVersions {
   return {webappVersion, webappAVSVersion};
 }
 
-function requestActiveWebappVersions(): Promise<WebappVersions> {
+export function requestActiveWebappVersions(): Promise<WebappVersions> {
   const primaryWindow = WindowManager.getPrimaryWindow();
 
   if (primaryWindow === undefined) {

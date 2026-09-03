@@ -32,9 +32,13 @@ describe('loadedAboutScreen', () => {
     document.body.innerHTML = '';
   });
 
-  // eslint-disable-next-line jest/no-done-callback
-  it('publishes labels', done => {
+  it('[characterization][SEC-003] requests exactly the rendered locale labels', () => {
     const sendSpy = spy(ipcRenderer, 'send');
+    document.body.innerHTML = `
+      <span data-string="aboutVersion"></span>
+      <span data-string="aboutWebappVersion"></span>
+      <span data-string="aboutReleases"></span>
+    `;
 
     loadedAboutScreen(null, {
       copyright: '&copy; Wire Swiss GmbH',
@@ -44,8 +48,14 @@ describe('loadedAboutScreen', () => {
       webappAVSVersion: '9.0.test',
     });
 
-    assert.strictEqual(sendSpy.calledOnceWith(EVENT_TYPE.ABOUT.LOCALE_VALUES, []), true);
-    done();
+    assert.strictEqual(
+      sendSpy.calledOnceWith(EVENT_TYPE.ABOUT.LOCALE_VALUES, [
+        'aboutVersion',
+        'aboutWebappVersion',
+        'aboutReleases',
+      ]),
+      true,
+    );
   });
 
   it('updates webapp version values without requesting locales again', () => {

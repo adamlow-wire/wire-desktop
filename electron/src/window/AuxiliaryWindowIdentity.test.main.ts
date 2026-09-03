@@ -17,7 +17,7 @@
  *
  */
 
-import {app, BrowserWindow, session, WebPreferences} from 'electron';
+import {app, BrowserWindow, ipcMain, session, WebPreferences} from 'electron';
 
 import * as assert from 'assert';
 import * as path from 'path';
@@ -26,6 +26,7 @@ import {pathToFileURL} from 'url';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
+import {WindowManager} from './WindowManager';
 
 const mutableApp = app as typeof app & {setAppPath(appPath: string): void};
 
@@ -38,12 +39,13 @@ describe('auxiliary window identity', () => {
   const windows: BrowserWindow[] = [];
   const originalAppPath = app.getAppPath();
   let AboutWindow: typeof import('./AboutWindow').AboutWindow;
+  let requestActiveWebappVersions: typeof import('./AboutWindow').requestActiveWebappVersions;
   let ProxyPromptWindow: typeof import('./ProxyPromptWindow').ProxyPromptWindow;
 
   before(async () => {
     await app.whenReady();
     mutableApp.setAppPath(process.cwd());
-    ({AboutWindow} = await import('./AboutWindow'));
+    ({AboutWindow, requestActiveWebappVersions} = await import('./AboutWindow'));
     ({ProxyPromptWindow} = await import('./ProxyPromptWindow'));
   });
 
@@ -58,6 +60,21 @@ describe('auxiliary window identity', () => {
         window.destroy();
       }
     }
+  });
+
+  it('[characterization][SEC-003] returns the latest webapp version and clears an absent AVS version', async () => {
+    const primaryWindow = new BrowserWindow({show: false});
+    windows.push(primaryWindow);
+    WindowManager.setPrimaryWindowId(primaryWindow.id);
+
+    const firstRequest = requestActiveWebappVersions();
+    ipcMain.emit(EVENT_TYPE.UI.WEBAPP_VERSION, {} as Electron.IpcMainEvent, 'webapp-1');
+    ipcMain.emit(EVENT_TYPE.UI.WEBAPP_AVS_VERSION, {} as Electron.IpcMainEvent, 'avs-1');
+    assert.deepStrictEqual(await firstRequest, {webappVersion: 'webapp-1', webappAVSVersion: 'avs-1'});
+
+    const secondRequest = requestActiveWebappVersions();
+    ipcMain.emit(EVENT_TYPE.UI.WEBAPP_VERSION, {} as Electron.IpcMainEvent, 'webapp-2');
+    assert.deepStrictEqual(await secondRequest, {webappVersion: 'webapp-2', webappAVSVersion: undefined});
   });
 
   it('[characterization][security-target][INV-003][INV-004][SEC-002] creates About in its exact local session', async function () {
