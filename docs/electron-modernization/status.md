@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: m3-account-delete-data-contract-validation
+state: m3-wrapper-reload-contract-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 46175fb5c38c9e23cd0f538e48e914008fac0d7d
+integration_head_commit: 4cc238d6f5fd16f28bdfbdc58cd73d1f67fe240f
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-account-delete-data-contract-2026-09-03
-next_work_item: SEC-003-wrapper-reload-slice
+related_pending_branch: sec/SEC-003-wrapper-reload-contract-2026-09-03
+next_work_item: SEC-003-wrapper-relaunch-slice
 blockers: []
 ---
 
@@ -46,20 +46,22 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #20](https://github.com/adamlow-wire/wire-desktop/pull/20) merged as `46175fb5` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Badge-count updates now use an exact, versioned application-shell contract with a per-view quota while preserving native tray, dock, overlay, and flashing behavior.
 
+[PR #21](https://github.com/adamlow-wire/wire-desktop/pull/21) merged as `4cc238d6` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Account-data deletion now requires the application shell to identify one live, main-registered account view whose account, session, and partition all match before any deletion side effect.
+
 ## Active work
 
-| Field         | Value                                                 |
-| ------------- | ----------------------------------------------------- |
-| Work item     | SEC-003 — Typed, validated, capability-specific IPC   |
-| Owner         | `adamlow-wire`                                        |
-| Active branch | `sec/SEC-003-account-delete-data-contract-2026-09-03` |
-| Goal          | Authorize exact-target account data deletion          |
-| Starting gate | PR #20 merged green at `46175fb5`                     |
+| Field         | Value                                               |
+| ------------- | --------------------------------------------------- |
+| Work item     | SEC-003 — Typed, validated, capability-specific IPC |
+| Owner         | `adamlow-wire`                                      |
+| Active branch | `sec/SEC-003-wrapper-reload-contract-2026-09-03`    |
+| Goal          | Authorize account-requested wrapper reloads         |
+| Starting gate | PR #21 merged green at `4cc238d6`                   |
 
 ## Next executable sequence
 
-1. Validate and merge SEC-003's exact-target account data deletion contract slice.
-2. Migrate account reload through an authorized contract, then continue the remaining privileged IPC inventory.
+1. Validate and merge SEC-003's account-only wrapper reload contract slice.
+2. Migrate application relaunch through an authorized contract, then continue the remaining privileged IPC inventory.
 3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
 4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
@@ -137,7 +139,9 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-003 webapp-loaded hosted validation | [PR #19](https://github.com/adamlow-wire/wire-desktop/pull/19) merged as `2c3757b6`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33698092922`, `33698092920`, and `33698103149` | 2026-09-03 |
 | SEC-003 badge-count contract | Focused authority and tray tests pass 34/34; clean full coverage passes with 214 Electron main tests plus 3 owned CAP-002 targets pending, 20/24 changed statements (83.33%), 11/11 changed security branches (100%), Jest 19/19 suites and 63/63 tests, and Electron renderer 2/2. The versioned application-shell contract accepts only an exact non-negative safe-integer count and Boolean flash policy, permits at most 120 updates per minute per shell, reports rejected renderer invocations, and preserves native tray, dock, overlay, and flashing behavior. Replacing the forwarded count with zero failed the intended characterization test and was reverted. Hosted validation remains pending | 2026-09-03 |
 | SEC-003 badge-count hosted validation | [PR #20](https://github.com/adamlow-wire/wire-desktop/pull/20) merged as `46175fb5`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33701569315`, `33701569297`, and `33701579133` | 2026-09-03 |
-| SEC-003 account data deletion contract | Focused account authority, identity, and deletion tests pass 34/34; clean full coverage passes with 221 Electron main tests plus 3 owned CAP-002 targets pending, 34/42 changed statements (80.95%), 36/37 changed security branches (97.30%), Jest 19/19 suites and 63/63 tests, and Electron renderer 2/2. The versioned application-shell contract accepts only an exact positive web-contents ID, account UUID, and optional partition UUID; correlates all supplied identities with one live main-registered account view and session; supports the first account's default session; permits at most 20 requests per minute per shell; and returns completion directly instead of broadcasting a global event. Removing partition correlation failed the intended mismatch test and was reverted. Hosted validation remains pending | 2026-09-03 |
+| SEC-003 account data deletion contract | Focused account authority, identity, and deletion tests pass 34/34; clean full coverage passes with 221 Electron main tests plus 3 owned CAP-002 targets pending, 34/42 changed statements (80.95%), 36/37 changed security branches (97.30%), Jest 19/19 suites and 63/63 tests, and Electron renderer 2/2. The versioned application-shell contract accepts only an exact positive web-contents ID, account UUID, and optional partition UUID; correlates all supplied identities with one live main-registered account view and session; supports the first account's default session; permits at most 20 requests per minute per shell; and returns completion directly instead of broadcasting a global event. Removing partition correlation failed the intended mismatch test and was reverted; hosted validation passed in PR #21 | 2026-09-03 |
+| SEC-003 account data deletion hosted validation | [PR #21](https://github.com/adamlow-wire/wire-desktop/pull/21) merged as `4cc238d6`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33705091151`, `33705091408`, and `33705092136` | 2026-09-03 |
+| SEC-003 wrapper reload contract | Focused reload authority, forwarding, and account-identity tests pass 13/13; clean full coverage passes with 227 Electron main tests plus 3 owned CAP-002 targets pending, 15/18 changed statements (83.33%), 2/2 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract accepts no request payload, validates the void response in main and preload, permits at most 20 requests per minute per view, reports rejected invocations, and preserves the existing single shell command that reloads all account webviews. Replacing that command with relaunch failed the characterization test and was reverted. Hosted validation remains pending | 2026-09-03 |
 
 ## Handoff notes
 
