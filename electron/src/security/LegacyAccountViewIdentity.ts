@@ -21,6 +21,7 @@ import * as path from 'path';
 
 import {ValidationUtil} from '@wireapp/commons';
 
+import {DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './DesktopSourcesContract';
 import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
@@ -91,6 +92,7 @@ export const registerLegacyAccountViewIdentity = (
       WRAPPER_RELAUNCH_CAPABILITY,
       OPEN_GRAPH_FETCH_CAPABILITY,
       DOWNLOAD_LOCATION_UPDATE_CAPABILITY,
+      DESKTOP_SOURCES_ENUMERATE_CAPABILITY,
     ],
     partition,
     session: webContents.session,

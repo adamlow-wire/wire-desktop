@@ -19,6 +19,7 @@
 
 import {strict as assert} from 'assert';
 
+import {DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './DesktopSourcesContract';
 import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
@@ -97,6 +98,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       WRAPPER_RELAUNCH_CAPABILITY,
       OPEN_GRAPH_FETCH_CAPABILITY,
       DOWNLOAD_LOCATION_UPDATE_CAPABILITY,
+      DESKTOP_SOURCES_ENUMERATE_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');

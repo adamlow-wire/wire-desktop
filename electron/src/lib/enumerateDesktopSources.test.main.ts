@@ -17,9 +17,9 @@
  *
  */
 
-import {strict as assert} from 'assert';
-
 import {DesktopCapturerSource, SourcesOptions} from 'electron';
+
+import {strict as assert} from 'assert';
 
 import {enumerateDesktopSources} from './enumerateDesktopSources';
 

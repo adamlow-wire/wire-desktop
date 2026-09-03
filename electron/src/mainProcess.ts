@@ -87,6 +87,7 @@ import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from '.
 import {SecureShellController} from './secureShell/SecureShellController';
 import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
+import {bindDesktopSourcesIpc} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
@@ -356,8 +357,8 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     y: mainWindowState.y,
   };
 
-  ipcMain.handle(EVENT_TYPE.ACTION.GET_DESKTOP_SOURCES, (_event, opts) =>
-    enumerateDesktopSources(opts, options => desktopCapturer.getSources(options)),
+  bindDesktopSourcesIpc(ipcMain, viewIdentityRegistry, options =>
+    enumerateDesktopSources(options, value => desktopCapturer.getSources(value)),
   );
   bindSafeStorageIpc(ipcMain, viewIdentityRegistry, safeStorage);
 
