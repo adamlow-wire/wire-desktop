@@ -30,6 +30,7 @@ import {getLogger} from '../logging/getLogger';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {requestAccountDataDeletion} from '../security/AccountDataDeletionIpc';
 import {requestBadgeCountUpdate} from '../security/BadgeCountIpc';
+import {requestDeepLinkSubmission} from '../security/DeepLinkSubmitIpc';
 import {AutomatedSingleSignOn} from '../sso/AutomatedSingleSignOn';
 
 const logger = getLogger(path.basename(__filename));
@@ -114,7 +115,7 @@ const setupIpcInterface = (): void => {
   };
 
   window.submitDeepLink = (url: string): void => {
-    ipcRenderer.send(EVENT_TYPE.ACTION.DEEP_LINK_SUBMIT, url);
+    void requestDeepLinkSubmission(ipcRenderer, logger, url);
   };
 
   window.sendDeleteAccount = (accountId: string, sessionID?: string): Promise<void> => {

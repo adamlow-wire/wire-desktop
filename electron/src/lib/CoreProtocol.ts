@@ -17,7 +17,7 @@
  *
  */
 
-import {app, ipcMain} from 'electron';
+import {app} from 'electron';
 
 import * as path from 'path';
 import {URL} from 'url';
@@ -43,7 +43,7 @@ export class CustomProtocolHandler {
   public hashLocation = '';
   private readonly windowManager = WindowManager;
 
-  private async dispatchDeepLink(url?: string): Promise<void> {
+  public async dispatchDeepLink(url?: string): Promise<void> {
     logger.info('Dispatching deep link ...');
     try {
       if (
@@ -134,8 +134,6 @@ export class CustomProtocolHandler {
       logger.info(`Registering custom protocol "${config.customProtocolName}" ...`);
       app.setAsDefaultProtocolClient(config.customProtocolName);
     }
-
-    ipcMain.on(EVENT_TYPE.ACTION.DEEP_LINK_SUBMIT, async (_event, url: string) => this.dispatchDeepLink(url));
 
     app.on('open-url', async (event, url) => {
       event.preventDefault();

@@ -87,6 +87,7 @@ import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from '.
 import {SecureShellController} from './secureShell/SecureShellController';
 import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
+import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
 import {bindDesktopSourcesIpc} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
@@ -250,6 +251,7 @@ const bindIpcEvents = (): void => {
   bindBadgeCountIpc(ipcMain, viewIdentityRegistry, (count, ignoreFlash) =>
     tray.showUnreadCount(main, count, ignoreFlash),
   );
+  bindDeepLinkSubmitIpc(ipcMain, viewIdentityRegistry, url => customProtocolHandler.dispatchDeepLink(url));
 
   bindAccountDataDeletionIpc(ipcMain, viewIdentityRegistry, deleteAccount);
   bindWrapperReloadIpc(ipcMain, viewIdentityRegistry, () => forwardWrapperReloadRequest(main.webContents));
@@ -367,6 +369,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href, [
     BADGE_COUNT_CAPABILITY,
     ACCOUNT_DATA_DELETE_CAPABILITY,
+    DEEP_LINK_SUBMIT_CAPABILITY,
   ]);
 
   remoteMain.enable(main.webContents);
