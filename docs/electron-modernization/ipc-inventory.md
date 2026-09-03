@@ -19,8 +19,8 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:wrapper:relaunch-request:v1` | account | Relaunches the application or reloads account content on macOS | merged in PR #23 | SEC-003 |
 | `wire-desktop:open-graph:fetch:v1` | account | Main-process network fetch | merged in PR #24; destination policy remains open | SEC-003, SEC-012 |
 | `wire-desktop:download-location:update:v1` | account | Directory creation and persistent settings write | merged in PR #25; path policy remains open | SEC-003, CAP-005 |
-| `wire-desktop:desktop-sources:enumerate:v1` | account | Enumerates display/window capture sources | current PR validation; user-gesture policy remains open | SEC-003, SEC-009, CAP-003 |
-| `ACTION.DEEP_LINK_SUBMIT` | application shell | Protocol/action dispatch | unmigrated | SEC-003, SEC-013, CAP-006 |
+| `wire-desktop:desktop-sources:enumerate:v1` | account | Enumerates display/window capture sources | merged in PR #26; user-gesture policy remains open | SEC-003, SEC-009, CAP-003 |
+| `wire-desktop:deep-link:submit:v1` | application shell | Protocol/action dispatch | current PR validation; parser and lifecycle policy remain open | SEC-003, SEC-013, CAP-006 |
 | `SSO_WINDOW_CLOSE` / `SSO_WINDOW_FOCUS` | account | Controls shared SSO window | unmigrated | SEC-003, CAP-002 |
 | `UI.WEBAPP_VERSION` / `UI.WEBAPP_AVS_VERSION` | account | Supplies About-window version state | unmigrated | SEC-003 |
 | `ABOUT.LOCALE_VALUES` | About window | Localized resource lookup and reply | unmigrated | SEC-003 |

@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: m3-desktop-sources-contract-validation
+state: m3-deep-link-submit-contract-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 4a2e06227d44c43ed07f4eb614740b5b75359e3b
+integration_head_commit: d658a091980d16e2e4c38190b4b4387dca7a112e
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-desktop-sources-contract-2026-09-03
-next_work_item: SEC-003-deep-link-submit-slice
+related_pending_branch: sec/SEC-003-deep-link-submit-contract-2026-09-03
+next_work_item: SEC-003-sso-window-control-slice
 blockers: []
 ---
 
@@ -56,20 +56,22 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #25](https://github.com/adamlow-wire/wire-desktop/pull/25) merged as `4a2e0622` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Download-location changes now use an account-only, exact, bounded contract with a per-view quota while CAP-005 retains Windows path-containment policy and packaged managed-device evidence.
 
+[PR #26](https://github.com/adamlow-wire/wire-desktop/pull/26) merged as `d658a091` after clean changed-code coverage, lint, CodeQL, all three package baselines, authenticated Windows/macOS E2E, and the merged report passed. Desktop-source enumeration now uses an account-only, exact, bounded contract with response validation and a per-view quota while SEC-009 retains user-gesture and OS permission policy.
+
 ## Active work
 
 | Field         | Value                                               |
 | ------------- | --------------------------------------------------- |
 | Work item     | SEC-003 — Typed, validated, capability-specific IPC |
 | Owner         | `adamlow-wire`                                      |
-| Active branch | `sec/SEC-003-desktop-sources-contract-2026-09-03`   |
-| Goal          | Authorize and bound desktop-source enumeration      |
-| Starting gate | PR #25 merged green at `4a2e0622`                   |
+| Active branch | `sec/SEC-003-deep-link-submit-contract-2026-09-03`  |
+| Goal          | Authorize and bound application-shell deep links    |
+| Starting gate | PR #26 merged green at `d658a091`                   |
 
 ## Next executable sequence
 
-1. Validate and merge SEC-003's account-only desktop-source enumeration contract; retain user-gesture policy as an explicit SEC-009 gap.
-2. Constrain deep-link submission through an authorized contract, then continue the remaining privileged IPC inventory.
+1. Validate and merge SEC-003's application-shell-only deep-link submission contract; retain parsing and lifecycle policy as explicit SEC-013 and CAP-006 gaps.
+2. Constrain SSO-window close and focus controls, then continue the remaining privileged IPC inventory.
 3. Complete production account action routing and account-targeted event migration in subsequent CAP-001 PRs.
 4. Complete the remaining product-wide M3 security boundaries and critical capabilities in dependency order, one primary work item per PR.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
@@ -158,6 +160,8 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-003 download-location contract | Focused behavior, authorization, and account-identity tests pass 14/14; clean full coverage passes with 249 Electron main tests plus 3 owned CAP-002 targets pending, 20/22 changed statements (90.91%), 12/12 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract accepts exactly one optional string value bounded to 4,096 characters, validates the void response in main and preload, permits at most 12 updates per minute per view, and preserves Windows directory creation plus settings persistence and the non-Windows no-op. Removing directory creation and accepting additional payload fields failed the intended tests; both perturbations were reverted. CAP-005 still owns path-containment policy and packaged managed-device evidence; hosted validation passed in PR #25 | 2026-09-03 |
 | SEC-003 download-location hosted validation | [PR #25](https://github.com/adamlow-wire/wire-desktop/pull/25) merged as `4a2e0622`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33720372098`, `33720372035`, and `33720471182` | 2026-09-03 |
 | SEC-003 desktop-source enumeration contract | Focused behavior, authorization, and account-identity tests pass 13/13; clean full coverage passes with 256 Electron main tests plus 3 owned CAP-002 targets pending, 38/43 changed statements (88.37%), 49/50 changed security branches (98.00%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned account-only contract permits only unique screen/window source types, Boolean icon selection, bounded thumbnail dimensions, at most 512 schema-validated sources, and 30 enumeration requests per minute per view while preserving source objects and options. Cloning forwarded options and accepting unknown request fields failed the intended tests; both perturbations were reverted. SEC-009 still owns user-gesture and OS permission policy; hosted validation remains pending | 2026-09-03 |
+| SEC-003 desktop-source enumeration hosted validation | [PR #26](https://github.com/adamlow-wire/wire-desktop/pull/26) merged as `d658a091`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33724134412`, `33724134493`, and `33724161365` | 2026-09-03 |
+| SEC-003 deep-link submission contract | Focused behavior and authorization tests pass 10/10; clean full coverage passes with 262 Electron main tests plus 3 owned CAP-002 targets pending, 18/21 changed statements (85.71%), 10/10 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned application-shell-only contract accepts exactly one non-empty URL string bounded to 1,024 characters, validates the void response, permits at most 30 submissions per minute per shell, reports rejected invocations, removes the raw incoming event, and preserves existing dispatch plus conversation-join parameters. Altering a join parameter and accepting an oversized request each failed the intended test; both perturbations were reverted. SEC-013 and CAP-006 still own strict parsing and lifecycle routing; hosted validation remains pending | 2026-09-03 |
 
 ## Handoff notes
 
