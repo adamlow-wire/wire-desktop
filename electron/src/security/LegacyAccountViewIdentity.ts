@@ -17,6 +17,8 @@
  *
  */
 
+import * as path from 'path';
+
 import {ValidationUtil} from '@wireapp/commons';
 
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
@@ -34,6 +36,24 @@ import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
 export interface LegacyAccountWebContentsIdentity extends WebContentsIdentity {
   once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;
 }
+
+interface AccountSessionIdentity {
+  readonly storagePath: string | null;
+}
+
+export const getLegacyAccountPartition = (
+  accountSession: AccountSessionIdentity,
+  defaultSession: AccountSessionIdentity,
+): string | undefined => {
+  if (accountSession === defaultSession) {
+    return 'default';
+  }
+  if (!accountSession.storagePath) {
+    return undefined;
+  }
+  const partition = path.basename(accountSession.storagePath);
+  return ValidationUtil.isUUIDv4(partition) ? partition : undefined;
+};
 
 export const registerLegacyAccountViewIdentity = (
   registry: ViewIdentityRegistry,

@@ -83,8 +83,9 @@ import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
+import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
-import {registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
+import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNotificationActivationIpc} from './security/NotificationActivationIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
@@ -243,10 +244,7 @@ const bindIpcEvents = (): void => {
     tray.showUnreadCount(main, count, ignoreFlash),
   );
 
-  ipcMain.on(EVENT_TYPE.ACCOUNT.DELETE_DATA, async (_event, id: number, accountId: string, partitionId?: string) => {
-    await deleteAccount(id, accountId, partitionId);
-    main.webContents.send(EVENT_TYPE.ACCOUNT.DATA_DELETED);
-  });
+  bindAccountDataDeletionIpc(ipcMain, viewIdentityRegistry, deleteAccount);
   ipcMain.on(EVENT_TYPE.WRAPPER.RELOAD, () => forwardWrapperReloadRequest(main.webContents));
   ipcMain.on(EVENT_TYPE.WRAPPER.RELAUNCH, () => lifecycle.relaunch());
   ipcMain.on(EVENT_TYPE.ABOUT.SHOW, () => AboutWindow.showWindow(viewIdentityRegistry));
@@ -358,7 +356,10 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
 
   main = new BrowserWindow(options);
   const mainURL = getMainWindowUrl();
-  registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href, [BADGE_COUNT_CAPABILITY]);
+  registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href, [
+    BADGE_COUNT_CAPABILITY,
+    ACCOUNT_DATA_DELETE_CAPABILITY,
+  ]);
 
   remoteMain.enable(main.webContents);
 
@@ -727,12 +728,13 @@ class ElectronWrapperInit {
               return;
             }
 
-            registerLegacyAccountViewIdentity(
-              viewIdentityRegistry,
-              contents,
-              url,
-              contents.session === session.defaultSession ? 'default' : 'persisted-account',
-            );
+            const partition = getLegacyAccountPartition(contents.session, session.defaultSession);
+            if (!partition) {
+              logger.error('Unable to register account view without a storage partition.');
+              return;
+            }
+
+            registerLegacyAccountViewIdentity(viewIdentityRegistry, contents, url, partition);
           };
           registerAccountIdentity(contents.getURL());
           contents.on('did-start-navigation', (_event, url, _isInPlace, isMainFrame) => {
