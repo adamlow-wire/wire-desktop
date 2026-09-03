@@ -59,6 +59,7 @@ import {
 } from './lib/CertificateVerifyProcManager';
 import {CustomProtocolHandler} from './lib/CoreProtocol';
 import {downloadImage} from './lib/download';
+import {enumerateDesktopSources} from './lib/enumerateDesktopSources';
 import {EVENT_TYPE} from './lib/eventType';
 import {createFireAndForgetInvoker} from './lib/fireAndForgetInvoker';
 import {forwardWrapperReloadRequest} from './lib/forwardWrapperReloadRequest';
@@ -355,7 +356,9 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     y: mainWindowState.y,
   };
 
-  ipcMain.handle(EVENT_TYPE.ACTION.GET_DESKTOP_SOURCES, (event, opts) => desktopCapturer.getSources(opts));
+  ipcMain.handle(EVENT_TYPE.ACTION.GET_DESKTOP_SOURCES, (_event, opts) =>
+    enumerateDesktopSources(opts, options => desktopCapturer.getSources(options)),
+  );
   bindSafeStorageIpc(ipcMain, viewIdentityRegistry, safeStorage);
 
   main = new BrowserWindow(options);
