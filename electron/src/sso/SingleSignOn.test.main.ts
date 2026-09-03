@@ -327,6 +327,41 @@ describe('SingleSignOn', () => {
   });
 
   describe('window and session cleanup', () => {
+    it('[characterization][SEC-003][CAP-002][DCP-003] focuses and closes the active SSO window', () => {
+      let closeCount = 0;
+      let focusCount = 0;
+      const sender = {session: {} as Session} as WebContents;
+      const ssoWindow = {
+        close: () => {
+          closeCount += 1;
+        },
+        focus: () => {
+          focusCount += 1;
+        },
+      } as unknown as BrowserWindow;
+      const singleSignOn = new SingleSignOn(
+        ssoWindow,
+        sender,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+
+      singleSignOn.focus();
+      assert.strictEqual(focusCount, 1);
+      assert.strictEqual(closeCount, 0);
+
+      singleSignOn.close();
+      assert.strictEqual(closeCount, 1);
+      assert.strictEqual(singleSignOn['ssoWindow'], undefined);
+
+      singleSignOn.focus();
+      singleSignOn.close();
+      assert.strictEqual(focusCount, 1);
+      assert.strictEqual(closeCount, 1);
+    });
+
     it('[characterization][DCP-003] clears the ephemeral session and unregisters the protocol on close or cancel', async () => {
       const windowListeners = new Map<string, () => Promise<void>>();
       let clearCount = 0;
