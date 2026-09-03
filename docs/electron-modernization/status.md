@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: sso-window-control-validation
+state: auxiliary-window-exchange-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 18e337e3d17f59a7a9aa5137f603937afb16bb17
+integration_head_commit: 142bd290c8984d132cda5345b83b522910c09c6a
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-sso-window-control-2026-09-03
-next_work_item: SEC-003-auxiliary-window-exchange
+related_pending_branch: sec/SEC-003-auxiliary-window-exchange-2026-09-03
+next_work_item: SEC-003-proxy-prompt-control
 blockers: []
 ---
 
@@ -62,7 +62,9 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #28](https://github.com/adamlow-wire/wire-desktop/pull/28) merged as `18e337e3` after required build, lint, analysis, and all-platform package checks passed. It records the honest post-PR #27 M3 execution checkpoints and the proportionate E2E cadence in DEC-008. The first macOS package attempt hit an unchanged two-second Electron test timeout; the single failed-job rerun passed without a code change.
 
-[PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) is validating account-owned SSO window close/focus contracts. Local evidence is green; hosted required checks remain pending.
+[PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) merged as `142bd290` after required build, lint, CodeQL, and Windows/macOS/Linux package checks passed. SSO close and focus now require a registered account sender and refuse control of another account's SSO window. E2E was deferred under DEC-008 because the slice changed only the IPC schema.
+
+[PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30) is validating the About-window exchange. Local evidence is green; hosted required checks remain pending.
 
 The post-PR #27 audit confirms that M3 remains a production-boundary migration, not merely an IPC inventory exercise. The legacy product path still uses `@electron/remote`, an unsandboxed non-isolated local shell, DOM `<webview>`, `file://`, and a production CSP containing `unsafe-eval`; those release-blocking conditions remain explicitly owned by SEC-004 through SEC-010 and CAP-001.
 
@@ -72,9 +74,9 @@ The post-PR #27 audit confirms that M3 remains a production-boundary migration, 
 | ------------- | --------------------------------------------------- |
 | Work item     | SEC-003 — Typed, validated, capability-specific IPC |
 | Owner         | `adamlow-wire`                                      |
-| Active branch | `sec/SEC-003-sso-window-control-2026-09-03`         |
-| Goal          | Authorize and account-bind SSO close/focus controls |
-| Starting gate | PR #28 merged green at `18e337e3`                   |
+| Active branch | `sec/SEC-003-auxiliary-window-exchange-2026-09-03`  |
+| Goal          | Authorize About locale and webapp-version exchange  |
+| Starting gate | PR #29 merged green at `142bd290`                   |
 
 ## Next executable sequence
 
@@ -171,7 +173,9 @@ The post-PR #27 audit confirms that M3 remains a production-boundary migration, 
 | SEC-003 desktop-source enumeration hosted validation | [PR #26](https://github.com/adamlow-wire/wire-desktop/pull/26) merged as `d658a091`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33724134412`, `33724134493`, and `33724161365` | 2026-09-03 |
 | SEC-003 deep-link submission contract | Focused behavior and authorization tests pass 10/10; clean full coverage passes with 262 Electron main tests plus 3 owned CAP-002 targets pending, 18/21 changed statements (85.71%), 10/10 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The versioned application-shell-only contract accepts exactly one non-empty URL string bounded to 1,024 characters, validates the void response, permits at most 30 submissions per minute per shell, reports rejected invocations, removes the raw incoming event, and preserves existing dispatch plus conversation-join parameters. Altering a join parameter and accepting an oversized request each failed the intended test; both perturbations were reverted. SEC-013 and CAP-006 still own strict parsing and lifecycle routing; hosted validation remains pending | 2026-09-03 |
 | SEC-003 deep-link submission hosted validation | [PR #27](https://github.com/adamlow-wire/wire-desktop/pull/27) merged as `467793a3`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33728083664`, `33728083719`, and `33728107454` | 2026-09-03 |
-| SEC-003 SSO window-control contract | [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29): focused SSO behavior, authority, and account-identity suites pass 33 tests with 3 owned CAP-002 targets pending; clean full coverage passes with 270 Electron main tests plus those 3 pending targets, 36/43 changed statements (83.72%), 8/8 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The fixed account-only close/focus contracts accept no payload, validate void responses, allow 30 requests per minute per control and view, and refuse control of an SSO window owned by another account. Suppressing focus and bypassing account ownership failed the intended tests; both perturbations were reverted. Hosted validation remains pending | 2026-09-03 |
+| SEC-003 SSO window-control contract | [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29): focused SSO behavior, authority, and account-identity suites pass 33 tests with 3 owned CAP-002 targets pending; clean full coverage passes with 270 Electron main tests plus those 3 pending targets, 36/43 changed statements (83.72%), 8/8 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The fixed account-only close/focus contracts accept no payload, validate void responses, allow 30 requests per minute per control and view, and refuse control of an SSO window owned by another account. Suppressing focus and bypassing account ownership failed the intended tests; both perturbations were reverted | 2026-09-03 |
+| SEC-003 SSO window-control hosted validation | [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) merged as `142bd290`: required build/test, lint, CodeQL, and Windows/macOS/Linux package baselines passed; the macOS package job completed naturally after the merge API accepted the PR while it was still in progress. E2E was deferred under DEC-008 | 2026-09-03 |
+| SEC-003 About-window exchange | [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30): clean full coverage passes with 278 Electron main tests plus 3 owned CAP-002 targets pending, 78/94 changed statements (82.98%), 47/47 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. Fixed About-only locale reads and account-only combined version reports use exact bounded schemas, response validation, and per-view quotas while preserving fresh selected-webview values, timeout caching, and explicit AVS clearing. Stale AVS retention, omitted locale labels, and loosened response correlation failed the intended tests; all perturbations were reverted. Hosted validation remains pending | 2026-09-03 |
 
 ## Handoff notes
 
