@@ -83,6 +83,7 @@ import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
+import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNotificationActivationIpc} from './security/NotificationActivationIpc';
@@ -238,10 +239,9 @@ const bindIpcEvents = (): void => {
   );
   bindNotificationActivationIpc(ipcMain, viewIdentityRegistry, () => WindowManager.showPrimaryWindow());
   bindWebAppLoadedIpc(ipcMain, viewIdentityRegistry, () => WindowManager.flushActionsQueue());
-
-  ipcMain.on(EVENT_TYPE.UI.BADGE_COUNT, (_event, {count, ignoreFlash}: {count?: number; ignoreFlash?: boolean}) => {
-    tray.showUnreadCount(main, count, ignoreFlash);
-  });
+  bindBadgeCountIpc(ipcMain, viewIdentityRegistry, (count, ignoreFlash) =>
+    tray.showUnreadCount(main, count, ignoreFlash),
+  );
 
   ipcMain.on(EVENT_TYPE.ACCOUNT.DELETE_DATA, async (_event, id: number, accountId: string, partitionId?: string) => {
     await deleteAccount(id, accountId, partitionId);
@@ -358,7 +358,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
 
   main = new BrowserWindow(options);
   const mainURL = getMainWindowUrl();
-  registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href);
+  registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href, [BADGE_COUNT_CAPABILITY]);
 
   remoteMain.enable(main.webContents);
 
