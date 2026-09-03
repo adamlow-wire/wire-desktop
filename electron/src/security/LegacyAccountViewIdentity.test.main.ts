@@ -22,6 +22,7 @@ import {strict as assert} from 'assert';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
+import {OPEN_GRAPH_FETCH_CAPABILITY} from './OpenGraphContract';
 import {SAFE_STORAGE_DECRYPT_CAPABILITY, SAFE_STORAGE_ENCRYPT_CAPABILITY} from './SafeStorageContract';
 import {SAVE_PICTURE_CAPABILITY} from './SavePictureContract';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
@@ -93,6 +94,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       WEBAPP_LOADED_CAPABILITY,
       WRAPPER_RELOAD_CAPABILITY,
       WRAPPER_RELAUNCH_CAPABILITY,
+      OPEN_GRAPH_FETCH_CAPABILITY,
     ]);
     assert.strictEqual(registered.identity.mainFrame, view.mainFrame);
     assert.strictEqual(registered.identity.partition, 'persist:legacy-session');
