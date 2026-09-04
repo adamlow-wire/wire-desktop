@@ -1,18 +1,18 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-03
+updated: 2026-09-04
 milestone: M3
 active_work_item: SEC-003
-state: proxy-prompt-control-validation
+state: dormant-listener-closure-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 52f09eedefcc9aa88252b876dee8ceba7e3b25f7
+integration_head_commit: 5e3af8f7591f998d0a13a62aab089d7c9518781b
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-proxy-prompt-control-2026-09-03
-next_work_item: SEC-003-dormant-listener-disposition
+related_pending_branch: sec/SEC-003-dormant-listener-disposition-2026-09-03
+next_work_item: SEC-004
 blockers: []
 ---
 
@@ -66,24 +66,24 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30) merged as `52f09eed` after required build, lint, CodeQL, and Windows/macOS/Linux package checks passed. About locale reads and webapp-version reports now use fixed, bounded contracts. E2E was deferred under DEC-008 because the slice changed only the IPC schema.
 
-[PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) is validating proxy-prompt control. Local evidence is green and authenticated Windows/macOS E2E is explicitly requested because the slice changes proxy lifecycle behavior.
+[PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) merged as `5e3af8f7` after build/test, lint, CodeQL, all-platform package baselines, authenticated Windows/macOS E2E, and the merged report passed. Its initial Windows E2E attempt exhausted retries in unrelated group-call and notification cases; the one evidence-based unchanged rerun passed both platforms.
 
 The post-PR #27 audit confirms that M3 remains a production-boundary migration, not merely an IPC inventory exercise. The legacy product path still uses `@electron/remote`, an unsandboxed non-isolated local shell, DOM `<webview>`, `file://`, and a production CSP containing `unsafe-eval`; those release-blocking conditions remain explicitly owned by SEC-004 through SEC-010 and CAP-001.
 
 ## Active work
 
-| Field         | Value                                                 |
-| ------------- | ----------------------------------------------------- |
-| Work item     | SEC-003 — Typed, validated, capability-specific IPC   |
-| Owner         | `adamlow-wire`                                        |
-| Active branch | `sec/SEC-003-proxy-prompt-control-2026-09-03`         |
-| Goal          | Bind proxy credentials and cancellation to one prompt |
-| Starting gate | PR #30 merged green at `52f09eed`                     |
+| Field         | Value                                                      |
+| ------------- | ---------------------------------------------------------- |
+| Work item     | SEC-003 — Typed, validated, capability-specific IPC        |
+| Owner         | `adamlow-wire`                                             |
+| Active branch | `sec/SEC-003-dormant-listener-disposition-2026-09-03`      |
+| Goal          | Remove dormant/internal incoming listeners and close audit |
+| Starting gate | PR #31 merged green at `5e3af8f7`                          |
 
 ## Next executable sequence
 
-1. Validate proxy-prompt control, then explicitly resolve the dormant updater listener and audit the completed SEC-003 inventory.
-2. Complete the production secure-shell cutover through SEC-004–SEC-007, SEC-010, and CAP-001, retaining small reviewable PRs but treating the first production-path activation and final cutover as full E2E checkpoints.
+1. Validate and merge the SEC-003 dormant-listener disposition, then mark the completed incoming-IPC inventory done.
+2. Begin SEC-004 by characterizing current theme and context-menu behavior before removing `@electron/remote`, then continue the production secure-shell cutover through SEC-005–SEC-007, SEC-010, and CAP-001.
 3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
@@ -179,7 +179,9 @@ The post-PR #27 audit confirms that M3 remains a production-boundary migration, 
 | SEC-003 SSO window-control hosted validation | [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) merged as `142bd290`: required build/test, lint, CodeQL, and Windows/macOS/Linux package baselines passed; the macOS package job completed naturally after the merge API accepted the PR while it was still in progress. E2E was deferred under DEC-008 | 2026-09-03 |
 | SEC-003 About-window exchange | [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30): clean full coverage passes with 278 Electron main tests plus 3 owned CAP-002 targets pending, 78/94 changed statements (82.98%), 47/47 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. Fixed About-only locale reads and account-only combined version reports use exact bounded schemas, response validation, and per-view quotas while preserving fresh selected-webview values, timeout caching, and explicit AVS clearing. Stale AVS retention, omitted locale labels, and loosened response correlation failed the intended tests; all perturbations were reverted | 2026-09-03 |
 | SEC-003 About-window hosted validation | [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30) merged as `52f09eed`: required build/test, lint, CodeQL, and Windows/macOS/Linux package baselines passed. E2E was deferred under DEC-008 | 2026-09-03 |
-| SEC-003 proxy-prompt control | [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31): clean full coverage passes with 295 Electron main tests plus 3 owned CAP-002 targets pending, 132/163 changed statements (80.98%), 43/43 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 4/4, and build tools 35/35. Fixed prompt-only locale, submit, and cancel contracts use exact bounded schemas, response validation, per-view quotas, and an exact-web-contents one-shot coordinator. Registration occurs before display/load; failed side effects restore the prompt for explicit retry; raw listener accumulation is removed. Password corruption and cross-prompt fallback perturbations failed the intended tests and were reverted. Hosted required checks and authenticated Windows/macOS E2E remain pending | 2026-09-03 |
+| SEC-003 proxy-prompt control | [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31): clean full coverage passes with 295 Electron main tests plus 3 owned CAP-002 targets pending, 132/163 changed statements (80.98%), 43/43 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 4/4, and build tools 35/35. Fixed prompt-only locale, submit, and cancel contracts use exact bounded schemas, response validation, per-view quotas, and an exact-web-contents one-shot coordinator. Registration occurs before display/load; failed side effects restore the prompt for explicit retry; raw listener accumulation is removed. Password corruption and cross-prompt fallback perturbations failed the intended tests and were reverted | 2026-09-03 |
+| SEC-003 proxy-prompt hosted validation | [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) merged as `5e3af8f7`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed. The first Windows attempt failed unrelated group-call and notification retries; its single unchanged evidence-based rerun passed both platforms | 2026-09-04 |
+| SEC-003 incoming-listener closure | Focused About-menu and lifecycle tests pass 5/5; clean full suites pass with 296 Electron main tests plus 3 owned CAP-002 targets pending, Jest 19/19 suites and 63/63 tests, Electron renderer 4/4, and build tools 35/35. Changed statements pass at 133/166 (80.12%) and changed security branches at 43/43 (100%). Making the About action a no-op and removing the characterized updater listener each failed its intended baseline test before the perturbations were reverted. The implementation replaces the internal About IPC event with a direct main-owned callback and removes the updater listener for which no producer exists; hosted validation remains pending | 2026-09-04 |
 
 ## Handoff notes
 

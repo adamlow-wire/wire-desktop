@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.3
+revision: 1.5.4
 status: draft
-updated: 2026-09-03
+updated: 2026-09-04
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -357,7 +357,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: [PRs #14–30](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated runtime info, safe storage, managed configuration, picture saving, notification activation, webapp-loaded signaling, badge count, account deletion, wrapper reload/relaunch, Open Graph, download location, desktop-source enumeration, deep-link submission, account-owned SSO controls, and About locale/version exchange. Every merged slice passed focused deny-path tests, changed-code coverage, required CI, and all-platform packaging; authenticated E2E follows DEC-008's behavior-change/checkpoint cadence. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds fixed prompt-only locale, submit, and cancel contracts plus exact active-prompt correlation; hosted validation is pending. Per-slice results are retained in `status.md`; the authoritative remaining SEC-003 operation is explicit disposition of dormant privileged listeners followed by an inventory audit.
+- Evidence: [PRs #14–31](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated every inventoried privileged renderer-to-main operation. Each merged slice passed focused allow/deny tests, changed-code coverage, required CI, and all-platform packaging; [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) additionally passed authenticated Windows/macOS E2E after one evidence-based rerun. The closure branch replaces the internal About event with a direct main-owned call, removes the unproduced updater listener, and records a production-source audit with no remaining raw privileged incoming listener; hosted closure validation is pending.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -873,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.4 | 2026-09-04 | Codex | Recorded green proxy-prompt E2E and the final SEC-003 inventory audit; replaced the internal About event with a direct main-owned call and removed the unproduced updater listener | SEC-003, CAP-005, INV-002, INV-003, INV-010 |
 | 1.5.3 | 2026-09-03 | Codex | Recorded green About-window validation and the sensitivity-proven exact-prompt proxy credential/cancellation boundary while retaining packaged enterprise network evidence under CAP-005 | SEC-003, CAP-005, DCP-011, INV-002, INV-003, INV-004, INV-010 |
 | 1.5.2 | 2026-09-03 | Codex | Recorded green SSO control validation and the sensitivity-proven, bounded About locale/version exchange while retaining selected-account isolation under CAP-001 | SEC-003, CAP-001, INV-002, INV-003, INV-010 |
 | 1.5.1 | 2026-09-03 | Codex | Recorded sensitivity-proven, account-owned SSO window close/focus contracts while retaining the broader SSO security targets under CAP-002 | SEC-003, CAP-002, DCP-003, INV-002, INV-003, INV-004, INV-010 |
