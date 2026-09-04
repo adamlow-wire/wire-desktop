@@ -21,7 +21,7 @@ import {BrowserWindow, ContextMenuParams, MenuItemConstructorOptions} from 'elec
 
 import * as assert from 'assert';
 
-import {ContextMenuDependencies, showAccountContextMenu} from './AccountContextMenu';
+import {attachAccountContextMenu, ContextMenuDependencies, showAccountContextMenu} from './AccountContextMenu';
 
 const editFlags = (overrides: Partial<ContextMenuParams['editFlags']> = {}): ContextMenuParams['editFlags'] => ({
   canCopy: false,
@@ -156,5 +156,31 @@ describe('account context menu', () => {
     await test.show(params({editFlags: editFlags({canSelectAll: true})}));
     await test.show(params());
     assert.deepStrictEqual(test.menus, []);
+  });
+
+  it('attaches the policy to Electron context-menu events', async () => {
+    const test = setup();
+    let listener: ((event: Electron.Event, input: ContextMenuParams) => void) | undefined;
+    const contents = {
+      copy: () => undefined,
+      cut: () => undefined,
+      executeJavaScript: async () => '',
+      on: (_event: string, value: typeof listener) => {
+        listener = value;
+        return contents;
+      },
+      paste: () => undefined,
+      replaceMisspelling: () => undefined,
+      selectAll: () => undefined,
+      send: () => undefined,
+    };
+
+    attachAccountContextMenu(contents as unknown as Electron.WebContents, {} as BrowserWindow, test.dependencies);
+    assert.ok(listener);
+    listener({} as Electron.Event, params({selectionText: 'selected text'}));
+    await Promise.resolve();
+    click(test.menus[0][0]);
+
+    assert.deepStrictEqual(test.copied, ['selected text']);
   });
 });

@@ -141,8 +141,12 @@ export const showAccountContextMenu = async (
   }
 };
 
-export const attachAccountContextMenu = (contents: WebContents, window: BrowserWindow): void => {
+export const attachAccountContextMenu = (
+  contents: WebContents,
+  window: BrowserWindow,
+  dependencies: ContextMenuDependencies = defaultDependencies,
+): void => {
   contents.on('context-menu', (_event, params) => {
-    void showAccountContextMenu(contents, window, params);
+    void showAccountContextMenu(contents, window, params, dependencies);
   });
 };
