@@ -17,33 +17,18 @@
  *
  */
 
-import * as Electron from 'electron';
+import {ipcRenderer} from 'electron';
 
 import {EVENT_TYPE} from '../lib/eventType';
-import {getText} from '../locale';
-import {config} from '../settings/config';
+import {requestSsoAccountLimitWarning} from '../security/SsoAccountLimitIpc';
 
 export interface CreateSSOAccountDetail {
   reachedMaximumAccounts?: boolean;
 }
 
-const dialog = Electron.dialog || require('@electron/remote').dialog;
-
 export class AutomatedSingleSignOn {
   private async showError(): Promise<void> {
-    let detail = getText('wrapperAddAccountErrorMessagePlural');
-    let message = getText('wrapperAddAccountErrorTitlePlural');
-
-    if (config.maximumAccounts === 1) {
-      detail = getText('wrapperAddAccountErrorMessageSingular');
-      message = getText('wrapperAddAccountErrorTitleSingular');
-    }
-
-    await dialog.showMessageBox({
-      detail,
-      message,
-      type: 'warning',
-    });
+    await requestSsoAccountLimitWarning(ipcRenderer);
   }
 
   public async start(ssoCode: string): Promise<void> {

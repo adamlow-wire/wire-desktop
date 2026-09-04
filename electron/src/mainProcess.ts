@@ -103,6 +103,7 @@ import {bindOpenGraphIpc} from './security/OpenGraphIpc';
 import {bindProxyPromptIpc, createProxyPromptBoundary} from './security/ProxyPromptIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
+import {bindSsoAccountLimitIpc, SSO_ACCOUNT_LIMIT_CAPABILITY} from './security/SsoAccountLimitIpc';
 import {controlSsoWindowForAccount} from './security/SsoWindowControl';
 import {bindSsoWindowControlIpc} from './security/SsoWindowControlIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
@@ -270,6 +271,16 @@ const bindIpcEvents = (): void => {
   bindSavePictureIpc(ipcMain, viewIdentityRegistry, (bytes, timestamp) =>
     downloadImage(bytes, timestamp ? Maybe.just(timestamp) : Maybe.nothing<string>()),
   );
+  bindSsoAccountLimitIpc(ipcMain, viewIdentityRegistry, async () => {
+    const singular = config.maximumAccounts === 1;
+    await dialog.showMessageBox({
+      detail: locale.getText(
+        singular ? 'wrapperAddAccountErrorMessageSingular' : 'wrapperAddAccountErrorMessagePlural',
+      ),
+      message: locale.getText(singular ? 'wrapperAddAccountErrorTitleSingular' : 'wrapperAddAccountErrorTitlePlural'),
+      type: 'warning',
+    });
+  });
   bindNotificationActivationIpc(ipcMain, viewIdentityRegistry, () => WindowManager.showPrimaryWindow());
   bindWebAppLoadedIpc(ipcMain, viewIdentityRegistry, () => WindowManager.flushActionsQueue());
   bindBadgeCountIpc(ipcMain, viewIdentityRegistry, (count, ignoreFlash) =>
@@ -399,6 +410,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     BADGE_COUNT_CAPABILITY,
     ACCOUNT_DATA_DELETE_CAPABILITY,
     DEEP_LINK_SUBMIT_CAPABILITY,
+    SSO_ACCOUNT_LIMIT_CAPABILITY,
   ]);
 
   remoteMain.enable(main.webContents);
