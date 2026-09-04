@@ -539,13 +539,10 @@ const handleAppEvents = (): void => {
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {
     const mainWindowState = initWindowStateKeeper();
-    const appMenu = systemMenu.createMenu(
-      isFullScreen,
-      wallClock,
-      /* istanbul ignore next -- composition root */ () => {
-        void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
-      },
-    );
+    /* istanbul ignore next -- composition root */
+    const appMenu = systemMenu.createMenu(isFullScreen, wallClock, () => {
+      void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
+    });
     if (EnvironmentUtil.app.IS_DEVELOPMENT) {
       app.commandLine.appendSwitch('enable-webrtc-internals');
       appMenu.append(developerMenu);
@@ -558,15 +555,12 @@ const handleAppEvents = (): void => {
     }
     await showMainWindow(mainWindowState);
 
+    /* istanbul ignore next -- composition root */
     app.on('ready', async () => {
       const mainWindowState = initWindowStateKeeper();
-      const appMenu = systemMenu.createMenu(
-        isFullScreen,
-        wallClock,
-        /* istanbul ignore next -- composition root */ () => {
-          void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
-        },
-      );
+      const appMenu = systemMenu.createMenu(isFullScreen, wallClock, () => {
+        void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
+      });
       if (EnvironmentUtil.app.IS_DEVELOPMENT) {
         appMenu.append(developerMenu);
       }
