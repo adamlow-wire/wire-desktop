@@ -28,12 +28,12 @@ import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 const preloadPath = (name: 'preload-app' | 'preload-webview'): string =>
   path.resolve(__dirname, `../../dist/preload/${name}.js`);
 
-const createWindow = (preload: string): BrowserWindow =>
+const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow =>
   new BrowserWindow({
     show: false,
     webPreferences: {
       additionalArguments: createRendererRuntimeArguments({locale: 'en-US', userDataPath: app.getPath('userData')}),
-      contextIsolation: false,
+      contextIsolation,
       nodeIntegration: false,
       preload,
       sandbox: false,
@@ -58,7 +58,7 @@ describe('legacy preload compatibility surface', () => {
   });
 
   it('[characterization][security-target][INV-002][SEC-005] exposes the local-shell API used by the wrapper', async () => {
-    const window = createWindow(preloadPath('preload-app'));
+    const window = createWindow(preloadPath('preload-app'), true);
     windows.push(window);
     await window.loadURL('data:text/html,<main>shell</main>');
 
@@ -85,11 +85,23 @@ describe('legacy preload compatibility surface', () => {
       sendLogoutAccount: 'function',
       submitDeepLink: 'function',
     });
+    assert.strictEqual(
+      await window.webContents.executeJavaScript(
+        "Object.getOwnPropertyDescriptor(window, 'sendDeleteAccount').writable",
+      ),
+      false,
+    );
+    assert.match(
+      await window.webContents.executeJavaScript(
+        "window.sendDeleteAccount('missing-account').then(() => 'resolved', error => String(error))",
+      ),
+      /does not exist/,
+    );
   });
 
   it('[characterization][security-target][INV-002][SEC-005] exposes the versioned API consumed by the webapp', async function () {
     this.timeout(10_000);
-    const window = createWindow(preloadPath('preload-webview'));
+    const window = createWindow(preloadPath('preload-webview'), false);
     windows.push(window);
     await window.loadURL(`data:text/html,<script>
       window.amplify = {publish() {}, subscribe() {}, unsubscribe() {}};
