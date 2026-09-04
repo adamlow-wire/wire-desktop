@@ -17,7 +17,6 @@
  *
  */
 
-import * as remoteMain from '@electron/remote/main';
 import type {WallClock} from '@enormora/wall-clock/wall-clock';
 import {
   app,
@@ -154,8 +153,6 @@ const secureShellProof = argv['secure-shell-proof'] === true;
 
 if (secureShellProof) {
   registerSecureShellSchemePrivileges();
-} else {
-  remoteMain.initialize();
 }
 
 const APP_PATH = path.join(app.getAppPath(), config.electronDirectory);
@@ -412,8 +409,6 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     DEEP_LINK_SUBMIT_CAPABILITY,
     SSO_ACCOUNT_LIMIT_CAPABILITY,
   ]);
-
-  remoteMain.enable(main.webContents);
 
   main.setMenuBarVisibility(showMenuBar);
 
@@ -733,7 +728,6 @@ class ElectronWrapperInit {
     const enableSpellChecking = settings.restore(SettingsType.ENABLE_SPELL_CHECKING, true);
 
     app.on('web-contents-created', async (_webviewEvent: ElectronEvent, contents: WebContents) => {
-      remoteMain.enable(contents);
       // disable new Windows by default on everything
       contents.setWindowOpenHandler(() => {
         return {action: 'deny'};
