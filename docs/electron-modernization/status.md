@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-04
 milestone: M3
 active_work_item: SEC-005
-state: isolated-bridge-characterization-ready
+state: isolated-bridge-characterization-in-progress
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 integration_head_commit: f8c723604b7f8861fe541b46dd9936cd3aad95a9
@@ -11,7 +11,7 @@ scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: docs/SEC-004-closure-2026-09-04
+related_pending_branch: sec/SEC-005-isolated-bridge-characterization-2026-09-04
 next_work_item: SEC-005
 blockers: []
 ---
@@ -78,7 +78,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | ------------- | --------------------------------------------------------- |
 | Work item     | SEC-005 — Replace preloads with isolated bridges          |
 | Owner         | `adamlow-wire`                                            |
-| Active branch | Not started; SEC-004 closure branch is documentation-only |
+| Active branch | `sec/SEC-005-isolated-bridge-characterization-2026-09-04` |
 | Goal          | Characterize and version the legacy webapp bridge surface |
 | Starting gate | SEC-004 closed by PR #33 at `f8c72360`                    |
 
@@ -189,6 +189,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-003 incoming-listener hosted closure | [PR #32](https://github.com/adamlow-wire/wire-desktop/pull/32) merged as `661e616a`: build/test, lint, CodeQL, and Windows/macOS/Linux package baselines passed; E2E was deferred under DEC-008 after PR #31's green checkpoint | 2026-09-04 |
 | SEC-004 local remote removal | Context-menu policy baseline 3/3 and focused replacement tests passed; the clean full suite passed with Jest 19/19 suites and 63/63 tests, Electron main 315 passing plus 3 owned CAP-002 targets pending, renderer 4/4, build tools 35/35, and 116/143 changed statements (81.12%). Native context menus, theme observation, and SSO warning dialogs are main-owned; renderer locale/user-data needs use fixed encoded startup values; production source, dependencies, and lockfile contain no `@electron/remote`, `remoteMain.initialize`, or `remoteMain.enable`. Wrong edit dispatch, stale theme updates, undecoded runtime values, permissive SSO payload validation, and absent startup-locale fallback each failed the intended test before the perturbation was reverted | 2026-09-04 |
 | SEC-004 hosted closure | [PR #33](https://github.com/adamlow-wire/wire-desktop/pull/33) merged as `f8c72360`: the corrected head passed build/test, lint, CodeQL, [Windows/macOS/Linux package baselines](https://github.com/adamlow-wire/wire-desktop/actions/runs/33858307288), and [authenticated Windows/macOS E2E plus merged reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/33858307298) | 2026-09-04 |
+| SEC-005 preload compatibility characterization | Real-Electron tests preserve the local wrapper API and the versioned `desktopCapturer`, `systemCrypto`, `environment`, `desktopAppConfig`, and `openGraphAsync` webapp API. Temporarily removing `openGraphAsync` failed the intended assertion before the perturbation was reverted | 2026-09-04 |
 
 ## Handoff notes
 
