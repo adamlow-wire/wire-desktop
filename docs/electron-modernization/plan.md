@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.4
+revision: 1.5.6
 status: draft
 updated: 2026-09-04
 owners:
@@ -348,7 +348,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
@@ -357,12 +357,12 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: [PRs #14–31](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated every inventoried privileged renderer-to-main operation. Each merged slice passed focused allow/deny tests, changed-code coverage, required CI, and all-platform packaging; [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) additionally passed authenticated Windows/macOS E2E after one evidence-based rerun. The closure branch replaces the internal About event with a direct main-owned call, removes the unproduced updater listener, and records a production-source audit with no remaining raw privileged incoming listener; hosted closure validation is pending.
+- Evidence: [PRs #14–32](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated every inventoried privileged renderer-to-main operation. Each merged slice passed focused allow/deny tests, changed-code coverage, required CI, and all-platform packaging; [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) additionally passed authenticated Windows/macOS E2E after one evidence-based rerun. [PR #32](https://github.com/adamlow-wire/wire-desktop/pull/32) merged as `661e616a` after every required check passed; it replaced the internal About event with a direct main-owned call, removed the unproduced updater listener, and closed the production-source audit with no raw privileged incoming listener remaining. Later capabilities MAY add narrowly authorized contracts with the same SEC-003 controls, as SEC-004 does for the SSO account-limit warning.
 
 #### SEC-004 — Remove `@electron/remote`
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Replace `nativeTheme` and context-menu use of remote APIs with explicit main-process capabilities.
@@ -370,7 +370,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - `@electron/remote` is absent from production dependencies and source.
   - No `remoteMain.initialize` or `remoteMain.enable` remains.
   - Theme and context-menu behavior pass their capability tests.
-- Evidence: TBD
+- Evidence: The current branch characterizes context-menu selection and moves native menu construction, edit commands, spelling replacement, and theme observation into the main process. Immutable encoded locale/user-data bootstrap values replace renderer `remote.app` reads; an application-shell-only, payload-free, rate-limited contract replaces the automated-SSO warning dialog. `@electron/remote`, `remoteMain.initialize`, and `remoteMain.enable` are absent from production source, dependencies, and the lockfile. The clean local suite passes with Jest 19/19 suites and 63/63 tests, Electron main 315 passing plus 3 owned CAP-002 targets pending, renderer 4/4, build tools 35/35, and 116/143 changed statements (81.12%). Context action, theme update, runtime-argument decoding, SSO payload-denial, and startup-locale assertions were sensitivity-proven. Initial hosted Linux/macOS package smoke exposed an unavailable pre-ready Electron locale; a deterministic platform-locale fallback now has a regression test, and the exact local Electron `--version` path exits successfully. Hosted revalidation is pending.
 
 #### SEC-005 — Replace preloads with isolated bridges
 
@@ -873,6 +873,8 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.6 | 2026-09-04 | Codex | Recorded and fixed the pre-ready locale regression exposed by SEC-004 package smoke validation | SEC-004, DCP-003 |
+| 1.5.5 | 2026-09-04 | Codex | Closed SEC-003 after green PR #32 and recorded the sensitivity-proven SEC-004 removal of all production `@electron/remote` access pending hosted validation | SEC-003, SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |
 | 1.5.4 | 2026-09-04 | Codex | Recorded green proxy-prompt E2E and the final SEC-003 inventory audit; replaced the internal About event with a direct main-owned call and removed the unproduced updater listener | SEC-003, CAP-005, INV-002, INV-003, INV-010 |
 | 1.5.3 | 2026-09-03 | Codex | Recorded green About-window validation and the sensitivity-proven exact-prompt proxy credential/cancellation boundary while retaining packaged enterprise network evidence under CAP-005 | SEC-003, CAP-005, DCP-011, INV-002, INV-003, INV-004, INV-010 |
 | 1.5.2 | 2026-09-03 | Codex | Recorded green SSO control validation and the sensitivity-proven, bounded About locale/version exchange while retaining selected-account isolation under CAP-001 | SEC-003, CAP-001, INV-002, INV-003, INV-010 |

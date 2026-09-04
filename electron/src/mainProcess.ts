@@ -17,7 +17,6 @@
  *
  */
 
-import * as remoteMain from '@electron/remote/main';
 import type {WallClock} from '@enormora/wall-clock/wall-clock';
 import {
   app,
@@ -76,6 +75,8 @@ import {scheduleLogCleanup} from './logging/logCleanupScheduler';
 import {getLogDirectory, getMainProcessLogPath, getWebViewLogPath} from './logging/logPaths';
 import {initializeDesktopLogLifecycle} from './logging/logStartup';
 import {getManagedConfig} from './managed/ManagedConfig';
+import {attachAccountContextMenu} from './menu/AccountContextMenu';
+import {attachAccountWebContentsTheme} from './menu/AccountTheme';
 import {createDeveloperMenu, openDevTools} from './menu/developer';
 import * as systemMenu from './menu/system';
 import {TrayHandler} from './menu/TrayHandler';
@@ -83,6 +84,7 @@ import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUser
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
 import {OriginValidator} from './runtime/OriginValidator';
+import {createRendererRuntimeArguments} from './runtime/rendererRuntimeArguments';
 import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
@@ -100,6 +102,7 @@ import {bindOpenGraphIpc} from './security/OpenGraphIpc';
 import {bindProxyPromptIpc, createProxyPromptBoundary} from './security/ProxyPromptIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
+import {bindSsoAccountLimitIpc, SSO_ACCOUNT_LIMIT_CAPABILITY} from './security/SsoAccountLimitIpc';
 import {controlSsoWindowForAccount} from './security/SsoWindowControl';
 import {bindSsoWindowControlIpc} from './security/SsoWindowControlIpc';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
@@ -119,6 +122,8 @@ import * as WindowUtil from './window/WindowUtil';
 const MAIN_PROCESS_LOGGER_NAME = 'main.js';
 const LOG_CLEANUP_INTERVAL_MILLISECONDS = 60 * 60 * 1_000;
 const logger = getLogger(MAIN_PROCESS_LOGGER_NAME);
+const getRendererRuntimeArguments = (): string[] =>
+  createRendererRuntimeArguments({locale: app.getLocale(), userDataPath: app.getPath('userData')});
 type WallClockModule = {
   readonly createDesktopWallClock: () => WallClock;
 };
@@ -148,8 +153,6 @@ const secureShellProof = argv['secure-shell-proof'] === true;
 
 if (secureShellProof) {
   registerSecureShellSchemePrivileges();
-} else {
-  remoteMain.initialize();
 }
 
 const APP_PATH = path.join(app.getAppPath(), config.electronDirectory);
@@ -265,6 +268,16 @@ const bindIpcEvents = (): void => {
   bindSavePictureIpc(ipcMain, viewIdentityRegistry, (bytes, timestamp) =>
     downloadImage(bytes, timestamp ? Maybe.just(timestamp) : Maybe.nothing<string>()),
   );
+  bindSsoAccountLimitIpc(ipcMain, viewIdentityRegistry, async () => {
+    const singular = config.maximumAccounts === 1;
+    await dialog.showMessageBox({
+      detail: locale.getText(
+        singular ? 'wrapperAddAccountErrorMessageSingular' : 'wrapperAddAccountErrorMessagePlural',
+      ),
+      message: locale.getText(singular ? 'wrapperAddAccountErrorTitleSingular' : 'wrapperAddAccountErrorTitlePlural'),
+      type: 'warning',
+    });
+  });
   bindNotificationActivationIpc(ipcMain, viewIdentityRegistry, () => WindowManager.showPrimaryWindow());
   bindWebAppLoadedIpc(ipcMain, viewIdentityRegistry, () => WindowManager.flushActionsQueue());
   bindBadgeCountIpc(ipcMain, viewIdentityRegistry, (count, ignoreFlash) =>
@@ -368,6 +381,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     show: false,
     title: config.name,
     webPreferences: {
+      additionalArguments: getRendererRuntimeArguments(),
       backgroundThrottling: false,
       contextIsolation: false,
       nodeIntegration: false,
@@ -393,9 +407,8 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     BADGE_COUNT_CAPABILITY,
     ACCOUNT_DATA_DELETE_CAPABILITY,
     DEEP_LINK_SUBMIT_CAPABILITY,
+    SSO_ACCOUNT_LIMIT_CAPABILITY,
   ]);
-
-  remoteMain.enable(main.webContents);
 
   main.setMenuBarVisibility(showMenuBar);
 
@@ -715,7 +728,6 @@ class ElectronWrapperInit {
     const enableSpellChecking = settings.restore(SettingsType.ENABLE_SPELL_CHECKING, true);
 
     app.on('web-contents-created', async (_webviewEvent: ElectronEvent, contents: WebContents) => {
-      remoteMain.enable(contents);
       // disable new Windows by default on everything
       contents.setWindowOpenHandler(() => {
         return {action: 'deny'};
@@ -727,6 +739,7 @@ class ElectronWrapperInit {
             params.autosize = 'false';
             params.contextIsolation = 'true';
             params.plugins = 'false';
+            webPreferences.additionalArguments = getRendererRuntimeArguments();
             webPreferences.allowRunningInsecureContent = false;
             webPreferences.contextIsolation = false;
             webPreferences.experimentalFeatures = false;
@@ -739,6 +752,8 @@ class ElectronWrapperInit {
           break;
         }
         case 'webview': {
+          attachAccountContextMenu(contents, main);
+          attachAccountWebContentsTheme(contents);
           const registerAccountIdentity = (url: string): void => {
             if (viewIdentityRegistry.has(contents.id)) {
               return;

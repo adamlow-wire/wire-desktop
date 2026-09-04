@@ -46,7 +46,7 @@ These are not new 39-to-43 removals, but they are upgrade blockers because carry
 | Area | Current evidence | Resolution owner/path |
 | --- | --- | --- |
 | DOM `<webview>` | Main window enables `webviewTag`; React renders account `<webview allowpopups>` | SEC-007 and ADR 0001 replace with main-owned `WebContentsView` |
-| `@electron/remote` | Initialized/enabled for main and guest contents; required by remote/menu preloads and shared modules | SEC-004 removes rather than upgrades it |
+| `@electron/remote` | Removed from production source, dependencies, and lockfile on the SEC-004 branch; hosted validation pending | SEC-004 replaces native access with main-owned menus/theme/dialogs and immutable preload startup values |
 | Sandboxing/context isolation | Main/account views explicitly set both false | SEC-005/SEC-006; no compatibility flag may preserve this in target architecture |
 | Callback protocol APIs | SSO uses deprecated `isProtocolRegistered`, `registerStringProtocol`, and `unregisterProtocol` | CAP-002 migrates to `protocol.handle`/`unhandle` with one-time response policy |
 | Legacy `console-message` arguments | Main and SSO listeners consume positional level/message arguments deprecated since Electron 35 | ELC-002 updates to the details object when required and retains secret-redaction tests |

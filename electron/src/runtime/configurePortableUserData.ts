@@ -17,15 +17,13 @@
  *
  */
 
-import * as Electron from 'electron';
+import {app} from 'electron';
 import minimist from 'minimist';
 import {Maybe} from 'true-myth';
 
 import {PortableUserDataPathParameters, resolvePortableUserDataPath} from './portableUserData';
 
 import {config} from '../settings/config';
-
-const app = Electron.app || require('@electron/remote').app;
 
 type CommandLineArguments = Record<string, unknown>;
 

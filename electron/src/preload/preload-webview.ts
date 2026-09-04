@@ -25,6 +25,9 @@ import * as path from 'path';
 import type {Availability} from '@wireapp/protocol-messaging';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
+import {ACCOUNT_THEME_CHANNEL} from './AccountThemeContract';
+import {createAccountThemeReceiver} from './AccountThemeReceiver';
+
 import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
@@ -41,8 +44,6 @@ import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
 import {requestWrapperRelaunch} from '../security/WrapperRelaunchIpc';
 import {requestWrapperReload} from '../security/WrapperReloadIpc';
 
-const remote = require('@electron/remote');
-
 interface TeamAccountInfo {
   accentID: number;
   availability?: Availability.Type;
@@ -58,26 +59,26 @@ type Theme = 'dark' | 'default';
 
 const logger = getLogger(path.basename(__filename));
 
-function subscribeToThemeChange(): void {
-  function updateWebAppTheme(): void {
-    if (WebAppEvents.PROPERTIES.UPDATE.INTERFACE) {
-      const useDarkMode = remote.nativeTheme.shouldUseDarkColors;
-      logger.info(`Switching dark mode ${useDarkMode ? 'on' : 'off'} ...`);
-      window.amplify.publish(WebAppEvents.PROPERTIES.UPDATE.INTERFACE.USE_DARK_MODE, useDarkMode);
-    }
+const themeReceiver = createAccountThemeReceiver(shouldUseDarkColors => {
+  if (WebAppEvents.PROPERTIES.UPDATE.INTERFACE) {
+    logger.info(`Switching dark mode ${shouldUseDarkColors ? 'on' : 'off'} ...`);
+    window.amplify.publish(WebAppEvents.PROPERTIES.UPDATE.INTERFACE.USE_DARK_MODE, shouldUseDarkColors);
   }
+});
 
+ipcRenderer.on(ACCOUNT_THEME_CHANNEL, (_event, useDarkMode: unknown) => {
+  themeReceiver.receive(useDarkMode);
+});
+
+function subscribeToThemeChange(): void {
   function initialThemeCheck() {
-    const useDarkMode = remote.nativeTheme.shouldUseDarkColors;
-    logger.info(`Switching initial dark mode ${useDarkMode ? 'on' : 'off'} ...`);
-    window.amplify.publish(WebAppEvents.PROPERTIES.UPDATE.INTERFACE.USE_DARK_MODE, useDarkMode);
+    themeReceiver.markWebAppLoaded();
     window.amplify.unsubscribe(WebAppEvents.LIFECYCLE.LOADED, initialThemeCheck);
   }
 
   window.amplify.subscribe(WebAppEvents.LIFECYCLE.LOADED, () => {
     handleWebAppLoaded(ipcRenderer, logger, initialThemeCheck);
   });
-  remote.nativeTheme.on('updated', () => updateWebAppTheme());
 }
 
 webFrame.setZoomFactor(1.0);

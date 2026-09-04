@@ -26,6 +26,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:about:locale-read:v1` | About window | Bounded localized resource lookup | merged in PR #30 | SEC-003 |
 | `wire-desktop:proxy-prompt:locale-read:v1` | active proxy prompt | Bounded localized resource lookup | merged in PR #31 | SEC-003, CAP-005 |
 | `wire-desktop:proxy-prompt:submit:v1` / `wire-desktop:proxy-prompt:cancel:v1` | exact active proxy prompt | Proxy credentials, challenged-session policy, and reload | merged in PR #31 | SEC-003, CAP-005 |
+| `wire-desktop:sso:account-limit:v1` | exact application shell | Native warning dialog with no renderer-supplied content | SEC-004 branch; hosted validation pending | SEC-004, CAP-002 |
 
 The final production search found no additional privileged renderer-to-main listener. The native About menu now calls its main-owned window boundary directly, and the unproduced `WRAPPER.UPDATE` listener was removed; normal Squirrel update initialization remains unchanged. These dispositions prevent internal or dormant event names from becoming undocumented renderer authority later.
 
