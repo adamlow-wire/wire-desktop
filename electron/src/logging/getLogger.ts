@@ -26,9 +26,8 @@ import {getLogDirectory, getMainProcessLogPath} from './logPaths';
 
 import {config} from '../settings/config';
 
-const mainProcess = process || require('@electron/remote').process;
 const isDevelopment = config.environment !== 'production';
-const forceLogging = mainProcess.argv.includes('--enable-logging');
+const forceLogging = process.argv.includes('--enable-logging');
 
 export const LOGGER_NAMESPACE = '@wireapp/desktop';
 export const ENABLE_LOGGING = isDevelopment || forceLogging;
