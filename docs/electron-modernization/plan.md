@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.6
+revision: 1.5.7
 status: draft
 updated: 2026-09-04
 owners:
@@ -362,7 +362,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-004 — Remove `@electron/remote`
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Replace `nativeTheme` and context-menu use of remote APIs with explicit main-process capabilities.
@@ -370,7 +370,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - `@electron/remote` is absent from production dependencies and source.
   - No `remoteMain.initialize` or `remoteMain.enable` remains.
   - Theme and context-menu behavior pass their capability tests.
-- Evidence: The current branch characterizes context-menu selection and moves native menu construction, edit commands, spelling replacement, and theme observation into the main process. Immutable encoded locale/user-data bootstrap values replace renderer `remote.app` reads; an application-shell-only, payload-free, rate-limited contract replaces the automated-SSO warning dialog. `@electron/remote`, `remoteMain.initialize`, and `remoteMain.enable` are absent from production source, dependencies, and the lockfile. The clean local suite passes with Jest 19/19 suites and 63/63 tests, Electron main 315 passing plus 3 owned CAP-002 targets pending, renderer 4/4, build tools 35/35, and 116/143 changed statements (81.12%). Context action, theme update, runtime-argument decoding, SSO payload-denial, and startup-locale assertions were sensitivity-proven. Initial hosted Linux/macOS package smoke exposed an unavailable pre-ready Electron locale; a deterministic platform-locale fallback now has a regression test, and the exact local Electron `--version` path exits successfully. Hosted revalidation is pending.
+- Evidence: [PR #33](https://github.com/adamlow-wire/wire-desktop/pull/33) merged as `f8c72360`. It characterizes context-menu selection and moves native menu construction, edit commands, spelling replacement, and theme observation into the main process. Immutable encoded locale/user-data bootstrap values replace renderer `remote.app` reads; an application-shell-only, payload-free, rate-limited contract replaces the automated-SSO warning dialog. `@electron/remote`, `remoteMain.initialize`, and `remoteMain.enable` are absent from production source, dependencies, and the lockfile. The clean local suite passed with Jest 19/19 suites and 63/63 tests, Electron main 315 passing plus 3 owned CAP-002 targets pending, renderer 4/4, build tools 35/35, and 116/143 changed statements (81.12%). Context action, theme update, runtime-argument decoding, SSO payload-denial, and startup-locale assertions were sensitivity-proven. Initial hosted Linux/macOS package smoke exposed an unavailable pre-ready Electron locale; its deterministic fallback passed the exact package smoke path on all platforms. The corrected head passed build/test, lint, CodeQL, [Windows/macOS/Linux package baselines](https://github.com/adamlow-wire/wire-desktop/actions/runs/33858307288), [authenticated Windows/macOS E2E and merged reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/33858307298).
 
 #### SEC-005 — Replace preloads with isolated bridges
 
@@ -873,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.7 | 2026-09-04 | Codex | Closed SEC-004 after the corrected remote-free runtime passed all-platform package smoke and authenticated Windows/macOS E2E | SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |
 | 1.5.6 | 2026-09-04 | Codex | Recorded and fixed the pre-ready locale regression exposed by SEC-004 package smoke validation | SEC-004, DCP-003 |
 | 1.5.5 | 2026-09-04 | Codex | Closed SEC-003 after green PR #32 and recorded the sensitivity-proven SEC-004 removal of all production `@electron/remote` access pending hosted validation | SEC-003, SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |
 | 1.5.4 | 2026-09-04 | Codex | Recorded green proxy-prompt E2E and the final SEC-003 inventory audit; replaced the internal About event with a direct main-owned call and removed the unproduced updater listener | SEC-003, CAP-005, INV-002, INV-003, INV-010 |
