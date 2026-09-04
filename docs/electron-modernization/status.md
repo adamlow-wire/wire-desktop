@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-03
 milestone: M3
 active_work_item: SEC-003
-state: auxiliary-window-exchange-validation
+state: proxy-prompt-control-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 142bd290c8984d132cda5345b83b522910c09c6a
+integration_head_commit: 52f09eedefcc9aa88252b876dee8ceba7e3b25f7
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-003-auxiliary-window-exchange-2026-09-03
-next_work_item: SEC-003-proxy-prompt-control
+related_pending_branch: sec/SEC-003-proxy-prompt-control-2026-09-03
+next_work_item: SEC-003-dormant-listener-disposition
 blockers: []
 ---
 
@@ -64,23 +64,25 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) merged as `142bd290` after required build, lint, CodeQL, and Windows/macOS/Linux package checks passed. SSO close and focus now require a registered account sender and refuse control of another account's SSO window. E2E was deferred under DEC-008 because the slice changed only the IPC schema.
 
-[PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30) is validating the About-window exchange. Local evidence is green; hosted required checks remain pending.
+[PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30) merged as `52f09eed` after required build, lint, CodeQL, and Windows/macOS/Linux package checks passed. About locale reads and webapp-version reports now use fixed, bounded contracts. E2E was deferred under DEC-008 because the slice changed only the IPC schema.
+
+[PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) is validating proxy-prompt control. Local evidence is green and authenticated Windows/macOS E2E is explicitly requested because the slice changes proxy lifecycle behavior.
 
 The post-PR #27 audit confirms that M3 remains a production-boundary migration, not merely an IPC inventory exercise. The legacy product path still uses `@electron/remote`, an unsandboxed non-isolated local shell, DOM `<webview>`, `file://`, and a production CSP containing `unsafe-eval`; those release-blocking conditions remain explicitly owned by SEC-004 through SEC-010 and CAP-001.
 
 ## Active work
 
-| Field         | Value                                               |
-| ------------- | --------------------------------------------------- |
-| Work item     | SEC-003 — Typed, validated, capability-specific IPC |
-| Owner         | `adamlow-wire`                                      |
-| Active branch | `sec/SEC-003-auxiliary-window-exchange-2026-09-03`  |
-| Goal          | Authorize About locale and webapp-version exchange  |
-| Starting gate | PR #29 merged green at `142bd290`                   |
+| Field         | Value                                                 |
+| ------------- | ----------------------------------------------------- |
+| Work item     | SEC-003 — Typed, validated, capability-specific IPC   |
+| Owner         | `adamlow-wire`                                        |
+| Active branch | `sec/SEC-003-proxy-prompt-control-2026-09-03`         |
+| Goal          | Bind proxy credentials and cancellation to one prompt |
+| Starting gate | PR #30 merged green at `52f09eed`                     |
 
 ## Next executable sequence
 
-1. Complete the remaining SEC-003 groups: About/version/locale exchange and proxy prompt submission/cancellation; resolve the dormant updater listener explicitly.
+1. Validate proxy-prompt control, then explicitly resolve the dormant updater listener and audit the completed SEC-003 inventory.
 2. Complete the production secure-shell cutover through SEC-004–SEC-007, SEC-010, and CAP-001, retaining small reviewable PRs but treating the first production-path activation and final cutover as full E2E checkpoints.
 3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
@@ -175,7 +177,9 @@ The post-PR #27 audit confirms that M3 remains a production-boundary migration, 
 | SEC-003 deep-link submission hosted validation | [PR #27](https://github.com/adamlow-wire/wire-desktop/pull/27) merged as `467793a3`: build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and merged reports passed in runs `33728083664`, `33728083719`, and `33728107454` | 2026-09-03 |
 | SEC-003 SSO window-control contract | [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29): focused SSO behavior, authority, and account-identity suites pass 33 tests with 3 owned CAP-002 targets pending; clean full coverage passes with 270 Electron main tests plus those 3 pending targets, 36/43 changed statements (83.72%), 8/8 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. The fixed account-only close/focus contracts accept no payload, validate void responses, allow 30 requests per minute per control and view, and refuse control of an SSO window owned by another account. Suppressing focus and bypassing account ownership failed the intended tests; both perturbations were reverted | 2026-09-03 |
 | SEC-003 SSO window-control hosted validation | [PR #29](https://github.com/adamlow-wire/wire-desktop/pull/29) merged as `142bd290`: required build/test, lint, CodeQL, and Windows/macOS/Linux package baselines passed; the macOS package job completed naturally after the merge API accepted the PR while it was still in progress. E2E was deferred under DEC-008 | 2026-09-03 |
-| SEC-003 About-window exchange | [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30): clean full coverage passes with 278 Electron main tests plus 3 owned CAP-002 targets pending, 78/94 changed statements (82.98%), 47/47 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. Fixed About-only locale reads and account-only combined version reports use exact bounded schemas, response validation, and per-view quotas while preserving fresh selected-webview values, timeout caching, and explicit AVS clearing. Stale AVS retention, omitted locale labels, and loosened response correlation failed the intended tests; all perturbations were reverted. Hosted validation remains pending | 2026-09-03 |
+| SEC-003 About-window exchange | [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30): clean full coverage passes with 278 Electron main tests plus 3 owned CAP-002 targets pending, 78/94 changed statements (82.98%), 47/47 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 2/2, and build tools 35/35. Fixed About-only locale reads and account-only combined version reports use exact bounded schemas, response validation, and per-view quotas while preserving fresh selected-webview values, timeout caching, and explicit AVS clearing. Stale AVS retention, omitted locale labels, and loosened response correlation failed the intended tests; all perturbations were reverted | 2026-09-03 |
+| SEC-003 About-window hosted validation | [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30) merged as `52f09eed`: required build/test, lint, CodeQL, and Windows/macOS/Linux package baselines passed. E2E was deferred under DEC-008 | 2026-09-03 |
+| SEC-003 proxy-prompt control | [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31): clean full coverage passes with 295 Electron main tests plus 3 owned CAP-002 targets pending, 132/163 changed statements (80.98%), 43/43 changed security branches (100%), Jest 19/19 suites and 63/63 tests, Electron renderer 4/4, and build tools 35/35. Fixed prompt-only locale, submit, and cancel contracts use exact bounded schemas, response validation, per-view quotas, and an exact-web-contents one-shot coordinator. Registration occurs before display/load; failed side effects restore the prompt for explicit retry; raw listener accumulation is removed. Password corruption and cross-prompt fallback perturbations failed the intended tests and were reverted. Hosted required checks and authenticated Windows/macOS E2E remain pending | 2026-09-03 |
 
 ## Handoff notes
 

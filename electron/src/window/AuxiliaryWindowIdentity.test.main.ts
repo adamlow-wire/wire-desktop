@@ -17,7 +17,7 @@
  *
  */
 
-import {app, BrowserWindow, session, WebPreferences} from 'electron';
+import {app, BrowserWindow, ipcMain, session, WebPreferences} from 'electron';
 
 import * as assert from 'assert';
 import * as path from 'path';
@@ -25,8 +25,8 @@ import {pathToFileURL} from 'url';
 
 import {WindowManager} from './WindowManager';
 
-import {EVENT_TYPE} from '../lib/eventType';
 import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
+import {PROXY_PROMPT_LOCALE_READ_CHANNEL, PROXY_PROMPT_SUBMIT_CAPABILITY} from '../security/ProxyPromptContract';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 
@@ -57,6 +57,7 @@ describe('auxiliary window identity', () => {
   });
 
   afterEach(() => {
+    ipcMain.removeHandler(PROXY_PROMPT_LOCALE_READ_CHANNEL);
     while (windows.length > 0) {
       const window = windows.pop();
       if (window && !window.isDestroyed()) {
@@ -103,7 +104,7 @@ describe('auxiliary window identity', () => {
     assert.throws(() =>
       registry.authorize(
         {sender: window.webContents, senderFrame: window.webContents.mainFrame},
-        EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
+        PROXY_PROMPT_SUBMIT_CAPABILITY,
       ),
     );
     await assert.rejects(AboutWindow.showWindow(new ViewIdentityRegistry()), /different view identity registry/);
@@ -116,7 +117,15 @@ describe('auxiliary window identity', () => {
 
   it('[characterization][security-target][INV-003][INV-004][SEC-002] creates the proxy prompt in its exact local session', async () => {
     const registry = new ViewIdentityRegistry();
-    const window = await ProxyPromptWindow.showWindow(registry);
+    ipcMain.handle(PROXY_PROMPT_LOCALE_READ_CHANNEL, (_event, request: {labels: string[]}) =>
+      Object.fromEntries(request.labels.map(label => [label, label])),
+    );
+    let createdWebContentsId: number | undefined;
+    let closeNotifications = 0;
+    const window = await ProxyPromptWindow.showWindow(registry, webContentsId => {
+      createdWebContentsId = webContentsId;
+      return () => void (closeNotifications += 1);
+    });
     windows.push(window);
 
     const expectedUrl = pathToFileURL(
@@ -127,10 +136,11 @@ describe('auxiliary window identity', () => {
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
     const identity = registry.authorize(
       {sender: window.webContents, senderFrame: window.webContents.mainFrame},
-      EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
+      PROXY_PROMPT_SUBMIT_CAPABILITY,
     );
     assert.strictEqual(identity.viewType, 'proxy-prompt');
     assert.strictEqual(identity.allowedUrl, expectedUrl);
+    assert.strictEqual(createdWebContentsId, window.webContents.id);
     assert.throws(() =>
       registry.authorize(
         {sender: window.webContents, senderFrame: window.webContents.mainFrame},
@@ -141,6 +151,7 @@ describe('auxiliary window identity', () => {
     const destroyed = new Promise<void>(resolve => window.webContents.once('destroyed', resolve));
     window.destroy();
     await destroyed;
+    assert.strictEqual(closeNotifications, 1);
     assert.strictEqual(registry.has(webContentsId), false);
   });
 });

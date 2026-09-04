@@ -17,13 +17,17 @@
  *
  */
 
-import {app, BrowserWindow, ipcMain, session} from 'electron';
+import {app, BrowserWindow, session} from 'electron';
 
 import * as path from 'path';
 import {pathToFileURL} from 'url';
 
 import {EVENT_TYPE} from '../lib/eventType';
-import * as locale from '../locale';
+import {
+  PROXY_PROMPT_CANCEL_CAPABILITY,
+  PROXY_PROMPT_LOCALE_READ_CAPABILITY,
+  PROXY_PROMPT_SUBMIT_CAPABILITY,
+} from '../security/ProxyPromptContract';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 
@@ -38,7 +42,9 @@ const windowSize = {
   WIDTH: 550,
 };
 
-const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow> => {
+type OnProxyPromptCreated = (webContentsId: number) => (() => void) | undefined;
+
+const showWindow = async (registry: ViewIdentityRegistry, onCreated?: OnProxyPromptCreated): Promise<BrowserWindow> => {
   let proxyPromptWindow: BrowserWindow | undefined;
 
   if (!proxyPromptWindow) {
@@ -68,9 +74,9 @@ const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow
       allowedOrigin: new URL(promptHtmlPath).origin,
       allowedUrl: promptHtmlPath,
       capabilities: [
-        EVENT_TYPE.PROXY_PROMPT.LOCALE_VALUES,
-        EVENT_TYPE.PROXY_PROMPT.SUBMITTED,
-        EVENT_TYPE.PROXY_PROMPT.CANCELED,
+        PROXY_PROMPT_LOCALE_READ_CAPABILITY,
+        PROXY_PROMPT_SUBMIT_CAPABILITY,
+        PROXY_PROMPT_CANCEL_CAPABILITY,
       ],
       partition: 'proxy-prompt-window',
       session: proxyPromptWindow.webContents.session,
@@ -91,18 +97,11 @@ const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow
       callback({redirectURL: promptHtmlPath});
     });
 
-    ipcMain.on(EVENT_TYPE.PROXY_PROMPT.LOCALE_VALUES, (event, labels: locale.i18nLanguageIdentifier[]) => {
-      if (proxyPromptWindow) {
-        const isExpected = event.sender.id === proxyPromptWindow.webContents.id;
-        if (isExpected) {
-          const resultLabels: Record<string, string> = {};
-          labels.forEach(label => (resultLabels[label] = locale.getText(label)));
-          event.reply(EVENT_TYPE.PROXY_PROMPT.LOCALE_RENDER, resultLabels);
-        }
-      }
+    const onClosed = onCreated?.(proxyPromptWindow.webContents.id);
+    proxyPromptWindow.on('closed', () => {
+      onClosed?.();
+      proxyPromptWindow = undefined;
     });
-
-    proxyPromptWindow.on('closed', () => (proxyPromptWindow = undefined));
 
     await proxyPromptWindow.loadURL(promptHtmlPath);
 

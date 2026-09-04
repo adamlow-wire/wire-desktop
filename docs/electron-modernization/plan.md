@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.2
+revision: 1.5.3
 status: draft
 updated: 2026-09-03
 owners:
@@ -357,7 +357,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
   - Payload size and rate limits exist where abuse could consume material resources.
-- Evidence: [PRs #14–29](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated runtime info, safe storage, managed configuration, picture saving, notification activation, webapp-loaded signaling, badge count, account deletion, wrapper reload/relaunch, Open Graph, download location, desktop-source enumeration, deep-link submission, and account-owned SSO controls. Every merged slice passed focused deny-path tests, changed-code coverage, required CI, and all-platform packaging; authenticated E2E follows DEC-008's behavior-change/checkpoint cadence. [PR #30](https://github.com/adamlow-wire/wire-desktop/pull/30) adds fixed, bounded About-locale and combined webapp-version contracts; hosted validation is pending. Per-slice results are retained in `status.md`; the authoritative remaining operations are in `ipc-inventory.md`. Remaining SEC-003 work is grouped into proxy-prompt control and explicit disposition of dormant privileged listeners.
+- Evidence: [PRs #14–30](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated runtime info, safe storage, managed configuration, picture saving, notification activation, webapp-loaded signaling, badge count, account deletion, wrapper reload/relaunch, Open Graph, download location, desktop-source enumeration, deep-link submission, account-owned SSO controls, and About locale/version exchange. Every merged slice passed focused deny-path tests, changed-code coverage, required CI, and all-platform packaging; authenticated E2E follows DEC-008's behavior-change/checkpoint cadence. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds fixed prompt-only locale, submit, and cancel contracts plus exact active-prompt correlation; hosted validation is pending. Per-slice results are retained in `status.md`; the authoritative remaining SEC-003 operation is explicit disposition of dormant privileged listeners followed by an inventory audit.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -695,7 +695,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Managed configuration is read through an authorized, immutable contract.
   - Enforced Windows download paths are normalized and cannot traverse outside the approved base or select device/UNC targets.
   - Windows, macOS, and Linux managed-config backends have representative tests.
-- Evidence: TBD
+- Evidence: PR #16 provides authorized immutable managed-configuration reads and PR #25 provides bounded enforced-download-location updates. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds sensitivity-proven exact-prompt authorization, bounded credential handling, one-shot submit/cancel coordination, retry semantics, challenged-session proxy application, and cancellation reload behavior; hosted validation is pending. Certificate policy, download-path containment, platform backend coverage, and packaged enterprise proxy/configuration evidence remain open.
 
 #### CAP-006 — Migrate deep links and single-instance behavior
 
@@ -873,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.3 | 2026-09-03 | Codex | Recorded green About-window validation and the sensitivity-proven exact-prompt proxy credential/cancellation boundary while retaining packaged enterprise network evidence under CAP-005 | SEC-003, CAP-005, DCP-011, INV-002, INV-003, INV-004, INV-010 |
 | 1.5.2 | 2026-09-03 | Codex | Recorded green SSO control validation and the sensitivity-proven, bounded About locale/version exchange while retaining selected-account isolation under CAP-001 | SEC-003, CAP-001, INV-002, INV-003, INV-010 |
 | 1.5.1 | 2026-09-03 | Codex | Recorded sensitivity-proven, account-owned SSO window close/focus contracts while retaining the broader SSO security targets under CAP-002 | SEC-003, CAP-002, DCP-003, INV-002, INV-003, INV-004, INV-010 |
 | 1.5.0 | 2026-09-03 | Codex | Recorded merged deep-link IPC evidence and reorganized remaining M3 work into five coherent execution checkpoints without changing any milestone acceptance criterion | SEC-003, SEC-004, SEC-005, SEC-006, SEC-007, SEC-008, SEC-009, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002, CAP-005, CAP-006, DEC-008 |
