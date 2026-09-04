@@ -40,6 +40,7 @@ import ru from './ru-RU.json';
 import si from './si-LK.json';
 import sk from './sk-SK.json';
 import sl from './sl-SI.json';
+import {resolveSystemLocale} from './systemLocale';
 import tr from './tr-TR.json';
 import uk from './uk-UA.json';
 import zh from './zh-CN.json';
@@ -60,10 +61,11 @@ const parseLocale = (locale: string): SupportedI18nLanguage => {
 };
 
 const getSystemLocale = (): SupportedI18nLanguage => {
-  const systemLocale = Electron.app?.getLocale() ?? readRendererLocale();
-  if (!systemLocale) {
-    throw new Error('Electron system locale is unavailable.');
-  }
+  const systemLocale = resolveSystemLocale(
+    Electron.app?.getLocale(),
+    readRendererLocale(),
+    Intl.DateTimeFormat().resolvedOptions().locale,
+  );
   return parseLocale(systemLocale.substring(0, 2));
 };
 

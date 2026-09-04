@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.5
+revision: 1.5.6
 status: draft
 updated: 2026-09-04
 owners:
@@ -370,7 +370,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - `@electron/remote` is absent from production dependencies and source.
   - No `remoteMain.initialize` or `remoteMain.enable` remains.
   - Theme and context-menu behavior pass their capability tests.
-- Evidence: The current branch characterizes context-menu selection and moves native menu construction, edit commands, spelling replacement, and theme observation into the main process. Immutable encoded locale/user-data bootstrap values replace renderer `remote.app` reads; an application-shell-only, payload-free, rate-limited contract replaces the automated-SSO warning dialog. `@electron/remote`, `remoteMain.initialize`, and `remoteMain.enable` are absent from production source, dependencies, and the lockfile. The clean local suite passes with Jest 19/19 suites and 63/63 tests, Electron main 313 passing plus 3 owned CAP-002 targets pending, renderer 4/4, build tools 35/35, and 118/146 changed statements (80.82%). Context action, theme update, runtime-argument decoding, and SSO payload-denial assertions were sensitivity-proven; hosted validation is pending.
+- Evidence: The current branch characterizes context-menu selection and moves native menu construction, edit commands, spelling replacement, and theme observation into the main process. Immutable encoded locale/user-data bootstrap values replace renderer `remote.app` reads; an application-shell-only, payload-free, rate-limited contract replaces the automated-SSO warning dialog. `@electron/remote`, `remoteMain.initialize`, and `remoteMain.enable` are absent from production source, dependencies, and the lockfile. The clean local suite passes with Jest 19/19 suites and 63/63 tests, Electron main 315 passing plus 3 owned CAP-002 targets pending, renderer 4/4, build tools 35/35, and 116/143 changed statements (81.12%). Context action, theme update, runtime-argument decoding, SSO payload-denial, and startup-locale assertions were sensitivity-proven. Initial hosted Linux/macOS package smoke exposed an unavailable pre-ready Electron locale; a deterministic platform-locale fallback now has a regression test, and the exact local Electron `--version` path exits successfully. Hosted revalidation is pending.
 
 #### SEC-005 — Replace preloads with isolated bridges
 
@@ -873,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.6 | 2026-09-04 | Codex | Recorded and fixed the pre-ready locale regression exposed by SEC-004 package smoke validation | SEC-004, DCP-003 |
 | 1.5.5 | 2026-09-04 | Codex | Closed SEC-003 after green PR #32 and recorded the sensitivity-proven SEC-004 removal of all production `@electron/remote` access pending hosted validation | SEC-003, SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |
 | 1.5.4 | 2026-09-04 | Codex | Recorded green proxy-prompt E2E and the final SEC-003 inventory audit; replaced the internal About event with a direct main-owned call and removed the unproduced updater listener | SEC-003, CAP-005, INV-002, INV-003, INV-010 |
 | 1.5.3 | 2026-09-03 | Codex | Recorded green About-window validation and the sensitivity-proven exact-prompt proxy credential/cancellation boundary while retaining packaged enterprise network evidence under CAP-005 | SEC-003, CAP-005, DCP-011, INV-002, INV-003, INV-004, INV-010 |
