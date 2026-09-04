@@ -77,6 +77,7 @@ import {getLogDirectory, getMainProcessLogPath, getWebViewLogPath} from './loggi
 import {initializeDesktopLogLifecycle} from './logging/logStartup';
 import {getManagedConfig} from './managed/ManagedConfig';
 import {attachAccountContextMenu} from './menu/AccountContextMenu';
+import {attachAccountWebContentsTheme} from './menu/AccountTheme';
 import {createDeveloperMenu, openDevTools} from './menu/developer';
 import * as systemMenu from './menu/system';
 import {TrayHandler} from './menu/TrayHandler';
@@ -741,6 +742,7 @@ class ElectronWrapperInit {
         }
         case 'webview': {
           attachAccountContextMenu(contents, main);
+          attachAccountWebContentsTheme(contents);
           const registerAccountIdentity = (url: string): void => {
             if (viewIdentityRegistry.has(contents.id)) {
               return;
