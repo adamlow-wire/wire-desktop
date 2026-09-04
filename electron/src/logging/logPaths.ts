@@ -21,9 +21,8 @@ import * as Electron from 'electron';
 
 import * as path from 'path';
 
+import {readRendererUserDataPath} from '../runtime/rendererRuntimeArguments';
 import {config} from '../settings/config';
-
-const app = Electron.app || require('@electron/remote').app;
 
 export const LOG_DIRECTORY_NAME = 'logs';
 export const MAIN_PROCESS_LOG_FILE_NAME = 'electron.log';
@@ -59,7 +58,11 @@ function getDailyLogDirectory(parameters: DailyLogDirectoryParameters): string {
 }
 
 export function getLogDirectory(): string {
-  return path.join(app.getPath('userData'), LOG_DIRECTORY_NAME);
+  const userDataPath = Electron.app?.getPath('userData') ?? readRendererUserDataPath();
+  if (!userDataPath) {
+    throw new Error('Electron user-data path is unavailable.');
+  }
+  return path.join(userDataPath, LOG_DIRECTORY_NAME);
 }
 
 export function getMainProcessLogPath(parameters: MainProcessLogPathParameters): string {

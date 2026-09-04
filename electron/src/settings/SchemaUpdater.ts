@@ -25,12 +25,17 @@ import * as path from 'path';
 import {SettingsType} from './SettingsType';
 
 import {getLogger} from '../logging/getLogger';
-
-const app = Electron.app || require('@electron/remote').app;
+import {readRendererUserDataPath} from '../runtime/rendererRuntimeArguments';
 
 const logger = getLogger(path.basename(__filename));
-const defaultPathV0 = path.join(app.getPath('userData'), 'init.json');
-const defaultPathV1 = path.join(app.getPath('userData'), 'config/init.json');
+
+const getDefaultConfigPaths = (): readonly [string, string] => {
+  const userDataPath = Electron.app?.getPath('userData') ?? readRendererUserDataPath();
+  if (!userDataPath) {
+    throw new Error('Electron user-data path is unavailable.');
+  }
+  return [path.join(userDataPath, 'init.json'), path.join(userDataPath, 'config/init.json')];
+};
 
 export class SchemaUpdater {
   static SCHEMATA: Record<string, any> = {
@@ -39,7 +44,12 @@ export class SchemaUpdater {
     },
   };
 
-  static updateToVersion1(configFileV0 = defaultPathV0, configFileV1 = defaultPathV1): string {
+  static updateToVersion1(configFileV0?: string, configFileV1?: string): string {
+    if (!configFileV0 || !configFileV1) {
+      const defaults = getDefaultConfigPaths();
+      configFileV0 ??= defaults[0];
+      configFileV1 ??= defaults[1];
+    }
     const config = SchemaUpdater.SCHEMATA.VERSION_1;
 
     if (fs.existsSync(configFileV0)) {

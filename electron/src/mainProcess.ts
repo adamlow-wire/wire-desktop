@@ -85,6 +85,7 @@ import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUser
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
 import {OriginValidator} from './runtime/OriginValidator';
+import {createRendererRuntimeArguments} from './runtime/rendererRuntimeArguments';
 import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
@@ -121,6 +122,8 @@ import * as WindowUtil from './window/WindowUtil';
 const MAIN_PROCESS_LOGGER_NAME = 'main.js';
 const LOG_CLEANUP_INTERVAL_MILLISECONDS = 60 * 60 * 1_000;
 const logger = getLogger(MAIN_PROCESS_LOGGER_NAME);
+const getRendererRuntimeArguments = (): string[] =>
+  createRendererRuntimeArguments({locale: app.getLocale(), userDataPath: app.getPath('userData')});
 type WallClockModule = {
   readonly createDesktopWallClock: () => WallClock;
 };
@@ -370,6 +373,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     show: false,
     title: config.name,
     webPreferences: {
+      additionalArguments: getRendererRuntimeArguments(),
       backgroundThrottling: false,
       contextIsolation: false,
       nodeIntegration: false,
@@ -729,6 +733,7 @@ class ElectronWrapperInit {
             params.autosize = 'false';
             params.contextIsolation = 'true';
             params.plugins = 'false';
+            webPreferences.additionalArguments = getRendererRuntimeArguments();
             webPreferences.allowRunningInsecureContent = false;
             webPreferences.contextIsolation = false;
             webPreferences.experimentalFeatures = false;

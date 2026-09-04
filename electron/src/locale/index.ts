@@ -44,6 +44,7 @@ import tr from './tr-TR.json';
 import uk from './uk-UA.json';
 import zh from './zh-CN.json';
 
+import {readRendererLocale} from '../runtime/rendererRuntimeArguments';
 import {config} from '../settings/config';
 import {settings} from '../settings/ConfigurationPersistence';
 import {SettingsType} from '../settings/SettingsType';
@@ -53,14 +54,18 @@ export type i18nStrings = Record<i18nLanguageIdentifier, string>;
 export type SupportedI18nLanguage = keyof typeof SUPPORTED_LANGUAGES;
 export type SupportedI18nLanguageObject = Record<SupportedI18nLanguage, i18nStrings>;
 
-const app = Electron.app || require('@electron/remote').app;
-
 const parseLocale = (locale: string): SupportedI18nLanguage => {
   const languageKeys = Object.keys(SUPPORTED_LANGUAGES) as SupportedI18nLanguage[];
   return languageKeys.find(languageKey => languageKey === locale) || languageKeys[0];
 };
 
-const getSystemLocale = (): SupportedI18nLanguage => parseLocale(app.getLocale().substring(0, 2));
+const getSystemLocale = (): SupportedI18nLanguage => {
+  const systemLocale = Electron.app?.getLocale() ?? readRendererLocale();
+  if (!systemLocale) {
+    throw new Error('Electron system locale is unavailable.');
+  }
+  return parseLocale(systemLocale.substring(0, 2));
+};
 
 export const LANGUAGES: SupportedI18nLanguageObject = {
   cs,
