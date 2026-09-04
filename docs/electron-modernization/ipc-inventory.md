@@ -2,7 +2,7 @@
 
 This is SEC-003's completion checklist for renderer-to-main authority. A row is complete only when the channel has a fixed versioned contract, registered sender capability, origin/view policy, request and response schemas, failure policy, and positive plus deny-path tests.
 
-Main-to-renderer notifications and guest `sendToHost` events are outside this table; their exposed bridges and shell trust decisions remain owned by SEC-005 and SEC-007. `ABOUT.SHOW` and `WRAPPER.UPDATE` currently have no renderer producer and are classified as internal/dormant rather than silently counted as migrated.
+Main-to-renderer notifications and guest `sendToHost` events are outside this table; their exposed bridges and shell trust decisions remain owned by SEC-005 and SEC-007.
 
 | Operation | Current expected sender | Risk / side effect | State | Owning follow-up |
 | --- | --- | --- | --- | --- |
@@ -24,9 +24,9 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:sso-window:close:v1` / `wire-desktop:sso-window:focus:v1` | owning account | Controls the account-owned SSO window | merged in PR #29 | SEC-003, CAP-002 |
 | `wire-desktop:webapp-versions:report:v1` | account | Supplies combined About-window version state | merged in PR #30 | SEC-003 |
 | `wire-desktop:about:locale-read:v1` | About window | Bounded localized resource lookup | merged in PR #30 | SEC-003 |
-| `wire-desktop:proxy-prompt:locale-read:v1` | active proxy prompt | Bounded localized resource lookup | PR #31 validation pending | SEC-003, CAP-005 |
-| `wire-desktop:proxy-prompt:submit:v1` / `wire-desktop:proxy-prompt:cancel:v1` | exact active proxy prompt | Proxy credentials, challenged-session policy, and reload | PR #31 validation pending | SEC-003, CAP-005 |
-| `ABOUT.SHOW` | native menu only | Opens privileged auxiliary window | internal event; no renderer producer | retain internal or replace direct call |
-| `WRAPPER.UPDATE` | none found | Installs a downloaded update | dormant listener; no renderer producer | remove or constrain under PKG-002 |
+| `wire-desktop:proxy-prompt:locale-read:v1` | active proxy prompt | Bounded localized resource lookup | merged in PR #31 | SEC-003, CAP-005 |
+| `wire-desktop:proxy-prompt:submit:v1` / `wire-desktop:proxy-prompt:cancel:v1` | exact active proxy prompt | Proxy credentials, challenged-session policy, and reload | merged in PR #31 | SEC-003, CAP-005 |
+
+The final production search found no additional privileged renderer-to-main listener. The native About menu now calls its main-owned window boundary directly, and the unproduced `WRAPPER.UPDATE` listener was removed; normal Squirrel update initialization remains unchanged. These dispositions prevent internal or dormant event names from becoming undocumented renderer authority later.
 
 When a migration changes a row, update this file in the same PR. Search evidence must include all production `ipcMain.on`, `ipcMain.once`, and `ipcMain.handle` registrations plus contract binders so wrapper helpers cannot hide an endpoint.

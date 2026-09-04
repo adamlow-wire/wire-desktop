@@ -19,7 +19,7 @@
 
 import type {WallClock} from '@enormora/wall-clock/wall-clock';
 import autoLaunch from 'auto-launch';
-import {dialog, globalShortcut, ipcMain, Menu, MenuItemConstructorOptions} from 'electron';
+import {dialog, globalShortcut, Menu, MenuItemConstructorOptions} from 'electron';
 
 import * as path from 'path';
 
@@ -70,7 +70,6 @@ const localeTemplate: MenuItemConstructorOptions = {
 };
 
 const aboutTemplate: MenuItemConstructorOptions = {
-  click: () => ipcMain.emit(EVENT_TYPE.ABOUT.SHOW),
   label: locale.getText('menuAbout'),
 };
 
@@ -407,7 +406,8 @@ const changeLocale = async (language: locale.SupportedI18nLanguage): Promise<voi
   await showRestartMessageBox();
 };
 
-export function createMenu(isFullScreen: boolean, wallClock: WallClock): Menu {
+export function createMenu(isFullScreen: boolean, wallClock: WallClock, showAboutWindow: () => void): Menu {
+  aboutTemplate.click = showAboutWindow;
   const helpTemplate = createHelpTemplate(wallClock);
   const menuTemplate = [conversationTemplate, editTemplate, windowTemplate, helpTemplate];
 

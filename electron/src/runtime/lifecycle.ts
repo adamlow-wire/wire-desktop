@@ -17,7 +17,7 @@
  *
  */
 
-import {app, session, ipcMain, WebContents} from 'electron';
+import {app, session, WebContents} from 'electron';
 import {Maybe} from 'true-myth';
 
 import * as path from 'path';
@@ -26,7 +26,6 @@ import {ValidationUtil} from '@wireapp/commons';
 
 import * as EnvironmentUtil from './EnvironmentUtil';
 
-import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 import {settings} from '../settings/ConfigurationPersistence';
 import * as Squirrel from '../update/squirrel';
@@ -42,8 +41,6 @@ export async function initSquirrelListener(): Promise<void> {
   if (EnvironmentUtil.platform.IS_WINDOWS && Squirrel.isSquirrelInstallation()) {
     logger.info('Checking for Windows update ...');
     await Squirrel.handleSquirrelArgs();
-
-    ipcMain.on(EVENT_TYPE.WRAPPER.UPDATE, () => Squirrel.installUpdate());
   }
 }
 
