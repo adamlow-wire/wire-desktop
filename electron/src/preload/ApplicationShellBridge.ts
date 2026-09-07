@@ -24,15 +24,11 @@ import {WebAppEvents} from '@wireapp/webapp-events';
 import {EVENT_TYPE} from '../lib/eventType';
 import type {i18nStrings, SupportedI18nLanguage} from '../locale';
 
-interface AccountWebview {
-  getWebContentsId(): number;
-  send(channel: string, ...args: unknown[]): Promise<void>;
-}
-
 interface ApplicationShellBridgeDependencies {
   deleteAccountData(viewInstanceId: number, accountId: string, sessionId?: string): Promise<void>;
-  getWebviewById(accountId: string): AccountWebview | null;
+  getWebContentsId(accountId: string): number | undefined;
   log(message: string): void;
+  sendToAccount(accountId: string, channel: string, ...args: unknown[]): void | Promise<void>;
   submitDeepLink(url: string): void;
   updateBadgeCount(count: number, ignoreFlash: boolean): void;
 }
@@ -67,23 +63,21 @@ export const createApplicationShellBridge = (
       key: string,
       domain?: string,
     ): Promise<void> => {
-      const accountWebview = dependencies.getWebviewById(accountId);
       dependencies.log(`Sending conversation join data to webview for account "${truncate(accountId, {length: 5})}".`);
-      await accountWebview?.send(WebAppEvents.CONVERSATION.JOIN, {code, key, domain});
+      await dependencies.sendToAccount(accountId, WebAppEvents.CONVERSATION.JOIN, {code, key, domain});
     },
     sendDeleteAccount: async (accountId: string, sessionId?: string): Promise<void> => {
-      const accountWebview = dependencies.getWebviewById(accountId);
-      if (!accountWebview) {
+      const webContentsId = dependencies.getWebContentsId(accountId);
+      if (typeof webContentsId === 'undefined') {
         throw new Error(`Webview for account "${truncate(accountId, {length: 5})}" does not exist`);
       }
 
       dependencies.log(`Processing deletion of "${truncate(accountId, {length: 5})}"`);
-      await dependencies.deleteAccountData(accountWebview.getWebContentsId(), accountId, sessionId);
+      await dependencies.deleteAccountData(webContentsId, accountId, sessionId);
     },
     sendLogoutAccount: async (accountId: string): Promise<void> => {
-      const accountWebview = dependencies.getWebviewById(accountId);
       dependencies.log(`Sending logout signal to webview for account "${truncate(accountId, {length: 5})}".`);
-      await accountWebview?.send(EVENT_TYPE.ACTION.SIGN_OUT);
+      await dependencies.sendToAccount(accountId, EVENT_TYPE.ACTION.SIGN_OUT);
     },
     submitDeepLink: (url: string): void => {
       dependencies.submitDeepLink(url);

@@ -24,6 +24,7 @@ import * as path from 'path';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {createApplicationShellBridge, exposeApplicationShellBridge} from './ApplicationShellBridge';
+import {createApplicationShellMainWorld} from './ApplicationShellMainWorld';
 
 import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
@@ -38,62 +39,41 @@ const logger = getLogger(path.basename(__filename));
 
 webFrame.setVisualZoomLevelLimits(1, 1);
 
-const getSelectedWebview = (): Electron.WebviewTag | null =>
-  document.querySelector<Electron.WebviewTag>('.Webview:not(.hide)');
-const getWebviewById = (id: string): Electron.WebviewTag | null =>
-  document.querySelector<Electron.WebviewTag>(`.Webview[data-accountid="${id}"]`);
+const mainWorld = createApplicationShellMainWorld(contextBridge);
 
 const subscribeToMainProcessEvents = (): void => {
   ipcRenderer.on(EVENT_TYPE.ACCOUNT.SSO_LOGIN, (_event, code: string) => new AutomatedSingleSignOn().start(code));
   ipcRenderer.on(
     EVENT_TYPE.ACTION.JOIN_CONVERSATION,
-    async (_event, {code, key, domain}: {code: string; key: string; domain?: string}) => {
-      const selectedWebview = getSelectedWebview();
-      if (selectedWebview) {
-        await selectedWebview.send(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code, key, domain});
-      }
+    (_event, {code, key, domain}: {code: string; key: string; domain?: string}) => {
+      mainWorld.sendToSelected(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code, key, domain});
     },
   );
 
-  ipcRenderer.on(EVENT_TYPE.UI.SYSTEM_MENU, async (_event, action: string) => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(action);
-    }
+  ipcRenderer.on(EVENT_TYPE.UI.SYSTEM_MENU, (_event, action: string) => {
+    mainWorld.sendToSelected(action);
   });
 
-  ipcRenderer.on(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, async () => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
-    }
+  ipcRenderer.on(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, () => {
+    mainWorld.sendToSelected(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
   });
 
-  ipcRenderer.on(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED, async () => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
-    }
+  ipcRenderer.on(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED, () => {
+    mainWorld.sendToSelected(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
   });
 
-  ipcRenderer.on(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, async (_event, hash: string) => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, hash);
-    }
+  ipcRenderer.on(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, (_event, hash: string) => {
+    mainWorld.sendToSelected(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, hash);
   });
 
-  ipcRenderer.on(EVENT_TYPE.EDIT.COPY, () => getSelectedWebview()?.copy());
-  ipcRenderer.on(EVENT_TYPE.EDIT.CUT, () => getSelectedWebview()?.cut());
-  ipcRenderer.on(EVENT_TYPE.EDIT.PASTE, () => getSelectedWebview()?.paste());
-  ipcRenderer.on(EVENT_TYPE.EDIT.REDO, () => getSelectedWebview()?.redo());
-  ipcRenderer.on(EVENT_TYPE.EDIT.SELECT_ALL, () => getSelectedWebview()?.selectAll());
-  ipcRenderer.on(EVENT_TYPE.EDIT.UNDO, () => getSelectedWebview()?.undo());
+  ipcRenderer.on(EVENT_TYPE.EDIT.COPY, () => mainWorld.operateSelected('copy'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.CUT, () => mainWorld.operateSelected('cut'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.PASTE, () => mainWorld.operateSelected('paste'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.REDO, () => mainWorld.operateSelected('redo'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.SELECT_ALL, () => mainWorld.operateSelected('selectAll'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.UNDO, () => mainWorld.operateSelected('undo'));
 
-  ipcRenderer.on(EVENT_TYPE.WRAPPER.RELOAD, (): void => {
-    const webviews = document.querySelectorAll<Electron.WebviewTag>('webview');
-    webviews.forEach(webview => webview.reload());
-  });
+  ipcRenderer.on(EVENT_TYPE.WRAPPER.RELOAD, () => mainWorld.reloadAll());
 
   ipcRenderer.on(EVENT_TYPE.ACTION.SWITCH_ACCOUNT, (event, accountIndex: number) => {
     window.dispatchEvent(new CustomEvent(EVENT_TYPE.ACTION.SWITCH_ACCOUNT, {detail: {accountIndex}}));
@@ -109,8 +89,9 @@ const initializeApplicationShellBridge = (): void => {
   const applicationShellBridge = createApplicationShellBridge({
     deleteAccountData: (viewInstanceId, accountId, sessionId) =>
       requestAccountDataDeletion(ipcRenderer, viewInstanceId, accountId, sessionId),
-    getWebviewById,
+    getWebContentsId: mainWorld.getWebContentsId,
     log: message => logger.log(message),
+    sendToAccount: mainWorld.sendToAccount,
     submitDeepLink: url => void requestDeepLinkSubmission(ipcRenderer, logger, url),
     updateBadgeCount: (count, ignoreFlash) => void requestBadgeCountUpdate(ipcRenderer, logger, count, ignoreFlash),
   });
@@ -132,9 +113,5 @@ initializeApplicationShellBridge();
 subscribeToMainProcessEvents();
 
 window.addEventListener('focus', () => {
-  const selectedWebview = getSelectedWebview();
-  if (selectedWebview) {
-    selectedWebview.blur();
-    selectedWebview.focus();
-  }
+  mainWorld.focusSelected();
 });

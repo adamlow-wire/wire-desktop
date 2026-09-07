@@ -31,8 +31,9 @@ describe('application shell bridge', () => {
     const exposed = new Map<string, unknown>();
     const bridge = createApplicationShellBridge({
       deleteAccountData: async () => undefined,
-      getWebviewById: () => null,
+      getWebContentsId: () => undefined,
       log: () => undefined,
+      sendToAccount: () => undefined,
       submitDeepLink: () => undefined,
       updateBadgeCount: () => undefined,
     });
@@ -62,18 +63,15 @@ describe('application shell bridge', () => {
 
   it('[characterization][SEC-005] preserves exact account targeting and shell forwarding', async () => {
     const calls: Array<{args: unknown[]; name: string}> = [];
-    const accountWebview = {
-      getWebContentsId: () => 41,
-      send: async (...args: unknown[]) => {
-        calls.push({args, name: 'send'});
-      },
-    };
     const bridge = createApplicationShellBridge({
       deleteAccountData: async (...args) => {
         calls.push({args, name: 'delete'});
       },
-      getWebviewById: accountId => (accountId === 'account-a' ? accountWebview : null),
+      getWebContentsId: accountId => (accountId === 'account-a' ? 41 : undefined),
       log: message => calls.push({args: [message], name: 'log'}),
+      sendToAccount: async (accountId, ...args) => {
+        calls.push({args: [accountId, ...args], name: 'send'});
+      },
       submitDeepLink: url => calls.push({args: [url], name: 'deep-link'}),
       updateBadgeCount: (count, ignoreFlash) => calls.push({args: [count, ignoreFlash], name: 'badge'}),
     });
@@ -90,9 +88,9 @@ describe('application shell bridge', () => {
         {args: [3, true], name: 'badge'},
         {args: ['wire://conversation/1'], name: 'deep-link'},
         {args: [41, 'account-a', 'partition-a'], name: 'delete'},
-        {args: [EVENT_TYPE.ACTION.SIGN_OUT], name: 'send'},
+        {args: ['account-a', EVENT_TYPE.ACTION.SIGN_OUT], name: 'send'},
         {
-          args: [WebAppEvents.CONVERSATION.JOIN, {code: 'code', domain: 'domain.example', key: 'key'}],
+          args: ['account-a', WebAppEvents.CONVERSATION.JOIN, {code: 'code', domain: 'domain.example', key: 'key'}],
           name: 'send',
         },
       ],
