@@ -741,7 +741,7 @@ class ElectronWrapperInit {
             params.plugins = 'false';
             webPreferences.additionalArguments = getRendererRuntimeArguments();
             webPreferences.allowRunningInsecureContent = false;
-            webPreferences.contextIsolation = false;
+            webPreferences.contextIsolation = true;
             webPreferences.experimentalFeatures = false;
             webPreferences.nodeIntegration = false;
             webPreferences.preload = PRELOAD_RENDERER_JS;

@@ -58,6 +58,7 @@ export declare global {
     sendDeleteAccount(accountId: string, sessionID?: string): Promise<void>;
     sendLogoutAccount(accountId: string): Promise<void>;
     submitDeepLink(url: string): void;
+    wireDesktopBridge: import('../preload/WebappBridge').WebappBridge;
     wire: any;
     z: {
       event: {

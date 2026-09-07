@@ -17,7 +17,7 @@
  *
  */
 
-import {ipcRenderer, webFrame} from 'electron';
+import {contextBridge, ipcRenderer, webFrame} from 'electron';
 import type {Data as OpenGraphResult} from 'open-graph';
 
 import * as path from 'path';
@@ -27,6 +27,7 @@ import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {ACCOUNT_THEME_CHANNEL} from './AccountThemeContract';
 import {createAccountThemeReceiver} from './AccountThemeReceiver';
+import {createWebappBridge, exposeWebappBridge} from './WebappBridge';
 
 import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import {EVENT_TYPE} from '../lib/eventType';
@@ -276,41 +277,24 @@ function reportWebappVersion(): void {
   );
 }
 
-// https://github.com/electron/electron/issues/2984
-const _clearImmediate = clearImmediate;
-const _setImmediate = setImmediate;
+// Read synchronously so the value is present when the webapp evaluates its desktop configuration.
+// The main-process handler returns a pre-read, memoized value, so the blocking call is negligible.
+let managedConfig = {applockOverride: false};
+try {
+  managedConfig = ipcRenderer.sendSync(MANAGED_CONFIG_CHANNEL) ?? {applockOverride: false};
+} catch (error) {
+  logger.warn('Failed to read managed config from the main process, treating the device as unmanaged:', error);
+}
 
-process.once('loaded', () => {
-  global.clearImmediate = _clearImmediate;
-  /**
-   * @todo: This can be improved by polyfilling getDisplayMedia function
-   * Example: https://github.com/electron/electron/issues/16513#issuecomment-602070250
-   */
-  global.desktopCapturer = {
-    getDesktopSources: opts => requestDesktopSources(ipcRenderer, opts),
-  };
-  global.systemCrypto = {
-    decrypt: async (encrypted: Uint8Array): Promise<string> => {
-      return ipcRenderer.invoke(SAFE_STORAGE_DECRYPT_CHANNEL, encrypted);
-    },
-    encrypt: (value: string): Promise<Uint8Array> => {
-      return ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value);
-    },
-    version: 1,
-  };
-  global.environment = EnvironmentUtil;
-  // Read synchronously so the value is present at the exact point `desktopAppConfig` is assigned.
-  // The main-process handler returns a pre-read, memoized value, so the blocking call is negligible.
-  let managedConfig = {applockOverride: false};
-  try {
-    managedConfig = ipcRenderer.sendSync(MANAGED_CONFIG_CHANNEL) ?? {applockOverride: false};
-  } catch (error) {
-    logger.warn('Failed to read managed config from the main process, treating the device as unmanaged:', error);
-  }
-  global.desktopAppConfig = createDesktopAppConfig(EnvironmentUtil.app.DESKTOP_VERSION, managedConfig);
-  global.openGraphAsync = getOpenGraphDataViaChannel;
-  global.setImmediate = _setImmediate;
+const webappBridge = createWebappBridge({
+  decrypt: encrypted => ipcRenderer.invoke(SAFE_STORAGE_DECRYPT_CHANNEL, encrypted),
+  desktopAppConfig: createDesktopAppConfig(EnvironmentUtil.app.DESKTOP_VERSION, managedConfig),
+  encrypt: value => ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value),
+  environment: EnvironmentUtil,
+  getDesktopSources: options => requestDesktopSources(ipcRenderer, options),
+  getOpenGraphData: getOpenGraphDataViaChannel,
 });
+exposeWebappBridge(contextBridge, webappBridge);
 
 const registerEvents = (): Promise<void> => {
   return new Promise(resolve => {
