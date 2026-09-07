@@ -40,6 +40,15 @@ const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow
     },
   });
 
+const WEBAPP_FIXTURE = `data:text/html,<script>
+  window.amplify = {publish() {}, subscribe() {}, unsubscribe() {}};
+  window.wire = {};
+  window.z = {event: {}, lifecycle: {UPDATE_SOURCE: {DESKTOP: 'desktop'}}, util: {Environment: {
+    avsVersion() { return 'avs'; },
+    version() { return 'webapp'; }
+  }}};
+</script>`;
+
 describe('legacy preload compatibility surface', () => {
   const windows: BrowserWindow[] = [];
   const provideManagedConfig = (event: Electron.IpcMainEvent): void => {
@@ -103,14 +112,7 @@ describe('legacy preload compatibility surface', () => {
     this.timeout(10_000);
     const window = createWindow(preloadPath('preload-webview'), false);
     windows.push(window);
-    await window.loadURL(`data:text/html,<script>
-      window.amplify = {publish() {}, subscribe() {}, unsubscribe() {}};
-      window.wire = {};
-      window.z = {event: {}, lifecycle: {UPDATE_SOURCE: {DESKTOP: 'desktop'}}, util: {Environment: {
-        avsVersion() { return 'avs'; },
-        version() { return 'webapp'; }
-      }}};
-    </script>`);
+    await window.loadURL(WEBAPP_FIXTURE);
 
     const surface = await window.webContents.executeJavaScript(`({
       desktopAppConfigVersion: typeof window.desktopAppConfig.version,
@@ -133,5 +135,44 @@ describe('legacy preload compatibility surface', () => {
       systemCryptoVersion: 1,
       supportsWebViewRefresh: true,
     });
+  });
+
+  it('[security-target][INV-001][INV-002][SEC-005] preserves the webapp API through an isolated bridge', async function () {
+    this.timeout(10_000);
+    const window = createWindow(preloadPath('preload-webview'), true);
+    windows.push(window);
+    await window.loadURL(WEBAPP_FIXTURE);
+
+    const surface = await window.webContents.executeJavaScript(`({
+      bridgeVersion: window.wireDesktopBridge?.version,
+      desktopAppConfigVersion: typeof window.desktopAppConfig?.version,
+      desktopCapturer: typeof window.desktopCapturer?.getDesktopSources,
+      electron: typeof window.electron,
+      environment: typeof window.environment,
+      openGraphAsync: typeof window.openGraphAsync,
+      process: typeof window.process,
+      require: typeof window.require,
+      systemCryptoDecrypt: typeof window.systemCrypto?.decrypt,
+      systemCryptoEncrypt: typeof window.systemCrypto?.encrypt,
+      systemCryptoVersion: window.systemCrypto?.version
+    })`);
+
+    assert.deepStrictEqual(surface, {
+      bridgeVersion: 1,
+      desktopAppConfigVersion: 'string',
+      desktopCapturer: 'function',
+      electron: 'undefined',
+      environment: 'object',
+      openGraphAsync: 'function',
+      process: 'undefined',
+      require: 'undefined',
+      systemCryptoDecrypt: 'function',
+      systemCryptoEncrypt: 'function',
+      systemCryptoVersion: 1,
+    });
+    assert.strictEqual(
+      await window.webContents.executeJavaScript("Object.getOwnPropertyDescriptor(window, 'systemCrypto').writable"),
+      false,
+    );
   });
 });
