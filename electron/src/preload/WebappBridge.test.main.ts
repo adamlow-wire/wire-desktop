@@ -25,6 +25,22 @@ import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 
 describe('webapp bridge', () => {
   const calls: Array<{args: unknown[]; name: string}> = [];
+  const events = {
+    activateNotification: () => undefined,
+    changeEnvironment: () => undefined,
+    closeSsoWindow: () => undefined,
+    focusSsoWindow: () => undefined,
+    loaded: () => undefined,
+    reportVersions: () => undefined,
+    relaunch: () => undefined,
+    reload: () => undefined,
+    signedOut: () => undefined,
+    signOut: () => undefined,
+    teamInfo: () => undefined,
+    theme: () => undefined,
+    unreadCount: () => undefined,
+    updateDownloadPath: () => undefined,
+  };
   const bridge = createWebappBridge({
     decrypt: async encrypted => {
       calls.push({args: [encrypted], name: 'decrypt'});
@@ -36,6 +52,7 @@ describe('webapp bridge', () => {
       return new Uint8Array([1]);
     },
     environment: EnvironmentUtil,
+    events,
     getDesktopSources: async options => {
       calls.push({args: [options], name: 'sources'});
       return [];

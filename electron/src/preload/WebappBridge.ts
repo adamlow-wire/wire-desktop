@@ -19,6 +19,8 @@
 
 import type {Data as OpenGraphResult} from 'open-graph';
 
+import type {WebappEventBridge} from './WebappEventBridge';
+
 import type {DesktopAppConfig} from '../lib/desktopAppConfig';
 import type * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 
@@ -28,6 +30,7 @@ export interface WebappBridgeDependencies {
   decrypt(encrypted: Uint8Array): Promise<string>;
   encrypt(value: string): Promise<Uint8Array>;
   environment: typeof EnvironmentUtil;
+  events: Readonly<WebappEventBridge>;
   getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
   getOpenGraphData(url: string): Promise<OpenGraphResult>;
   desktopAppConfig: DesktopAppConfig;
@@ -40,6 +43,7 @@ export interface WebappBridge {
     getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
   };
   readonly environment: typeof EnvironmentUtil;
+  readonly events: Readonly<WebappEventBridge>;
   readonly openGraphAsync: (url: string) => Promise<OpenGraphResult>;
   readonly systemCrypto: {
     decrypt(encrypted: Uint8Array): Promise<string>;
@@ -55,6 +59,7 @@ export const createWebappBridge = (dependencies: WebappBridgeDependencies): Read
     desktopAppConfig: Object.freeze(dependencies.desktopAppConfig),
     desktopCapturer: Object.freeze({getDesktopSources: dependencies.getDesktopSources}),
     environment: Object.freeze({...dependencies.environment}),
+    events: dependencies.events,
     openGraphAsync: dependencies.getOpenGraphData,
     systemCrypto: Object.freeze({decrypt: dependencies.decrypt, encrypt: dependencies.encrypt, version: 1 as const}),
     version: WEBAPP_BRIDGE_VERSION,
