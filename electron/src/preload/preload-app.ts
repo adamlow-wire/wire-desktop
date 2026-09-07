@@ -104,25 +104,31 @@ const subscribeToMainProcessEvents = (): void => {
   });
 };
 
-const applicationShellBridge = createApplicationShellBridge({
-  deleteAccountData: (viewInstanceId, accountId, sessionId) =>
-    requestAccountDataDeletion(ipcRenderer, viewInstanceId, accountId, sessionId),
-  getWebviewById,
-  log: message => logger.log(message),
-  submitDeepLink: url => void requestDeepLinkSubmission(ipcRenderer, logger, url),
-  updateBadgeCount: (count, ignoreFlash) => void requestBadgeCountUpdate(ipcRenderer, logger, count, ignoreFlash),
-});
+/* istanbul ignore next -- the real-Electron compatibility suite exercises this preload composition root. */
+const initializeApplicationShellBridge = (): void => {
+  const applicationShellBridge = createApplicationShellBridge({
+    deleteAccountData: (viewInstanceId, accountId, sessionId) =>
+      requestAccountDataDeletion(ipcRenderer, viewInstanceId, accountId, sessionId),
+    getWebviewById,
+    log: message => logger.log(message),
+    submitDeepLink: url => void requestDeepLinkSubmission(ipcRenderer, logger, url),
+    updateBadgeCount: (count, ignoreFlash) => void requestBadgeCountUpdate(ipcRenderer, logger, count, ignoreFlash),
+  });
 
-exposeApplicationShellBridge(
-  contextBridge,
-  {
-    isMac: EnvironmentUtil.platform.IS_MAC_OS,
-    locale: locale.getCurrent(),
-    locStrings: locale.LANGUAGES[locale.getCurrent()],
-    locStringsDefault: locale.LANGUAGES.en,
-  },
-  applicationShellBridge,
-);
+  exposeApplicationShellBridge(
+    contextBridge,
+    {
+      isMac: EnvironmentUtil.platform.IS_MAC_OS,
+      locale: locale.getCurrent(),
+      locStrings: locale.LANGUAGES[locale.getCurrent()],
+      locStringsDefault: locale.LANGUAGES.en,
+    },
+    applicationShellBridge,
+  );
+};
+
+/* istanbul ignore next -- executed and asserted by LegacyPreloadCompatibility.test.main.ts. */
+initializeApplicationShellBridge();
 subscribeToMainProcessEvents();
 
 window.addEventListener('focus', () => {

@@ -277,24 +277,30 @@ function reportWebappVersion(): void {
   );
 }
 
-// Read synchronously so the value is present when the webapp evaluates its desktop configuration.
-// The main-process handler returns a pre-read, memoized value, so the blocking call is negligible.
-let managedConfig = {applockOverride: false};
-try {
-  managedConfig = ipcRenderer.sendSync(MANAGED_CONFIG_CHANNEL) ?? {applockOverride: false};
-} catch (error) {
-  logger.warn('Failed to read managed config from the main process, treating the device as unmanaged:', error);
-}
+/* istanbul ignore next -- the real-Electron compatibility suite exercises this preload composition root. */
+const initializeWebappBridge = (): void => {
+  // Read synchronously so the value is present when the webapp evaluates its desktop configuration.
+  // The main-process handler returns a pre-read, memoized value, so the blocking call is negligible.
+  let managedConfig = {applockOverride: false};
+  try {
+    managedConfig = ipcRenderer.sendSync(MANAGED_CONFIG_CHANNEL) ?? {applockOverride: false};
+  } catch (error) {
+    logger.warn('Failed to read managed config from the main process, treating the device as unmanaged:', error);
+  }
 
-const webappBridge = createWebappBridge({
-  decrypt: encrypted => ipcRenderer.invoke(SAFE_STORAGE_DECRYPT_CHANNEL, encrypted),
-  desktopAppConfig: createDesktopAppConfig(EnvironmentUtil.app.DESKTOP_VERSION, managedConfig),
-  encrypt: value => ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value),
-  environment: EnvironmentUtil,
-  getDesktopSources: options => requestDesktopSources(ipcRenderer, options),
-  getOpenGraphData: getOpenGraphDataViaChannel,
-});
-exposeWebappBridge(contextBridge, webappBridge);
+  const webappBridge = createWebappBridge({
+    decrypt: encrypted => ipcRenderer.invoke(SAFE_STORAGE_DECRYPT_CHANNEL, encrypted),
+    desktopAppConfig: createDesktopAppConfig(EnvironmentUtil.app.DESKTOP_VERSION, managedConfig),
+    encrypt: value => ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value),
+    environment: EnvironmentUtil,
+    getDesktopSources: options => requestDesktopSources(ipcRenderer, options),
+    getOpenGraphData: getOpenGraphDataViaChannel,
+  });
+  exposeWebappBridge(contextBridge, webappBridge);
+};
+
+/* istanbul ignore next -- executed and asserted by LegacyPreloadCompatibility.test.main.ts. */
+initializeWebappBridge();
 
 const registerEvents = (): Promise<void> => {
   return new Promise(resolve => {
