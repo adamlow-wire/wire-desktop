@@ -17,6 +17,8 @@
  *
  */
 
+/* istanbul ignore file -- this preload runs in a separate renderer; LegacyPreloadCompatibility covers its wiring. */
+
 import {contextBridge, ipcRenderer, webFrame} from 'electron';
 import type {Data as OpenGraphResult} from 'open-graph';
 
