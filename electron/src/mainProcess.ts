@@ -80,6 +80,7 @@ import {attachAccountWebContentsTheme} from './menu/AccountTheme';
 import {createDeveloperMenu, openDevTools} from './menu/developer';
 import * as systemMenu from './menu/system';
 import {TrayHandler} from './menu/TrayHandler';
+import {configureLegacyWebviewPreferences} from './preload/LegacyWebviewPreferences';
 import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUserData';
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
@@ -383,7 +384,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     webPreferences: {
       additionalArguments: getRendererRuntimeArguments(),
       backgroundThrottling: false,
-      contextIsolation: false,
+      contextIsolation: true,
       nodeIntegration: false,
       preload: PRELOAD_JS,
       sandbox: false,
@@ -735,19 +736,11 @@ class ElectronWrapperInit {
       switch (contents.getType()) {
         case 'window': {
           contents.on('will-attach-webview', (_event, webPreferences, params) => {
-            // Use secure defaults
-            params.autosize = 'false';
-            params.contextIsolation = 'true';
-            params.plugins = 'false';
-            webPreferences.additionalArguments = getRendererRuntimeArguments();
-            webPreferences.allowRunningInsecureContent = false;
-            webPreferences.contextIsolation = false;
-            webPreferences.experimentalFeatures = false;
-            webPreferences.nodeIntegration = false;
-            webPreferences.preload = PRELOAD_RENDERER_JS;
-            webPreferences.spellcheck = enableSpellChecking;
-            webPreferences.webSecurity = true;
-            webPreferences.sandbox = false;
+            configureLegacyWebviewPreferences(webPreferences, params, {
+              additionalArguments: getRendererRuntimeArguments(),
+              preload: PRELOAD_RENDERER_JS,
+              spellcheck: enableSpellChecking,
+            });
           });
           break;
         }

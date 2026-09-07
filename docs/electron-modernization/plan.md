@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.7
+revision: 1.5.8
 status: draft
 updated: 2026-09-04
 owners:
@@ -235,7 +235,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### GOV-002 — Open early upstream architecture draft
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M2`
 - Dependencies: GOV-001, ARC-001
 - Scope: Open a non-mergeable draft PR or upstream design discussion once the architecture skeleton is demonstrable.
@@ -384,7 +384,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Preloads do not mutate shared `window`/`global` state outside reviewed bridge exposure.
   - Bridge values and callbacks do not leak Electron event objects or privileged closures.
   - Bridge compatibility with the Wire webapp is versioned and tested.
-- Evidence: TBD
+- Evidence: The current branch starts with real-Electron characterization of the legacy local-shell and remote-webapp compatibility surfaces. It locks the wrapper globals and the versioned `desktopCapturer`, `systemCrypto`, `environment`, `desktopAppConfig`, and `openGraphAsync` APIs before isolation changes. Temporarily removing `openGraphAsync` failed the intended compatibility assertion and was reverted before commit.
 
 #### SEC-006 — Enable renderer sandboxing everywhere
 
@@ -873,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.8 | 2026-09-04 | Codex | Began SEC-005 with sensitivity-proven real-Electron characterization of the local-shell and Wire webapp preload compatibility surfaces | SEC-005, INV-002 |
 | 1.5.7 | 2026-09-04 | Codex | Closed SEC-004 after the corrected remote-free runtime passed all-platform package smoke and authenticated Windows/macOS E2E | SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |
 | 1.5.6 | 2026-09-04 | Codex | Recorded and fixed the pre-ready locale regression exposed by SEC-004 package smoke validation | SEC-004, DCP-003 |
 | 1.5.5 | 2026-09-04 | Codex | Closed SEC-003 after green PR #32 and recorded the sensitivity-proven SEC-004 removal of all production `@electron/remote` access pending hosted validation | SEC-003, SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |

@@ -94,6 +94,7 @@ describe('auxiliary window identity', () => {
     const expectedUrl = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, 'html/about.html')).href;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('about-window'));
+    assert.strictEqual(getLastWebPreferences(window).contextIsolation, true);
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
     const identity = registry.authorize(
       {sender: window.webContents, senderFrame: window.webContents.mainFrame},
@@ -133,6 +134,7 @@ describe('auxiliary window identity', () => {
     ).href;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('proxy-prompt-window'));
+    assert.strictEqual(getLastWebPreferences(window).contextIsolation, true);
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
     const identity = registry.authorize(
       {sender: window.webContents, senderFrame: window.webContents.mainFrame},

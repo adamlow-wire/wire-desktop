@@ -17,12 +17,14 @@
  *
  */
 
-import {ipcRenderer, webFrame} from 'electron';
-import {truncate} from 'lodash';
+import {contextBridge, ipcRenderer, webFrame} from 'electron';
 
 import * as path from 'path';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
+
+import {createApplicationShellBridge, exposeApplicationShellBridge} from './ApplicationShellBridge';
+import {createApplicationShellMainWorld} from './ApplicationShellMainWorld';
 
 import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
@@ -37,68 +39,41 @@ const logger = getLogger(path.basename(__filename));
 
 webFrame.setVisualZoomLevelLimits(1, 1);
 
-window.locStrings = locale.LANGUAGES[locale.getCurrent()];
-window.locStringsDefault = locale.LANGUAGES.en;
-window.locale = locale.getCurrent();
-
-window.isMac = EnvironmentUtil.platform.IS_MAC_OS;
-
-const getSelectedWebview = (): Electron.WebviewTag | null =>
-  document.querySelector<Electron.WebviewTag>('.Webview:not(.hide)');
-const getWebviewById = (id: string): Electron.WebviewTag | null =>
-  document.querySelector<Electron.WebviewTag>(`.Webview[data-accountid="${id}"]`);
+const mainWorld = createApplicationShellMainWorld(contextBridge);
 
 const subscribeToMainProcessEvents = (): void => {
   ipcRenderer.on(EVENT_TYPE.ACCOUNT.SSO_LOGIN, (_event, code: string) => new AutomatedSingleSignOn().start(code));
   ipcRenderer.on(
     EVENT_TYPE.ACTION.JOIN_CONVERSATION,
-    async (_event, {code, key, domain}: {code: string; key: string; domain?: string}) => {
-      const selectedWebview = getSelectedWebview();
-      if (selectedWebview) {
-        await selectedWebview.send(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code, key, domain});
-      }
+    (_event, {code, key, domain}: {code: string; key: string; domain?: string}) => {
+      mainWorld.sendToSelected(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code, key, domain});
     },
   );
 
-  ipcRenderer.on(EVENT_TYPE.UI.SYSTEM_MENU, async (_event, action: string) => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(action);
-    }
+  ipcRenderer.on(EVENT_TYPE.UI.SYSTEM_MENU, (_event, action: string) => {
+    mainWorld.sendToSelected(action);
   });
 
-  ipcRenderer.on(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, async () => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
-    }
+  ipcRenderer.on(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, () => {
+    mainWorld.sendToSelected(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
   });
 
-  ipcRenderer.on(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED, async () => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
-    }
+  ipcRenderer.on(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED, () => {
+    mainWorld.sendToSelected(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
   });
 
-  ipcRenderer.on(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, async (_event, hash: string) => {
-    const selectedWebview = getSelectedWebview();
-    if (selectedWebview) {
-      await selectedWebview.send(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, hash);
-    }
+  ipcRenderer.on(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, (_event, hash: string) => {
+    mainWorld.sendToSelected(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, hash);
   });
 
-  ipcRenderer.on(EVENT_TYPE.EDIT.COPY, () => getSelectedWebview()?.copy());
-  ipcRenderer.on(EVENT_TYPE.EDIT.CUT, () => getSelectedWebview()?.cut());
-  ipcRenderer.on(EVENT_TYPE.EDIT.PASTE, () => getSelectedWebview()?.paste());
-  ipcRenderer.on(EVENT_TYPE.EDIT.REDO, () => getSelectedWebview()?.redo());
-  ipcRenderer.on(EVENT_TYPE.EDIT.SELECT_ALL, () => getSelectedWebview()?.selectAll());
-  ipcRenderer.on(EVENT_TYPE.EDIT.UNDO, () => getSelectedWebview()?.undo());
+  ipcRenderer.on(EVENT_TYPE.EDIT.COPY, () => mainWorld.operateSelected('copy'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.CUT, () => mainWorld.operateSelected('cut'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.PASTE, () => mainWorld.operateSelected('paste'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.REDO, () => mainWorld.operateSelected('redo'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.SELECT_ALL, () => mainWorld.operateSelected('selectAll'));
+  ipcRenderer.on(EVENT_TYPE.EDIT.UNDO, () => mainWorld.operateSelected('undo'));
 
-  ipcRenderer.on(EVENT_TYPE.WRAPPER.RELOAD, (): void => {
-    const webviews = document.querySelectorAll<Electron.WebviewTag>('webview');
-    webviews.forEach(webview => webview.reload());
-  });
+  ipcRenderer.on(EVENT_TYPE.WRAPPER.RELOAD, () => mainWorld.reloadAll());
 
   ipcRenderer.on(EVENT_TYPE.ACTION.SWITCH_ACCOUNT, (event, accountIndex: number) => {
     window.dispatchEvent(new CustomEvent(EVENT_TYPE.ACTION.SWITCH_ACCOUNT, {detail: {accountIndex}}));
@@ -109,56 +84,34 @@ const subscribeToMainProcessEvents = (): void => {
   });
 };
 
-const setupIpcInterface = (): void => {
-  window.sendBadgeCount = (count: number, ignoreFlash: boolean): void => {
-    void requestBadgeCountUpdate(ipcRenderer, logger, count, ignoreFlash);
-  };
+/* istanbul ignore next -- the real-Electron compatibility suite exercises this preload composition root. */
+const initializeApplicationShellBridge = (): void => {
+  const applicationShellBridge = createApplicationShellBridge({
+    deleteAccountData: (viewInstanceId, accountId, sessionId) =>
+      requestAccountDataDeletion(ipcRenderer, viewInstanceId, accountId, sessionId),
+    getWebContentsId: mainWorld.getWebContentsId,
+    log: message => logger.log(message),
+    sendToAccount: mainWorld.sendToAccount,
+    submitDeepLink: url => void requestDeepLinkSubmission(ipcRenderer, logger, url),
+    updateBadgeCount: (count, ignoreFlash) => void requestBadgeCountUpdate(ipcRenderer, logger, count, ignoreFlash),
+  });
 
-  window.submitDeepLink = (url: string): void => {
-    void requestDeepLinkSubmission(ipcRenderer, logger, url);
-  };
-
-  window.sendDeleteAccount = (accountId: string, sessionID?: string): Promise<void> => {
-    const truncatedId = truncate(accountId, {length: 5});
-
-    return new Promise((resolve, reject) => {
-      const accountWebview = getWebviewById(accountId);
-      if (!accountWebview) {
-        // eslint-disable-next-line prefer-promise-reject-errors
-        return reject(`Webview for account "${truncatedId}" does not exist`);
-      }
-
-      logger.info(`Processing deletion of "${truncatedId}"`);
-      const viewInstanceId = accountWebview.getWebContentsId();
-      void requestAccountDataDeletion(ipcRenderer, viewInstanceId, accountId, sessionID).then(resolve, reject);
-    });
-  };
-
-  window.sendLogoutAccount = async (accountId: string): Promise<void> => {
-    const accountWebview = getWebviewById(accountId);
-    logger.log(`Sending logout signal to webview for account "${truncate(accountId, {length: 5})}".`);
-    await accountWebview?.send(EVENT_TYPE.ACTION.SIGN_OUT);
-  };
-
-  window.sendConversationJoinToHost = async (
-    accountId: string,
-    code: string,
-    key: string,
-    domain?: string,
-  ): Promise<void> => {
-    const accountWebview = getWebviewById(accountId);
-    logger.log(`Sending conversation join data to webview for account "${truncate(accountId, {length: 5})}".`);
-    await accountWebview?.send(WebAppEvents.CONVERSATION.JOIN, {code, key, domain});
-  };
+  exposeApplicationShellBridge(
+    contextBridge,
+    {
+      isMac: EnvironmentUtil.platform.IS_MAC_OS,
+      locale: locale.getCurrent(),
+      locStrings: locale.LANGUAGES[locale.getCurrent()],
+      locStringsDefault: locale.LANGUAGES.en,
+    },
+    applicationShellBridge,
+  );
 };
 
-setupIpcInterface();
+/* istanbul ignore next -- executed and asserted by LegacyPreloadCompatibility.test.main.ts. */
+initializeApplicationShellBridge();
 subscribeToMainProcessEvents();
 
 window.addEventListener('focus', () => {
-  const selectedWebview = getSelectedWebview();
-  if (selectedWebview) {
-    selectedWebview.blur();
-    selectedWebview.focus();
-  }
+  mainWorld.focusSelected();
 });

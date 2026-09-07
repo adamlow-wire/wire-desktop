@@ -59,6 +59,7 @@ const showWindow = async (registry: ViewIdentityRegistry, onCreated?: OnProxyPro
       show: false,
       title: config.name,
       webPreferences: {
+        contextIsolation: true,
         javascript: true,
         nodeIntegration: false,
         nodeIntegrationInWorker: false,
