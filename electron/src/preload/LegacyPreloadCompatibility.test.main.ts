@@ -22,6 +22,8 @@ import {app, BrowserWindow, ipcMain} from 'electron';
 import * as assert from 'assert';
 import * as path from 'path';
 
+import {WebAppEvents} from '@wireapp/webapp-events';
+
 import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 
@@ -41,7 +43,12 @@ const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow
   });
 
 const WEBAPP_FIXTURE = `data:text/html,<script>
-  window.amplify = {publish() {}, subscribe() {}, unsubscribe() {}};
+  window.desktopSubscriptions = [];
+  window.amplify = {
+    publish() {},
+    subscribe(name) { window.desktopSubscriptions.push(name); },
+    unsubscribe() {}
+  };
   window.wire = {};
   window.z = {event: {}, lifecycle: {UPDATE_SOURCE: {DESKTOP: 'desktop'}}, util: {Environment: {
     avsVersion() { return 'avs'; },
@@ -174,5 +181,11 @@ describe('legacy preload compatibility surface', () => {
       await window.webContents.executeJavaScript("Object.getOwnPropertyDescriptor(window, 'systemCrypto').writable"),
       false,
     );
+    const subscriptions = await window.webContents.executeJavaScript(
+      'new Promise(resolve => setTimeout(() => resolve(window.desktopSubscriptions), 750))',
+    );
+    assert.ok(subscriptions.includes(WebAppEvents.LIFECYCLE.LOADED));
+    assert.ok(subscriptions.includes(WebAppEvents.LIFECYCLE.REFRESH));
+    assert.ok(subscriptions.includes(WebAppEvents.TEAM.INFO));
   });
 });
