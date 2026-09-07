@@ -124,7 +124,16 @@ export function readWebappVersions(): import('./WebappEventBridge').WebappVersio
 
 type MainWorldExecutor = Pick<Electron.ContextBridge, 'executeInMainWorld'>;
 
-export const createWebappMainWorld = (executor: MainWorldExecutor) => ({
+export interface WebappMainWorld {
+  dispatch(eventName: string, detail: unknown): void;
+  install(): void;
+  publish(eventName: string, ...args: unknown[]): void;
+  publishUpdate(): void;
+  readVersions(): import('./WebappEventBridge').WebappVersions | undefined;
+  setLocationHash(hash: string): void;
+}
+
+export const createWebappMainWorld = (executor: MainWorldExecutor): WebappMainWorld => ({
   dispatch: (eventName: string, detail: unknown): void =>
     executor.executeInMainWorld({args: [eventName, detail], func: dispatchWebappEvent}),
   install: (): void => executor.executeInMainWorld({args: [WEBAPP_EVENT_NAMES], func: installWebappEventAdapter}),
