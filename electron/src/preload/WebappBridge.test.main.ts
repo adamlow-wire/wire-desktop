@@ -59,6 +59,7 @@ describe('webapp bridge', () => {
     assert.strictEqual(bridge.version, WEBAPP_BRIDGE_VERSION);
     assert.strictEqual(Object.isFrozen(bridge), true);
     assert.strictEqual(Object.isFrozen(bridge.desktopCapturer), true);
+    assert.strictEqual(Object.isFrozen(EnvironmentUtil), false);
     assert.strictEqual(Object.isFrozen(bridge.systemCrypto), true);
   });
 

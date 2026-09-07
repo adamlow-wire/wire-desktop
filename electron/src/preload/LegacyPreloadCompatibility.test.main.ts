@@ -110,7 +110,7 @@ describe('legacy preload compatibility surface', () => {
 
   it('[characterization][security-target][INV-002][SEC-005] exposes the versioned API consumed by the webapp', async function () {
     this.timeout(10_000);
-    const window = createWindow(preloadPath('preload-webview'), false);
+    const window = createWindow(preloadPath('preload-webview'), true);
     windows.push(window);
     await window.loadURL(WEBAPP_FIXTURE);
 

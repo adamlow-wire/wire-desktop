@@ -54,7 +54,7 @@ export const createWebappBridge = (dependencies: WebappBridgeDependencies): Read
   Object.freeze({
     desktopAppConfig: Object.freeze(dependencies.desktopAppConfig),
     desktopCapturer: Object.freeze({getDesktopSources: dependencies.getDesktopSources}),
-    environment: Object.freeze(dependencies.environment),
+    environment: Object.freeze({...dependencies.environment}),
     openGraphAsync: dependencies.getOpenGraphData,
     systemCrypto: Object.freeze({decrypt: dependencies.decrypt, encrypt: dependencies.encrypt, version: 1 as const}),
     version: WEBAPP_BRIDGE_VERSION,
