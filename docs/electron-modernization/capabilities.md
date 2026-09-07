@@ -66,4 +66,6 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+SEC-005 checkpoint (2026-09-07, [PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35)): isolated immutable compatibility APIs and fixed event adapters now have real-Electron tests. Authenticated Windows/macOS login, multi-account, logout, menu, notification, and calling E2E passed, alongside package baselines on all three platforms. Windows needed one unchanged rerun after a notification timeout. These results strengthen DCP-001–DCP-008 and DCP-013–DCP-016 without raising their confidence ratings: sandboxing, production view migration, platform key stores, and the listed packaged/manual obligations remain open.
+
 A capability cannot reach `high` confidence solely through unit mocks. Security-sensitive capabilities also require the corresponding invariant tests. A platform-independent policy may be tested once, but each native integration must have representative evidence on every platform claimed in its row.

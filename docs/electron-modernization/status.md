@@ -1,18 +1,18 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-04
+updated: 2026-09-07
 milestone: M3
-active_work_item: SEC-005
-state: isolated-bridge-characterization-in-progress
+active_work_item: SEC-006
+state: sandboxing-ready
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: f8c723604b7f8861fe541b46dd9936cd3aad95a9
+integration_head_commit: d9f4f78b
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-005-isolated-bridge-characterization-2026-09-04
-next_work_item: SEC-005
+related_pending_branch: docs/SEC-005-closeout-2026-09-07
+next_work_item: SEC-006
 blockers: []
 ---
 
@@ -74,17 +74,19 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Active work
 
-| Field         | Value                                                     |
-| ------------- | --------------------------------------------------------- |
-| Work item     | SEC-005 — Replace preloads with isolated bridges          |
-| Owner         | `adamlow-wire`                                            |
-| Active branch | `sec/SEC-005-isolated-bridge-characterization-2026-09-04` |
-| Goal          | Characterize and version the legacy webapp bridge surface |
-| Starting gate | SEC-004 closed by PR #33 at `f8c72360`                    |
+[PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) merged as `d9f4f78b` on 2026-09-07. SEC-005 is complete: all renderers use context isolation, and desktop-owned immutable named bridges preserve the existing webapp API. Startup locale handling and shell-to-webview actions now work across isolated worlds. Build/test, lint, analysis, all three package baselines, authenticated Windows/macOS E2E, and merged reports passed. Windows passed one unchanged failed-job rerun after a multi-account notification timeout. The product still uses unsandboxed preloads, DOM webviews, `file://`, and `unsafe-eval`; M3 is not complete.
+
+| Field         | Value                                                             |
+| ------------- | ----------------------------------------------------------------- |
+| Work item     | SEC-006 — Enable renderer sandboxing everywhere                   |
+| Owner         | `adamlow-wire`                                                    |
+| Active branch | None yet; documentation closeout precedes implementation          |
+| Goal          | Bundle sandbox-compatible preloads and prove effective sandboxing |
+| Starting gate | SEC-005 closed by PR #35 at `d9f4f78b`                            |
 
 ## Next executable sequence
 
-1. Begin SEC-005 with characterization of the local-shell and remote-webapp compatibility surfaces, then expose only immutable, capability-specific APIs through `contextBridge`.
+1. Start SEC-006 on a new branch: run the existing preload compatibility baseline, identify Node/module-loading dependencies, add effective sandbox preference tests, and make the product preloads work with sandboxing enabled. Include About, proxy, SSO, PiP, and developer windows in the preference audit.
 2. Continue the production secure-shell cutover through SEC-006–SEC-007, SEC-010, and CAP-001.
 3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
@@ -110,6 +112,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-002 — Central view identity/capability registry     | PR #13; 100% changed security branches; all-platform CI |
 | SEC-003 — Typed, validated, capability-specific IPC     | PRs #14–32; final listener audit; all-platform CI       |
 | SEC-004 — Remove `@electron/remote`                     | PR #33; remote-free source; all-platform CI and E2E     |
+| SEC-005 — Replace preloads with isolated bridges        | PR #35; immutable APIs; all-platform CI and E2E         |
 
 ## Last verified state
 
@@ -192,6 +195,8 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-005 preload compatibility characterization | Real-Electron tests preserve the local wrapper API and the versioned `desktopCapturer`, `systemCrypto`, `environment`, `desktopAppConfig`, and `openGraphAsync` webapp API. Temporarily removing `openGraphAsync` failed the intended assertion before the perturbation was reverted | 2026-09-04 |
 
 ## Handoff notes
+
+- SEC-005 final evidence: [build/test and 81.55% changed coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411167), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411362), [Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411227). All completed successfully before merge. The earlier local crash-recovery timeout did not reproduce in hosted checks. Historical entries above describe their dated checkpoints; current execution starts at SEC-006.
 
 - Do not claim independent review in the solo-maintainer model. The maintainer's PR merge is the recorded product/security/architecture decision.
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
