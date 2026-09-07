@@ -22,13 +22,24 @@ import * as assert from 'assert';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {WebappEventBridge} from './WebappEventBridge';
-import {createWebappMainWorld, installWebappEventAdapter, WEBAPP_EVENT_NAMES} from './WebappMainWorld';
+import {
+  createWebappMainWorld,
+  dispatchWebappEvent,
+  installWebappEventAdapter,
+  publishDesktopUpdate,
+  publishWebappEvent,
+  readWebappVersions,
+  setWebappLocationHash,
+  WEBAPP_EVENT_NAMES,
+} from './WebappMainWorld';
 
 describe('webapp main-world adapter', () => {
-  const host = globalThis as unknown as {window?: unknown};
+  const host = globalThis as unknown as {CustomEvent?: unknown; window?: unknown};
+  const originalCustomEvent = host.CustomEvent;
   const originalWindow = host.window;
 
   afterEach(() => {
+    host.CustomEvent = originalCustomEvent;
     host.window = originalWindow;
   });
 
@@ -79,6 +90,48 @@ describe('webapp main-world adapter', () => {
     assert.ok(calls.includes('loaded'));
     fakeWindow.close();
     assert.ok(!calls.includes('close'));
+  });
+
+  it('[security-target][INV-002][SEC-005] performs only the fixed webapp actions', () => {
+    const dispatched: unknown[] = [];
+    const published: unknown[][] = [];
+    host.CustomEvent = class {
+      public readonly init: {detail: unknown};
+      public readonly type: string;
+
+      constructor(type: string, init: {detail: unknown}) {
+        this.type = type;
+        this.init = init;
+      }
+    };
+    const fakeWindow = {
+      amplify: {publish: (...args: unknown[]) => published.push(args)},
+      dispatchEvent: (event: unknown) => dispatched.push(event),
+      location: {hash: ''},
+      z: {
+        lifecycle: {UPDATE_SOURCE: {DESKTOP: 'desktop'}},
+        util: {Environment: {avsVersion: () => 'avs', version: () => 'webapp'}},
+      },
+    };
+    host.window = fakeWindow;
+
+    publishWebappEvent('shortcut', [true]);
+    publishDesktopUpdate('update');
+    setWebappLocationHash('#conversation');
+    dispatchWebappEvent('join', {code: 'code'});
+
+    assert.deepStrictEqual(published, [
+      ['shortcut', true],
+      ['update', 'desktop'],
+    ]);
+    assert.strictEqual(fakeWindow.location.hash, '#conversation');
+    assert.strictEqual(dispatched.length, 1);
+    assert.strictEqual((dispatched[0] as {type: string}).type, 'join');
+    assert.deepStrictEqual((dispatched[0] as {init: {detail: unknown}}).init.detail, {code: 'code'});
+    assert.deepStrictEqual(readWebappVersions(), {webappAVSVersion: 'avs', webappVersion: 'webapp'});
+
+    host.window = {...fakeWindow, z: undefined};
+    assert.strictEqual(readWebappVersions(), undefined);
   });
 
   it('[security-target][INV-002][SEC-005] executes only fixed main-world functions', () => {
