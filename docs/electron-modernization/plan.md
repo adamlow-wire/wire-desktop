@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.8
+revision: 1.5.9
 status: draft
-updated: 2026-09-04
+updated: 2026-09-07
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -375,7 +375,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-005 — Replace preloads with isolated bridges
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Use `contextBridge` to expose immutable, capability-specific APIs to the local shell and remote account content.
@@ -384,12 +384,12 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Preloads do not mutate shared `window`/`global` state outside reviewed bridge exposure.
   - Bridge values and callbacks do not leak Electron event objects or privileged closures.
   - Bridge compatibility with the Wire webapp is versioned and tested.
-- Evidence: The current branch starts with real-Electron characterization of the legacy local-shell and remote-webapp compatibility surfaces. It locks the wrapper globals and the versioned `desktopCapturer`, `systemCrypto`, `environment`, `desktopAppConfig`, and `openGraphAsync` APIs before isolation changes. Temporarily removing `openGraphAsync` failed the intended compatibility assertion and was reverted before commit.
+- Evidence: [PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) merged as `d9f4f78b`. Real-Electron tests enforce context isolation and immutable named bridges with no Node, Electron, generic IPC, or event-object exposure to remote content. Fixed main-world adapters preserve the webapp API and account/menu event routing. Sensitivity checks covered bridge API removal, account misrouting, missing loaded subscriptions, SSO control swaps, and disabled isolation; startup locale reassignment and isolated-world webview dispatch regressions were reproduced and corrected. [Build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411167) passed with 190/233 changed statements (81.55%); [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411362) and [authenticated Windows/macOS E2E plus reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411227) passed. Windows required one unchanged failed-job rerun after a multi-account notification timeout; registration/login flakes were also disclosed. Sandboxing and removal of product webviews remain SEC-006/SEC-007.
 
 #### SEC-006 — Enable renderer sandboxing everywhere
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `ready`
 - Milestone: `M3`
 - Dependencies: SEC-005
 - Scope: Enable application-wide sandboxing with explicitly justified exceptions only if unavoidable.
@@ -860,7 +860,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | --- | --- | --- | --- | --- |
 | Q-001 | Which Windows, macOS, and Linux versions are release-blocking? | M0 | adamlow-wire | All three platforms remain in scope; minimum supported OS versions are fixed under PKG-001 before release qualification |
 | Q-002 | Which identity providers and federation variants form the mandatory SSO matrix? | TST-002 | adamlow-wire | Automate protocol behavior with deterministic fixtures; record real-provider evidence when available without making an undocumented vendor list an M0 dependency |
-| Q-003 | Can the Wire webapp accept a versioned `contextBridge` adapter, and where should that adapter live? | ARC-001 | Desktop/webapp | TBD |
+| Q-003 | Can the Wire webapp accept a versioned `contextBridge` adapter, and where should that adapter live? | ARC-001 | adamlow-wire | Resolved by PR #35: desktop-owned preloads expose immutable named APIs; fixed main-world adapters preserve existing webapp globals/events. Authenticated Windows/macOS E2E passes without a webapp source change. |
 | Q-004 | Which account state must migrate, and which caches may be safely rebuilt? | PKG-003 | Product/security | TBD |
 | Q-005 | Which certificate interception/bypass behavior remains a product requirement? | CAP-005 | Security/product | TBD |
 | Q-006 | Is Linux feature parity equal to Windows/macOS or a defined subset? | BASE-002 | adamlow-wire | Retain the current capability scope on Linux; document unavoidable platform differences explicitly and test them under their owning capability |
@@ -873,6 +873,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.9 | 2026-09-07 | Codex | Closed isolated bridges with merged PR #35 and cross-platform evidence; resolved adapter ownership and made sandboxing executable | SEC-005, SEC-006, Q-003, INV-002 |
 | 1.5.8 | 2026-09-04 | Codex | Began SEC-005 with sensitivity-proven real-Electron characterization of the local-shell and Wire webapp preload compatibility surfaces | SEC-005, INV-002 |
 | 1.5.7 | 2026-09-04 | Codex | Closed SEC-004 after the corrected remote-free runtime passed all-platform package smoke and authenticated Windows/macOS E2E | SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |
 | 1.5.6 | 2026-09-04 | Codex | Recorded and fixed the pre-ready locale regression exposed by SEC-004 package smoke validation | SEC-004, DCP-003 |
