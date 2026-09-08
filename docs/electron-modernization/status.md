@@ -12,7 +12,7 @@ fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 related_pending_branch: cap/CAP-001-account-metadata-2026-09-08
-next_work_item: SEC-010
+next_work_item: CAP-002
 blockers: []
 ---
 
@@ -87,10 +87,11 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 ## Next executable sequence
 
 1. PR #38 is merged at `67dfb5db`. Validate synchronized metadata PR #41 locally, then require its final-head build, lint, analysis, all-platform packages and authenticated Windows/macOS E2E/reports before merging.
-2. Synchronize and validate CSP draft PR #42 after PR #41. Then continue production secure-shell cutover through SEC-007, SEC-010 and CAP-001.
-3. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
-4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
-5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
+2. Prioritize CAP-002's real backend completion regression: the webapp/backend use `window.opener.postMessage`, but the new main-created isolated SSO window has no opener. Existing open/close coverage does not establish successful IdP completion. Investigate the server's existing native redirect response without restoring opener privileges.
+3. Synchronize and validate CSP draft PR #42 after PR #41. Then continue production secure-shell cutover through SEC-007, SEC-010 and CAP-001.
+4. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
+5. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
+6. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
 
@@ -116,6 +117,10 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-006 — Enable renderer sandboxing everywhere | PR #37; actual OS sandbox, bundled preloads, all-platform CI and E2E |
 
 ## Last verified state
+
+PR #41 synchronized validation (2026-09-08): 405 main tests pass with the same 3 CAP-002 targets pending; renderer 4/4, React 94/94, tools 35/35, application/Mocha types and changed coverage 9/9 statements pass. Three serial uninstrumented cold-restart tests pass (23.4 seconds). Earlier local attempts intermittently stalled at view startup or application quit; diagnostic logging found no policy denial, and no runtime fix or timeout increase is claimed. The readiness assertion now checks exactly two loaded account URLs, not just a count. Final-head hosted gates remain required.
+
+CAP-002 source finding: sibling webapp `auth/page/login/singleSignOn.tsx` starts SSO without redirect parameters and consumes backend-origin message events; sibling server `services/spar/src/Spar/App.hs` emits the web verdict through `window.opener`. Its native `success_redirect`/`error_redirect` alternative is already supported (`Spar/API.hs`: both URLs required, scheme starts with `wire`, maximum 140 bytes). Reproduce completion locally before implementing it; do not infer live IdP success from the existing synthetic callback/open-close tests.
 
 | Check | Result | Date |
 | --- | --- | --- |

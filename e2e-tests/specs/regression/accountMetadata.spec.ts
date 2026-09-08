@@ -77,14 +77,15 @@ test(
       await expect(shell.locator('webview')).toHaveCount(2);
       await expect
         .poll(() =>
-          app!.evaluate(
-            ({webContents}) =>
-              webContents
-                .getAllWebContents()
-                .filter(contents => contents.getType() === 'webview' && !contents.isLoading()).length,
+          app!.evaluate(({webContents}) =>
+            webContents
+              .getAllWebContents()
+              .filter(contents => contents.getType() === 'webview')
+              .map(contents => ({loading: contents.isLoading(), url: contents.getURL()}))
+              .sort((left, right) => left.url.localeCompare(right.url)),
           ),
         )
-        .toBe(2);
+        .toEqual(ids.map(id => ({loading: false, url: expect.stringContaining(id)})));
 
       await app.evaluate(
         async ({webContents}, {ids, origin, partitionId}) => {
