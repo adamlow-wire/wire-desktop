@@ -28,6 +28,7 @@ export const handleAccountWindowOpen = (
   context: {
     accountSession: Session;
     accountOrigin: string | undefined;
+    sourceUrl: string;
     openExternal: (url: string) => void;
     openSso: (url: string) => void;
   },
@@ -37,6 +38,7 @@ export const handleAccountWindowOpen = (
     frameName: details.frameName,
     referrerUrl: details.referrer.url,
     accountOrigin: context.accountOrigin,
+    sourceUrl: context.sourceUrl,
   });
   if (decision === 'sso') {
     context.openSso(details.url);

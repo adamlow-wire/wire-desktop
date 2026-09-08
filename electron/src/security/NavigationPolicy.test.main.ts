@@ -94,7 +94,7 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
 
   it('allows required SSO/PiP flows only from the account origin', () => {
     const decide = (url: string, frameName: string, referrerUrl = origin, accountOrigin: string | undefined = origin) =>
-      selectAccountPopup({url, frameName, referrerUrl, accountOrigin});
+      selectAccountPopup({url, frameName, referrerUrl, accountOrigin, sourceUrl: origin});
     assert.strictEqual(decide('https://backend.wire.test/sso/initiate-login/code', 'WIRE_SSO'), 'sso');
     assert.strictEqual(decide('http://backend.wire.test/sso', 'WIRE_SSO'), 'deny');
     assert.strictEqual(decide('data:text/html,x', 'WIRE_SSO'), 'deny');
@@ -109,7 +109,13 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
     assert.strictEqual(decide('https://backend.wire.test/sso', 'WIRE_SSO', 'https://embedded.evil.test'), 'deny');
     assert.strictEqual(decide('about:blank', 'WIRE_PICTURE_IN_PICTURE_CALL', ''), 'deny');
     assert.strictEqual(
-      selectAccountPopup({url: origin, frameName: '_blank', referrerUrl: origin, accountOrigin: undefined}),
+      selectAccountPopup({
+        url: origin,
+        frameName: '_blank',
+        referrerUrl: origin,
+        accountOrigin: undefined,
+        sourceUrl: origin,
+      }),
       'deny',
     );
     assert.strictEqual(
@@ -118,8 +124,32 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
         frameName: 'WIRE_SSO',
         referrerUrl: 'http://127.0.0.1',
         accountOrigin: 'http://127.0.0.1',
+        sourceUrl: 'http://127.0.0.1',
       }),
       'sso',
     );
+  });
+
+  it('authorizes noreferrer external links using the main-owned source URL, never a claimed referrer alone', () => {
+    const request = {
+      url: 'https://example.test/',
+      frameName: '_blank',
+      referrerUrl: '',
+      accountOrigin: origin,
+      sourceUrl: origin,
+    };
+    assert.strictEqual(selectAccountPopup(request), 'external');
+    for (const sourceUrl of ['', 'about:blank', 'https://foreign.test', `${origin}.evil.test`]) {
+      for (const referrerUrl of ['', origin]) {
+        assert.strictEqual(selectAccountPopup({...request, sourceUrl, referrerUrl}), 'deny');
+      }
+    }
+    assert.strictEqual(selectAccountPopup({...request, referrerUrl: 'https://foreign.test'}), 'deny');
+    assert.strictEqual(selectAccountPopup({...request, frameName: 'WIRE_SSO'}), 'deny');
+    assert.strictEqual(
+      selectAccountPopup({...request, url: 'about:blank', frameName: 'WIRE_PICTURE_IN_PICTURE_CALL'}),
+      'deny',
+    );
+    assert.strictEqual(selectAccountPopup({...request, url: 'javascript:alert(1)'}), 'deny');
   });
 });

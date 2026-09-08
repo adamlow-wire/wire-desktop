@@ -714,6 +714,7 @@ class ElectronWrapperInit {
             handleAccountWindowOpen(details, {
               accountSession: contents.session,
               accountOrigin,
+              sourceUrl: contents.getURL(),
               openExternal: url => mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(url)),
               openSso: url =>
                 mainProcessFireAndForgetInvoker.fireAndForget(() =>

@@ -69,18 +69,25 @@ export const selectAccountPopup = (request: {
   frameName: string;
   accountOrigin: string | undefined;
   referrerUrl: string;
+  sourceUrl: string;
 }): AccountPopupDecision => {
-  if (!isAllowedAccountNavigation(request.referrerUrl, request.accountOrigin)) {
+  if (
+    !isAllowedAccountNavigation(request.sourceUrl, request.accountOrigin) ||
+    (request.referrerUrl !== '' && !isAllowedAccountNavigation(request.referrerUrl, request.accountOrigin))
+  ) {
     return 'deny';
   }
   const url = parseNetworkNavigation(request.url);
   if (request.frameName === 'WIRE_SSO') {
-    return url && (url.protocol === 'https:' || url.origin === request.accountOrigin) ? 'sso' : 'deny';
+    return request.referrerUrl && url && (url.protocol === 'https:' || url.origin === request.accountOrigin)
+      ? 'sso'
+      : 'deny';
   }
   if (request.frameName === 'WIRE_PICTURE_IN_PICTURE_CALL') {
-    return request.url === 'about:blank' ||
-      request.url === '' ||
-      isAllowedAccountNavigation(request.url, request.accountOrigin)
+    return request.referrerUrl &&
+      (request.url === 'about:blank' ||
+        request.url === '' ||
+        isAllowedAccountNavigation(request.url, request.accountOrigin))
       ? 'picture-in-picture'
       : 'deny';
   }

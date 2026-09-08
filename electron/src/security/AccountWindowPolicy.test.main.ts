@@ -61,6 +61,7 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
     parent.webContents.setWindowOpenHandler(details =>
       handleAccountWindowOpen(details, {
         accountOrigin: origin,
+        sourceUrl: parent.webContents.getURL(),
         accountSession: parent.webContents.session,
         openExternal: url => {
           external.push(url);
@@ -88,6 +89,20 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
       }
     }
     await new Promise<void>(resolve => server.close(() => resolve()));
+  });
+
+  it('opens ordinary noreferrer chat links outside Electron', async () => {
+    await parent.webContents.executeJavaScript(`
+      const link = document.createElement('a');
+      link.href = 'https://example.test/message';
+      link.target = '_blank';
+      link.rel = 'nofollow noopener noreferrer';
+      document.body.append(link);
+      link.click();
+      undefined;
+    `);
+    assert.deepStrictEqual(external, ['https://example.test/message']);
+    assert.strictEqual(BrowserWindow.getAllWindows().filter(window => window.getParentWindow() === parent).length, 0);
   });
 
   it('preserves empty-URL PiP opening and the exact account session with fixed secure preferences', async () => {
@@ -157,6 +172,7 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
         } as HandlerDetails,
         {
           accountOrigin: origin,
+          sourceUrl: parent.webContents.getURL(),
           accountSession: parent.webContents.session,
           openExternal: url => {
             external.push(url);
