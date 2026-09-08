@@ -2,17 +2,17 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-08
 milestone: M3
-active_work_item: SEC-006
-state: sandboxing-hosted-validation
+active_work_item: SEC-013
+state: incoming-deep-link-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 1a01486c
+integration_head_commit: 5926e3d0
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-006-renderer-sandboxing-2026-09-07
-next_work_item: SEC-006
+related_pending_branch: sec/SEC-013-incoming-links-2026-09-08
+next_work_item: SEC-013
 blockers: []
 ---
 
@@ -78,17 +78,17 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 | Field         | Value                                                             |
 | ------------- | ----------------------------------------------------------------- |
-| Work item     | SEC-006 — Enable renderer sandboxing everywhere                   |
+| Work item     | SEC-013 — Strict incoming deep-link parser prerequisite |
 | Owner         | `adamlow-wire`                                                    |
-| Active branch | `sec/SEC-006-renderer-sandboxing-2026-09-07`                      |
-| Goal          | Bundle sandbox-compatible preloads and prove effective sandboxing |
-| Starting gate | SEC-005 closed by PR #35 at `d9f4f78b`                            |
+| Active branch | `sec/SEC-013-incoming-links-2026-09-08` |
+| Goal | Preserve supported routes and reject malformed actions, then unblock safe popup routing |
+| Starting gate | SEC-006 closed by PR #37 at `5926e3d0` |
 
 ## Next executable sequence
 
-1. Finish SEC-006 local validation on the active branch, then publish its PR and require cross-platform package and authenticated E2E checks. Product preloads are now bundled; complete the effective-preference audit and production-bundle checks before claiming sandboxing complete.
-2. Continue the production secure-shell cutover through SEC-006–SEC-007, SEC-010, and CAP-001.
-3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
+1. Validate and publish the independent SEC-013 incoming parser PR against integration. Merge only after all required gates, then rebase PR #38 and reuse the parser for main-owned app-protocol popup dispatch. Both behavior-changing PRs require authenticated cross-platform E2E.
+2. Continue the production secure-shell cutover through SEC-007, SEC-010, and CAP-001.
+3. Complete SEC-009, SEC-012, and remaining SEC-013 policy/lifecycle hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
@@ -196,6 +196,10 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
+- SEC-006 is complete: [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) merged as `5926e3d0` after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873450), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873453), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873692) passed. Historical PR #37 checkpoint notes below predate closure.
+- Active SEC-013 branch is based on integration `5926e3d0`, independently of PR #38. Baseline characterization was separately committed as `c3526d60`: 13 dispatch tests pass; changing the destination fails all seven new route cases. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks pass 36/36 before the final state/error cases; full validation is running. No new credentials or user action is needed.
+- [PR #38](https://github.com/adamlow-wire/wire-desktop/pull/38) is held for chat-link compatibility. Local follow-up `d58ebb6b` (not yet pushed) fixes a reproduced `noreferrer` regression using the main-owned source URL; navigation/popup tests pass 8/8 and removing source-origin authorization fails the deny test. Custom `wire://` popups must be routed safely using this parser before PR #38 merges; do not simply block supported links or restore raw IPC. Preserve the SEC-008 branch when rebasing after the parser prerequisite.
+- SEC-013 preserves supported user/conversation, federated and file-list, preferences, meetings, SSO, login and join routes; absent join domain remains null at the existing dispatch boundary. Routes were checked against sibling webapp `page/appMain.tsx` and `router/routeGenerator.ts`; domains against sibling server `libs/types-common/src/Data/Domain.hs`. Desktop has no implemented `wire://access` configuration route; new backend-config behavior remains CAP-005 scope. Incoming parser validation does not close external-link or lifecycle acceptance.
 - [SEC-006 PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) is a draft pending final-head validation, not a completed work item. Local production bundles and 23 focused tests pass; the separate startup-order test also passes. Changing the startup order, forcing English, substituting the webapp URL, and disabling About/webview sandboxing each failed the intended tests before restoration. Local changed coverage is 24/29 statements (82.76%). Types, changed TypeScript lint, Jest 64/64, build tools 35/35, and renderer 4/4 passed. The full local main run and one clean verification both retained the previously recorded crash-recovery timeout (334 passed, 3 owned SSO targets pending, 1 failed); it was not retried indefinitely.
 - PR #37's initial [hosted main coverage run](https://github.com/adamlow-wire/wire-desktop/actions/runs/34210044386) passed all 335 main tests, including crash recovery, and failed only the initial 71.43% changed-coverage gate. Its [Windows/macOS/Linux package jobs](https://github.com/adamlow-wire/wire-desktop/actions/runs/34210044422) passed. These are initial-head results; the added locale/startup tests and explicit E2E sandbox configuration require final-head checks before merge.
 - Sandbox evidence correction: Playwright injects `--no-sandbox` by default, so the first local product probe proved preload compatibility only. The corrected probe set `chromiumSandbox: true` and confirmed `enable-sandbox` present, `no-sandbox` absent, effective secure preferences, live shell/account bridges, and no page Node globals. E2E now explicitly enables Chromium sandboxing and asserts the disabling flag is absent. Electron remains `43.4.0`.

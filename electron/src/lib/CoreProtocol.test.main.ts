@@ -17,7 +17,8 @@
  *
  */
 
-import {spy, replace, restore} from 'sinon';
+import {dialog} from 'electron';
+import {spy, replace, restore, stub} from 'sinon';
 
 import * as assert from 'assert';
 
@@ -31,6 +32,7 @@ describe('dispatchDeepLink', () => {
 
   beforeEach(() => {
     sendActionSpy.resetHistory();
+    stub(dialog, 'showMessageBoxSync').returns(0);
     protocolHandler = new CustomProtocolHandler();
     replace(protocolHandler['windowManager'], 'sendActionToPrimaryWindow', sendActionSpy);
     replace(protocolHandler['windowManager'], 'sendActionAndFocusWindow', sendActionSpy);
@@ -64,6 +66,30 @@ describe('dispatchDeepLink', () => {
 
   afterEach(() => restore());
 
+  for (const url of [
+    'wire://unknown/admin',
+    'wire://user/not-a-uuid',
+    'wire://start-login/extra',
+    'wire://start-sso/not-a-code',
+    'wire://conversation-join?code=code',
+    'wire://conversation-join?code=code&key=key&key=other',
+    'wire://conversation-join?code=code&key=key&domain=',
+    'wire://user:password@start-login',
+    'wire://start-login:80',
+    'wire://start-login#unexpected',
+    'wire://user/../start-login',
+    'wire://user/%2e%2e/start-login',
+    'wire://conversation/8cdb44a0-418b-4188-9a53-7c477a7848dd/files/a%2fb',
+    'wire://start-login\n',
+    `wire://user/${'a'.repeat(1024)}`,
+  ]) {
+    it(`[security-target][INV-005][SEC-013] refuses unapproved action ${url.slice(0, 90)}`, async () => {
+      await protocolHandler.dispatchDeepLink(url);
+      assert.ok(sendActionSpy.notCalled, 'invalid links must not dispatch any action');
+      assert.strictEqual(protocolHandler.hashLocation, '');
+    });
+  }
+
   it('forwards conversation deep links to the WebApp', async () => {
     await protocolHandler['dispatchDeepLink']('wire://conversation/8cdb44a0-418b-4188-9a53-7c477a7848dd');
     assert.ok(
@@ -72,6 +98,20 @@ describe('dispatchDeepLink', () => {
         '/conversation/8cdb44a0-418b-4188-9a53-7c477a7848dd',
       ),
     );
+  });
+
+  it('[security-target][SEC-013] leaves the last valid location unchanged after invalid input', async () => {
+    await protocolHandler.dispatchDeepLink('wire://user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f');
+    sendActionSpy.resetHistory();
+    await protocolHandler.dispatchDeepLink('wire://unknown');
+    assert.ok(sendActionSpy.notCalled);
+    assert.strictEqual(protocolHandler.hashLocation, '/user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f');
+  });
+
+  it('[SEC-013] contains asynchronous action delivery failures', async () => {
+    restore();
+    stub(protocolHandler['windowManager'], 'sendActionAndFocusWindow').rejects(new Error('test delivery failure'));
+    await assert.doesNotReject(() => protocolHandler.dispatchDeepLink('wire://start-login'));
   });
 
   it('forwards user profile deep links to the WebApp', async () => {
