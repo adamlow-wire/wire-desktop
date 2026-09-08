@@ -22,6 +22,7 @@ import {expect, test} from '../../fixtures';
 test('[security-target][SEC-006] product shell and account run sandboxed', {tag: ['@regression']}, async ({app}) => {
   const preferences = await app.evaluate(({webContents, app: electronApp}) => ({
     globalSandbox: electronApp.commandLine.hasSwitch('enable-sandbox'),
+    sandboxDisabled: electronApp.commandLine.hasSwitch('no-sandbox'),
     views: webContents
       .getAllWebContents()
       .filter(contents => ['window', 'webview'].includes(contents.getType()))
@@ -33,6 +34,7 @@ test('[security-target][SEC-006] product shell and account run sandboxed', {tag:
       })),
   }));
   expect(preferences.globalSandbox).toBe(true);
+  expect(preferences.sandboxDisabled).toBe(false);
   expect(preferences.views.map(view => view.type)).toEqual(expect.arrayContaining(['window', 'webview']));
   for (const view of preferences.views) {
     expect(view.preferences).toMatchObject({

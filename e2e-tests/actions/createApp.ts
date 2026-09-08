@@ -32,6 +32,7 @@ export const createApp = async (options: {
   }
 
   const app = await electron.launch({
+    chromiumSandbox: true,
     args: [
       // Chromium launch args
       `--user-data-dir=${options.dataDir}`,

@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-08
 milestone: M3
 active_work_item: SEC-006
-state: sandboxing-local-validation
+state: sandboxing-hosted-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 integration_head_commit: 1a01486c
@@ -196,7 +196,9 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
-- SEC-006 local evidence: the original preload baseline passed 3/3 and failed all three with sandboxing enabled before bundling. The focused suite now passes 21/21, including shell/account bridges, real Workers without Node, About/proxy/SSO/PiP/developer preferences, bootstrap, and image-copy routing. Wrong bootstrap URL and disabled About/webview sandbox perturbations each failed their intended assertion and were reverted; image-copy routing also failed before replacement. Production bundling, application/test types, changed TypeScript lint, Jest 64/64, build tools 35/35, and renderer tests passed. A real product launch against a local HTTP fixture, without `--no-sandbox`, confirmed global sandboxing, live shell/account bridges, and no page Node globals. The first full main run passed 334 tests with three owned SSO targets pending and the previously recorded crash-recovery timeout after a hung Chromium child; a clean verification run is pending. Cross-platform package and authenticated E2E gates remain mandatory before merge. Electron stays at `43.4.0`.
+- [SEC-006 PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) is a draft pending final-head validation, not a completed work item. Local production bundles and 23 focused tests pass; the separate startup-order test also passes. Changing the startup order, forcing English, substituting the webapp URL, and disabling About/webview sandboxing each failed the intended tests before restoration. Local changed coverage is 24/29 statements (82.76%). Types, changed TypeScript lint, Jest 64/64, build tools 35/35, and renderer 4/4 passed. The full local main run and one clean verification both retained the previously recorded crash-recovery timeout (334 passed, 3 owned SSO targets pending, 1 failed); it was not retried indefinitely.
+- PR #37's initial [hosted main coverage run](https://github.com/adamlow-wire/wire-desktop/actions/runs/34210044386) passed all 335 main tests, including crash recovery, and failed only the initial 71.43% changed-coverage gate. Its [Windows/macOS/Linux package jobs](https://github.com/adamlow-wire/wire-desktop/actions/runs/34210044422) passed. These are initial-head results; the added locale/startup tests and explicit E2E sandbox configuration require final-head checks before merge.
+- Sandbox evidence correction: Playwright injects `--no-sandbox` by default, so the first local product probe proved preload compatibility only. The corrected probe set `chromiumSandbox: true` and confirmed `enable-sandbox` present, `no-sandbox` absent, effective secure preferences, live shell/account bridges, and no page Node globals. E2E now explicitly enables Chromium sandboxing and asserts the disabling flag is absent. Electron remains `43.4.0`.
 
 - SEC-005 final evidence: [build/test and 81.55% changed coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411167), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411362), [Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411227). All completed successfully before merge. The earlier local crash-recovery timeout did not reproduce in hosted checks. Historical entries above describe their dated checkpoints; current execution starts at SEC-006.
 
