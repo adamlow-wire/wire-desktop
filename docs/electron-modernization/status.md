@@ -3,16 +3,16 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-08
 milestone: M3
 active_work_item: CAP-001
-state: renderer-loss-test-validation
+state: account-metadata-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 75b22ded
+integration_head_commit: cc8fc01d
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: cap/CAP-001-crash-recovery-2026-09-08
-next_work_item: SEC-008
+related_pending_branch: cap/CAP-001-account-metadata-2026-09-08
+next_work_item: SEC-007
 blockers: []
 ---
 
@@ -74,45 +74,46 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Active work
 
-[PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) merged as `d9f4f78b` on 2026-09-07. SEC-005 is complete: all renderers use context isolation, and desktop-owned immutable named bridges preserve the existing webapp API. Startup locale handling and shell-to-webview actions now work across isolated worlds. Build/test, lint, analysis, all three package baselines, authenticated Windows/macOS E2E, and merged reports passed. Windows passed one unchanged failed-job rerun after a multi-account notification timeout. PR #37 subsequently completed sandboxing; DOM webviews, `file://` and production CSP/capability work remain. M3 is not complete.
+[PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) closed SEC-005 with isolated immutable bridges. [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) then closed SEC-006 as `5926e3d0` on 2026-09-08: production preloads are bundled, application-wide sandboxing is enabled, and final-head build, lint, analysis, all-platform packages, authenticated Windows/macOS E2E, and reports passed. The product still uses DOM webviews, `file://`, and `unsafe-eval`; M3 is not complete.
 
-| Field         | Value                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------- |
-| Work item     | CAP-001 — Deterministic renderer-loss regression test                                 |
-| Owner         | `adamlow-wire`                                                                        |
-| Active branch | `cap/CAP-001-crash-recovery-2026-09-08`                                               |
-| Goal          | Test real renderer loss without host dump delays and prove pre-replacement revocation |
-| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                                |
+| Field         | Value                                                                 |
+| ------------- | --------------------------------------------------------------------- |
+| Work item     | CAP-001 — Preserve desktop-owned account identity                     |
+| Owner         | `adamlow-wire`                                                        |
+| Active branch | `cap/CAP-001-account-metadata-2026-09-08`                             |
+| Goal          | Reject metadata overwrites of desktop-owned account and session state |
+| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                |
 
 ## Next executable sequence
 
-1. Merge the synchronized test-only PR #40 after its final required gates, then synchronize PR #38 once with integration and require its final authenticated platform checkpoint. PR #39 is already merged. Authenticated E2E is deferred for PR #40 only under DEC-008 because it changes no runtime code.
-2. Continue the production secure-shell cutover through SEC-007, SEC-010, and CAP-001.
-3. Complete SEC-009, SEC-012, and remaining SEC-013 policy/lifecycle hardening with adversarial deny-path tests.
+1. PRs #39 and #40 are merged. Validate synchronized PR #38 against integration `cc8fc01d`; require final-head build, package and authenticated E2E checks before merging.
+2. Synchronize and validate the metadata branch after PR #38, then continue the production secure-shell cutover through SEC-007, SEC-010, and CAP-001. SEC-008 is being completed first because it is independently executable on the legacy product path and supplies policy for that cutover.
+3. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
 
-| Work item                                               | CAP-001 — Deterministic renderer-loss regression test   |
-| ------------------------------------------------------- | ------------------------------------------------------- |
-| GOV-001 — Establish fork and integration workflow       | GitHub API readback on 2026-08-18                       |
-| GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155`       |
-| ELC-001 — Inventory Electron compatibility blockers     | `electron-compatibility.md`                             |
-| TST-001 — Make coverage reporting accurate              | Commits `c27cfa6a`, `d96baaad`                          |
-| BASE-001 — Capture a reproducible legacy baseline       | PR #3 run `32364188026`                                 |
-| BASE-002 — Create the capability acceptance matrix      | PR #1                                                   |
-| ARC-001 — Approve target process and view architecture  | ADR 0001; PR #1                                         |
-| SEC-001 — Threat model the desktop wrapper              | `threat-model.md`; PR #1                                |
-| TST-002 — Characterize enterprise SSO                   | 18 passing / 3 CAP-002 security targets pending         |
-| ELC-002 — Upgrade Electron to latest stable             | PR #6; Electron 43.4.0; final package/E2E green         |
-| ARC-002 — Implement secure single-account shell proof   | PR #7; 17 security-target tests; all-platform CI        |
-| TST-004 — Add security-boundary regression tests        | PR #7; sensitivity proof; mandatory all-platform        |
-| TST-003 — Characterize tray/native integration          | PR #12; sensitivity proof; all-platform CI              |
-| SEC-002 — Central view identity/capability registry     | PR #13; 100% changed security branches; all-platform CI |
-| SEC-003 — Typed, validated, capability-specific IPC     | PRs #14–32; final listener audit; all-platform CI       |
-| SEC-004 — Remove `@electron/remote`                     | PR #33; remote-free source; all-platform CI and E2E     |
-| SEC-005 — Replace preloads with isolated bridges        | PR #35; immutable APIs; all-platform CI and E2E         |
+| Work item | Evidence |
+| --- | --- |
+| GOV-001 — Establish fork and integration workflow | GitHub API readback on 2026-08-18 |
+| GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155` |
+| ELC-001 — Inventory Electron compatibility blockers | `electron-compatibility.md` |
+| TST-001 — Make coverage reporting accurate | Commits `c27cfa6a`, `d96baaad` |
+| BASE-001 — Capture a reproducible legacy baseline | PR #3 run `32364188026` |
+| BASE-002 — Create the capability acceptance matrix | PR #1 |
+| ARC-001 — Approve target process and view architecture | ADR 0001; PR #1 |
+| SEC-001 — Threat model the desktop wrapper | `threat-model.md`; PR #1 |
+| TST-002 — Characterize enterprise SSO | 18 passing / 3 CAP-002 security targets pending |
+| ELC-002 — Upgrade Electron to latest stable | PR #6; Electron 43.4.0; final package/E2E green |
+| ARC-002 — Implement secure single-account shell proof | PR #7; 17 security-target tests; all-platform CI |
+| TST-004 — Add security-boundary regression tests | PR #7; sensitivity proof; mandatory all-platform |
+| TST-003 — Characterize tray/native integration | PR #12; sensitivity proof; all-platform CI |
+| SEC-002 — Central view identity/capability registry | PR #13; 100% changed security branches; all-platform CI |
+| SEC-003 — Typed, validated, capability-specific IPC | PRs #14–32; final listener audit; all-platform CI |
+| SEC-004 — Remove `@electron/remote` | PR #33; remote-free source; all-platform CI and E2E |
+| SEC-005 — Replace preloads with isolated bridges | PR #35; immutable APIs; all-platform CI and E2E |
+| SEC-006 — Enable renderer sandboxing everywhere | PR #37; actual OS sandbox, bundled preloads, all-platform CI and E2E |
 
 ## Last verified state
 
@@ -196,11 +197,14 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
-- Integration is `75b22ded`. [PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) merged after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325605), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325572), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325647) passed. Its Windows proxy fixture hit the unchanged 2-second timeout once; one failed-job rerun passed. Incoming parsing is implemented, but SEC-013 external/lifecycle acceptance remains open.
-- Active [test-only PR #40](https://github.com/adamlow-wire/wire-desktop/pull/40) is synchronized with integration. The fixture terminates only its verified renderer PID without a core dump; runtime recovery code and deadlines are unchanged. Local forced-crash diagnostics timed out before process-loss notification on a WSL crash-capture host. Non-dumping termination notified at 29 ms and recovered at 153 ms. The added assertion proves old authority is revoked before replacement creation; delaying revocation to the next main-loop turn fails it. No host-wide settings changed.
-- PR #40's post-parser-merge main suite passes 366 tests in 8 seconds with 3 existing CAP-002 targets pending; React passes 64/64, application/Mocha types and lint pass. The independent pre-merge baseline passed 338 main tests, renderer 4/4 and build tools 35/35. No runtime statements change relative to integration; final platform gates remain mandatory.
+- Synchronized PR #38 local validation passes 405 main tests with 3 existing CAP-002 targets pending, all 64 React tests, application and Mocha types. The recovery test now completes without the prior host crash-capture delay. Final-head hosted validation is still required.
+- Integration is `cc8fc01d`. [PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) merged after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325605), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325572), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325647) passed. Its Windows proxy fixture hit the unchanged 2-second timeout once; one failed-job rerun passed. Incoming parsing is implemented, but SEC-013 external/lifecycle acceptance remains open.
+- [Test-only PR #40](https://github.com/adamlow-wire/wire-desktop/pull/40) merged as `cc8fc01d` after final-head build/test, lint, analysis and [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34227062520) passed. E2E was deferred under DEC-008. The fixture terminates only its verified renderer PID without a core dump; runtime recovery code and deadlines are unchanged. Local forced-crash diagnostics timed out before process-loss notification on a WSL crash-capture host. Non-dumping termination notified at 29 ms and recovered at 153 ms. The added assertion proves old authority is revoked before replacement creation; delaying revocation to the next main-loop turn fails it. No host-wide settings changed.
+- PR #40's post-parser-merge main suite passes 366 tests in 8 seconds with 3 existing CAP-002 targets pending; React passes 64/64, application/Mocha types and lint pass. The independent pre-merge baseline passed 338 main tests, renderer 4/4 and build tools 35/35. No runtime statements changed; all final platform gates passed.
 - [PR #38](https://github.com/adamlow-wire/wire-desktop/pull/38) head `0cfa5327` fixes staging's same-origin referrer policy and preserves normal/custom chat links. Main-owned source origin authorizes fixed popup destinations; a referrer may be omitted, but a foreign nonempty referrer is rejected. Real local targets reproduced blocked PiP/SSO; the staging-header product fixture now covers detached-call DOM/session compatibility, internal profile-link routing with zero OS calls, hostile navigation/redirect denial and two SSO cycles (2.7 seconds). Local runs use Linux despite the existing macOS Playwright project label.
-- PR #38 build/lint/analysis and all-platform packages pass. Its macOS package fixture hit a 2-second timeout once; one failed-job rerun passed. Authenticated E2E is running. Merge PR #40 after its fresh required gates, then synchronize PR #38 once and require its final behavior-changing checkpoint. Do not merge merely because an earlier head passed.
+- PR #38's previous head passed build/lint/analysis, all-platform packages and Windows E2E. [macOS E2E](https://github.com/adamlow-wire/wire-desktop/actions/runs/34224729745/job/102055954845) failed: initial staging account creation failed; both retries then passed every 1:1/group-call assertion but failed in `createPage` cleanup with `Page.handleJavaScriptDialog: session closed`. The retained report confirms completed popup/camera/hang-up steps. A local fixture target reproduces two asynchronous unload dialogs immediately before context destruction. Direct test-context closure passes that target (3.4 seconds), without changing application close behavior or call assertions. PR #38 is synchronized with both merged prerequisites and includes this cleanup correction; require its final-head gates, not the previous head's results.
+- Active CAP-001 metadata work is committed locally on `cap/CAP-001-account-metadata-2026-09-08`: baseline `9d96f73c`, fix `b08fecc5`. Nine hostile metadata cases reproduced desktop-owned field overwrites; six guard cases failed on malformed messages before the fix. Strict object validation and a non-throwing user-ID guard pass 37 focused / 92 full React tests, 366 main tests (3 existing CAP-002 targets pending), renderer 4/4 and build tools 35/35. Application/Mocha types, lint and changed coverage pass: 3/3 statements and all 5 metadata-guard branches. Commands: `yarn test:react:coverage --modulePathIgnorePatterns '<rootDir>/wrap/'`, `yarn test:main:coverage`, `yarn test:renderer:coverage`, `DIFF_COVERAGE_BASE=fork/integration/electron-modernization yarn coverage:diff`. Deliberately corrupting the team name failed the baseline test and was reverted. Hosted validation remains pending; do not merge this branch ahead of PR #38.
+- Remaining navigation gap: the legacy renderer's explicit environment-change `loadURL` path is separate from cancellable navigation events and must be migrated/authorized with CAP-001/CAP-005. Custom backend switching is intentional product behavior; do not silently disable it or claim SEC-008 globally closed before this path is covered.
 - Preserve validation discipline: build TypeScript and preload bundles together before product/preload tests, never rebuild during a suite, and run Electron GUI suites serially. Keep `chromiumSandbox: true` in product probes. Standalone Playwright types have nine pre-existing generated-client/`window.wire` errors; do not call that check green.
 - SEC-006 is complete through [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37). Its and PR #39's merged remote branches and the clean temporary parser checkout were removed; commits remain in integration and user worktrees were preserved. Electron stays `43.4.0`. Production WebContentsView cutover, local scheme/CSP, permission/SSRF policy, SSO cookie/callback isolation and account-targeted lifecycle routing remain M3 work.
 
