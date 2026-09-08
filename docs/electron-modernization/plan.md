@@ -431,6 +431,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - External URLs use protocol and origin policy with adversarial tests.
 - Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. Local implementation validation is ongoing; hosted gates and production E2E remain required before completion.
 - SSO lifecycle refinement: reserve the single active flow before asynchronous initialization and retain it until cleanup completes. Repeated requests from its owner focus it; requests from another account cannot replace or control it. Close and native closed events share one captured-session cleanup operation; a new target reproduced a duplicate-cleanup `undefined.protocol` error. Failed cleanup does not mark the session reusable. CAP-002 still owns one-time callback validation, cookie scope, and full IdP acceptance.
+- Remaining cutover gate: the legacy environment-change bridge can initiate programmatic `loadURL`, which is not governed by cancellable renderer navigation events. CAP-001/CAP-005 must preserve approved custom backend switching through a main-owned destination policy before SEC-008 is globally complete.
 
 #### SEC-009 — Centralize permission policy
 
