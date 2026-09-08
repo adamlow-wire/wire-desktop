@@ -30,9 +30,36 @@ describe('dispatchDeepLink', () => {
   const sendActionSpy = spy();
 
   beforeEach(() => {
+    sendActionSpy.resetHistory();
     protocolHandler = new CustomProtocolHandler();
     replace(protocolHandler['windowManager'], 'sendActionToPrimaryWindow', sendActionSpy);
     replace(protocolHandler['windowManager'], 'sendActionAndFocusWindow', sendActionSpy);
+  });
+
+  for (const route of [
+    'user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f/wire.test',
+    'user/wire.test/266d36c0-ae62-48b5-91b5-b10ed42f1a0f',
+    'conversation/8cdb44a0-418b-4188-9a53-7c477a7848dd/wire.test',
+    'conversation/8cdb44a0-418b-4188-9a53-7c477a7848dd/files/folder/report%20one.pdf',
+    'conversation/8cdb44a0-418b-4188-9a53-7c477a7848dd/wire.test/files/folder',
+    'preferences/account',
+    'meetings',
+  ]) {
+    it(`[characterization][SEC-013] preserves the supported webapp route ${route}`, async () => {
+      await protocolHandler.dispatchDeepLink(`wire://${route}`);
+      assert.ok(sendActionSpy.calledOnceWithExactly(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, `/${route}`));
+    });
+  }
+
+  it('[characterization][SEC-013] preserves absent join domain as null at the existing dispatch boundary', async () => {
+    await protocolHandler.dispatchDeepLink('wire://conversation-join/?key=invite-key&code=invite-code');
+    assert.ok(
+      sendActionSpy.calledOnceWithExactly(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {
+        code: 'invite-code',
+        key: 'invite-key',
+        domain: null,
+      }),
+    );
   });
 
   afterEach(() => restore());
