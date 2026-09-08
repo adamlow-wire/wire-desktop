@@ -300,18 +300,33 @@ describe('SecureShellController', () => {
     const failedId = failedContents.id;
     assert.strictEqual(registry.has(failedId), true);
 
-    failedContents.forcefullyCrashRenderer();
-    await waitFor(() => {
-      const replacement = controller.getAccountWebContentsForTest();
-      return !registry.has(failedId) && Boolean(replacement && replacement.id !== failedId && !replacement.isLoading());
-    });
+    const rendererPid = failedContents.getOSProcessId();
+    assert.ok(rendererPid > 0 && rendererPid !== process.pid, 'terminate only the fixture renderer');
+    let revokedBeforeReplacement: boolean | undefined;
+    const observeReplacement = () => {
+      revokedBeforeReplacement = !registry.has(failedId);
+    };
+    app.once('web-contents-created', observeReplacement);
+    try {
+      // Real process loss without host crash-dump collection delaying the exit event.
+      process.kill(rendererPid, 'SIGKILL');
+      await waitFor(() => {
+        const replacement = controller.getAccountWebContentsForTest();
+        return (
+          !registry.has(failedId) && Boolean(replacement && replacement.id !== failedId && !replacement.isLoading())
+        );
+      });
 
-    const recoveredContents = controller.getAccountWebContentsForTest();
-    assert.ok(recoveredContents);
-    assert.strictEqual(registry.has(failedId), false);
-    assert.deepStrictEqual(await recoveredContents.executeJavaScript('window.wireDesktopProof.getRuntimeInfo()'), {
-      accountId: 'account-a',
-      contractVersion: 1,
-    });
+      const recoveredContents = controller.getAccountWebContentsForTest();
+      assert.ok(recoveredContents);
+      assert.strictEqual(revokedBeforeReplacement, true, 'revoke old authority before creating the replacement');
+      assert.strictEqual(registry.has(failedId), false);
+      assert.deepStrictEqual(await recoveredContents.executeJavaScript('window.wireDesktopProof.getRuntimeInfo()'), {
+        accountId: 'account-a',
+        contractVersion: 1,
+      });
+    } finally {
+      app.removeListener('web-contents-created', observeReplacement);
+    }
   });
 });
