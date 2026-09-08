@@ -3,7 +3,7 @@
 ## Rules
 
 - CAP-001 renderer-loss harness checkpoint: PR #40 passed all-platform gates and merged. Actual renderer termination preserves recovery/runtime assertions and deadlines, with a sensitivity-proven pre-replacement revocation check. This does not claim production account migration complete.
-- CAP-001 metadata checkpoint: sensitivity-proven reducer tests preserve targeted known metadata updates; nine hostile cases reproduce and then reject desktop-owned identity/session/state overwrites. Malformed-message and spoofed-property guards are tested. Hosted validation remains pending; main-owned production state and custom-backend destination authorization remain open.
+- CAP-001 metadata checkpoint: sensitivity-proven reducer tests preserve targeted known metadata updates; nine hostile cases reproduce and then reject desktop-owned identity/session/state overwrites. Malformed-message and spoofed-property guards are tested. Two further targets prevent cross-account picture removal and prior-state/action mutation. The real sandboxed product fixture verifies metadata rejection and separate default/persistent-session cookies across cold restarts; re-enabling unknown fields fails it. Hosted validation remains pending; main-owned production state and custom-backend destination authorization remain open.
 - This matrix tracks behavioral confidence, not implementation progress alone.
 - `current confidence` describes the verified legacy baseline.
 - `target evidence` describes what must exist before migration is accepted.
