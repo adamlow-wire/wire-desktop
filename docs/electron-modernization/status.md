@@ -2,17 +2,17 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-08
 milestone: M3
-active_work_item: SEC-008
-state: navigation-policy-ci-pending
+active_work_item: CAP-002
+state: sso-native-completion-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: cc8fc01d
+integration_head_commit: 67dfb5db
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-008-navigation-policy-2026-09-08
-next_work_item: CAP-001
+related_pending_branch: cap/CAP-002-sso-completion-2026-09-08
+next_work_item: SEC-010
 blockers: []
 ---
 
@@ -76,21 +76,22 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) closed SEC-005 with isolated immutable bridges. [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) then closed SEC-006 as `5926e3d0` on 2026-09-08: production preloads are bundled, application-wide sandboxing is enabled, and final-head build, lint, analysis, all-platform packages, authenticated Windows/macOS E2E, and reports passed. The product still uses DOM webviews, `file://`, and `unsafe-eval`; M3 is not complete.
 
-| Field         | Value                                                          |
-| ------------- | -------------------------------------------------------------- |
-| Work item     | SEC-008 — Centralize navigation and window-open policy         |
-| Owner         | `adamlow-wire`                                                 |
-| Active branch | `sec/SEC-008-navigation-policy-2026-09-08`                     |
-| Goal          | Enforce navigation and popup policy with real allow/deny tests |
-| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                         |
+| Field         | Value                                                                              |
+| ------------- | ---------------------------------------------------------------------------------- |
+| Work item     | CAP-002 — Restore isolated SSO backend completion                                  |
+| Owner         | `adamlow-wire`                                                                     |
+| Active branch | `cap/CAP-002-sso-completion-2026-09-08`                                            |
+| Goal          | Deliver one authorized backend verdict to the initiating account without an opener |
+| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                             |
 
 ## Next executable sequence
 
-1. PRs #39 and #40 are merged. Validate synchronized PR #38 against integration `cc8fc01d`; require final-head build, package and authenticated E2E checks before merging.
-2. Continue the production secure-shell cutover through SEC-007, SEC-010, and CAP-001. SEC-008 is being completed first because it is independently executable on the legacy product path and supplies policy for that cutover.
-3. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
-4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
-5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
+1. Monitor metadata PR #41 at `85ba1c79`: final build/lint/analysis and all-platform packages pass; authenticated E2E run `34234966274` is active. Merge only after final-head Windows/macOS E2E and reports pass.
+2. Finish CAP-002 local validation, publish its own PR, and require all final-head platform gates. The backend-style fixture reproduces missing success/error delivery through isolated windows while the legacy opener control passes. Native redirect handling now passes locally; no live IdP completion is claimed yet.
+3. Synchronize and validate CSP draft PR #42 after PR #41. Then continue production secure-shell cutover through SEC-007, SEC-010 and CAP-001.
+4. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
+5. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
+6. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
 
@@ -116,6 +117,12 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-006 — Enable renderer sandboxing everywhere | PR #37; actual OS sandbox, bundled preloads, all-platform CI and E2E |
 
 ## Last verified state
+
+CAP-002 implementation `09260335`: fresh per-flow ephemeral sessions, 192-bit closure-owned one-use callback secrets, exact callback URL/type/error-label validation, originating-backend cookie scope, account-local transfer, cancellation checks and protocol responses. The two native backend verdict tests failed before the fix; legacy controls passed. All three previously quarantined security assertions now pass, and disabling their individual protections reproduced all three failures before restoration. The baseline verdict mutation failed both legacy controls. Final local: 431 main tests (zero pending), renderer 4/4, React 64/64, tools 35/35, application/Mocha types; changed statements 66/69 (95.65%), full SSO branches 108/119 (90.76%). The rebuilt sandboxed product navigation/two-cycle SSO fixture passes in 3.4 seconds. Commands: `yarn test:main:coverage`, `yarn test:renderer:coverage`, `yarn test:react:coverage --modulePathIgnorePatterns '<rootDir>/wrap/'`, `DIFF_COVERAGE_BASE=fork/integration/electron-modernization yarn coverage:diff`, `env -u ELECTRON_RUN_AS_NODE yarn playwright test e2e-tests/specs/regression/accountNavigation.spec.ts --project=macOS --workers=1` (actual local Linux). Hosted and controlled live IdP evidence remain required; a non-secret request for dedicated staging SSO access has been sent while other work continues.
+
+PR #41 synchronized validation (2026-09-08): 405 main tests pass with the same 3 CAP-002 targets pending; renderer 4/4, React 94/94, tools 35/35, application/Mocha types and changed coverage 9/9 statements pass. Three serial uninstrumented cold-restart tests pass (23.4 seconds). Earlier local attempts intermittently stalled at view startup or application quit; diagnostic logging found no policy denial, and no runtime fix or timeout increase is claimed. The readiness assertion now checks exactly two loaded account URLs, not just a count. Final-head hosted gates remain required.
+
+CAP-002 source finding: sibling webapp `auth/page/login/singleSignOn.tsx` starts SSO without redirect parameters and consumes backend-origin message events; sibling server `services/spar/src/Spar/App.hs` emits the web verdict through `window.opener`. Its native `success_redirect`/`error_redirect` alternative is already supported (`Spar/API.hs`: both URLs required, scheme starts with `wire`, maximum 140 bytes). Reproduce completion locally before implementing it; do not infer live IdP success from the existing synthetic callback/open-close tests.
 
 | Check | Result | Date |
 | --- | --- | --- |
@@ -197,13 +204,15 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
+- [CSP draft PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) is published at `b7bc42b0` on `sec/SEC-010-shell-csp-2026-09-08`. Actual production/development startup and ordinary-script eval/Function denial pass; 368 main (3 existing SSO targets pending), renderer 4/4, React 67/67, tools 38/38 and types/lint pass. Generated renderer JS is excluded from source type checking without excluding source. It preserves the current storage origin; custom-scheme/account migration remains open. Synchronize after PR #41 and require final hosted evidence before merge.
+
 - Synchronized PR #38 local validation passes 405 main tests with 3 existing CAP-002 targets pending, all 64 React tests, application and Mocha types. The recovery test now completes without the prior host crash-capture delay. Final-head hosted validation is still required.
-- Integration is `cc8fc01d`. [PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) merged after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325605), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325572), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325647) passed. Its Windows proxy fixture hit the unchanged 2-second timeout once; one failed-job rerun passed. Incoming parsing is implemented, but SEC-013 external/lifecycle acceptance remains open.
+- Integration is `67dfb5db` after PR #38. [PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) merged after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325605), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325572), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325647) passed. Its Windows proxy fixture hit the unchanged 2-second timeout once; one failed-job rerun passed. Incoming parsing is implemented, but SEC-013 external/lifecycle acceptance remains open.
 - [Test-only PR #40](https://github.com/adamlow-wire/wire-desktop/pull/40) merged as `cc8fc01d` after final-head build/test, lint, analysis and [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34227062520) passed. E2E was deferred under DEC-008. The fixture terminates only its verified renderer PID without a core dump; runtime recovery code and deadlines are unchanged. Local forced-crash diagnostics timed out before process-loss notification on a WSL crash-capture host. Non-dumping termination notified at 29 ms and recovered at 153 ms. The added assertion proves old authority is revoked before replacement creation; delaying revocation to the next main-loop turn fails it. No host-wide settings changed.
 - PR #40's post-parser-merge main suite passes 366 tests in 8 seconds with 3 existing CAP-002 targets pending; React passes 64/64, application/Mocha types and lint pass. The independent pre-merge baseline passed 338 main tests, renderer 4/4 and build tools 35/35. No runtime statements changed; all final platform gates passed.
 - [PR #38](https://github.com/adamlow-wire/wire-desktop/pull/38) head `0cfa5327` fixes staging's same-origin referrer policy and preserves normal/custom chat links. Main-owned source origin authorizes fixed popup destinations; a referrer may be omitted, but a foreign nonempty referrer is rejected. Real local targets reproduced blocked PiP/SSO; the staging-header product fixture now covers detached-call DOM/session compatibility, internal profile-link routing with zero OS calls, hostile navigation/redirect denial and two SSO cycles (2.7 seconds). Local runs use Linux despite the existing macOS Playwright project label.
-- PR #38's previous head passed build/lint/analysis, all-platform packages and Windows E2E. [macOS E2E](https://github.com/adamlow-wire/wire-desktop/actions/runs/34224729745/job/102055954845) failed: initial staging account creation failed; both retries then passed every 1:1/group-call assertion but failed in `createPage` cleanup with `Page.handleJavaScriptDialog: session closed`. The retained report confirms completed popup/camera/hang-up steps. A local fixture target reproduces two asynchronous unload dialogs immediately before context destruction. Direct test-context closure passes that target (3.4 seconds), without changing application close behavior or call assertions. PR #38 is synchronized with both merged prerequisites and includes this cleanup correction; require its final-head gates, not the previous head's results.
-- Follow-on CAP-001 metadata work is committed locally on `cap/CAP-001-account-metadata-2026-09-08`: baseline `9d96f73c`, fix `b08fecc5`. Nine hostile metadata cases reproduced desktop-owned field overwrites; strict object validation and a non-throwing user-ID guard pass 37 focused / 92 full React tests. Full combined coverage and hosted validation remain pending. Do not merge this branch ahead of PR #38.
+- [PR #38](https://github.com/adamlow-wire/wire-desktop/pull/38) merged as `67dfb5db` after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34228799065), lint/analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34228800662), and [authenticated Windows/macOS E2E plus reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34228799004) passed. The final run needed no rerun. Earlier macOS retries passed calling assertions but raced unload dialogs during test cleanup; the local target reproduced this and direct test-context closure fixed it without changing application close behavior.
+- Active [CAP-001 metadata PR #41](https://github.com/adamlow-wire/wire-desktop/pull/41) is a draft on `cap/CAP-001-account-metadata-2026-09-08`: baseline `9d96f73c`, fixes `b08fecc5` and `2561fbd0`. Nine hostile metadata cases reproduced desktop-owned field overwrites; six guard cases failed on malformed messages before the fix. Strict object validation and a non-throwing user-ID guard pass 39 focused / 94 full React tests, 366 main tests (3 existing CAP-002 targets pending), renderer 4/4 and build tools 35/35. Application/Mocha types, lint and changed coverage pass: 9/9 statements, all 5 metadata-guard branches and all 10 targeted reducer branches. Commands: `yarn test:react:coverage --modulePathIgnorePatterns '<rootDir>/wrap/'`, `yarn test:main:coverage`, `yarn test:renderer:coverage`, `DIFF_COVERAGE_BASE=fork/integration/electron-modernization yarn coverage:diff`. Deliberately corrupting the team name failed the baseline test and was reverted. Two further targets reproduced cross-account picture removal and mutation of prior state/action data; the reducer now updates only a copied target record. The real sandboxed product fixture passes in 8.9 seconds: legitimate updates, hostile identity/session rejection, retained other-account picture, and distinct default/persistent-session cookies across cold restarts. Re-enabling unknown fields makes that product test fail; the mutation was restored and the final test passed. Standalone Playwright types retain only the same nine pre-existing errors. PR #38 is now merged and synchronized into this branch. Revalidate the combined sources and require final-head hosted gates.
 - Remaining navigation gap: the legacy renderer's explicit environment-change `loadURL` path is separate from cancellable navigation events and must be migrated/authorized with CAP-001/CAP-005. Custom backend switching is intentional product behavior; do not silently disable it or claim SEC-008 globally closed before this path is covered.
 - Preserve validation discipline: build TypeScript and preload bundles together before product/preload tests, never rebuild during a suite, and run Electron GUI suites serially. Keep `chromiumSandbox: true` in product probes. Standalone Playwright types have nine pre-existing generated-client/`window.wire` errors; do not call that check green.
 - SEC-006 is complete through [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37). Its and PR #39's merged remote branches and the clean temporary parser checkout were removed; commits remain in integration and user worktrees were preserved. Electron stays `43.4.0`. Production WebContentsView cutover, local scheme/CSP, permission/SSRF policy, SSO cookie/callback isolation and account-targeted lifecycle routing remain M3 work.

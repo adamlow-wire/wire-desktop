@@ -480,7 +480,9 @@ describe('SingleSignOn', () => {
         assert.strictEqual(child.isDestroyed(), true);
       } finally {
         SingleSignOn['generateSecret'] = original;
-        if (!child.isDestroyed()) child.destroy();
+        if (!child.isDestroyed()) {
+          child.destroy();
+        }
         parent.destroy();
       }
     });
