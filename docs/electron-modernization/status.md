@@ -6,7 +6,7 @@ active_work_item: CAP-002
 state: sso-native-completion-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 67dfb5db
+integration_head_commit: ebda3707
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
@@ -86,9 +86,9 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Next executable sequence
 
-1. Monitor metadata PR #41 at `85ba1c79`: final build/lint/analysis and all-platform packages pass; authenticated E2E run `34234966274` is active. Merge only after final-head Windows/macOS E2E and reports pass.
-2. Finish CAP-002 local validation, publish its own PR, and require all final-head platform gates. The backend-style fixture reproduces missing success/error delivery through isolated windows while the legacy opener control passes. Native redirect handling now passes locally; no live IdP completion is claimed yet.
-3. Synchronize and validate CSP draft PR #42 after PR #41. Then continue production secure-shell cutover through SEC-007, SEC-010 and CAP-001.
+1. Metadata PR #41 merged as `ebda3707` after final-head build/lint/analysis, all-platform packages and [authenticated Windows/macOS E2E plus reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34234966274) passed without a rerun.
+2. [SSO PR #43](https://github.com/adamlow-wire/wire-desktop/pull/43) passed its independent build/lint/analysis and all-platform package checks at `fe549aae`. Validate its synchronization with PR #41, then require final-head authenticated E2E and all other applicable gates. Native backend-style completion passes locally; no live IdP completion is claimed yet.
+3. Synchronize and validate CSP draft PR #42 after PR #43. SEC-012 baseline commit `41882ee3` separately characterizes preview image/fallback behavior; five new deny targets reproduce direct, redirected and image private-network access and are safely stored in the named SEC-012 stash pending implementation. Continue that existing item while CI runs, then production secure-shell cutover through SEC-007, SEC-010 and CAP-001.
 4. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 5. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
 6. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.

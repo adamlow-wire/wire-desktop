@@ -161,7 +161,7 @@ export const addAccountWithSession = () => {
   };
 };
 
-export const updateAccountData = (id: string, data: Partial<Account>) => {
+export const updateAccountData = (id: string, data: unknown) => {
   const accountDataSchema = Joi.object({
     accentID: Joi.number(),
     availability: Joi.number().optional(),
@@ -172,7 +172,9 @@ export const updateAccountData = (id: string, data: Partial<Account>) => {
     teamRole: Joi.string(),
     userID: Joi.string(),
     webappUrl: Joi.string(),
-  }).unknown(true);
+  })
+    .unknown(false)
+    .required();
 
   return (dispatch: AppDispatch) => {
     const validatedAccountData = accountDataSchema.validate(data);
