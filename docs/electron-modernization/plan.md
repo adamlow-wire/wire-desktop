@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.11
+revision: 1.5.12
 status: draft
 updated: 2026-09-08
 owners:
@@ -423,6 +423,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Dependencies: SEC-002
 - Scope: Enforce allowed origins, navigation types, external destinations, SSO windows, PiP windows, and denial behavior.
 - Boundary contract: Account navigation and redirects remain on the main-registered exact HTTP(S) origin; malformed, credential-bearing, opaque, and scheme-confused URLs fail closed. Popups require the actual main-owned source URL to match the registered account origin. Ordinary external links may omit referrers (the webapp uses `noreferrer`); any nonempty foreign referrer is denied. SSO and PiP additionally require an account-origin referrer. PiP retains the required empty/about:blank and same-origin flows with secure preferences and account-session isolation. SSO is created by main in its isolated session, not by accepting a renderer-created child whose session override is ineffective; `window.open` returns null, while existing desktop close/focus/result events remain the control path. SSO permits HTTPS IdP navigation, the initial origin for existing local HTTP fixtures, and its exact bounded callback scheme/host. Reload, crash, or destruction of the initiating view closes its SSO window. Auxiliary resources have explicit cancellation; developer windows deny new windows. The shared external parser preserves HTTP(S), FTP, and bounded mailto while excluding app-protocol recursion, credentials, controls, backslashes, and oversized input. SEC-013 retains incoming deep-link parsing and lifecycle routing; reuse its existing parser work rather than creating an overlapping task.
+- Execution: PR #38 is held for normal/custom chat-link compatibility. Source-origin authorization preserves `noreferrer` links; strict incoming parsing from SEC-013 is an independently executable prerequisite for internal app-protocol popup routing. Do not merge a blanket denial of supported links.
 - Acceptance:
   - Unexpected navigation is prevented, not merely logged.
   - New windows default to deny.
@@ -493,13 +494,15 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Priority: `P0`
 - Status: `in_progress`
 - Milestone: `M3`
-- Dependencies: SEC-003, SEC-008
+- Dependencies: SEC-003; SEC-008 for final popup/external closure (incoming parsing is independently executable)
 - Scope: Parse custom-protocol and external-link inputs with strict schemas and explicit action routing.
 - Acceptance:
   - Happy paths, malformed input, oversized input, encoded-delimiter, protocol-confusion, and recursion cases are tested.
   - Deep links cannot invoke arbitrary IPC or navigation.
   - External links cannot invoke dangerous local protocols.
-- Evidence: Local branch `sec/SEC-013-deep-link-policy` contains sensitivity-proven fail-closed parsing and external-protocol policy tests; rebase and dependency reconciliation are required before publication.
+- Boundary contract: Only bounded recognized user/conversation (including federated and file-list), preferences, meetings, SSO, login and join actions are accepted. Malformed paths, traversal, encoded path delimiters, credentials, ports, fragments, unknown routes, duplicate/unknown parameters and invalid backend domains fail closed. Absent join domain stays null at the existing dispatch boundary. Desktop has no existing access/config route; adding remote backend configuration remains CAP-005 scope.
+- Execution split: Publish incoming parsing independently on `sec/SEC-013-incoming-links-2026-09-08`, then reuse it in SEC-008 for safe internal popup routing. Do not close SEC-013 until external-link and lifecycle acceptance is evidenced.
+- Evidence: Existing parser work was reconciled without restoring raw IPC. Thirteen baseline dispatch tests pass; destination mutation fails all seven added route tests. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks initially pass 36/36; final full Electron-main run passes 366 with 3 owned CAP-002 targets pending, Jest passes 64/64. Hosted validation and changed coverage are pending. Route contracts were checked against sibling webapp page/appMain.tsx and router/routeGenerator.ts; domains against sibling server libs/types-common/src/Data/Domain.hs.
 
 ### 10.3 Electron and dependency currency
 
@@ -876,6 +879,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.12 | 2026-09-08 | Codex | Recorded merged sandboxing evidence and split incoming deep-link parsing ahead of navigation merge to preserve valid chat links; retained external/lifecycle closure | SEC-006, SEC-008, SEC-013, CAP-005, CAP-006 |
 | 1.5.11 | 2026-09-08 | Codex | Closed sandboxing with merged PR #37 and final-head cross-platform evidence; began central navigation policy and documented main-owned SSO creation after reproducing ineffective child-session overrides | SEC-006, SEC-008, SEC-013, DCP-003, DCP-009, DCP-011, DCP-014 |
 | 1.5.10 | 2026-09-08 | Codex | Began sandbox-compatible preload bundling and explicit main-owned bootstrap/image-copy contracts; local validation and hosted gates remain open | SEC-006, INV-001, INV-002, DCP-014 |
 | 1.5.9 | 2026-09-07 | Codex | Closed isolated bridges with merged PR #35 and cross-platform evidence; resolved adapter ownership and made sandboxing executable | SEC-005, SEC-006, Q-003, INV-002 |
