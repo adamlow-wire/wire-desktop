@@ -40,8 +40,10 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
   let origin: string;
   let createdSso: SingleSignOn | undefined;
   const external: string[] = [];
+  const deepLinks: string[] = [];
   beforeEach(async () => {
     external.length = 0;
+    deepLinks.length = 0;
     createdSso = undefined;
     server = createServer((_request, response) => {
       response.setHeader('Content-Type', 'text/html');
@@ -58,23 +60,29 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
         nodeIntegration: false,
       },
     });
+    const popupContext = {
+      accountOrigin: origin,
+      accountSession: parent.webContents.session,
+      openExternal: (url: string) => {
+        external.push(url);
+      },
+      openDeepLink: (url: string) => {
+        deepLinks.push(url);
+      },
+      openSso: (url: string) => {
+        createdSso = SingleSignOn.create(
+          parent,
+          parent.webContents,
+          Maybe.nothing<string>(),
+          url,
+          new ViewIdentityRegistry(),
+        );
+      },
+    };
     parent.webContents.setWindowOpenHandler(details =>
       handleAccountWindowOpen(details, {
-        accountOrigin: origin,
+        ...popupContext,
         sourceUrl: parent.webContents.getURL(),
-        accountSession: parent.webContents.session,
-        openExternal: url => {
-          external.push(url);
-        },
-        openSso: url => {
-          createdSso = SingleSignOn.create(
-            parent,
-            parent.webContents,
-            Maybe.nothing<string>(),
-            url,
-            new ViewIdentityRegistry(),
-          );
-        },
       }),
     );
     await parent.loadURL(origin);
@@ -102,6 +110,22 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
       undefined;
     `);
     assert.deepStrictEqual(external, ['https://example.test/message']);
+    assert.strictEqual(BrowserWindow.getAllWindows().filter(window => window.getParentWindow() === parent).length, 0);
+  });
+
+  it('dispatches recognized custom chat links internally without opening the OS protocol handler', async () => {
+    const url = 'wire://user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f';
+    await parent.webContents.executeJavaScript(`
+      const link = document.createElement('a');
+      link.href = ${JSON.stringify(url)};
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.append(link);
+      link.click();
+      undefined;
+    `);
+    assert.deepStrictEqual(deepLinks, [url]);
+    assert.deepStrictEqual(external, []);
     assert.strictEqual(BrowserWindow.getAllWindows().filter(window => window.getParentWindow() === parent).length, 0);
   });
 
@@ -177,6 +201,9 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
           openExternal: url => {
             external.push(url);
           },
+          openDeepLink: url => {
+            deepLinks.push(url);
+          },
           openSso: url => {
             ssoUrls.push(url);
           },
@@ -186,6 +213,9 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
     assert.deepStrictEqual(decide('https://idp.test', 'WIRE_SSO', 'https://foreign.test'), {action: 'deny'});
     assert.deepStrictEqual(external, []);
     assert.deepStrictEqual(ssoUrls, []);
+    assert.deepStrictEqual(decide('wire://unknown', '_blank'), {action: 'deny'});
+    assert.deepStrictEqual(decide('wire://start-login', '_blank', 'https://foreign.test'), {action: 'deny'});
+    assert.deepStrictEqual(deepLinks, []);
     assert.deepStrictEqual(decide('https://example.test/', '_blank'), {action: 'deny'});
     assert.deepStrictEqual(external, ['https://example.test/']);
     const sso = decide('https://idp.test', 'WIRE_SSO');

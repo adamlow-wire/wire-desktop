@@ -151,5 +151,12 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
       'deny',
     );
     assert.strictEqual(selectAccountPopup({...request, url: 'javascript:alert(1)'}), 'deny');
+    assert.strictEqual(selectAccountPopup({...request, url: 'wire://start-login'}), 'deep-link');
+    assert.strictEqual(selectAccountPopup({...request, url: 'wire://unknown'}), 'deny');
+    assert.strictEqual(
+      selectAccountPopup({...request, url: 'wire://start-login', sourceUrl: 'https://foreign.test'}),
+      'deny',
+    );
+    assert.strictEqual(selectAccountPopup({...request, url: 'wire://start-login', frameName: 'WIRE_SSO'}), 'deny');
   });
 });

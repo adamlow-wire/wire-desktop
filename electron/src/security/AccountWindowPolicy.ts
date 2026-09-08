@@ -30,6 +30,7 @@ export const handleAccountWindowOpen = (
     accountOrigin: string | undefined;
     sourceUrl: string;
     openExternal: (url: string) => void;
+    openDeepLink: (url: string) => void;
     openSso: (url: string) => void;
   },
 ): WindowOpenHandlerResponse => {
@@ -56,6 +57,9 @@ export const handleAccountWindowOpen = (
   }
   if (decision === 'external') {
     context.openExternal(details.url);
+  }
+  if (decision === 'deep-link') {
+    context.openDeepLink(details.url);
   }
   return {action: 'deny'};
 };

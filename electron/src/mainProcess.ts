@@ -716,6 +716,8 @@ class ElectronWrapperInit {
               accountOrigin,
               sourceUrl: contents.getURL(),
               openExternal: url => mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(url)),
+              openDeepLink: url =>
+                mainProcessFireAndForgetInvoker.fireAndForget(() => customProtocolHandler.dispatchDeepLink(url)),
               openSso: url =>
                 mainProcessFireAndForgetInvoker.fireAndForget(() =>
                   this.ssoWindows.open(registeredAccountId, () =>

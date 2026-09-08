@@ -17,6 +17,7 @@
  *
  */
 
+import {parseDeepLink} from './deepLinkPolicy';
 import {parseExternalUrl} from './externalLinkPolicy';
 
 export const parseNetworkNavigation = (value: string): URL | undefined => {
@@ -39,7 +40,7 @@ export const isAllowedAccountNavigation = (value: string, allowedOrigin: string 
   return Boolean(url && allowedOrigin && url.origin === allowedOrigin);
 };
 
-export type AccountPopupDecision = 'sso' | 'picture-in-picture' | 'external' | 'deny';
+export type AccountPopupDecision = 'sso' | 'picture-in-picture' | 'external' | 'deep-link' | 'deny';
 
 export const isAllowedSsoNavigation = (value: string, initialOrigin: string, callbackProtocol: string): boolean => {
   const networkUrl = parseNetworkNavigation(value);
@@ -90,6 +91,9 @@ export const selectAccountPopup = (request: {
         isAllowedAccountNavigation(request.url, request.accountOrigin))
       ? 'picture-in-picture'
       : 'deny';
+  }
+  if (parseDeepLink(request.url)) {
+    return 'deep-link';
   }
   if (parseExternalUrl(request.url)) {
     return 'external';

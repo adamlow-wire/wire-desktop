@@ -98,6 +98,32 @@ test(
         expect(hostileRequests).toBe(0);
       }
 
+      const profileRoute = '/user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f';
+      const deepLinkResult = await app.evaluate(async ({webContents, shell}, route) => {
+        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+        const externalCalls: string[] = [];
+        const openExternal = shell.openExternal;
+        shell.openExternal = async url => {
+          externalCalls.push(url);
+        };
+        try {
+          const hash = await account.executeJavaScript(`new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Custom link was not routed internally')), 3000);
+            window.addEventListener('hashchange', () => {
+              clearTimeout(timeout); resolve(location.hash);
+            }, {once:true});
+            const link = document.createElement('a');
+            link.href = ${JSON.stringify(`wire:/${route}`)};
+            link.target = '_blank'; link.rel = 'noopener noreferrer';
+            document.body.append(link); link.click();
+          })`);
+          return {hash, externalCalls};
+        } finally {
+          shell.openExternal = openExternal;
+        }
+      }, profileRoute);
+      expect(deepLinkResult).toEqual({hash: `#${profileRoute}`, externalCalls: []});
+
       for (let attempt = 0; attempt < 2; attempt++) {
         expect(
           await app.evaluate(async ({webContents}, origin) => {
