@@ -53,4 +53,37 @@ describe('developer menu view identity', () => {
     assert.strictEqual(preferences.sandbox, true);
     assert.strictEqual(preferences.nodeIntegrationInSubFrames, false);
   });
+
+  it('[security-target][SEC-008] denies navigation and child windows from WebRTC internals', async () => {
+    const registry = new ViewIdentityRegistry();
+    const menu = createDeveloperMenu(registry);
+    const item = menu.submenu?.items.find(candidate => candidate.label === 'Toggle WebRTC Internals');
+    assert.ok(item);
+    item.click(undefined as never, undefined as never, undefined as never);
+    const window = BrowserWindow.getAllWindows().find(candidate => registry.has(candidate.webContents.id));
+    assert.ok(window);
+    window.hide();
+    if (window.webContents.isLoading()) {
+      await new Promise<void>(resolve => window.webContents.once('did-finish-load', () => resolve()));
+    }
+    let popups = 0;
+    window.webContents.on('did-create-window', () => {
+      popups++;
+    });
+    await window.webContents.executeJavaScript("window.open('about:blank'); undefined");
+    assert.strictEqual(popups, 0);
+    for (const name of ['will-navigate', 'will-redirect']) {
+      let prevented = false;
+      window.webContents.emit(
+        name,
+        {
+          preventDefault: () => {
+            prevented = true;
+          },
+        },
+        'https://untrusted.test',
+      );
+      assert.strictEqual(prevented, true, name);
+    }
+  });
 });

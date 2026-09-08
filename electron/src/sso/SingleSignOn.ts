@@ -37,6 +37,7 @@ import {executeJavaScriptWithoutResult} from '../lib/ElectronUtil';
 import {writeBoundedLogMessage} from '../logging/desktopLogWriter';
 import {ENABLE_LOGGING, getLogger} from '../logging/getLogger';
 import {getLogDirectory, getSsoLogPath} from '../logging/logPaths';
+import {isAllowedSsoNavigation} from '../security/NavigationPolicy';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import * as WindowUtil from '../window/WindowUtil';
@@ -65,6 +66,7 @@ export class SingleSignOn {
   public static loginAuthorizationSecret: string | undefined;
 
   private session: Session | undefined;
+  private sessionCleanup: Promise<void> | undefined;
   private ssoWindow: BrowserWindow | undefined;
   private readonly senderWebContents: WebContents;
   private readonly accountId: Maybe<string>;
@@ -131,6 +133,33 @@ export class SingleSignOn {
     return this;
   };
 
+  public static create(
+    parent: BrowserWindow,
+    sender: WebContents,
+    accountId: Maybe<string>,
+    url: string,
+    registry: ViewIdentityRegistry,
+  ): SingleSignOn {
+    const options = SingleSignOn.getSingleSignOnLoginWindowOptions(parent, url);
+    const window = new BrowserWindow(options);
+    const singleSignOn = new SingleSignOn(window, sender, accountId, url, options, registry);
+    const close = () => singleSignOn.close();
+    const closeOnNavigation = (_event: ElectronEvent, _url: string, isInPlace: boolean, isMainFrame: boolean) => {
+      if (isMainFrame && !isInPlace) {
+        close();
+      }
+    };
+    sender.once('destroyed', close);
+    sender.once('render-process-gone', close);
+    sender.on('did-start-navigation', closeOnNavigation);
+    window.once('closed', () => {
+      sender.removeListener('destroyed', close);
+      sender.removeListener('render-process-gone', close);
+      sender.removeListener('did-start-navigation', closeOnNavigation);
+    });
+    return singleSignOn;
+  }
+
   private setupBrowserWindow(): void {
     if (!this.ssoWindow) {
       throw new Error('ssoWindow is not defined');
@@ -143,16 +172,13 @@ export class SingleSignOn {
     }
 
     ssoWindow.once('closed', async () => {
-      if (this.session) {
-        await this.wipeSessionData();
-        const unregisterSuccess = SingleSignOn.unregisterProtocol(this.session);
-        if (!unregisterSuccess) {
-          throw new Error('Failed to unregister protocol');
-        }
-      }
-      this.onClose();
-      this.session = undefined;
       this.ssoWindow = undefined;
+      try {
+        await this.cleanupSession();
+        this.onClose();
+      } catch (error) {
+        SingleSignOn.logger.error('SSO session cleanup failed; the flow remains unavailable.', error);
+      }
     });
 
     // Prevent title updates
@@ -164,15 +190,24 @@ export class SingleSignOn {
       return {action: 'deny'};
     });
 
-    ssoWindow.webContents.on('will-navigate', (event: ElectronEvent, url: string) => {
-      const {origin} = new URL(url);
-
-      if (origin.length > SingleSignOn.MAX_LENGTH_ORIGIN) {
+    const guardNavigation = (event: ElectronEvent, url: string): void => {
+      let origin: string;
+      try {
+        origin = new URL(url).origin;
+      } catch {
+        event.preventDefault();
+        return;
+      }
+      if (
+        origin.length > SingleSignOn.MAX_LENGTH_ORIGIN ||
+        !isAllowedSsoNavigation(url, this.windowOriginUrl.origin, SingleSignOn.SSO_PROTOCOL)
+      ) {
         event.preventDefault();
       }
-
       ssoWindow.setTitle(SingleSignOn.getWindowTitle(origin));
-    });
+    };
+    ssoWindow.webContents.on('will-navigate', guardNavigation);
+    ssoWindow.webContents.on('will-redirect', guardNavigation);
 
     if (ENABLE_LOGGING) {
       ssoWindow.webContents.on('console-message', async (_event, _level, message) => {
@@ -197,14 +232,9 @@ export class SingleSignOn {
   close = () => {
     (async () => {
       if (this.session) {
-        await this.wipeSessionData();
-        const unregisterSuccess = SingleSignOn.unregisterProtocol(this.session);
-        if (!unregisterSuccess) {
-          console.error('Failed to unregister protocol');
-        }
+        await this.cleanupSession();
       }
       this.ssoWindow?.close();
-      this.session = undefined;
       this.ssoWindow = undefined;
     })()
       .then(console.info)
@@ -223,13 +253,15 @@ export class SingleSignOn {
   public static getSingleSignOnLoginWindowOptions = (
     parent: BrowserWindow,
     origin: string,
-  ): Electron.BrowserWindowConstructorOptions =>
-    WindowUtil.getNewWindowOptions({
+  ): Electron.BrowserWindowConstructorOptions => {
+    const options = WindowUtil.getNewWindowOptions({
       title: SingleSignOn.getWindowTitle(origin),
       parent,
       width: 480,
       height: 600,
     });
+    return {...options, webPreferences: {...options.webPreferences, partition: SingleSignOn.SSO_SESSION_NAME}};
+  };
 
   // Returns an empty string if the origin is a Wire backend
   public static getWindowTitle = (origin: string): string =>
@@ -341,7 +373,22 @@ export class SingleSignOn {
     await executeJavaScriptWithoutResult(snippet, this.senderWebContents);
   }
 
-  private async wipeSessionData() {
-    await this.session?.clearStorageData(undefined);
+  private cleanupSession(): Promise<void> {
+    if (!this.sessionCleanup) {
+      const session = this.session;
+      this.session = undefined;
+      this.sessionCleanup = (async () => {
+        if (session) {
+          await session.clearStorageData(undefined);
+          if (
+            !SingleSignOn.unregisterProtocol(session) &&
+            session.protocol.isProtocolRegistered(SingleSignOn.SSO_PROTOCOL)
+          ) {
+            throw new Error('Failed to unregister protocol');
+          }
+        }
+      })();
+    }
+    return this.sessionCleanup;
   }
 }

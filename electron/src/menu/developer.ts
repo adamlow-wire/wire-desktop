@@ -23,6 +23,7 @@ import {executeJavaScriptWithoutResult} from '../lib/ElectronUtil';
 import {getAvailableEnvironments, setEnvironment} from '../runtime/EnvironmentUtil';
 import * as lifecycle from '../runtime/lifecycle';
 import {registerDeveloperToolViewIdentity, WEBRTC_INTERNALS_URL} from '../security/DeveloperToolViewIdentity';
+import {bindNavigationGuard} from '../security/NavigationGuard';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import {WindowManager} from '../window/WindowManager';
@@ -121,8 +122,9 @@ const openWebRTCInternals = (registry: ViewIdentityRegistry) => {
   });
 
   win.webContents.setWindowOpenHandler(() => ({
-    action: 'allow',
+    action: 'deny',
   }));
+  bindNavigationGuard(win.webContents, url => url === WEBRTC_INTERNALS_URL);
 
   registerDeveloperToolViewIdentity(registry, win.webContents);
   void win.loadURL(WEBRTC_INTERNALS_URL);

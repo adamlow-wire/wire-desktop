@@ -20,12 +20,11 @@
 import {BaseWindow, BrowserWindow, screen, shell} from 'electron';
 
 import * as path from 'path';
-import {URL} from 'url';
 
 import {showWarningDialog} from '../lib/showDialog';
 import * as locale from '../locale';
 import {getLogger} from '../logging/getLogger';
-import {config} from '../settings/config';
+import {parseExternalUrl} from '../security/externalLinkPolicy';
 
 const logger = getLogger(path.basename(__filename));
 
@@ -59,21 +58,15 @@ export const isInView = (win: BrowserWindow): boolean => {
 
 export const openExternal = async (url: string, httpsOnly: boolean = false): Promise<void> => {
   try {
-    const urlProtocol = new URL(url).protocol || '';
-    const allowedProtocols = ['https:'];
-
-    if (!httpsOnly) {
-      allowedProtocols.push('ftp:', 'http:', 'mailto:', `${config.customProtocolName}:`);
-    }
-
-    if (!allowedProtocols.includes(urlProtocol)) {
-      logger.warn(`Prevented opening external URL "${url}".`);
-      const dialogText = `${locale.getText('urlBlockedPromptText')}\n\n${url}`;
+    const externalUrl = parseExternalUrl(url, httpsOnly);
+    if (!externalUrl) {
+      logger.warn('Prevented opening an unapproved external URL.');
+      const dialogText = `${locale.getText('urlBlockedPromptText')}\n\n${String(url).slice(0, 2048)}`;
       showWarningDialog(dialogText);
       return;
     }
 
-    await shell.openExternal(url);
+    await shell.openExternal(externalUrl);
   } catch (error) {
     logger.error(error);
   }

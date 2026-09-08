@@ -20,6 +20,8 @@
 import {app, BrowserWindow, ipcMain, session, WebPreferences} from 'electron';
 
 import * as assert from 'assert';
+import {createServer} from 'http';
+import {AddressInfo} from 'net';
 import * as path from 'path';
 import {pathToFileURL} from 'url';
 
@@ -75,6 +77,53 @@ describe('auxiliary window identity', () => {
       }
     }
   });
+
+  for (const kind of ['about', 'proxy-prompt'] as const) {
+    it(`[security-target][SEC-008] explicitly cancels unknown ${kind} requests and serves its own stylesheet`, async function () {
+      this.timeout(10_000);
+      ipcMain.handle(PROXY_PROMPT_LOCALE_READ_CHANNEL, () => ({}));
+      const window = await (kind === 'about' ? AboutWindow : ProxyPromptWindow).showWindow(new ViewIdentityRegistry());
+      windows.push(window);
+      for (const event of ['will-navigate', 'will-redirect']) {
+        let prevented = false;
+        window.webContents.emit(
+          event,
+          {
+            preventDefault: () => {
+              prevented = true;
+            },
+          },
+          'https://unapproved.test',
+        );
+        assert.strictEqual(prevented, true, `${kind}: ${event}`);
+      }
+      if (kind === 'proxy-prompt') {
+        const windowCount = BrowserWindow.getAllWindows().length;
+        assert.strictEqual(await window.webContents.executeJavaScript("window.open('about:blank') === null"), true);
+        assert.strictEqual(BrowserWindow.getAllWindows().length, windowCount);
+      }
+      const stylesheet = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, `css/${kind}.css`)).href;
+      const response = await window.webContents.session.fetch(stylesheet);
+      assert.ok((await response.text()).includes('{'), 'expected the actual stylesheet, not an HTML redirect');
+      assert.ok(response.headers.get('content-type')?.includes('text/css'));
+      let requests = 0;
+      const server = createServer((_request, response) => {
+        requests++;
+        response.end('unauthorized');
+      });
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/unexpected`;
+        await assert.rejects(
+          window.webContents.session.fetch(url, {signal: AbortSignal.timeout(500)}),
+          /ERR_BLOCKED_BY_CLIENT/,
+        );
+        assert.strictEqual(requests, 0);
+      } finally {
+        await new Promise<void>(resolve => server.close(() => resolve()));
+      }
+    });
+  }
 
   it('[security-target][INV-001][SEC-006] creates SSO and PiP windows with sandboxed effective preferences', () => {
     const parent = new BrowserWindow({show: false});
