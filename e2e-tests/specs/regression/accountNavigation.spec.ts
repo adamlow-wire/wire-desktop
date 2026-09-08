@@ -40,6 +40,7 @@ test(
         response.writeHead(302, {Location: `${hostileOrigin}/escape`});
       } else {
         response.setHeader('Content-Type', 'text/html');
+        response.setHeader('Referrer-Policy', 'same-origin');
       }
       response.end(`<!doctype html><title>Local Wire boundary fixture</title><script>
       window.desktopEvents=[];window.amplify={publish(name){window.desktopEvents.push(name)},subscribe(){},unsubscribe(){}};window.wire={};
@@ -97,6 +98,20 @@ test(
         expect(result).toEqual({canceled: true, url: `${origin}/allowed`});
         expect(hostileRequests).toBe(0);
       }
+
+      const popup = await app.evaluate(async ({BrowserWindow, webContents}) => {
+        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+        const opened = await account.executeJavaScript(`
+          window.callWindow = window.open('', 'WIRE_PICTURE_IN_PICTURE_CALL');
+          if (window.callWindow) window.callWindow.document.body.textContent = 'Detached call fixture';
+          window.callWindow !== null;
+        `);
+        const child = BrowserWindow.getAllWindows().find(window => window.webContents.session === account.session);
+        const text = child ? await child.webContents.executeJavaScript('document.body.textContent') : null;
+        await account.executeJavaScript('window.callWindow?.close(); undefined');
+        return {opened, text};
+      });
+      expect(popup).toEqual({opened: true, text: 'Detached call fixture'});
 
       const profileRoute = '/user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f';
       const deepLinkResult = await app.evaluate(async ({webContents, shell}, route) => {

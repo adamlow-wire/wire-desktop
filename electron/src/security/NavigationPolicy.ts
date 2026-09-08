@@ -80,15 +80,12 @@ export const selectAccountPopup = (request: {
   }
   const url = parseNetworkNavigation(request.url);
   if (request.frameName === 'WIRE_SSO') {
-    return request.referrerUrl && url && (url.protocol === 'https:' || url.origin === request.accountOrigin)
-      ? 'sso'
-      : 'deny';
+    return url && (url.protocol === 'https:' || url.origin === request.accountOrigin) ? 'sso' : 'deny';
   }
   if (request.frameName === 'WIRE_PICTURE_IN_PICTURE_CALL') {
-    return request.referrerUrl &&
-      (request.url === 'about:blank' ||
-        request.url === '' ||
-        isAllowedAccountNavigation(request.url, request.accountOrigin))
+    return request.url === 'about:blank' ||
+      request.url === '' ||
+      isAllowedAccountNavigation(request.url, request.accountOrigin)
       ? 'picture-in-picture'
       : 'deny';
   }

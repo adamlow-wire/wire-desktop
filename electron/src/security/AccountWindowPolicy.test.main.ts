@@ -47,6 +47,7 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
     createdSso = undefined;
     server = createServer((_request, response) => {
       response.setHeader('Content-Type', 'text/html');
+      response.setHeader('Referrer-Policy', 'same-origin');
       response.end('<!doctype html><title>Popup fixture</title>');
     });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -156,7 +157,7 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
 
   it('creates an SSO popup in the isolated SSO session instead of the account session', async () => {
     const result = await parent.webContents.executeJavaScript(
-      `window.open(${JSON.stringify(`${origin}/sso`)}, 'WIRE_SSO') === null`,
+      "window.open('https://idp.test/login', 'WIRE_SSO') === null",
     );
     assert.strictEqual(result, true, 'the renderer must not receive a cross-session Window proxy');
     const child = createdSso?.['ssoWindow'];

@@ -107,7 +107,7 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
     assert.strictEqual(decide('ftp://example.test/file', '_blank'), 'external');
     assert.strictEqual(decide('file:///tmp/x', '_blank'), 'deny');
     assert.strictEqual(decide('https://backend.wire.test/sso', 'WIRE_SSO', 'https://embedded.evil.test'), 'deny');
-    assert.strictEqual(decide('about:blank', 'WIRE_PICTURE_IN_PICTURE_CALL', ''), 'deny');
+    assert.strictEqual(decide('about:blank', 'WIRE_PICTURE_IN_PICTURE_CALL', ''), 'picture-in-picture');
     assert.strictEqual(
       selectAccountPopup({
         url: origin,
@@ -142,13 +142,18 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
     for (const sourceUrl of ['', 'about:blank', 'https://foreign.test', `${origin}.evil.test`]) {
       for (const referrerUrl of ['', origin]) {
         assert.strictEqual(selectAccountPopup({...request, sourceUrl, referrerUrl}), 'deny');
+        assert.strictEqual(selectAccountPopup({...request, sourceUrl, referrerUrl, frameName: 'WIRE_SSO'}), 'deny');
+        assert.strictEqual(
+          selectAccountPopup({...request, sourceUrl, referrerUrl, url: '', frameName: 'WIRE_PICTURE_IN_PICTURE_CALL'}),
+          'deny',
+        );
       }
     }
     assert.strictEqual(selectAccountPopup({...request, referrerUrl: 'https://foreign.test'}), 'deny');
-    assert.strictEqual(selectAccountPopup({...request, frameName: 'WIRE_SSO'}), 'deny');
+    assert.strictEqual(selectAccountPopup({...request, frameName: 'WIRE_SSO'}), 'sso');
     assert.strictEqual(
       selectAccountPopup({...request, url: 'about:blank', frameName: 'WIRE_PICTURE_IN_PICTURE_CALL'}),
-      'deny',
+      'picture-in-picture',
     );
     assert.strictEqual(selectAccountPopup({...request, url: 'javascript:alert(1)'}), 'deny');
     assert.strictEqual(selectAccountPopup({...request, url: 'wire://start-login'}), 'deep-link');
