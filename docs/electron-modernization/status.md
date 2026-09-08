@@ -76,13 +76,13 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) merged as `d9f4f78b` on 2026-09-07. SEC-005 is complete: all renderers use context isolation, and desktop-owned immutable named bridges preserve the existing webapp API. Startup locale handling and shell-to-webview actions now work across isolated worlds. Build/test, lint, analysis, all three package baselines, authenticated Windows/macOS E2E, and merged reports passed. Windows passed one unchanged failed-job rerun after a multi-account notification timeout. PR #37 subsequently completed sandboxing; DOM webviews, `file://` and production CSP/capability work remain. M3 is not complete.
 
-| Field         | Value                                                             |
-| ------------- | ----------------------------------------------------------------- |
-| Work item     | SEC-013 — Strict incoming deep-link parser prerequisite |
-| Owner         | `adamlow-wire`                                                    |
-| Active branch | `sec/SEC-013-incoming-links-2026-09-08` |
-| Goal | Preserve supported routes and reject malformed actions, then unblock safe popup routing |
-| Starting gate | SEC-006 closed by PR #37 at `5926e3d0` |
+| Field         | Value                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------- |
+| Work item     | SEC-013 — Strict incoming deep-link parser prerequisite                                 |
+| Owner         | `adamlow-wire`                                                                          |
+| Active branch | `sec/SEC-013-incoming-links-2026-09-08`                                                 |
+| Goal          | Preserve supported routes and reject malformed actions, then unblock safe popup routing |
+| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                                  |
 
 ## Next executable sequence
 
@@ -196,6 +196,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
+- [SEC-013 PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) is published. Its first [build/test run](https://github.com/adamlow-wire/wire-desktop/actions/runs/34222792310) passes; lint exposed Markdown formatting in this status file, corrected in the follow-up. Authenticated platform tests and final-head checks remain mandatory. PR #38 is consuming the parser on its own branch while this prerequisite validates; no integration merge has occurred.
 - SEC-006 is complete: [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) merged as `5926e3d0` after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873450), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873453), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873692) passed. Historical PR #37 checkpoint notes below predate closure.
 - Active SEC-013 branch is based on integration `5926e3d0`, independently of PR #38. Baseline characterization was separately committed as `c3526d60`: 13 dispatch tests pass; changing the destination fails all seven new route cases. Legacy dispatch fails 14/15 new deny cases. Final local validation passes: 366 main tests (3 owned CAP-002 targets pending), React 20 suites/64 tests, renderer 4/4, build tools 35/35, application/Mocha types and changed-file lint. Changed coverage passes at 107/107 statements and 120/120 security branches (both 100%). No new credentials or user action is needed.
 - [PR #38](https://github.com/adamlow-wire/wire-desktop/pull/38) is held for chat-link compatibility. Local follow-up `d58ebb6b` (not yet pushed) fixes a reproduced `noreferrer` regression using the main-owned source URL; navigation/popup tests pass 8/8 and removing source-origin authorization fails the deny test. Custom `wire://` popups must be routed safely using this parser before PR #38 merges; do not simply block supported links or restore raw IPC. Preserve the SEC-008 branch when rebasing after the parser prerequisite.
