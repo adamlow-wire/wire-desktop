@@ -2,17 +2,17 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-08
 milestone: M3
-active_work_item: SEC-013
-state: incoming-deep-link-validation
+active_work_item: CAP-001
+state: renderer-loss-test-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 5926e3d0
+integration_head_commit: 75b22ded
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-013-incoming-links-2026-09-08
-next_work_item: SEC-013
+related_pending_branch: cap/CAP-001-crash-recovery-2026-09-08
+next_work_item: SEC-008
 blockers: []
 ---
 
@@ -76,17 +76,17 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) merged as `d9f4f78b` on 2026-09-07. SEC-005 is complete: all renderers use context isolation, and desktop-owned immutable named bridges preserve the existing webapp API. Startup locale handling and shell-to-webview actions now work across isolated worlds. Build/test, lint, analysis, all three package baselines, authenticated Windows/macOS E2E, and merged reports passed. Windows passed one unchanged failed-job rerun after a multi-account notification timeout. PR #37 subsequently completed sandboxing; DOM webviews, `file://` and production CSP/capability work remain. M3 is not complete.
 
-| Field         | Value                                                                                   |
-| ------------- | --------------------------------------------------------------------------------------- |
-| Work item     | SEC-013 — Strict incoming deep-link parser prerequisite                                 |
-| Owner         | `adamlow-wire`                                                                          |
-| Active branch | `sec/SEC-013-incoming-links-2026-09-08`                                                 |
-| Goal          | Preserve supported routes and reject malformed actions, then unblock safe popup routing |
-| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                                  |
+| Field         | Value                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------- |
+| Work item     | CAP-001 — Deterministic renderer-loss regression test                                 |
+| Owner         | `adamlow-wire`                                                                        |
+| Active branch | `cap/CAP-001-crash-recovery-2026-09-08`                                               |
+| Goal          | Test real renderer loss without host dump delays and prove pre-replacement revocation |
+| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                                |
 
 ## Next executable sequence
 
-1. Validate and publish the independent SEC-013 incoming parser PR against integration. Merge only after all required gates, then rebase PR #38 and reuse the parser for main-owned app-protocol popup dispatch. Both behavior-changing PRs require authenticated cross-platform E2E.
+1. Merge the synchronized test-only PR #40 after its final required gates, then synchronize PR #38 once with integration and require its final authenticated platform checkpoint. PR #39 is already merged. Authenticated E2E is deferred for PR #40 only under DEC-008 because it changes no runtime code.
 2. Continue the production secure-shell cutover through SEC-007, SEC-010, and CAP-001.
 3. Complete SEC-009, SEC-012, and remaining SEC-013 policy/lifecycle hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
@@ -94,7 +94,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Completed work
 
-| Work item                                               | Evidence                                                |
+| Work item                                               | CAP-001 — Deterministic renderer-loss regression test   |
 | ------------------------------------------------------- | ------------------------------------------------------- |
 | GOV-001 — Establish fork and integration workflow       | GitHub API readback on 2026-08-18                       |
 | GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155`       |
@@ -119,8 +119,8 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | Check | Result | Date |
 | --- | --- | --- |
 | Plan formatting | `prettier --check` passed | 2026-08-20 |
-| Work item identifiers | Unique | 2026-08-18 |
-| Work item dependencies | All identifiers resolve; graph is acyclic | 2026-08-18 |
+| Work item | CAP-001 — Deterministic renderer-loss regression test |
+| Work item | CAP-001 — Deterministic renderer-loss regression test |
 | Integration publication | Branch pushed to `adamlow-wire` fork | 2026-08-18 |
 | Integration protection | PR required with zero external approvals; strict required checks, no admin bypass/force push/deletion, conversation resolution; API read back | 2026-08-18 |
 | Application and test types | Passed | 2026-08-20 |
@@ -196,14 +196,13 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
-- [SEC-013 PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) is published. Its first [build/test run](https://github.com/adamlow-wire/wire-desktop/actions/runs/34222792310) passes; lint exposed Markdown formatting in this status file, corrected in the follow-up. Authenticated platform tests and final-head checks remain mandatory. PR #38 is consuming the parser on its own branch while this prerequisite validates; no integration merge has occurred.
-- SEC-006 is complete: [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) merged as `5926e3d0` after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873450), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873453), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873692) passed. Historical PR #37 checkpoint notes below predate closure.
-- Active SEC-013 branch is based on integration `5926e3d0`, independently of PR #38. Baseline characterization was separately committed as `c3526d60`: 13 dispatch tests pass; changing the destination fails all seven new route cases. Legacy dispatch fails 14/15 new deny cases. Final local validation passes: 366 main tests (3 owned CAP-002 targets pending), React 20 suites/64 tests, renderer 4/4, build tools 35/35, application/Mocha types and changed-file lint. Changed coverage passes at 107/107 statements and 120/120 security branches (both 100%). No new credentials or user action is needed.
-- [PR #38](https://github.com/adamlow-wire/wire-desktop/pull/38) is held for chat-link compatibility. Local follow-up `d58ebb6b` (not yet pushed) fixes a reproduced `noreferrer` regression using the main-owned source URL; navigation/popup tests pass 8/8 and removing source-origin authorization fails the deny test. Custom `wire://` popups must be routed safely using this parser before PR #38 merges; do not simply block supported links or restore raw IPC. Preserve the SEC-008 branch when rebasing after the parser prerequisite.
-- SEC-013 preserves supported user/conversation, federated and file-list, preferences, meetings, SSO, login and join routes; absent join domain remains null at the existing dispatch boundary. Routes were checked against sibling webapp `page/appMain.tsx` and `router/routeGenerator.ts`; domains against sibling server `libs/types-common/src/Data/Domain.hs`. Desktop has no implemented `wire://access` configuration route; new backend-config behavior remains CAP-005 scope. Incoming parser validation does not close external-link or lifecycle acceptance.
-- Sandbox evidence correction: Playwright injects `--no-sandbox` by default, so the first local product probe proved preload compatibility only. The corrected probe set `chromiumSandbox: true` and confirmed `enable-sandbox` present, `no-sandbox` absent, effective secure preferences, live shell/account bridges, and no page Node globals. E2E now explicitly enables Chromium sandboxing and asserts the disabling flag is absent. Electron remains `43.4.0`.
-
-- SEC-005 final evidence: [build/test and 81.55% changed coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411167), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411362), [Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411227). All completed successfully before merge. The earlier local crash-recovery timeout did not reproduce in hosted checks. Historical entries above describe their dated checkpoints; current execution is the SEC-013 incoming-parser prerequisite.
+- Integration is `75b22ded`. [PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) merged after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325605), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325572), and [authenticated Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325647) passed. Its Windows proxy fixture hit the unchanged 2-second timeout once; one failed-job rerun passed. Incoming parsing is implemented, but SEC-013 external/lifecycle acceptance remains open.
+- Active [test-only PR #40](https://github.com/adamlow-wire/wire-desktop/pull/40) is synchronized with integration. The fixture terminates only its verified renderer PID without a core dump; runtime recovery code and deadlines are unchanged. Local forced-crash diagnostics timed out before process-loss notification on a WSL crash-capture host. Non-dumping termination notified at 29 ms and recovered at 153 ms. The added assertion proves old authority is revoked before replacement creation; delaying revocation to the next main-loop turn fails it. No host-wide settings changed.
+- PR #40's post-parser-merge main suite passes 366 tests in 8 seconds with 3 existing CAP-002 targets pending; React passes 64/64, application/Mocha types and lint pass. The independent pre-merge baseline passed 338 main tests, renderer 4/4 and build tools 35/35. No runtime statements change relative to integration; final platform gates remain mandatory.
+- [PR #38](https://github.com/adamlow-wire/wire-desktop/pull/38) head `0cfa5327` fixes staging's same-origin referrer policy and preserves normal/custom chat links. Main-owned source origin authorizes fixed popup destinations; a referrer may be omitted, but a foreign nonempty referrer is rejected. Real local targets reproduced blocked PiP/SSO; the staging-header product fixture now covers detached-call DOM/session compatibility, internal profile-link routing with zero OS calls, hostile navigation/redirect denial and two SSO cycles (2.7 seconds). Local runs use Linux despite the existing macOS Playwright project label.
+- PR #38 build/lint/analysis and all-platform packages pass. Its macOS package fixture hit a 2-second timeout once; one failed-job rerun passed. Authenticated E2E is running. Merge PR #40 after its fresh required gates, then synchronize PR #38 once and require its final behavior-changing checkpoint. Do not merge merely because an earlier head passed.
+- Preserve validation discipline: build TypeScript and preload bundles together before product/preload tests, never rebuild during a suite, and run Electron GUI suites serially. Keep `chromiumSandbox: true` in product probes. Standalone Playwright types have nine pre-existing generated-client/`window.wire` errors; do not call that check green.
+- SEC-006 is complete through [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37). Its and PR #39's merged remote branches and the clean temporary parser checkout were removed; commits remain in integration and user worktrees were preserved. Electron stays `43.4.0`. Production WebContentsView cutover, local scheme/CSP, permission/SSRF policy, SSO cookie/callback isolation and account-targeted lifecycle routing remain M3 work.
 
 - Do not claim independent review in the solo-maintainer model. The maintainer's PR merge is the recorded product/security/architecture decision.
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
