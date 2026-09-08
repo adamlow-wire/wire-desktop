@@ -30,6 +30,7 @@ interface WebviewPreferences {
   contextIsolation?: boolean;
   experimentalFeatures?: boolean;
   nodeIntegration?: boolean;
+  nodeIntegrationInWorker?: boolean;
   preload?: string;
   sandbox?: boolean;
   spellcheck?: boolean;
@@ -49,8 +50,9 @@ export const configureLegacyWebviewPreferences = (
   preferences.contextIsolation = true;
   preferences.experimentalFeatures = false;
   preferences.nodeIntegration = false;
+  preferences.nodeIntegrationInWorker = false;
   preferences.preload = options.preload;
-  preferences.sandbox = false;
+  preferences.sandbox = true;
   preferences.spellcheck = options.spellcheck;
   preferences.webSecurity = true;
 };

@@ -78,6 +78,10 @@ describe('webapp bridge', () => {
     assert.strictEqual(Object.isFrozen(bridge.desktopCapturer), true);
     assert.strictEqual(Object.isFrozen(EnvironmentUtil), false);
     assert.strictEqual(Object.isFrozen(bridge.systemCrypto), true);
+    assert.deepStrictEqual(
+      Object.keys(bridge.environment).sort(),
+      ['ServerType', 'app', 'getAvailableEnvironments', 'linuxDesktop', 'platform', 'web'].sort(),
+    );
   });
 
   it('[characterization][SEC-005] preserves capability arguments and results', async () => {

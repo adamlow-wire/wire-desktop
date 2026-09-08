@@ -17,12 +17,16 @@
  *
  */
 
+import type {RendererEnvironmentSnapshot} from './rendererEnvironment';
+
+const ENVIRONMENT_ARGUMENT = '--wire-desktop-environment=';
 const LOCALE_ARGUMENT = '--wire-desktop-locale=';
 const USER_DATA_ARGUMENT = '--wire-desktop-user-data=';
 
 export interface RendererRuntimeValues {
   readonly locale: string;
   readonly userDataPath: string;
+  readonly environment?: RendererEnvironmentSnapshot;
 }
 
 const encodeArgument = (prefix: string, value: string): string => `${prefix}${encodeURIComponent(value)}`;
@@ -42,7 +46,16 @@ const readArgument = (argv: readonly string[], prefix: string): string | undefin
 export const createRendererRuntimeArguments = (values: RendererRuntimeValues): string[] => [
   encodeArgument(LOCALE_ARGUMENT, values.locale),
   encodeArgument(USER_DATA_ARGUMENT, values.userDataPath),
+  ...(values.environment ? [encodeArgument(ENVIRONMENT_ARGUMENT, JSON.stringify(values.environment))] : []),
 ];
+
+export const readRendererEnvironment = (argv: readonly string[] = process.argv): RendererEnvironmentSnapshot => {
+  const value = readArgument(argv, ENVIRONMENT_ARGUMENT);
+  if (!value) {
+    throw new Error('Missing main-owned renderer environment');
+  }
+  return JSON.parse(value) as RendererEnvironmentSnapshot;
+};
 
 export const readRendererLocale = (argv: readonly string[] = process.argv): string | undefined =>
   readArgument(argv, LOCALE_ARGUMENT);

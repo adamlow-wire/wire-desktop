@@ -17,7 +17,7 @@
  *
  */
 
-import {ValidationUtil} from '@wireapp/commons';
+import * as ValidationUtil from '@wireapp/commons/lib/util/ValidationUtil';
 
 import {
   ACCOUNT_DATA_DELETE_CAPABILITY,

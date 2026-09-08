@@ -24,6 +24,8 @@ import * as path from 'path';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
+import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {snapshotRendererEnvironment} from '../runtime/rendererEnvironment';
 import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 
@@ -34,11 +36,16 @@ const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow
   new BrowserWindow({
     show: false,
     webPreferences: {
-      additionalArguments: createRendererRuntimeArguments({locale: 'en-US', userDataPath: app.getPath('userData')}),
+      additionalArguments: createRendererRuntimeArguments({
+        locale: 'en-US',
+        userDataPath: app.getPath('userData'),
+        environment: snapshotRendererEnvironment(EnvironmentUtil),
+      }),
       contextIsolation,
       nodeIntegration: false,
       preload,
-      sandbox: false,
+      sandbox: true,
+      nodeIntegrationInWorker: false,
     },
   });
 
@@ -70,6 +77,34 @@ describe('legacy preload compatibility surface', () => {
       if (!window.isDestroyed()) {
         window.destroy();
       }
+    }
+  });
+
+  it('[security-target][INV-001][SEC-006] loads both product preloads with effective sandbox preferences', async function () {
+    this.timeout(10_000);
+    for (const name of ['preload-app', 'preload-webview'] as const) {
+      const window = createWindow(preloadPath(name), true);
+      windows.push(window);
+      const failures: Error[] = [];
+      window.webContents.on('preload-error', (_event, _path, error) => failures.push(error));
+      await window.loadURL(WEBAPP_FIXTURE);
+      const preferences = (
+        window.webContents as Electron.WebContents & {getLastWebPreferences(): Electron.WebPreferences}
+      ).getLastWebPreferences();
+      assert.strictEqual(preferences.sandbox, true);
+      assert.strictEqual(preferences.contextIsolation, true);
+      assert.strictEqual(preferences.nodeIntegration, false);
+      assert.strictEqual(preferences.nodeIntegrationInSubFrames, false);
+      // Electron 43 omits nodeIntegrationInWorker from getLastWebPreferences.
+      // Exercise a real worker rather than treating an absent field as false.
+      const workerSurface = await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(new Blob(['postMessage({require: typeof require, process: typeof process})'], {type: 'text/javascript'}));
+        const worker = new Worker(url);
+        worker.onmessage = event => { worker.terminate(); URL.revokeObjectURL(url); resolve(event.data); };
+        worker.onerror = event => { worker.terminate(); URL.revokeObjectURL(url); reject(new Error(event.message)); };
+      })`);
+      assert.deepStrictEqual(workerSurface, {require: 'undefined', process: 'undefined'});
+      assert.deepStrictEqual(failures, []);
     }
   });
 

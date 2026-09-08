@@ -125,7 +125,7 @@ const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow
         nodeIntegration: false,
         nodeIntegrationInWorker: false,
         preload: PRELOAD_JS,
-        sandbox: false,
+        sandbox: true,
         session: session.fromPartition('about-window'),
         spellcheck: false,
         webviewTag: false,

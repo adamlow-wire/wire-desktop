@@ -24,7 +24,7 @@ import {configureLegacyWebviewPreferences} from './LegacyWebviewPreferences';
 describe('legacy webview preferences', () => {
   it('[security-target][INV-001][INV-002][SEC-005] enforces the isolated preload boundary at attachment', () => {
     const parameters = {allowpopups: 'true'};
-    const preferences = {contextIsolation: false, nodeIntegration: true, sandbox: true};
+    const preferences = {contextIsolation: false, nodeIntegration: true, nodeIntegrationInWorker: true, sandbox: false};
 
     configureLegacyWebviewPreferences(preferences, parameters, {
       additionalArguments: ['--wire-desktop-locale=en'],
@@ -44,8 +44,9 @@ describe('legacy webview preferences', () => {
       contextIsolation: true,
       experimentalFeatures: false,
       nodeIntegration: false,
+      nodeIntegrationInWorker: false,
       preload: '/fixed/preload-webview.js',
-      sandbox: false,
+      sandbox: true,
       spellcheck: true,
       webSecurity: true,
     });

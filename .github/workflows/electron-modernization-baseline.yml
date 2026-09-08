@@ -42,9 +42,9 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: yarn --immutable
-      - name: Build secure-shell preload
+      - name: Build production preloads
         shell: bash
-        run: yarn build:ts
+        run: yarn build:ts && yarn bundle
       - name: Test secure-shell boundary
         shell: bash
         run: |
@@ -52,6 +52,14 @@ jobs:
             xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/secureShell/**/*.test.main.ts" --no-sandbox
           else
             yarn electron-mocha --require .babel-register.js "electron/src/secureShell/**/*.test.main.ts" --no-sandbox
+          fi
+      - name: Test sandboxed product boundaries
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge'
+          else
+            yarn test:main --grep 'legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge'
           fi
       - name: Build development package
         shell: bash

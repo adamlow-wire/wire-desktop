@@ -19,7 +19,14 @@
 
 import * as assert from 'assert';
 
-import {createRendererRuntimeArguments, readRendererLocale, readRendererUserDataPath} from './rendererRuntimeArguments';
+import * as EnvironmentUtil from './EnvironmentUtil';
+import {snapshotRendererEnvironment, restoreRendererEnvironment} from './rendererEnvironment';
+import {
+  createRendererRuntimeArguments,
+  readRendererLocale,
+  readRendererUserDataPath,
+  readRendererEnvironment,
+} from './rendererRuntimeArguments';
 
 describe('renderer runtime arguments', () => {
   it('round-trips locale and user-data values without renderer access to Electron app', () => {
@@ -32,5 +39,29 @@ describe('renderer runtime arguments', () => {
   it('fails closed for missing or malformed values', () => {
     assert.strictEqual(readRendererLocale([]), undefined);
     assert.strictEqual(readRendererUserDataPath(['--wire-desktop-user-data=%E0%A4%A']), undefined);
+  });
+
+  it('[compatibility][SEC-006] preserves main-selected environment data without settings authority', () => {
+    const snapshot = snapshotRendererEnvironment(EnvironmentUtil);
+    const argv = createRendererRuntimeArguments({locale: 'de', userDataPath: '/unused', environment: snapshot});
+    const restored = restoreRendererEnvironment(readRendererEnvironment(argv));
+    assert.deepStrictEqual(restored.app, EnvironmentUtil.app);
+    assert.deepStrictEqual(restored.platform, EnvironmentUtil.platform);
+    assert.deepStrictEqual(restored.linuxDesktop, EnvironmentUtil.linuxDesktop);
+    assert.deepStrictEqual(restored.ServerType, EnvironmentUtil.ServerType);
+    assert.deepStrictEqual(restored.getAvailableEnvironments(), EnvironmentUtil.getAvailableEnvironments());
+    assert.strictEqual(restored.web.getWebappUrl(), EnvironmentUtil.web.getWebappUrl());
+    assert.strictEqual(restored.web.getWebsiteUrl(), EnvironmentUtil.web.getWebsiteUrl());
+    assert.strictEqual(restored.web.getWebsiteUrl('/support'), EnvironmentUtil.web.getWebsiteUrl('/support'));
+    assert.strictEqual('setEnvironment' in restored, false);
+    assert.strictEqual('reportWindowsMsiConfigurationIssue' in restored, false);
+    restored.app.DESKTOP_VERSION = 'renderer-only';
+    assert.notStrictEqual(EnvironmentUtil.app.DESKTOP_VERSION, 'renderer-only');
+  });
+
+  it('[security-target][INV-010][SEC-006] refuses missing and malformed environment bootstrap', () => {
+    assert.throws(() => readRendererEnvironment([]), /Missing main-owned/);
+    assert.throws(() => readRendererEnvironment(['--wire-desktop-environment=%E0%A4%A']), /Missing main-owned/);
+    assert.throws(() => readRendererEnvironment(['--wire-desktop-environment=%7B']), SyntaxError);
   });
 });

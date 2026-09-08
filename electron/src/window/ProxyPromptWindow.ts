@@ -64,7 +64,7 @@ const showWindow = async (registry: ViewIdentityRegistry, onCreated?: OnProxyPro
         nodeIntegration: false,
         nodeIntegrationInWorker: false,
         preload: preloadPath,
-        sandbox: false,
+        sandbox: true,
         session: session.fromPartition('proxy-prompt-window'),
         spellcheck: false,
         webviewTag: false,

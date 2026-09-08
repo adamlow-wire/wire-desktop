@@ -17,8 +17,11 @@
  *
  */
 
+import {app} from 'electron';
+
 import {configurePortableUserDataAtStartup} from './runtime/configurePortableUserData';
 
+app.enableSandbox();
 configurePortableUserDataAtStartup();
 
 function loadMainProcess(): void {

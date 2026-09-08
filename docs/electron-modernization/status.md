@@ -1,17 +1,17 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-07
+updated: 2026-09-08
 milestone: M3
 active_work_item: SEC-006
-state: sandboxing-ready
+state: sandboxing-local-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: d9f4f78b
+integration_head_commit: 1a01486c
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: docs/SEC-005-closeout-2026-09-07
+related_pending_branch: sec/SEC-006-renderer-sandboxing-2026-09-07
 next_work_item: SEC-006
 blockers: []
 ---
@@ -80,13 +80,13 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | ------------- | ----------------------------------------------------------------- |
 | Work item     | SEC-006 — Enable renderer sandboxing everywhere                   |
 | Owner         | `adamlow-wire`                                                    |
-| Active branch | None yet; documentation closeout precedes implementation          |
+| Active branch | `sec/SEC-006-renderer-sandboxing-2026-09-07`                      |
 | Goal          | Bundle sandbox-compatible preloads and prove effective sandboxing |
 | Starting gate | SEC-005 closed by PR #35 at `d9f4f78b`                            |
 
 ## Next executable sequence
 
-1. Start SEC-006 on a new branch: run the existing preload compatibility baseline, identify Node/module-loading dependencies, add effective sandbox preference tests, and make the product preloads work with sandboxing enabled. Include About, proxy, SSO, PiP, and developer windows in the preference audit.
+1. Finish SEC-006 local validation on the active branch, then publish its PR and require cross-platform package and authenticated E2E checks. Product preloads are now bundled; complete the effective-preference audit and production-bundle checks before claiming sandboxing complete.
 2. Continue the production secure-shell cutover through SEC-006–SEC-007, SEC-010, and CAP-001.
 3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
@@ -195,6 +195,8 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-005 preload compatibility characterization | Real-Electron tests preserve the local wrapper API and the versioned `desktopCapturer`, `systemCrypto`, `environment`, `desktopAppConfig`, and `openGraphAsync` webapp API. Temporarily removing `openGraphAsync` failed the intended assertion before the perturbation was reverted | 2026-09-04 |
 
 ## Handoff notes
+
+- SEC-006 local evidence: the original preload baseline passed 3/3 and failed all three with sandboxing enabled before bundling. The focused suite now passes 21/21, including shell/account bridges, real Workers without Node, About/proxy/SSO/PiP/developer preferences, bootstrap, and image-copy routing. Wrong bootstrap URL and disabled About/webview sandbox perturbations each failed their intended assertion and were reverted; image-copy routing also failed before replacement. Production bundling, application/test types, changed TypeScript lint, Jest 64/64, build tools 35/35, and renderer tests passed. A real product launch against a local HTTP fixture, without `--no-sandbox`, confirmed global sandboxing, live shell/account bridges, and no page Node globals. The first full main run passed 334 tests with three owned SSO targets pending and the previously recorded crash-recovery timeout after a hung Chromium child; a clean verification run is pending. Cross-platform package and authenticated E2E gates remain mandatory before merge. Electron stays at `43.4.0`.
 
 - SEC-005 final evidence: [build/test and 81.55% changed coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411167), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411362), [Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411227). All completed successfully before merge. The earlier local crash-recovery timeout did not reproduce in hosted checks. Historical entries above describe their dated checkpoints; current execution starts at SEC-006.
 

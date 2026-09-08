@@ -25,16 +25,26 @@ import {pathToFileURL} from 'url';
 
 import {WindowManager} from './WindowManager';
 
+import {getPictureInPictureCallWindowOptions} from '../calling/PictureInPictureCall';
 import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
 import {PROXY_PROMPT_LOCALE_READ_CHANNEL, PROXY_PROMPT_SUBMIT_CAPABILITY} from '../security/ProxyPromptContract';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
+import {SingleSignOn} from '../sso/SingleSignOn';
 
 const mutableApp = app as typeof app & {setAppPath(appPath: string): void};
 
 const getLastWebPreferences = (window: BrowserWindow): WebPreferences => {
   const webContents = window.webContents as Electron.WebContents & {getLastWebPreferences(): WebPreferences};
   return webContents.getLastWebPreferences();
+};
+
+const assertSandboxed = (window: BrowserWindow): void => {
+  const preferences = getLastWebPreferences(window);
+  assert.strictEqual(preferences.sandbox, true);
+  assert.strictEqual(preferences.contextIsolation, true);
+  assert.strictEqual(preferences.nodeIntegration, false);
+  assert.strictEqual(preferences.nodeIntegrationInSubFrames, false);
 };
 
 describe('auxiliary window identity', () => {
@@ -66,6 +76,20 @@ describe('auxiliary window identity', () => {
     }
   });
 
+  it('[security-target][INV-001][SEC-006] creates SSO and PiP windows with sandboxed effective preferences', () => {
+    const parent = new BrowserWindow({show: false});
+    windows.push(parent);
+    for (const options of [
+      SingleSignOn.getSingleSignOnLoginWindowOptions(parent, 'https://login.example.test'),
+      getPictureInPictureCallWindowOptions(),
+    ]) {
+      assert.strictEqual(options.webPreferences?.nodeIntegrationInWorker, false);
+      const window = new BrowserWindow({...options, show: false});
+      windows.push(window);
+      assertSandboxed(window);
+    }
+  });
+
   it('[characterization][SEC-003] returns the latest webapp version and clears an absent AVS version', async () => {
     const primaryWindow = new BrowserWindow({show: false});
     windows.push(primaryWindow);
@@ -94,6 +118,7 @@ describe('auxiliary window identity', () => {
     const expectedUrl = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, 'html/about.html')).href;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('about-window'));
+    assertSandboxed(window);
     assert.strictEqual(getLastWebPreferences(window).contextIsolation, true);
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
     const identity = registry.authorize(
@@ -134,6 +159,7 @@ describe('auxiliary window identity', () => {
     ).href;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('proxy-prompt-window'));
+    assertSandboxed(window);
     assert.strictEqual(getLastWebPreferences(window).contextIsolation, true);
     assert.strictEqual(getLastWebPreferences(window).nodeIntegration, false);
     const identity = registry.authorize(

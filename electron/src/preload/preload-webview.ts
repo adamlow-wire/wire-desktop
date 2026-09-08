@@ -20,8 +20,6 @@
 import {contextBridge, ipcRenderer, webFrame} from 'electron';
 import type {Data as OpenGraphResult} from 'open-graph';
 
-import * as path from 'path';
-
 import {ACCOUNT_THEME_CHANNEL} from './AccountThemeContract';
 import {createWebappBridge, exposeWebappBridge} from './WebappBridge';
 import {WebappVersions} from './WebappEventBridge';
@@ -29,8 +27,8 @@ import {createWebappMainWorld} from './WebappMainWorld';
 import {createWebappPreloadEvents} from './WebappPreloadEvents';
 
 import {createDesktopAppConfig} from '../lib/desktopAppConfig';
-import {getLogger} from '../logging/getLogger';
-import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {restoreRendererEnvironment} from '../runtime/rendererEnvironment';
+import {readRendererEnvironment} from '../runtime/rendererRuntimeArguments';
 import {reportWebappVersions as submitWebappVersions} from '../security/AboutWindowIpc';
 import {requestDesktopSources} from '../security/DesktopSourcesIpc';
 import {requestDownloadLocationUpdate} from '../security/DownloadLocationIpc';
@@ -43,7 +41,8 @@ import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
 import {requestWrapperRelaunch} from '../security/WrapperRelaunchIpc';
 import {requestWrapperReload} from '../security/WrapperReloadIpc';
 
-const logger = getLogger(path.basename(__filename));
+const logger = console;
+const environment = restoreRendererEnvironment(readRendererEnvironment());
 const mainWorld = createWebappMainWorld(contextBridge);
 
 webFrame.setZoomFactor(1.0);
@@ -95,9 +94,9 @@ const initializeWebappBridge = (): void => {
 
   const webappBridge = createWebappBridge({
     decrypt: encrypted => ipcRenderer.invoke(SAFE_STORAGE_DECRYPT_CHANNEL, encrypted),
-    desktopAppConfig: createDesktopAppConfig(EnvironmentUtil.app.DESKTOP_VERSION, managedConfig),
+    desktopAppConfig: createDesktopAppConfig(environment.app.DESKTOP_VERSION, managedConfig),
     encrypt: value => ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value),
-    environment: EnvironmentUtil,
+    environment,
     events: preloadEvents.events,
     getDesktopSources: options => requestDesktopSources(ipcRenderer, options),
     getOpenGraphData: getOpenGraphDataViaChannel,
@@ -112,5 +111,5 @@ preloadEvents.subscribeToMainProcessEvents();
 
 window.addEventListener('DOMContentLoaded', async () => {
   // include context menu
-  await import('./menu/preload-context');
+  await import(/* webpackMode: "eager" */ './menu/preload-context');
 });

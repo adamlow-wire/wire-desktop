@@ -85,6 +85,7 @@ import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUser
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
 import {OriginValidator} from './runtime/OriginValidator';
+import {snapshotRendererEnvironment} from './runtime/rendererEnvironment';
 import {createRendererRuntimeArguments} from './runtime/rendererRuntimeArguments';
 import {startSecureShellProof} from './secureShell/bootstrap';
 import {bindSecureShellIpc} from './secureShell/ipc';
@@ -124,7 +125,11 @@ const MAIN_PROCESS_LOGGER_NAME = 'main.js';
 const LOG_CLEANUP_INTERVAL_MILLISECONDS = 60 * 60 * 1_000;
 const logger = getLogger(MAIN_PROCESS_LOGGER_NAME);
 const getRendererRuntimeArguments = (): string[] =>
-  createRendererRuntimeArguments({locale: app.getLocale(), userDataPath: app.getPath('userData')});
+  createRendererRuntimeArguments({
+    locale: locale.getCurrent(),
+    userDataPath: app.getPath('userData'),
+    environment: snapshotRendererEnvironment(EnvironmentUtil),
+  });
 type WallClockModule = {
   readonly createDesktopWallClock: () => WallClock;
 };
@@ -387,7 +392,8 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
       contextIsolation: true,
       nodeIntegration: false,
       preload: PRELOAD_JS,
-      sandbox: false,
+      sandbox: true,
+      nodeIntegrationInWorker: false,
       webviewTag: true,
     },
     width: mainWindowState.width,

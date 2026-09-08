@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.9
+revision: 1.5.10
 status: draft
-updated: 2026-09-07
+updated: 2026-09-08
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -389,10 +389,11 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-006 — Enable renderer sandboxing everywhere
 
 - Priority: `P0`
-- Status: `ready`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-005
 - Scope: Enable application-wide sandboxing with explicitly justified exceptions only if unavoidable.
+- Boundary contract: Bundle preloads without Node filesystem/module-loading dependencies. Main owns selected environment and locale bootstrap; remote `environment` retains read-only metadata and lookup methods, not the accidentally exported settings mutator or main-process diagnostic/policy helpers. Image copy uses the clicked account's native `copyImageAt`; save-image fetching remains in the account session. Preload diagnostics use the console rather than direct filesystem writes.
 - Acceptance:
   - Remote and local renderers run sandboxed in development and packaged builds.
   - `nodeIntegration` and `nodeIntegrationInWorker` remain disabled.
@@ -873,6 +874,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.10 | 2026-09-08 | Codex | Began sandbox-compatible preload bundling and explicit main-owned bootstrap/image-copy contracts; local validation and hosted gates remain open | SEC-006, INV-001, INV-002, DCP-014 |
 | 1.5.9 | 2026-09-07 | Codex | Closed isolated bridges with merged PR #35 and cross-platform evidence; resolved adapter ownership and made sandboxing executable | SEC-005, SEC-006, Q-003, INV-002 |
 | 1.5.8 | 2026-09-04 | Codex | Began SEC-005 with sensitivity-proven real-Electron characterization of the local-shell and Wire webapp preload compatibility surfaces | SEC-005, INV-002 |
 | 1.5.7 | 2026-09-04 | Codex | Closed SEC-004 after the corrected remote-free runtime passed all-platform package smoke and authenticated Windows/macOS E2E | SEC-004, DCP-003, DCP-014, INV-002, INV-003, INV-010 |

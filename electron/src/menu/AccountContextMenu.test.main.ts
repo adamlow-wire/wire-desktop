@@ -57,6 +57,7 @@ const setup = () => {
   let fallback: unknown = '';
   const contents = {
     copy: () => calls.push('copy'),
+    copyImageAt: (x: number, y: number) => calls.push(`copy-image:${x},${y}`),
     cut: () => calls.push('cut'),
     executeJavaScript: async () => fallback,
     on: () => contents,
@@ -122,7 +123,7 @@ describe('account context menu', () => {
     assert.deepStrictEqual(test.calls, ['cut', 'copy', 'paste', 'select-all', 'replace:Wire']);
   });
 
-  it('keeps image fetching in the account preload', async () => {
+  it('keeps saving in the account preload and copies the clicked image in main', async () => {
     const test = setup();
     await test.show(params({mediaType: 'image', srcURL: 'https://wire.example/picture.png'}));
 
@@ -133,11 +134,8 @@ describe('account context menu', () => {
         action: {kind: 'save', sourceUrl: 'https://wire.example/picture.png'},
         channel: 'wire-desktop:context-menu-image-action',
       },
-      {
-        action: {kind: 'copy', sourceUrl: 'https://wire.example/picture.png'},
-        channel: 'wire-desktop:context-menu-image-action',
-      },
     ]);
+    assert.deepStrictEqual(test.calls, ['copy-image:10,20']);
   });
 
   it('copies links directly and preserves the DOM text fallback', async () => {

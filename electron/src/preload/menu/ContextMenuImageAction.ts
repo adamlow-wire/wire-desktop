@@ -20,6 +20,6 @@
 export const CONTEXT_MENU_IMAGE_ACTION_CHANNEL = 'wire-desktop:context-menu-image-action';
 
 export interface ContextMenuImageAction {
-  readonly kind: 'copy' | 'save';
+  readonly kind: 'save';
   readonly sourceUrl: string;
 }

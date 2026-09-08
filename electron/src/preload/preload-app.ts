@@ -19,23 +19,22 @@
 
 import {contextBridge, ipcRenderer, webFrame} from 'electron';
 
-import * as path from 'path';
-
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {createApplicationShellBridge, exposeApplicationShellBridge} from './ApplicationShellBridge';
 import {createApplicationShellMainWorld} from './ApplicationShellMainWorld';
 
 import {EVENT_TYPE} from '../lib/eventType';
-import * as locale from '../locale';
-import {getLogger} from '../logging/getLogger';
-import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {LANGUAGES, SupportedI18nLanguage} from '../locale/languages';
+import {readRendererLocale} from '../runtime/rendererRuntimeArguments';
 import {requestAccountDataDeletion} from '../security/AccountDataDeletionIpc';
 import {requestBadgeCountUpdate} from '../security/BadgeCountIpc';
 import {requestDeepLinkSubmission} from '../security/DeepLinkSubmitIpc';
 import {AutomatedSingleSignOn} from '../sso/AutomatedSingleSignOn';
 
-const logger = getLogger(path.basename(__filename));
+const logger = console;
+const requestedLocale = (readRendererLocale() ?? 'en').substring(0, 2) as SupportedI18nLanguage;
+const currentLocale = Object.hasOwn(LANGUAGES, requestedLocale) ? requestedLocale : 'en';
 
 webFrame.setVisualZoomLevelLimits(1, 1);
 
@@ -99,10 +98,10 @@ const initializeApplicationShellBridge = (): void => {
   exposeApplicationShellBridge(
     contextBridge,
     {
-      isMac: EnvironmentUtil.platform.IS_MAC_OS,
-      locale: locale.getCurrent(),
-      locStrings: locale.LANGUAGES[locale.getCurrent()],
-      locStringsDefault: locale.LANGUAGES.en,
+      isMac: process.platform === 'darwin',
+      locale: currentLocale,
+      locStrings: LANGUAGES[currentLocale],
+      locStringsDefault: LANGUAGES.en,
     },
     applicationShellBridge,
   );
