@@ -20,106 +20,53 @@
 import {app} from 'electron';
 
 import * as path from 'path';
-import {URL} from 'url';
 
-import {shortenText} from './ElectronUtil';
 import {EVENT_TYPE} from './eventType';
 
 import {showErrorDialog} from '../lib/showDialog';
 import {getLogger} from '../logging/getLogger';
 import {platform} from '../runtime/EnvironmentUtil';
+import {parseDeepLink} from '../security/deepLinkPolicy';
 import {config} from '../settings/config';
 import {WindowManager} from '../window/WindowManager';
 
 const logger = getLogger(path.basename(__filename));
 
 const CORE_PROTOCOL_PREFIX = `${config.customProtocolName}://`;
-const CORE_PROTOCOL_MAX_LENGTH = 1024;
-const START_SSO_FLOW = 'start-sso';
-const JOIN_CONVERSATION_FLOW = 'conversation-join';
-const START_LOGIN_FLOW = 'start-login';
 
 export class CustomProtocolHandler {
   public hashLocation = '';
   private readonly windowManager = WindowManager;
 
   public async dispatchDeepLink(url?: string): Promise<void> {
-    logger.info('Dispatching deep link ...');
+    const action = parseDeepLink(url);
+    if (!action) {
+      showErrorDialog('Invalid deep link.');
+      logger.info('Invalid deep link, ignoring');
+      return;
+    }
     try {
-      if (
-        typeof url === 'undefined' ||
-        !url.startsWith(CORE_PROTOCOL_PREFIX) ||
-        url.length > CORE_PROTOCOL_MAX_LENGTH
-      ) {
-        showErrorDialog(`Invalid deep link "${shortenText(url || '', CORE_PROTOCOL_MAX_LENGTH)}."`);
-        logger.info('Invalid deep link, ignoring');
-        return;
+      switch (action.kind) {
+        case 'location':
+          this.hashLocation = action.location;
+          this.windowManager.sendActionToPrimaryWindow(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, action.location);
+          break;
+        case 'sso-login':
+          await this.windowManager.sendActionAndFocusWindow(EVENT_TYPE.ACCOUNT.SSO_LOGIN, action.code);
+          break;
+        case 'start-login':
+          await this.windowManager.sendActionAndFocusWindow(EVENT_TYPE.ACTION.START_LOGIN);
+          break;
+        case 'join-conversation':
+          await this.windowManager.sendActionAndFocusWindow(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {
+            code: action.code,
+            key: action.key,
+            domain: action.domain,
+          });
+          break;
       }
-
-      const route = new URL(url);
-
-      if (route.host === START_SSO_FLOW) {
-        logger.info('Deep link is a SSO link, triggering SSO login ...');
-        await this.handleSSOLogin(route);
-      } else if (route.host === JOIN_CONVERSATION_FLOW) {
-        logger.info('Deep link is a conversation join link, triggering join ...');
-        await this.handleJoinConversation(route);
-      } else if (route.host === START_LOGIN_FLOW) {
-        logger.info('Deep link is a start login link, triggering new account ...');
-        await this.handleStartLogin(route);
-      } else {
-        // handle invalid deep link
-        logger.info('Triggering hash location change ...');
-        this.forwardHashLocation(route);
-      }
-    } catch (error: any) {
-      logger.error(error);
-    }
-  }
-
-  private forwardHashLocation(route: URL): void {
-    const location = route.href.substr(CORE_PROTOCOL_PREFIX.length);
-    this.hashLocation = `/${location}`;
-    logger.info(`New hash location: "${this.hashLocation}"`);
-    this.windowManager.sendActionToPrimaryWindow(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, this.hashLocation);
-  }
-
-  private async handleSSOLogin(route: URL): Promise<void> {
-    if (typeof route.pathname === 'string') {
-      logger.info('Starting SSO flow ...');
-      const code = route.pathname.trim().substr(1);
-      try {
-        await this.windowManager.sendActionAndFocusWindow(EVENT_TYPE.ACCOUNT.SSO_LOGIN, code);
-      } catch (error: any) {
-        logger.error(`Cannot start SSO flow: ${error.message}`, error);
-      }
-    }
-  }
-
-  private async handleJoinConversation(route: URL): Promise<void> {
-    if (typeof route.pathname === 'string') {
-      logger.info('Joining conversation ...');
-      const code = route.searchParams.get('code');
-      const key = route.searchParams.get('key');
-      const domain = route.searchParams.get('domain');
-
-      try {
-        await this.windowManager.sendActionAndFocusWindow(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code, key, domain});
-      } catch (error: any) {
-        logger.error(`Cannot join conversation: ${error.message}`, error);
-      }
-    }
-  }
-
-  private async handleStartLogin(route: URL): Promise<void> {
-    if (typeof route.pathname === 'string') {
-      logger.info('Starting login flow ...');
-
-      try {
-        await this.windowManager.sendActionAndFocusWindow(EVENT_TYPE.ACTION.START_LOGIN);
-      } catch (error: any) {
-        logger.error(`Cannot start login flow: ${(error as Error).message}`, error);
-      }
+    } catch (error: unknown) {
+      logger.error('Failed to dispatch deep link', error);
     }
   }
 

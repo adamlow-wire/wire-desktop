@@ -6,7 +6,7 @@ active_work_item: CAP-001
 state: renderer-loss-test-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 5926e3d0
+integration_head_commit: 75b22ded
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
@@ -196,6 +196,7 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
+- [PR #39](https://github.com/adamlow-wire/wire-desktop/pull/39) merged as `75b22ded` after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325605), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325572), and [Windows/macOS authenticated E2E plus reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325647) passed. [Test-only PR #40](https://github.com/adamlow-wire/wire-desktop/pull/40) is now synchronized with that integration head and requires fresh final-head gates before merge. Then synchronize navigation PR #38 once and require its final behavior-changing checkpoint.
 - CAP-001 final local baseline passes 338 main tests in 7 seconds (3 existing CAP-002 targets pending), React 20 suites/64 tests, renderer 4/4, build tools 35/35, application/Mocha types, formatting and changed-file lint. There are no changed runtime statements for the coverage gate. This is the independent integration-based branch, not a claim that PR #38's larger suite has been rerun with this test yet.
 - Active CAP-001 test-only branch is independent of PR #38/#39 and changes no runtime code. The local forced-crash test times out before `render-process-gone` arrives; `/proc/sys/kernel/core_pattern` is piped to WSL crash capture. Killing only the verified fixture renderer PID without a dump produces process loss at 29 ms and completed recovery at 153 ms. The revised test keeps all deadlines and recovery assertions, adds a check that authority is gone before replacement creation, and passes in under a second. Delaying revocation until the next main-loop turn fails that new assertion even though eventual recovery succeeds; the mutation was restored. Full validation is running. WSL capture is the likely host delay, not a proven application recovery defect; do not modify host-wide crash settings.
 - PR #39's unchanged Windows proxy fixture exceeded its 2-second test deadline once; its single targeted failed-job rerun passed. Authenticated E2E remains pending. PR #38 corrected staging's same-origin referrer policy and custom-link routing on head `0cfa5327`; it is validating and must wait for its parser prerequisite. No user action is needed.
