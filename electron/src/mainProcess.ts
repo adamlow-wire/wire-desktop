@@ -102,8 +102,8 @@ import {bindProxyPromptIpc, createProxyPromptBoundary} from './security/ProxyPro
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {bindSsoAccountLimitIpc, SSO_ACCOUNT_LIMIT_CAPABILITY} from './security/SsoAccountLimitIpc';
-import {controlSsoWindowForAccount} from './security/SsoWindowControl';
 import {bindSsoWindowControlIpc} from './security/SsoWindowControlIpc';
+import {SsoWindowCoordinator} from './security/SsoWindowCoordinator';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {bindWebAppLoadedIpc} from './security/WebAppLoadedIpc';
 import {bindWrapperRelaunchIpc} from './security/WrapperRelaunchIpc';
@@ -626,14 +626,15 @@ const applyProxySettings = async (authenticatedProxyDetails: URL, webContents: E
 
 class ElectronWrapperInit {
   logger: logdown.Logger;
-  ssoWindow: SingleSignOn | null;
+  private readonly ssoWindows = new SsoWindowCoordinator(() =>
+    main.webContents.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED),
+  );
 
   constructor() {
     this.logger = getLogger('ElectronWrapperInit');
-    this.ssoWindow = null;
     bindSsoWindowControlIpc(ipcMain, viewIdentityRegistry, {
-      close: this.closeSSOWindow,
-      focus: this.focusSSOWindow,
+      close: accountId => this.ssoWindows.control(accountId, 'close'),
+      focus: accountId => this.ssoWindows.control(accountId, 'focus'),
     });
   }
 
@@ -641,20 +642,6 @@ class ElectronWrapperInit {
     this.logger.log('webviewProtection init');
     this.webviewProtection();
   }
-
-  closeSSOWindow = (accountId: string | undefined) => {
-    this.ssoWindow = controlSsoWindowForAccount(this.ssoWindow, accountId, 'close');
-  };
-
-  focusSSOWindow = (accountId: string | undefined) => {
-    controlSsoWindowForAccount(this.ssoWindow, accountId, 'focus');
-  };
-
-  sendSSOWindowCloseEvent = () => {
-    if (this.ssoWindow) {
-      main.webContents.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
-    }
-  };
 
   // <webview> hardening
   webviewProtection(): void {
@@ -728,29 +715,12 @@ class ElectronWrapperInit {
               accountSession: contents.session,
               accountOrigin,
               openExternal: url => mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(url)),
-              openSso: url => {
-                const accountId = Maybe.of(registeredAccountId);
-                if (this.ssoWindow) {
-                  this.focusSSOWindow(accountId.unwrapOr('') || undefined);
-                  return;
-                }
-                const sso = SingleSignOn.create(main, contents, accountId, url, viewIdentityRegistry);
-                this.ssoWindow = sso;
-                sso.onClose = () => {
-                  if (this.ssoWindow === sso) {
-                    this.sendSSOWindowCloseEvent();
-                    this.ssoWindow = null;
-                  }
-                };
-                mainProcessFireAndForgetInvoker.fireAndForget(async () => {
-                  try {
-                    await sso.init();
-                  } catch (error) {
-                    sso.close();
-                    throw error;
-                  }
-                });
-              },
+              openSso: url =>
+                mainProcessFireAndForgetInvoker.fireAndForget(() =>
+                  this.ssoWindows.open(registeredAccountId, () =>
+                    SingleSignOn.create(main, contents, Maybe.of(registeredAccountId), url, viewIdentityRegistry),
+                  ),
+                ),
             }),
           );
           contents.on('did-create-window', (win, windowCreationDetails) => {

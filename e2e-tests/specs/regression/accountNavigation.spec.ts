@@ -22,6 +22,8 @@ import {_electron, expect, test} from '@playwright/test';
 import {createServer} from 'node:http';
 import {AddressInfo} from 'node:net';
 
+import {WebAppEvents} from '@wireapp/webapp-events';
+
 test(
   '[security-target][SEC-008] product navigation and main-owned SSO fail closed',
   {tag: ['@regression']},
@@ -40,7 +42,7 @@ test(
         response.setHeader('Content-Type', 'text/html');
       }
       response.end(`<!doctype html><title>Local Wire boundary fixture</title><script>
-      window.amplify={publish(){},subscribe(){},unsubscribe(){}};window.wire={};
+      window.desktopEvents=[];window.amplify={publish(name){window.desktopEvents.push(name)},subscribe(){},unsubscribe(){}};window.wire={};
       window.z={event:{},lifecycle:{UPDATE_SOURCE:{DESKTOP:'desktop'}},util:{Environment:{avsVersion(){return 'fixture'},version(){return 'fixture'}}}};
     </script>`);
     });
@@ -96,42 +98,54 @@ test(
         expect(hostileRequests).toBe(0);
       }
 
-      expect(
-        await app.evaluate(async ({webContents}, origin) => {
-          const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
-          return account.executeJavaScript(`window.open(${JSON.stringify(`${origin}/sso`)}, 'WIRE_SSO') === null`);
-        }, origin),
-      ).toBe(true);
-      await expect
-        .poll(() =>
-          app.evaluate(
-            ({BrowserWindow, session}, origin) =>
-              BrowserWindow.getAllWindows().filter(
-                window =>
-                  window.webContents.session === session.fromPartition('sso') &&
-                  window.webContents.getURL() === `${origin}/sso`,
-              ).length,
-            origin,
-          ),
-        )
-        .toBe(1);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        expect(
+          await app.evaluate(async ({webContents}, origin) => {
+            const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+            return account.executeJavaScript(
+              `window.desktopEvents=[]; window.open(${JSON.stringify(`${origin}/sso`)}, 'WIRE_SSO') === null`,
+            );
+          }, origin),
+        ).toBe(true);
+        await expect
+          .poll(() =>
+            app.evaluate(
+              ({BrowserWindow, session}, origin) =>
+                BrowserWindow.getAllWindows().filter(
+                  window =>
+                    window.webContents.session === session.fromPartition('sso') &&
+                    window.webContents.getURL() === `${origin}/sso`,
+                ).length,
+              origin,
+            ),
+          )
+          .toBe(1);
 
-      await app.evaluate(async ({webContents}) => {
-        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
-        await account.executeJavaScript(
-          'window.wireDesktopBridge.events.focusSsoWindow(); window.wireDesktopBridge.events.closeSsoWindow(); undefined',
-        );
-      });
-      await expect
-        .poll(() =>
-          app.evaluate(
-            ({BrowserWindow, session}) =>
-              BrowserWindow.getAllWindows().filter(
-                window => window.webContents.session === session.fromPartition('sso'),
-              ).length,
-          ),
-        )
-        .toBe(0);
+        await app.evaluate(async ({webContents}) => {
+          const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+          await account.executeJavaScript(
+            'window.wireDesktopBridge.events.focusSsoWindow(); window.wireDesktopBridge.events.closeSsoWindow(); undefined',
+          );
+        });
+        await expect
+          .poll(() =>
+            app.evaluate(async ({webContents}, event) => {
+              const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+              return account.executeJavaScript(`window.desktopEvents.includes(${JSON.stringify(event)})`);
+            }, WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED),
+          )
+          .toBe(true);
+        await expect
+          .poll(() =>
+            app.evaluate(
+              ({BrowserWindow, session}) =>
+                BrowserWindow.getAllWindows().filter(
+                  window => window.webContents.session === session.fromPartition('sso'),
+                ).length,
+            ),
+          )
+          .toBe(0);
+      }
     } finally {
       if (application) {
         await application.close();

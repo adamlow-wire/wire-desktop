@@ -66,6 +66,7 @@ export class SingleSignOn {
   public static loginAuthorizationSecret: string | undefined;
 
   private session: Session | undefined;
+  private sessionCleanup: Promise<void> | undefined;
   private ssoWindow: BrowserWindow | undefined;
   private readonly senderWebContents: WebContents;
   private readonly accountId: Maybe<string>;
@@ -171,16 +172,13 @@ export class SingleSignOn {
     }
 
     ssoWindow.once('closed', async () => {
-      if (this.session) {
-        await this.wipeSessionData();
-        const unregisterSuccess = SingleSignOn.unregisterProtocol(this.session);
-        if (!unregisterSuccess) {
-          throw new Error('Failed to unregister protocol');
-        }
-      }
-      this.onClose();
-      this.session = undefined;
       this.ssoWindow = undefined;
+      try {
+        await this.cleanupSession();
+        this.onClose();
+      } catch (error) {
+        SingleSignOn.logger.error('SSO session cleanup failed; the flow remains unavailable.', error);
+      }
     });
 
     // Prevent title updates
@@ -234,14 +232,9 @@ export class SingleSignOn {
   close = () => {
     (async () => {
       if (this.session) {
-        await this.wipeSessionData();
-        const unregisterSuccess = SingleSignOn.unregisterProtocol(this.session);
-        if (!unregisterSuccess) {
-          console.error('Failed to unregister protocol');
-        }
+        await this.cleanupSession();
       }
       this.ssoWindow?.close();
-      this.session = undefined;
       this.ssoWindow = undefined;
     })()
       .then(console.info)
@@ -380,7 +373,22 @@ export class SingleSignOn {
     await executeJavaScriptWithoutResult(snippet, this.senderWebContents);
   }
 
-  private async wipeSessionData() {
-    await this.session?.clearStorageData(undefined);
+  private cleanupSession(): Promise<void> {
+    if (!this.sessionCleanup) {
+      const session = this.session;
+      this.session = undefined;
+      this.sessionCleanup = (async () => {
+        if (session) {
+          await session.clearStorageData(undefined);
+          if (
+            !SingleSignOn.unregisterProtocol(session) &&
+            session.protocol.isProtocolRegistered(SingleSignOn.SSO_PROTOCOL)
+          ) {
+            throw new Error('Failed to unregister protocol');
+          }
+        }
+      })();
+    }
+    return this.sessionCleanup;
   }
 }

@@ -427,6 +427,83 @@ describe('SingleSignOn', () => {
       assert.strictEqual(singleSignOn['ssoWindow'], undefined);
     });
 
+    it('[security-target][SEC-008] cleans up once when close triggers the native closed event', async () => {
+      const listeners = new Map<string, () => Promise<void>>();
+      let clears = 0;
+      let notifications = 0;
+      let resolveClosed!: () => void;
+      let rejectClosed!: (error: unknown) => void;
+      const closed = new Promise<void>((resolve, reject) => {
+        resolveClosed = resolve;
+        rejectClosed = reject;
+      });
+      const harness = createProtocolHarness();
+      const window = {
+        on: () => window,
+        once: (name: string, listener: () => Promise<void>) => {
+          listeners.set(name, listener);
+          return window;
+        },
+        close: () => {
+          void listeners.get('closed')!().then(resolveClosed, rejectClosed);
+        },
+        setTitle: () => {},
+        webContents: {on: () => {}, setWindowOpenHandler: () => {}},
+      } as unknown as BrowserWindow;
+      const sso = new SingleSignOn(
+        window,
+        {session: {}} as WebContents,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+      sso['session'] = {
+        ...harness.session,
+        clearStorageData: async () => {
+          clears++;
+        },
+      } as unknown as Session;
+      sso.onClose = () => {
+        notifications++;
+      };
+      sso['setupBrowserWindow']();
+      sso.close();
+      await closed;
+      assert.strictEqual(clears, 1);
+      assert.strictEqual(harness.getUnregisterCount(), 1);
+      assert.strictEqual(notifications, 1);
+      assert.strictEqual(sso['session'], undefined);
+      assert.strictEqual(sso['ssoWindow'], undefined);
+    });
+
+    it('[security-target][SEC-008] retains a failed cleanup result instead of treating the session as reusable', async () => {
+      const failure = new Error('controlled storage cleanup failure');
+      let clears = 0;
+      const harness = createProtocolHarness();
+      const sso = new SingleSignOn(
+        {} as BrowserWindow,
+        {} as WebContents,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+      sso['session'] = {
+        ...harness.session,
+        clearStorageData: async () => {
+          clears++;
+          throw failure;
+        },
+      } as unknown as Session;
+      const cleanup = sso['cleanupSession']();
+      await assert.rejects(cleanup, error => error === failure);
+      assert.strictEqual(sso['cleanupSession'](), cleanup);
+      assert.strictEqual(clears, 1);
+      assert.strictEqual(harness.getUnregisterCount(), 0);
+      assert.strictEqual(sso['session'], undefined);
+    });
+
     it('[security-target][SEC-008] enforces SSO navigation and redirect transport policy', () => {
       const listeners = new Map<string, Array<(event: ElectronEvent, url: string) => void>>();
       const ssoWindow = {

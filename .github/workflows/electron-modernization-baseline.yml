@@ -57,9 +57,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil'
+            xvfb-run yarn test:main --grep 'application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator'
           else
-            yarn test:main --grep 'application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil'
+            yarn test:main --grep 'application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator'
           fi
       - name: Build development package
         shell: bash
