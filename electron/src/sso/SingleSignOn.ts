@@ -22,6 +22,7 @@ import {
   BrowserWindowConstructorOptions,
   Event as ElectronEvent,
   ProtocolRequest,
+  ProtocolResponse,
   Session,
   session,
   WebContents,
@@ -51,21 +52,20 @@ export class SingleSignOn {
   private static readonly SINGLE_SIGN_ON_FRAME_NAME = 'WIRE_SSO';
   private static readonly SSO_PROTOCOL = `${config.customProtocolName}-sso`;
   private static readonly SSO_PROTOCOL_HOST = 'response';
-  private static readonly SSO_PROTOCOL_RESPONSE_SIZE_LIMIT = 255;
-  private static readonly SSO_SESSION_NAME = 'sso';
   private static readonly MAX_LENGTH_ORIGIN_DOMAIN = 255;
   private static readonly MAX_LENGTH_ORIGIN = 'https://'.length + SingleSignOn.MAX_LENGTH_ORIGIN_DOMAIN;
   private static readonly logger = getLogger(path.basename(__filename));
 
   private static readonly RESPONSE_TYPES = {
+    AUTH_ERROR: 'AUTH_ERROR',
     AUTH_ERROR_COOKIE: 'AUTH_ERROR_COOKIE',
     AUTH_ERROR_SESS_NOT_AVAILABLE: 'AUTH_ERROR_SESS_NOT_AVAILABLE',
     AUTH_SUCCESS: 'AUTH_SUCCESS',
   };
 
-  public static loginAuthorizationSecret: string | undefined;
-
   private session: Session | undefined;
+  private revokeCallback: (() => void) | undefined;
+  private closed = false;
   private sessionCleanup: Promise<void> | undefined;
   private ssoWindow: BrowserWindow | undefined;
   private readonly senderWebContents: WebContents;
@@ -93,10 +93,15 @@ export class SingleSignOn {
 
   public readonly init = async (): Promise<SingleSignOn> => {
     // Create a ephemeral and isolated session
-    this.session = session.fromPartition(SingleSignOn.SSO_SESSION_NAME, {cache: false});
+    const partition = this.windowOptions.webPreferences?.partition;
+    if (!partition || !/^sso-[a-f0-9-]{36}$/.test(partition)) {
+      throw new Error('SSO requires a fresh ephemeral session partition.');
+    }
+    this.session = session.fromPartition(partition, {cache: false});
 
     // Disable browser permissions (microphone, camera...)
     this.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    this.session.setPermissionCheckHandler(() => false);
 
     if (!this.ssoWindow || this.ssoWindow.webContents.session !== this.session) {
       throw new Error('SSO window is not using the isolated SSO session.');
@@ -105,7 +110,7 @@ export class SingleSignOn {
       accountId: this.accountId.isJust ? this.accountId.value : undefined,
       allowedOrigin: this.windowOriginUrl.origin,
       capabilities: [],
-      partition: SingleSignOn.SSO_SESSION_NAME,
+      partition,
       session: this.session,
       viewType: 'sso',
       webContents: this.ssoWindow.webContents,
@@ -121,10 +126,32 @@ export class SingleSignOn {
 
     // Register protocol
     // Note: we need to create the window before otherwise it does not work
-    await SingleSignOn.registerProtocol(this.session, type => this.finalizeLogin(type));
+    const ssoSession = this.session;
+    const callback = await SingleSignOn.registerProtocol(ssoSession, (type, label) => this.finalizeLogin(type, label));
+    this.revokeCallback = callback.dispose;
+    if (this.closed) {
+      callback.dispose();
+      SingleSignOn.unregisterProtocol(ssoSession);
+      return this;
+    }
+
+    // Spar's web verdict uses window.opener. An isolated native window instead requests redirects.
+    const loginUrl = new URL(this.windowOriginUrl);
+    for (const [parameter, type] of [
+      ['success_redirect', SingleSignOn.RESPONSE_TYPES.AUTH_SUCCESS],
+      ['error_redirect', SingleSignOn.RESPONSE_TYPES.AUTH_ERROR],
+    ]) {
+      const redirect = `${SingleSignOn.SSO_PROTOCOL}://response?secret=${callback.secret}&type=${type}${
+        type === SingleSignOn.RESPONSE_TYPES.AUTH_ERROR ? '&label=$label' : ''
+      }`;
+      if (!SingleSignOn.SSO_PROTOCOL.startsWith('wire') || redirect.length > 140) {
+        throw new Error('SSO callback is incompatible with the backend redirect contract.');
+      }
+      loginUrl.searchParams.set(parameter, redirect);
+    }
 
     // Show the window(s)
-    await this.ssoWindow?.loadURL(this.windowOriginUrl.toString());
+    await this.ssoWindow?.loadURL(loginUrl.toString());
 
     if (typeof argv[config.ARGUMENT.DEVTOOLS] !== 'undefined') {
       this.ssoWindow?.webContents.openDevTools({mode: 'detach'});
@@ -230,6 +257,8 @@ export class SingleSignOn {
   }
 
   close = () => {
+    this.closed = true;
+    this.revokeCallback?.();
     (async () => {
       if (this.session) {
         await this.cleanupSession();
@@ -260,23 +289,36 @@ export class SingleSignOn {
       width: 480,
       height: 600,
     });
-    return {...options, webPreferences: {...options.webPreferences, partition: SingleSignOn.SSO_SESSION_NAME}};
+    return {...options, webPreferences: {...options.webPreferences, partition: `sso-${crypto.randomUUID()}`}};
   };
 
   // Returns an empty string if the origin is a Wire backend
   public static getWindowTitle = (origin: string): string =>
     SingleSignOn.ALLOWED_BACKEND_ORIGINS.includes(origin) ? '' : origin;
 
-  private static async copyCookies(fromSession: Session, toSession: Session, url: URL): Promise<void> {
+  private static async copyCookies(
+    fromSession: Session,
+    toSession: Session,
+    url: URL,
+    isActive: () => boolean = () => true,
+  ): Promise<number> {
     const cookies = await fromSession.cookies.get({name: 'zuid'});
-
+    let copied = 0;
     for (const cookie of cookies) {
-      if (cookie.domain) {
+      const domain = cookie.domain?.replace(/^\./, '').toLowerCase();
+      if (
+        isActive() &&
+        cookie.name === 'zuid' &&
+        domain &&
+        (url.hostname === domain || (!cookie.hostOnly && url.hostname.endsWith(`.${domain}`)))
+      ) {
         await toSession.cookies.set({url: url.toString(), ...cookie});
+        copied++;
       }
     }
 
     await toSession.cookies.flushStore();
+    return copied;
   }
 
   private static generateSecret(length: number): Promise<string> {
@@ -285,61 +327,90 @@ export class SingleSignOn {
     });
   }
 
-  private static async registerProtocol(session: Session, finalizeLogin: (type: string) => void): Promise<void> {
+  private static async registerProtocol(
+    session: Session,
+    finalizeLogin: (type: string, label?: string) => void | Promise<void>,
+  ): Promise<{secret: string; dispose: () => void}> {
     // Generate a new secret to authenticate the custom protocol (wire-sso)
-    SingleSignOn.loginAuthorizationSecret = await SingleSignOn.generateSecret(24);
+    const secret = await SingleSignOn.generateSecret(24);
+    let active = true;
 
-    const handleRequest = (request: ProtocolRequest): void => {
+    const handleRequest = (request: ProtocolRequest, respond: (response: string | ProtocolResponse) => void): void => {
       try {
+        if (request.method !== 'GET' || request.url.length > 255 || /[\u0000-\u0020\u007f\\]/.test(request.url)) {
+          throw new Error('Invalid SSO callback URL');
+        }
         const requestURL = new URL(request.url);
 
         if (requestURL.protocol !== `${SingleSignOn.SSO_PROTOCOL}:`) {
           throw new Error('Protocol is invalid');
         }
 
-        if (requestURL.hostname !== SingleSignOn.SSO_PROTOCOL_HOST) {
+        if (
+          requestURL.host !== SingleSignOn.SSO_PROTOCOL_HOST ||
+          requestURL.username ||
+          requestURL.password ||
+          requestURL.hash ||
+          (requestURL.pathname !== '' && requestURL.pathname !== '/') ||
+          (requestURL.searchParams.size !== 2 && requestURL.searchParams.size !== 3) ||
+          requestURL.searchParams.getAll('secret').length !== 1 ||
+          requestURL.searchParams.getAll('type').length !== 1
+        ) {
           throw new Error('Host is invalid');
         }
 
-        if (typeof SingleSignOn.loginAuthorizationSecret !== 'string') {
+        if (!active) {
           throw new Error('Secret has not be set or has been consumed');
         }
 
-        if (requestURL.searchParams.get('secret') !== SingleSignOn.loginAuthorizationSecret) {
+        if (requestURL.searchParams.get('secret') !== secret) {
           throw new Error('Secret is invalid');
         }
 
         const type = requestURL.searchParams.get('type');
 
-        if (typeof type !== 'string') {
-          throw new Error('Response is empty');
+        if (type !== SingleSignOn.RESPONSE_TYPES.AUTH_SUCCESS && type !== SingleSignOn.RESPONSE_TYPES.AUTH_ERROR) {
+          throw new Error('Response type is not allowed');
         }
-
-        if (type.length > SingleSignOn.SSO_PROTOCOL_RESPONSE_SIZE_LIMIT) {
-          throw new Error('Response type is too long');
+        const label = requestURL.searchParams.get('label') ?? undefined;
+        if (
+          (requestURL.searchParams.size === 3 && (type !== SingleSignOn.RESPONSE_TYPES.AUTH_ERROR || !label)) ||
+          (label !== undefined && !/^[a-z][a-z0-9-]{0,127}$/.test(label))
+        ) {
+          throw new Error('Invalid SSO error label');
         }
-
-        finalizeLogin(type);
+        active = false;
+        respond({mimeType: 'text/html', data: '<!doctype html><title>SSO complete</title>'});
+        void (async () => finalizeLogin(type, label))().catch(error =>
+          SingleSignOn.logger.error('SSO finalization failed', error),
+        );
       } catch (error) {
+        respond({error: -10});
         SingleSignOn.logger.error(error);
       }
     };
 
     const isRegistered = session.protocol.isProtocolRegistered(SingleSignOn.SSO_PROTOCOL);
 
-    if (!isRegistered) {
-      const registerSuccess = session.protocol.registerStringProtocol(SingleSignOn.SSO_PROTOCOL, handleRequest);
-      if (!registerSuccess) {
-        throw new Error('Failed to register protocol.');
-      }
+    if (isRegistered || !session.protocol.registerStringProtocol(SingleSignOn.SSO_PROTOCOL, handleRequest)) {
+      throw new Error('Failed to register protocol.');
     }
+    return {
+      secret,
+      dispose: () => {
+        active = false;
+      },
+    };
   }
 
   private static unregisterProtocol(session: Session): boolean {
     return session.protocol.unregisterProtocol(SingleSignOn.SSO_PROTOCOL);
   }
 
-  private readonly finalizeLogin = async (type: string): Promise<void> => {
+  private readonly finalizeLogin = async (type: string, label?: string): Promise<void> => {
+    if (this.closed) {
+      return;
+    }
     if (type === SingleSignOn.RESPONSE_TYPES.AUTH_SUCCESS) {
       if (!this.session) {
         await this.dispatchResponse(SingleSignOn.RESPONSE_TYPES.AUTH_ERROR_SESS_NOT_AVAILABLE);
@@ -349,7 +420,15 @@ export class SingleSignOn {
 
       // Set cookies from ephemeral session to the default one
       try {
-        await SingleSignOn.copyCookies(this.session, this.senderWebContents.session, this.windowOriginUrl);
+        const copied = await SingleSignOn.copyCookies(
+          this.session,
+          this.senderWebContents.session,
+          this.windowOriginUrl,
+          () => !this.closed,
+        );
+        if (!copied) {
+          throw new Error('No backend authentication cookie was available.');
+        }
       } catch (error) {
         SingleSignOn.logger.warn(error);
         await this.dispatchResponse(SingleSignOn.RESPONSE_TYPES.AUTH_ERROR_COOKIE);
@@ -358,22 +437,30 @@ export class SingleSignOn {
       }
     }
 
-    await this.dispatchResponse(type);
+    await this.dispatchResponse(type, label);
   };
 
-  private async dispatchResponse(type: string): Promise<void> {
+  private async dispatchResponse(type: string, label?: string): Promise<void> {
+    if (this.closed) {
+      return;
+    }
     // Ensure guest window provided type is valid
-    const isTypeValid = /^[A-Z_]{1,255}$/g;
-    if (isTypeValid.test(type) === false) {
+    if (!Object.values(SingleSignOn.RESPONSE_TYPES).includes(type)) {
       throw new Error('Invalid type detected, aborting.');
     }
 
     // Fake postMessage to the webview
-    const snippet = `window.dispatchEvent(new MessageEvent('message', {origin: '${this.windowOriginUrl.origin}', data: {type: '${type}'}}))`;
+    const payload =
+      type === SingleSignOn.RESPONSE_TYPES.AUTH_ERROR && label ? `, payload: ${JSON.stringify({label})}` : '';
+    const snippet = `window.dispatchEvent(new MessageEvent('message', {origin: ${JSON.stringify(
+      this.windowOriginUrl.origin,
+    )}, data: {type: '${type}'${payload}}}))`;
     await executeJavaScriptWithoutResult(snippet, this.senderWebContents);
   }
 
   private cleanupSession(): Promise<void> {
+    this.closed = true;
+    this.revokeCallback?.();
     if (!this.sessionCleanup) {
       const session = this.session;
       this.session = undefined;
