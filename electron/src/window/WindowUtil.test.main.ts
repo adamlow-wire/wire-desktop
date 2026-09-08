@@ -70,5 +70,39 @@ describe('WindowUtil', () => {
       assert.ok(shellStub.notCalled);
       assert.ok(dialogStub.called);
     });
+
+    for (const url of ['ftp://downloads.example.org/wire/', 'mailto:support@example.org?subject=Wire']) {
+      it(`[characterization][SEC-008] preserves supported external URL ${url}`, async () => {
+        await WindowUtil.openExternal(url);
+        assert.ok(shellStub.calledOnceWithExactly(url));
+        assert.ok(dialogStub.notCalled);
+      });
+    }
+
+    for (const url of [
+      undefined as unknown as string,
+      '',
+      'not a URL',
+      'wire://start-login',
+      'file:///etc/passwd',
+      'https://username:password@example.org/private',
+      'https://:password@example.org/private',
+      'https:example.org',
+      'https:/example.org',
+      'mailto:',
+      'mailto:support@example.org?subject=hello%0Aworld',
+      ' https://example.org',
+      'https://example.org/a\nb',
+      'https:\\example.org',
+      `https://example.org/${'a'.repeat(2048)}`,
+    ]) {
+      it(`[security-target][INV-005][SEC-008] rejects ambiguous external URL ${
+        url?.slice(0, 80) || '<empty>'
+      }`, async () => {
+        await WindowUtil.openExternal(url);
+        assert.ok(shellStub.notCalled);
+        assert.ok(dialogStub.calledOnce);
+      });
+    }
   });
 });

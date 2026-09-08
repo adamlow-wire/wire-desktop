@@ -36,13 +36,7 @@ export const parseSecureAccountUrl = (value: string, allowHttpForTest = false): 
   return url;
 };
 
-export const isAllowedAccountNavigation = (value: string, allowedOrigin: string): boolean => {
-  try {
-    return new URL(value).origin === allowedOrigin;
-  } catch {
-    return false;
-  }
-};
+export {isAllowedAccountNavigation} from '../security/NavigationPolicy';
 
 export const isRuntimeInfoRequest = (value: unknown): value is RuntimeInfoRequest => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {

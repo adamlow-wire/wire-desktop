@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.10
+revision: 1.5.11
 status: draft
 updated: 2026-09-08
 owners:
@@ -389,7 +389,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-006 — Enable renderer sandboxing everywhere
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-005
 - Scope: Enable application-wide sandboxing with explicitly justified exceptions only if unavoidable.
@@ -399,7 +399,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - `nodeIntegration` and `nodeIntegrationInWorker` remain disabled.
   - CI asserts effective `webPreferences` for every window/view type.
   - Any exception has a time limit, owner, threat analysis, and removal work item.
-- Evidence: TBD
+- Evidence: [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) merged as `5926e3d0` after final-head [build/test and coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873450), [all-platform package baselines](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873453), and [authenticated Windows/macOS E2E plus reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873692) passed. Preloads are browser-target bundles; application-wide sandboxing precedes configuration/main-process startup. Effective preferences, a real renderer Worker, and explicitly OS-sandboxed product/E2E probes confirm isolation and absence of page Node access. Startup order, locale selection, environment restoration, and disabled sandbox mutations failed their intended tests and were reverted. No runtime upgrade or product sandbox exception was introduced.
 
 #### SEC-007 — Replace `<webview>` account rendering
 
@@ -418,16 +418,17 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-008 — Centralize navigation and window-open policy
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Enforce allowed origins, navigation types, external destinations, SSO windows, PiP windows, and denial behavior.
+- Boundary contract: Account navigation and redirects remain on the main-registered exact HTTP(S) origin; malformed, credential-bearing, opaque, and scheme-confused URLs fail closed. Popups require an account-origin referrer. PiP retains the required empty/about:blank and same-origin flows with secure preferences and account-session isolation. SSO is created by main in its isolated session, not by accepting a renderer-created child whose session override is ineffective; `window.open` returns null, while existing desktop close/focus/result events remain the control path. SSO permits HTTPS IdP navigation, the initial origin for existing local HTTP fixtures, and its exact bounded callback scheme/host. Reload, crash, or destruction of the initiating view closes its SSO window. Auxiliary resources have explicit cancellation; developer windows deny new windows. The shared external parser preserves HTTP(S), FTP, and bounded mailto while excluding app-protocol recursion, credentials, controls, backslashes, and oversized input. SEC-013 retains incoming deep-link parsing and lifecycle routing; reuse its existing parser work rather than creating an overlapping task.
 - Acceptance:
   - Unexpected navigation is prevented, not merely logged.
   - New windows default to deny.
   - Allowed SSO/PiP windows use fixed reviewed preferences.
   - External URLs use protocol and origin policy with adversarial tests.
-- Evidence: TBD
+- Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. Local implementation validation is ongoing; hosted gates and production E2E remain required before completion.
 
 #### SEC-009 — Centralize permission policy
 
@@ -874,6 +875,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.11 | 2026-09-08 | Codex | Closed sandboxing with merged PR #37 and final-head cross-platform evidence; began central navigation policy and documented main-owned SSO creation after reproducing ineffective child-session overrides | SEC-006, SEC-008, SEC-013, DCP-003, DCP-009, DCP-011, DCP-014 |
 | 1.5.10 | 2026-09-08 | Codex | Began sandbox-compatible preload bundling and explicit main-owned bootstrap/image-copy contracts; local validation and hosted gates remain open | SEC-006, INV-001, INV-002, DCP-014 |
 | 1.5.9 | 2026-09-07 | Codex | Closed isolated bridges with merged PR #35 and cross-platform evidence; resolved adapter ownership and made sandboxing executable | SEC-005, SEC-006, Q-003, INV-002 |
 | 1.5.8 | 2026-09-04 | Codex | Began SEC-005 with sensitivity-proven real-Electron characterization of the local-shell and Wire webapp preload compatibility surfaces | SEC-005, INV-002 |

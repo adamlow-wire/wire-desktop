@@ -2,17 +2,17 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-08
 milestone: M3
-active_work_item: SEC-006
-state: sandboxing-hosted-validation
+active_work_item: SEC-008
+state: navigation-policy-local-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 1a01486c
+integration_head_commit: 5926e3d0
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: sec/SEC-006-renderer-sandboxing-2026-09-07
-next_work_item: SEC-006
+related_pending_branch: sec/SEC-008-navigation-policy-2026-09-08
+next_work_item: SEC-008
 blockers: []
 ---
 
@@ -74,45 +74,46 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Active work
 
-[PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) merged as `d9f4f78b` on 2026-09-07. SEC-005 is complete: all renderers use context isolation, and desktop-owned immutable named bridges preserve the existing webapp API. Startup locale handling and shell-to-webview actions now work across isolated worlds. Build/test, lint, analysis, all three package baselines, authenticated Windows/macOS E2E, and merged reports passed. Windows passed one unchanged failed-job rerun after a multi-account notification timeout. The product still uses unsandboxed preloads, DOM webviews, `file://`, and `unsafe-eval`; M3 is not complete.
+[PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) closed SEC-005 with isolated immutable bridges. [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) then closed SEC-006 as `5926e3d0` on 2026-09-08: production preloads are bundled, application-wide sandboxing is enabled, and final-head build, lint, analysis, all-platform packages, authenticated Windows/macOS E2E, and reports passed. The product still uses DOM webviews, `file://`, and `unsafe-eval`; M3 is not complete.
 
-| Field         | Value                                                             |
-| ------------- | ----------------------------------------------------------------- |
-| Work item     | SEC-006 — Enable renderer sandboxing everywhere                   |
-| Owner         | `adamlow-wire`                                                    |
-| Active branch | `sec/SEC-006-renderer-sandboxing-2026-09-07`                      |
-| Goal          | Bundle sandbox-compatible preloads and prove effective sandboxing |
-| Starting gate | SEC-005 closed by PR #35 at `d9f4f78b`                            |
+| Field         | Value                                                          |
+| ------------- | -------------------------------------------------------------- |
+| Work item     | SEC-008 — Centralize navigation and window-open policy         |
+| Owner         | `adamlow-wire`                                                 |
+| Active branch | `sec/SEC-008-navigation-policy-2026-09-08`                     |
+| Goal          | Enforce navigation and popup policy with real allow/deny tests |
+| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                         |
 
 ## Next executable sequence
 
-1. Finish SEC-006 local validation on the active branch, then publish its PR and require cross-platform package and authenticated E2E checks. Product preloads are now bundled; complete the effective-preference audit and production-bundle checks before claiming sandboxing complete.
-2. Continue the production secure-shell cutover through SEC-006–SEC-007, SEC-010, and CAP-001.
-3. Complete SEC-008, SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
+1. Finish SEC-008 local validation on the active branch, publish its PR, and require cross-platform package and authenticated E2E checks. Validate main-owned SSO creation and production account navigation, not just option objects.
+2. Continue the production secure-shell cutover through SEC-007, SEC-010, and CAP-001. SEC-008 is being completed first because it is independently executable on the legacy product path and supplies policy for that cutover.
+3. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 4. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
 5. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
 
 ## Completed work
 
-| Work item                                               | Evidence                                                |
-| ------------------------------------------------------- | ------------------------------------------------------- |
-| GOV-001 — Establish fork and integration workflow       | GitHub API readback on 2026-08-18                       |
-| GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155`       |
-| ELC-001 — Inventory Electron compatibility blockers     | `electron-compatibility.md`                             |
-| TST-001 — Make coverage reporting accurate              | Commits `c27cfa6a`, `d96baaad`                          |
-| BASE-001 — Capture a reproducible legacy baseline       | PR #3 run `32364188026`                                 |
-| BASE-002 — Create the capability acceptance matrix      | PR #1                                                   |
-| ARC-001 — Approve target process and view architecture  | ADR 0001; PR #1                                         |
-| SEC-001 — Threat model the desktop wrapper              | `threat-model.md`; PR #1                                |
-| TST-002 — Characterize enterprise SSO                   | 18 passing / 3 CAP-002 security targets pending         |
-| ELC-002 — Upgrade Electron to latest stable             | PR #6; Electron 43.4.0; final package/E2E green         |
-| ARC-002 — Implement secure single-account shell proof   | PR #7; 17 security-target tests; all-platform CI        |
-| TST-004 — Add security-boundary regression tests        | PR #7; sensitivity proof; mandatory all-platform        |
-| TST-003 — Characterize tray/native integration          | PR #12; sensitivity proof; all-platform CI              |
-| SEC-002 — Central view identity/capability registry     | PR #13; 100% changed security branches; all-platform CI |
-| SEC-003 — Typed, validated, capability-specific IPC     | PRs #14–32; final listener audit; all-platform CI       |
-| SEC-004 — Remove `@electron/remote`                     | PR #33; remote-free source; all-platform CI and E2E     |
-| SEC-005 — Replace preloads with isolated bridges        | PR #35; immutable APIs; all-platform CI and E2E         |
+| Work item | Evidence |
+| --- | --- |
+| GOV-001 — Establish fork and integration workflow | GitHub API readback on 2026-08-18 |
+| GOV-003 — Establish durable human and AI project memory | Commit `567be7646a61fdd725f7fdb693880a294d65d155` |
+| ELC-001 — Inventory Electron compatibility blockers | `electron-compatibility.md` |
+| TST-001 — Make coverage reporting accurate | Commits `c27cfa6a`, `d96baaad` |
+| BASE-001 — Capture a reproducible legacy baseline | PR #3 run `32364188026` |
+| BASE-002 — Create the capability acceptance matrix | PR #1 |
+| ARC-001 — Approve target process and view architecture | ADR 0001; PR #1 |
+| SEC-001 — Threat model the desktop wrapper | `threat-model.md`; PR #1 |
+| TST-002 — Characterize enterprise SSO | 18 passing / 3 CAP-002 security targets pending |
+| ELC-002 — Upgrade Electron to latest stable | PR #6; Electron 43.4.0; final package/E2E green |
+| ARC-002 — Implement secure single-account shell proof | PR #7; 17 security-target tests; all-platform CI |
+| TST-004 — Add security-boundary regression tests | PR #7; sensitivity proof; mandatory all-platform |
+| TST-003 — Characterize tray/native integration | PR #12; sensitivity proof; all-platform CI |
+| SEC-002 — Central view identity/capability registry | PR #13; 100% changed security branches; all-platform CI |
+| SEC-003 — Typed, validated, capability-specific IPC | PRs #14–32; final listener audit; all-platform CI |
+| SEC-004 — Remove `@electron/remote` | PR #33; remote-free source; all-platform CI and E2E |
+| SEC-005 — Replace preloads with isolated bridges | PR #35; immutable APIs; all-platform CI and E2E |
+| SEC-006 — Enable renderer sandboxing everywhere | PR #37; actual OS sandbox, bundled preloads, all-platform CI and E2E |
 
 ## Last verified state
 
@@ -196,11 +197,14 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 ## Handoff notes
 
-- [SEC-006 PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) is a draft pending final-head validation, not a completed work item. Local production bundles and 23 focused tests pass; the separate startup-order test also passes. Changing the startup order, forcing English, substituting the webapp URL, and disabling About/webview sandboxing each failed the intended tests before restoration. Local changed coverage is 24/29 statements (82.76%). Types, changed TypeScript lint, Jest 64/64, build tools 35/35, and renderer 4/4 passed. The full local main run and one clean verification both retained the previously recorded crash-recovery timeout (334 passed, 3 owned SSO targets pending, 1 failed); it was not retried indefinitely.
-- PR #37's initial [hosted main coverage run](https://github.com/adamlow-wire/wire-desktop/actions/runs/34210044386) passed all 335 main tests, including crash recovery, and failed only the initial 71.43% changed-coverage gate. Its [Windows/macOS/Linux package jobs](https://github.com/adamlow-wire/wire-desktop/actions/runs/34210044422) passed. These are initial-head results; the added locale/startup tests and explicit E2E sandbox configuration require final-head checks before merge.
-- Sandbox evidence correction: Playwright injects `--no-sandbox` by default, so the first local product probe proved preload compatibility only. The corrected probe set `chromiumSandbox: true` and confirmed `enable-sandbox` present, `no-sandbox` absent, effective secure preferences, live shell/account bridges, and no page Node globals. E2E now explicitly enables Chromium sandboxing and asserts the disabling flag is absent. Electron remains `43.4.0`.
+- SEC-006 is complete: [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) merged as `5926e3d0` after final-head [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873450), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873453), and [Windows/macOS authenticated E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873692) passed. The earlier local crash-recovery timeout did not prevent hosted validation; no retry loop or assertion weakening was used to hide it.
+- SEC-008 is local work on the active branch. The baseline passed 31 tests with 3 owned SSO targets pending. New targets reproduced missing navigation/redirect denial, actual SSO child-session inheritance despite partition options, hung About requests, a proxy stylesheet redirected to HTML, permissive developer popups, and ambiguous external dispatch. Direct/redirect cancellation and origin-authorization mutations failed as intended and were reverted. Full validation, coverage, publication, and hosted gates remain open.
+- SEC-008 local full main coverage now passes 368 tests with the same 3 owned CAP-002 targets pending. Jest passes 20 suites / 64 tests; build tools pass 35 tests; application/Mocha types and changed-file lint pass. The credential-free full-product fixture passed, then failed when production navigation enforcement was temporarily disabled; the mutation is restored. Final rebuilt product verification and changed-coverage evaluation are still pending.
+- Local validation discipline: run `yarn build:ts && yarn bundle` before preload/product tests, and do not rebuild artifacts during a running suite. The first mixed run invalidated its own preload artifacts. A subsequent run exposed focus interference from the new visible developer-window test; the developer-plus-tray pair reproduced it, hiding only that test window made 11/11 pass, and the full main suite then passed. No tray assertion was weakened. Standalone Playwright type checking has the same nine existing generated-client/`window.wire` diagnostics on clean merged base `5926e3d0`; this PR does not claim that pre-existing check is green.
+- SSO contract change: main creates the isolated window and the renderer receives no Window proxy. Existing desktop close/focus/result events remain the compatibility path; source navigation/crash/destruction closes the window. The first options-only fix was insufficient, as proven by the real popup test. For PiP, Electron documents that `about:blank` inherits opener preferences; changing an override alone does not perturb that behavior, so do not claim that ineffective mutation as sensitivity evidence. [Electron window-opening semantics](https://www.electronjs.org/docs/latest/api/window-open).
+- Keep `chromiumSandbox: true` in Playwright launches: its default adds `--no-sandbox`. The corrected SEC-006 probe and final E2E assert the disabling flag is absent. Electron remains `43.4.0`.
 
-- SEC-005 final evidence: [build/test and 81.55% changed coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411167), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411362), [Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411227). All completed successfully before merge. The earlier local crash-recovery timeout did not reproduce in hosted checks. Historical entries above describe their dated checkpoints; current execution starts at SEC-006.
+- SEC-005 final evidence: [build/test and 81.55% changed coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411167), [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411362), [Windows/macOS E2E and reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34122411227). Historical entries above describe their dated checkpoints; current execution is SEC-008.
 
 - Do not claim independent review in the solo-maintainer model. The maintainer's PR merge is the recorded product/security/architecture decision.
 - Do not enable the three SSO `security-target` tests by weakening their assertions. CAP-002 owns making them pass.
