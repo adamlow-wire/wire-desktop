@@ -89,6 +89,50 @@ describe('action creators', () => {
 
       expect(dispatch).toHaveBeenCalledWith(updateAccount(id, data));
     });
+
+    it.each([
+      {id: 'different-account'},
+      {sessionID: 'different-session'},
+      {visible: true},
+      {isAdding: true},
+      {badgeCount: 0},
+      {ssoCode: 'different-flow'},
+      {accountIndex: 0},
+      {lifecycle: 'signed-in'},
+      {unexpected: 'field'},
+    ])('[security-target][CAP-001] rejects desktop-owned or unknown metadata %j', injected => {
+      const account = createAccount({sessionID: generateUUID(), visible: false});
+      const other = createAccount({sessionID: generateUUID()});
+      const initial = [account, other];
+      let accounts = initial;
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        accounts = accountReducer(accounts, action);
+        return action;
+      });
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        updateAccountData(account.id, {userID: generateUUID(), ...injected})(dispatch as AppDispatch);
+
+        expect(accounts).toBe(initial);
+        expect(dispatch).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it.each([null, undefined, [], 'metadata', 1, {userID: null}])(
+      '[security-target][CAP-001] rejects malformed updates %j',
+      data => {
+        const dispatch = jest.fn();
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+          updateAccountData(generateUUID(), data)(dispatch);
+          expect(dispatch).not.toHaveBeenCalled();
+        } finally {
+          warn.mockRestore();
+        }
+      },
+    );
   });
 
   describe('switchAccount', () => {
