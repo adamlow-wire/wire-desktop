@@ -35,6 +35,7 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
     for (const url of [
       '',
       'not a URL',
+      'not-a-url',
       `http://app.wire.test`,
       `${origin}:444`,
       `${origin}.evil.test`,
@@ -78,6 +79,7 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
       'https:enterprise-idp.test',
       'file:///tmp/secret',
       'wire-sso://wrong-host',
+      'wire-sso://[invalid',
       'wire-sso://response/path',
       'wire-sso://response:80',
       'wire-sso://user@response',

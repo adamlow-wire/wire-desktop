@@ -504,6 +504,23 @@ describe('SingleSignOn', () => {
       assert.strictEqual(sso['session'], undefined);
     });
 
+    it('[security-target][SEC-008] refuses to finish cleanup while the SSO protocol remains registered', async () => {
+      const sso = new SingleSignOn(
+        {} as BrowserWindow,
+        {} as WebContents,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+      sso['session'] = {
+        clearStorageData: async () => {},
+        protocol: {unregisterProtocol: () => false, isProtocolRegistered: () => true},
+      } as unknown as Session;
+      await assert.rejects(sso['cleanupSession'](), /Failed to unregister protocol/);
+      assert.strictEqual(sso['session'], undefined);
+    });
+
     it('[security-target][SEC-008] enforces SSO navigation and redirect transport policy', () => {
       const listeners = new Map<string, Array<(event: ElectronEvent, url: string) => void>>();
       const ssoWindow = {

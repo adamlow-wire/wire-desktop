@@ -84,6 +84,24 @@ describe('auxiliary window identity', () => {
       ipcMain.handle(PROXY_PROMPT_LOCALE_READ_CHANNEL, () => ({}));
       const window = await (kind === 'about' ? AboutWindow : ProxyPromptWindow).showWindow(new ViewIdentityRegistry());
       windows.push(window);
+      for (const event of ['will-navigate', 'will-redirect']) {
+        let prevented = false;
+        window.webContents.emit(
+          event,
+          {
+            preventDefault: () => {
+              prevented = true;
+            },
+          },
+          'https://unapproved.test',
+        );
+        assert.strictEqual(prevented, true, `${kind}: ${event}`);
+      }
+      if (kind === 'proxy-prompt') {
+        const windowCount = BrowserWindow.getAllWindows().length;
+        assert.strictEqual(await window.webContents.executeJavaScript("window.open('about:blank') === null"), true);
+        assert.strictEqual(BrowserWindow.getAllWindows().length, windowCount);
+      }
       const stylesheet = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, `css/${kind}.css`)).href;
       const response = await window.webContents.session.fetch(stylesheet);
       assert.ok((await response.text()).includes('{'), 'expected the actual stylesheet, not an HTML redirect');
