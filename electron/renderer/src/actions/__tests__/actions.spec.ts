@@ -25,6 +25,7 @@ import {
   updateAccount,
   updateAccountBadge,
   updateAccountBadgeCount,
+  updateAccountData,
 } from '../';
 import type {AppDispatch, State} from '../../index';
 import {generateUUID} from '../../lib/util';
@@ -50,6 +51,43 @@ describe('action creators', () => {
         type: ACCOUNT_ACTION.UPDATE_ACCOUNT,
       };
       expect(updateAccount(id, data)).toEqual(action);
+    });
+  });
+
+  describe('updateAccountData', () => {
+    it('[characterization][CAP-001] applies webapp metadata only to the addressed account', () => {
+      const account = createAccount({sessionID: generateUUID()});
+      const other = createAccount({sessionID: generateUUID()});
+      let accounts = [account, other];
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        accounts = accountReducer(accounts, action);
+        return action;
+      });
+      const metadata = {
+        accentID: 2,
+        availability: 1,
+        name: 'Example team',
+        picture: 'data:image/png;base64,aGVsbG8=',
+        teamID: generateUUID(),
+        teamRole: 'member',
+        userID: generateUUID(),
+      };
+
+      updateAccountData(account.id, metadata)(dispatch as AppDispatch);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(accounts[0]).toEqual({...account, ...metadata, isAdding: false, ssoCode: undefined});
+      expect(accounts[1]).toBe(other);
+    });
+
+    it('[characterization][CAP-001] preserves the separate environment URL update', () => {
+      const dispatch = jest.fn();
+      const id = generateUUID();
+      const data = {webappUrl: 'https://custom.example.test/auth/'};
+
+      updateAccountData(id, data)(dispatch);
+
+      expect(dispatch).toHaveBeenCalledWith(updateAccount(id, data));
     });
   });
 
