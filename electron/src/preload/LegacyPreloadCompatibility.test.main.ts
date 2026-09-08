@@ -32,7 +32,7 @@ import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 const preloadPath = (name: 'preload-app' | 'preload-webview'): string =>
   path.resolve(__dirname, `../../dist/preload/${name}.js`);
 
-const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow =>
+const createWindow = (preload: string, contextIsolation: boolean, partition?: string): BrowserWindow =>
   new BrowserWindow({
     show: false,
     webPreferences: {
@@ -43,6 +43,7 @@ const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow
       }),
       contextIsolation,
       nodeIntegration: false,
+      partition,
       preload,
       sandbox: true,
       nodeIntegrationInWorker: false,
@@ -78,6 +79,18 @@ describe('legacy preload compatibility surface', () => {
         window.destroy();
       }
     }
+  });
+
+  it('[characterization][SEC-010] renders the real local shell bundle under its production CSP', async function () {
+    this.timeout(10_000);
+    const window = createWindow(preloadPath('preload-app'), true, 'local-shell-csp');
+    windows.push(window);
+    await window.loadFile(path.resolve(__dirname, '../../renderer/index.html'), {query: {noUrlConfigured: 'true'}});
+
+    assert.strictEqual(
+      await window.webContents.executeJavaScript("document.querySelector('#root').children.length > 0"),
+      true,
+    );
   });
 
   it('[security-target][INV-001][SEC-006] loads both product preloads with effective sandbox preferences', async function () {
