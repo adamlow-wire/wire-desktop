@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.13
+revision: 1.5.15
 status: draft
 updated: 2026-09-08
 owners:
@@ -447,10 +447,11 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
+- Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
   - Production CSP does not include `unsafe-eval`.
@@ -640,6 +641,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
 - Test-harness prerequisite (2026-09-08): real fixture renderer termination avoids host crash-dump delays without changing runtime recovery code or test deadlines. Add an explicit pre-replacement revocation assertion; deliberately delayed revocation must fail it. This test-only slice does not close production account migration. Local forced-crash diagnostics stalled before process-loss notification on WSL; non-dumping termination produced notification at 29 ms and completed recovery at 153 ms.
+- Metadata identity prerequisite (2026-09-08): webapp account-info updates must reject desktop-owned identity, session, visibility, lifecycle, badge and arbitrary fields. The existing known metadata fields and separate custom-environment URL update remain compatible. Malformed messages must not throw in the user-ID guard. Characterize targeted reducer updates first and prove the tests detect corruption. This bounded validation does not make production account state main-owned or authorize the remaining programmatic environment-change path; those remain CAP-001/CAP-005 cutover work.
 - Acceptance:
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
@@ -878,6 +880,8 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.15 | 2026-09-08 | Codex | Started independent CSP eval removal with production/development compatibility and real ordinary-script denial evidence; retained custom-scheme/account-state migration as an explicit gate | SEC-010, CAP-001 |
+| 1.5.14 | 2026-09-08 | Codex | Reproduced and rejected desktop-owned identity/session overwrites through webapp metadata; preserved known metadata and environment updates, retained main-owned lifecycle and destination-policy cutover | CAP-001, CAP-005, DCP-002, DCP-004 |
 | 1.5.13 | 2026-09-08 | Codex | Isolated a renderer-loss harness fix after proving host crash handling delayed process-loss notification; strengthened revocation-order evidence without changing runtime code or deadlines | CAP-001, TST-004 |
 | 1.5.12 | 2026-09-08 | Codex | Recorded merged sandboxing evidence and split incoming deep-link parsing ahead of navigation merge to preserve valid chat links; retained external/lifecycle closure | SEC-006, SEC-008, SEC-013, CAP-005, CAP-006 |
 | 1.5.10 | 2026-09-08 | Codex | Began sandbox-compatible preload bundling and explicit main-owned bootstrap/image-copy contracts; local validation and hosted gates remain open | SEC-006, INV-001, INV-002, DCP-014 |
