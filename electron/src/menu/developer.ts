@@ -114,7 +114,9 @@ const openWebRTCInternals = (registry: ViewIdentityRegistry) => {
     height: 800,
     webPreferences: {
       nodeIntegration: false,
+      nodeIntegrationInWorker: false,
       contextIsolation: true,
+      sandbox: true,
     },
   });
 

@@ -22,14 +22,14 @@ import type {Data as OpenGraphResult} from 'open-graph';
 import type {WebappEventBridge} from './WebappEventBridge';
 
 import type {DesktopAppConfig} from '../lib/desktopAppConfig';
-import type * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import type {RendererEnvironment} from '../runtime/rendererEnvironment';
 
 export const WEBAPP_BRIDGE_VERSION = 1;
 
 export interface WebappBridgeDependencies {
   decrypt(encrypted: Uint8Array): Promise<string>;
   encrypt(value: string): Promise<Uint8Array>;
-  environment: typeof EnvironmentUtil;
+  environment: RendererEnvironment;
   events: Readonly<WebappEventBridge>;
   getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
   getOpenGraphData(url: string): Promise<OpenGraphResult>;
@@ -42,7 +42,7 @@ export interface WebappBridge {
   readonly desktopCapturer: {
     getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
   };
-  readonly environment: typeof EnvironmentUtil;
+  readonly environment: RendererEnvironment;
   readonly events: Readonly<WebappEventBridge>;
   readonly openGraphAsync: (url: string) => Promise<OpenGraphResult>;
   readonly systemCrypto: {
@@ -58,7 +58,14 @@ export const createWebappBridge = (dependencies: WebappBridgeDependencies): Read
   Object.freeze({
     desktopAppConfig: Object.freeze(dependencies.desktopAppConfig),
     desktopCapturer: Object.freeze({getDesktopSources: dependencies.getDesktopSources}),
-    environment: Object.freeze({...dependencies.environment}),
+    environment: Object.freeze({
+      app: dependencies.environment.app,
+      platform: dependencies.environment.platform,
+      linuxDesktop: dependencies.environment.linuxDesktop,
+      ServerType: dependencies.environment.ServerType,
+      web: dependencies.environment.web,
+      getAvailableEnvironments: dependencies.environment.getAvailableEnvironments,
+    }),
     events: dependencies.events,
     openGraphAsync: dependencies.getOpenGraphData,
     systemCrypto: Object.freeze({decrypt: dependencies.decrypt, encrypt: dependencies.encrypt, version: 1 as const}),

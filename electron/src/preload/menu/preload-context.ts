@@ -17,7 +17,7 @@
  *
  */
 
-import {clipboard, ipcRenderer, nativeImage} from 'electron';
+import {ipcRenderer} from 'electron';
 
 import {CONTEXT_MENU_IMAGE_ACTION_CHANNEL, ContextMenuImageAction} from './ContextMenuImageAction';
 
@@ -34,21 +34,8 @@ const savePicture = async (url: RequestInfo, timestamp?: string): Promise<void> 
   await ipcRenderer.invoke(SAVE_PICTURE_CHANNEL, {bytes: new Uint8Array(bytes), timestamp});
 };
 
-const copyPicture = async (url: RequestInfo): Promise<void> => {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': config.userAgent,
-    },
-  });
-  const bytes = await response.arrayBuffer();
-  const image = nativeImage.createFromBuffer(Buffer.from(bytes));
-  clipboard.writeImage(image);
-};
-
 ipcRenderer.on(CONTEXT_MENU_IMAGE_ACTION_CHANNEL, (_event, action: ContextMenuImageAction) => {
   if (action.kind === 'save') {
     void savePicture(action.sourceUrl);
-  } else if (action.kind === 'copy') {
-    void copyPicture(action.sourceUrl);
   }
 });

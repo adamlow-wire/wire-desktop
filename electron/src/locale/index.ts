@@ -19,41 +19,21 @@
 
 import * as Electron from 'electron';
 
-import cs from './cs-CZ.json';
-import da from './da-DK.json';
-import de from './de-DE.json';
-import el from './el-GR.json';
-import en from './en-US.json';
-import es from './es-ES.json';
-import et from './et-EE.json';
-import fi from './fi-FI.json';
-import fr from './fr-FR.json';
-import hr from './hr-HR.json';
-import hu from './hu-HU.json';
-import it from './it-IT.json';
-import lt from './lt-LT.json';
-import nl from './nl-NL.json';
-import pl from './pl-PL.json';
-import pt from './pt-BR.json';
-import ro from './ro-RO.json';
-import ru from './ru-RU.json';
-import si from './si-LK.json';
-import sk from './sk-SK.json';
-import sl from './sl-SI.json';
+import {LANGUAGES, SUPPORTED_LANGUAGES, i18nLanguageIdentifier, SupportedI18nLanguage} from './languages';
 import {resolveSystemLocale} from './systemLocale';
-import tr from './tr-TR.json';
-import uk from './uk-UA.json';
-import zh from './zh-CN.json';
 
 import {readRendererLocale} from '../runtime/rendererRuntimeArguments';
 import {config} from '../settings/config';
 import {settings} from '../settings/ConfigurationPersistence';
 import {SettingsType} from '../settings/SettingsType';
 
-export type i18nLanguageIdentifier = keyof typeof en;
-export type i18nStrings = Record<i18nLanguageIdentifier, string>;
-export type SupportedI18nLanguage = keyof typeof SUPPORTED_LANGUAGES;
-export type SupportedI18nLanguageObject = Record<SupportedI18nLanguage, i18nStrings>;
+export {LANGUAGES, SUPPORTED_LANGUAGES} from './languages';
+export type {
+  i18nLanguageIdentifier,
+  i18nStrings,
+  SupportedI18nLanguage,
+  SupportedI18nLanguageObject,
+} from './languages';
 
 const parseLocale = (locale: string): SupportedI18nLanguage => {
   const languageKeys = Object.keys(SUPPORTED_LANGUAGES) as SupportedI18nLanguage[];
@@ -67,33 +47,6 @@ const getSystemLocale = (): SupportedI18nLanguage => {
     Intl.DateTimeFormat().resolvedOptions().locale,
   );
   return parseLocale(systemLocale.substring(0, 2));
-};
-
-export const LANGUAGES: SupportedI18nLanguageObject = {
-  cs,
-  da,
-  de,
-  el,
-  en,
-  es,
-  et,
-  fi,
-  fr,
-  hr,
-  hu,
-  it,
-  lt,
-  nl,
-  pl,
-  pt,
-  ro,
-  ru,
-  si,
-  sk,
-  sl,
-  tr,
-  uk,
-  zh,
 };
 
 export const supportedSpellCheckLanguages: Record<SupportedI18nLanguage, string[]> = {
@@ -121,33 +74,6 @@ export const supportedSpellCheckLanguages: Record<SupportedI18nLanguage, string[
   tr: ['tr', 'tr-TR'],
   uk: ['uk', 'uk-UA'],
   zh: ['zh', 'zh-CN'],
-};
-
-export const SUPPORTED_LANGUAGES = {
-  en: 'English',
-  cs: 'Čeština',
-  da: 'Dansk',
-  de: 'Deutsch',
-  el: 'Ελληνικά',
-  et: 'Eesti',
-  es: 'Español',
-  fr: 'Français',
-  hr: 'Hrvatski',
-  it: 'Italiano',
-  lt: 'Lietuvos',
-  hu: 'Magyar',
-  nl: 'Nederlands',
-  pl: 'Polski',
-  pt: 'Português do Brasil',
-  ro: 'Română',
-  ru: 'Русский',
-  si: 'සිංහල',
-  sk: 'Slovenčina',
-  sl: 'Slovenščina',
-  fi: 'Suomi',
-  tr: 'Türkçe',
-  uk: 'Українська',
-  zh: '简体中文',
 };
 
 let current: SupportedI18nLanguage | undefined;

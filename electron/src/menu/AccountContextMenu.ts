@@ -25,6 +25,7 @@ import {selectContextMenuAction} from '../preload/menu/contextMenuPolicy';
 
 interface ContextMenuContents {
   copy(): void;
+  copyImageAt(x: number, y: number): void;
   cut(): void;
   executeJavaScript(script: string): Promise<unknown>;
   on(event: 'context-menu', listener: (event: Electron.Event, params: ContextMenuParams) => void): this;
@@ -88,16 +89,16 @@ const editableTemplate = (
 };
 
 const imageTemplate = (
-  sourceUrl: string,
+  params: ContextMenuParams,
   contents: ContextMenuContents,
   dependencies: ContextMenuDependencies,
 ): MenuItemConstructorOptions[] => [
   {
-    click: () => contents.send(CONTEXT_MENU_IMAGE_ACTION_CHANNEL, {kind: 'save', sourceUrl}),
+    click: () => contents.send(CONTEXT_MENU_IMAGE_ACTION_CHANNEL, {kind: 'save', sourceUrl: params.srcURL}),
     label: dependencies.getText('menuSavePictureAs'),
   },
   {
-    click: () => contents.send(CONTEXT_MENU_IMAGE_ACTION_CHANNEL, {kind: 'copy', sourceUrl}),
+    click: () => contents.copyImageAt(params.x, params.y),
     label: dependencies.getText('menuCopyPicture'),
   },
 ];
@@ -130,7 +131,7 @@ export const showAccountContextMenu = async (
   if (action.kind === 'editable') {
     popup(editableTemplate(params, contents, dependencies), window, dependencies);
   } else if (action.kind === 'image') {
-    popup(imageTemplate(params.srcURL, contents, dependencies), window, dependencies);
+    popup(imageTemplate(params, contents, dependencies), window, dependencies);
   } else if (action.kind === 'copy') {
     popup(copyTemplate(action.text, dependencies), window, dependencies);
   } else if (action.kind === 'select-all-fallback') {

@@ -25,7 +25,7 @@ const path = require('path');
  * @type {(env: {production?: true}) => import('webpack').Configuration}
  * */
 
-module.exports = (env = {}) => ({
+const rendererConfig = (env = {}) => ({
   devtool: env.production ? undefined : 'eval-cheap-source-map',
   entry: path.resolve(__dirname, 'electron/renderer/src/index.tsx'),
   externals: {
@@ -64,3 +64,27 @@ module.exports = (env = {}) => ({
   stats: 'errors-only',
   target: 'electron-renderer',
 });
+
+// Sandboxed preloads can require Electron, but cannot load adjacent CommonJS
+// modules or Node built-ins. Bundle each entry without runtime chunks or eval.
+module.exports = (env = {}) => [
+  rendererConfig(env),
+  {
+    name: 'preloads',
+    mode: env.production ? 'production' : 'development',
+    devtool: 'source-map',
+    target: 'web',
+    entry: Object.fromEntries(
+      ['preload-app', 'preload-webview', 'menu/preload-about', 'menu/preload-proxy-prompt'].map(name => [
+        name,
+        path.resolve(__dirname, `electron/src/preload/${name}.ts`),
+      ]),
+    ),
+    output: {filename: '[name].js', path: path.resolve(__dirname, 'electron/dist/preload')},
+    externals: {electron: 'commonjs electron'},
+    module: {rules: [{test: /\.[tj]sx?$/, exclude: /node_modules/, use: ['babel-loader']}]},
+    resolve: {extensions: ['.js', '.json', '.ts', '.tsx']},
+    optimization: {splitChunks: false, runtimeChunk: false},
+    stats: 'errors-warnings',
+  },
+];

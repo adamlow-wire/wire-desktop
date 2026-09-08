@@ -50,5 +50,7 @@ describe('developer menu view identity', () => {
     ).getLastWebPreferences();
     assert.strictEqual(preferences.nodeIntegration, false);
     assert.strictEqual(preferences.contextIsolation, true);
+    assert.strictEqual(preferences.sandbox, true);
+    assert.strictEqual(preferences.nodeIntegrationInSubFrames, false);
   });
 });

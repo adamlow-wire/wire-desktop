@@ -17,9 +17,15 @@
  *
  */
 
-export const CONTEXT_MENU_IMAGE_ACTION_CHANNEL = 'wire-desktop:context-menu-image-action';
+import {LANGUAGES, SupportedI18nLanguage} from '../locale/languages';
 
-export interface ContextMenuImageAction {
-  readonly kind: 'save';
-  readonly sourceUrl: string;
-}
+export const createApplicationShellBootstrap = (locale: string | undefined, platform: string) => {
+  const requestedLocale = (locale ?? 'en').substring(0, 2) as SupportedI18nLanguage;
+  const currentLocale = Object.hasOwn(LANGUAGES, requestedLocale) ? requestedLocale : 'en';
+  return {
+    isMac: platform === 'darwin',
+    locale: currentLocale,
+    locStrings: LANGUAGES[currentLocale],
+    locStringsDefault: LANGUAGES.en,
+  };
+};
