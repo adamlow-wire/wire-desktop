@@ -2,6 +2,7 @@
 
 ## Rules
 
+- CAP-001 renderer-loss harness checkpoint: an actual fixture renderer is terminated without a core dump; existing recovery/runtime assertions and deadlines remain, with an added pre-replacement revocation check. Local full baseline passes 338 main tests with 3 owned CAP-002 targets pending; hosted cross-platform evidence is still required. This does not claim production account migration complete.
 - This matrix tracks behavioral confidence, not implementation progress alone.
 - `current confidence` describes the verified legacy baseline.
 - `target evidence` describes what must exist before migration is accepted.

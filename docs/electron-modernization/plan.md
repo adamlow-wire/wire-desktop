@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.12
+revision: 1.5.13
 status: draft
 updated: 2026-09-08
 owners:
@@ -641,6 +641,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
+- Test-harness prerequisite (2026-09-08): real fixture renderer termination avoids host crash-dump delays without changing runtime recovery code or test deadlines. Add an explicit pre-replacement revocation assertion; deliberately delayed revocation must fail it. This test-only slice does not close production account migration. Local forced-crash diagnostics stalled before process-loss notification on WSL; non-dumping termination produced notification at 29 ms and completed recovery at 153 ms.
 - Acceptance:
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
@@ -879,6 +880,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.13 | 2026-09-08 | Codex | Isolated a renderer-loss harness fix after proving host crash handling delayed process-loss notification; strengthened revocation-order evidence without changing runtime code or deadlines | CAP-001, TST-004 |
 | 1.5.12 | 2026-09-08 | Codex | Recorded merged sandboxing evidence and split incoming deep-link parsing ahead of navigation merge to preserve valid chat links; retained external/lifecycle closure | SEC-006, SEC-008, SEC-013, CAP-005, CAP-006 |
 | 1.5.11 | 2026-09-08 | Codex | Closed sandboxing with merged PR #37 and final-head cross-platform evidence; began central navigation policy and documented main-owned SSO creation after reproducing ineffective child-session overrides | SEC-006, SEC-008, SEC-013, DCP-003, DCP-009, DCP-011, DCP-014 |
 | 1.5.10 | 2026-09-08 | Codex | Began sandbox-compatible preload bundling and explicit main-owned bootstrap/image-copy contracts; local validation and hosted gates remain open | SEC-006, INV-001, INV-002, DCP-014 |
