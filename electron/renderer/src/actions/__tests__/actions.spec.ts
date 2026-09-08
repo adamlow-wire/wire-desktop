@@ -55,6 +55,40 @@ describe('action creators', () => {
   });
 
   describe('updateAccountData', () => {
+    it('[security-target][CAP-001] cannot remove another account picture while updating metadata', () => {
+      const account = {...createAccount(), picture: 'data:image/png;base64,dGFyZ2V0'};
+      const other = {...createAccount(), picture: 'data:image/png;base64,b3RoZXI='};
+      const originalOther = {...other};
+      let accounts: State['accounts'] = [account, other];
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        accounts = accountReducer(accounts, action);
+        return action;
+      });
+
+      updateAccountData(account.id, {userID: generateUUID(), name: 'Updated team'})(dispatch as AppDispatch);
+
+      expect(accounts[0].picture).toBeUndefined();
+      expect(accounts[1]).toEqual(originalOther);
+      expect(accounts[1]).toBe(other);
+    });
+
+    it('[security-target][CAP-001] preserves prior state and the action while clearing a picture', () => {
+      const account = Object.freeze({
+        ...createAccount(),
+        picture: 'data:image/png;base64,dGFyZ2V0',
+        webappUrl: 'https://custom.example.test/',
+      });
+      const data = Object.freeze({name: 'Updated team', webappUrl: undefined});
+
+      const [updated] = accountReducer([account], updateAccount(account.id, data));
+
+      expect(updated.picture).toBeUndefined();
+      expect(updated.webappUrl).toBe(account.webappUrl);
+      expect(updated.name).toBe(data.name);
+      expect(account.picture).toBe('data:image/png;base64,dGFyZ2V0');
+      expect(Object.prototype.hasOwnProperty.call(data, 'webappUrl')).toBe(true);
+    });
+
     it('[characterization][CAP-001] applies webapp metadata only to the addressed account', () => {
       const account = createAccount({sessionID: generateUUID()});
       const other = createAccount({sessionID: generateUUID()});

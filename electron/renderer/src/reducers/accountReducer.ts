@@ -164,19 +164,20 @@ export default (state = [createAccount()], action: AccountActions): Account[] =>
 
     case ACCOUNT_ACTION.UPDATE_ACCOUNT: {
       return state.map(account => {
-        const isMatchingAccount = account.id === action.id;
-        // Note: If the current account has a webappUrl but the update does not
-        // we keep the current webappUrl.
-        // Without this the webappUrl would be overridden with an empty string
+        if (account.id !== action.id) {
+          return account;
+        }
+
+        const updatedAccount = {...account, ...action.data, isAdding: false, ssoCode: undefined};
+        // Preserve the configured backend when metadata omits it.
         if (account.webappUrl && !action.data.webappUrl) {
-          delete action.data.webappUrl;
+          updatedAccount.webappUrl = account.webappUrl;
         }
-        // Note: If the current account has a picture but the update does not
-        // we remove the picture.
+        // An omitted picture clears only this account's previous picture.
         if (account.picture && !action.data.picture) {
-          delete account.picture;
+          delete updatedAccount.picture;
         }
-        return isMatchingAccount ? {...account, ...action.data, isAdding: false, ssoCode: undefined} : account;
+        return updatedAccount;
       });
     }
 
