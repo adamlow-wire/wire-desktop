@@ -88,6 +88,38 @@ describe('openGraph', () => {
     assert.strictEqual(result, defaultMessage);
   });
 
+  it('[characterization][SEC-012] embeds an image without changing the page metadata', async () => {
+    const pixels = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+    nock(exampleUrl)
+      .get('/image-page')
+      .reply(
+        200,
+        '<head><meta property="og:description" content="Picture preview"><meta property="og:image" content="https://example.com/picture.png"></head>',
+        {'content-type': 'text/html'},
+      );
+    nock(exampleUrl).get('/picture.png').reply(200, pixels, {'content-type': 'image/png'});
+
+    const result = await getOpenGraphDataAsync(`${exampleUrl}/image-page`);
+    assert.strictEqual(result.description, 'Picture preview');
+    assert.ok(result.image && !Array.isArray(result.image));
+    assert.strictEqual(result.image.data, `data:image/png;base64,${pixels.toString('base64')}`);
+  });
+
+  it('[characterization][SEC-012] retains text metadata when the preview image is unavailable', async () => {
+    nock(exampleUrl)
+      .get('/image-page')
+      .reply(
+        200,
+        '<head><meta property="og:description" content="Picture preview"><meta property="og:image" content="https://example.com/missing.png"></head>',
+        {'content-type': 'text/html'},
+      );
+    nock(exampleUrl).get('/missing.png').reply(404);
+
+    const result = await getOpenGraphDataAsync(`${exampleUrl}/image-page`);
+    assert.strictEqual(result.description, 'Picture preview');
+    assert.strictEqual(result.image, undefined);
+  });
+
   it('decodes a russian text encoded with koi8-r', async () => {
     const result = await contentLimitRequest('text/html; charset=koi8-r', russianMessageKoi8r);
     assert.strictEqual(result, russianMessage);
