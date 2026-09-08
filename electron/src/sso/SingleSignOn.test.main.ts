@@ -74,6 +74,16 @@ describe('SingleSignOn', () => {
   });
 
   describe('window identity and title', () => {
+    it('[security-target][SEC-008][DCP-003] creates SSO popups in the session required by initialization', () => {
+      const options = SingleSignOn.getSingleSignOnLoginWindowOptions(
+        undefined as unknown as BrowserWindow,
+        'https://login.example.test',
+      );
+      assert.strictEqual(options.webPreferences?.partition, 'sso');
+      assert.strictEqual(options.webPreferences?.sandbox, true);
+      assert.strictEqual(options.webPreferences?.contextIsolation, true);
+      assert.strictEqual(options.webPreferences?.nodeIntegration, false);
+    });
     it('[characterization][DCP-003] accepts only the dedicated SSO frame name', () => {
       assert.strictEqual(SingleSignOn.isSingleSignOnLoginWindow('WIRE_SSO'), true);
       assert.strictEqual(SingleSignOn.isSingleSignOnLoginWindow('wire_sso'), false);
@@ -415,6 +425,153 @@ describe('SingleSignOn', () => {
       assert.strictEqual(windowOptions.webPreferences.preload, undefined);
       assert.strictEqual(singleSignOn['session'], undefined);
       assert.strictEqual(singleSignOn['ssoWindow'], undefined);
+    });
+
+    it('[security-target][SEC-008] cleans up once when close triggers the native closed event', async () => {
+      const listeners = new Map<string, () => Promise<void>>();
+      let clears = 0;
+      let notifications = 0;
+      let resolveClosed!: () => void;
+      let rejectClosed!: (error: unknown) => void;
+      const closed = new Promise<void>((resolve, reject) => {
+        resolveClosed = resolve;
+        rejectClosed = reject;
+      });
+      const harness = createProtocolHarness();
+      const window = {
+        on: () => window,
+        once: (name: string, listener: () => Promise<void>) => {
+          listeners.set(name, listener);
+          return window;
+        },
+        close: () => {
+          void listeners.get('closed')!().then(resolveClosed, rejectClosed);
+        },
+        setTitle: () => {},
+        webContents: {on: () => {}, setWindowOpenHandler: () => {}},
+      } as unknown as BrowserWindow;
+      const sso = new SingleSignOn(
+        window,
+        {session: {}} as WebContents,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+      sso['session'] = {
+        ...harness.session,
+        clearStorageData: async () => {
+          clears++;
+        },
+      } as unknown as Session;
+      sso.onClose = () => {
+        notifications++;
+      };
+      sso['setupBrowserWindow']();
+      sso.close();
+      await closed;
+      assert.strictEqual(clears, 1);
+      assert.strictEqual(harness.getUnregisterCount(), 1);
+      assert.strictEqual(notifications, 1);
+      assert.strictEqual(sso['session'], undefined);
+      assert.strictEqual(sso['ssoWindow'], undefined);
+    });
+
+    it('[security-target][SEC-008] retains a failed cleanup result instead of treating the session as reusable', async () => {
+      const failure = new Error('controlled storage cleanup failure');
+      let clears = 0;
+      const harness = createProtocolHarness();
+      const sso = new SingleSignOn(
+        {} as BrowserWindow,
+        {} as WebContents,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+      sso['session'] = {
+        ...harness.session,
+        clearStorageData: async () => {
+          clears++;
+          throw failure;
+        },
+      } as unknown as Session;
+      const cleanup = sso['cleanupSession']();
+      await assert.rejects(cleanup, error => error === failure);
+      assert.strictEqual(sso['cleanupSession'](), cleanup);
+      assert.strictEqual(clears, 1);
+      assert.strictEqual(harness.getUnregisterCount(), 0);
+      assert.strictEqual(sso['session'], undefined);
+    });
+
+    it('[security-target][SEC-008] refuses to finish cleanup while the SSO protocol remains registered', async () => {
+      const sso = new SingleSignOn(
+        {} as BrowserWindow,
+        {} as WebContents,
+        Maybe.nothing<string>(),
+        'https://app.wire.com',
+        {},
+        new ViewIdentityRegistry(),
+      );
+      sso['session'] = {
+        clearStorageData: async () => {},
+        protocol: {unregisterProtocol: () => false, isProtocolRegistered: () => true},
+      } as unknown as Session;
+      await assert.rejects(sso['cleanupSession'](), /Failed to unregister protocol/);
+      assert.strictEqual(sso['session'], undefined);
+    });
+
+    it('[security-target][SEC-008] enforces SSO navigation and redirect transport policy', () => {
+      const listeners = new Map<string, Array<(event: ElectronEvent, url: string) => void>>();
+      const ssoWindow = {
+        on: () => ssoWindow,
+        once: () => ssoWindow,
+        setTitle: () => {},
+        webContents: {
+          on: (event: string, listener: (event: ElectronEvent, url: string) => void) => {
+            listeners.set(event, [...(listeners.get(event) ?? []), listener]);
+            return ssoWindow.webContents;
+          },
+          setWindowOpenHandler: () => {},
+        },
+      } as unknown as BrowserWindow;
+      const singleSignOn = new SingleSignOn(
+        ssoWindow,
+        {session: {}} as WebContents,
+        Maybe.nothing<string>(),
+        'https://backend.test',
+        {},
+        new ViewIdentityRegistry(),
+      );
+      singleSignOn['setupBrowserWindow']();
+      for (const name of ['will-navigate', 'will-redirect']) {
+        const handlers = listeners.get(name);
+        assert.ok(handlers?.length, `${name} must be guarded`);
+        for (const [url, allowed] of [
+          ['https://enterprise-idp.test/login', true],
+          ['https://backend.test/sso/callback', true],
+          ['wire-sso://response?type=AUTH_SUCCESS', true],
+          ['http://enterprise-idp.test/login', false],
+          ['file:///tmp/secret', false],
+          ['data:text/html,untrusted', false],
+          ['javascript:alert(1)', false],
+          ['https://user:pass@enterprise-idp.test/login', false],
+          ['wire-sso://wrong-host?type=AUTH_SUCCESS', false],
+          ['wire-sso://response/unexpected?type=AUTH_SUCCESS', false],
+          ['not a URL', false],
+        ] as const) {
+          let prevented = false;
+          const event = {
+            preventDefault: () => {
+              prevented = true;
+            },
+          } as ElectronEvent;
+          for (const handler of handlers) {
+            handler(event, url);
+          }
+          assert.strictEqual(prevented, !allowed, `${name}: ${url}`);
+        }
+      }
     });
 
     it('[characterization][DCP-003] blocks navigation with an oversized origin', () => {

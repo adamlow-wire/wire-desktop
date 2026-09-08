@@ -25,6 +25,7 @@ import {pathToFileURL} from 'url';
 import {EVENT_TYPE} from '../lib/eventType';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {ABOUT_LOCALE_READ_CAPABILITY, WebappVersions} from '../security/AboutWindowContract';
+import {bindNavigationGuard} from '../security/NavigationGuard';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import {WindowManager} from '../window/WindowManager';
@@ -144,14 +145,9 @@ const showWindow = async (registry: ViewIdentityRegistry): Promise<BrowserWindow
     aboutWindowRegistry = registry;
     aboutWindow.setMenuBarVisibility(false);
 
-    // Prevent any kind of navigation
-    // will-navigate is broken with sandboxed env, intercepting requests instead
-    // see https://github.com/electron/electron/issues/8841
-    aboutWindow.webContents.session.webRequest.onBeforeRequest(async ({url}, callback) => {
-      // Only allow those URLs to be opened within the window
-      if (ABOUT_WINDOW_ALLOWLIST.includes(url)) {
-        return callback({cancel: false});
-      }
+    bindNavigationGuard(aboutWindow.webContents, url => url === ABOUT_HTML);
+    aboutWindow.webContents.session.webRequest.onBeforeRequest(({url}, callback) => {
+      callback({cancel: !ABOUT_WINDOW_ALLOWLIST.includes(url)});
     });
 
     // Handle the new window event in the About Window
