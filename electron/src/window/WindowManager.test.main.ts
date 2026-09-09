@@ -132,7 +132,7 @@ describe('WindowManager queued actions', () => {
   it('[security-target][CAP-006] bounds incoming startup actions and does not queue arbitrary channels', () => {
     replace(WindowManager, 'getPrimaryWindow', () => undefined);
     WindowManager.sendActionToPrimaryWindow('arbitrary-channel');
-    assert.deepStrictEqual(WindowManager.actionsQueue, []);
+    assert.strictEqual(WindowManager.actionsQueue.length, 0);
     for (let index = 0; index < 32; index++) {
       WindowManager.sendActionToPrimaryWindow(EVENT_TYPE.ACCOUNT.SSO_LOGIN, `code-${index}`);
     }

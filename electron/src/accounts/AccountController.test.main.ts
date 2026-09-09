@@ -33,6 +33,7 @@ import {Availability} from '@wireapp/protocol-messaging';
 import {AccountController, AccountControllerOptions} from './AccountController';
 import {deleteNativeAccountLogs} from './AccountLogCleanup';
 import {parseLegacyAccounts} from './AccountProfile';
+import {clearAccountSession} from './AccountSessionCleanup';
 import {AccountState} from './AccountState';
 import {AccountViews} from './AccountViews';
 
@@ -109,8 +110,7 @@ describe('production account controller integration', () => {
         account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
       clearData: async (account, targetSession) => {
         assert.equal(views.has(account.id), false);
-        await targetSession.clearStorageData();
-        await targetSession.clearCache();
+        await clearAccountSession(targetSession);
       },
       approveEnvironment: async () => {
         throw new Error('Destination not approved');

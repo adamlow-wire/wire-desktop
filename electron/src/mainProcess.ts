@@ -46,6 +46,7 @@ import {WebAppEvents} from '@wireapp/webapp-events';
 import {AccountController} from './accounts/AccountController';
 import {deleteNativeAccountLogs} from './accounts/AccountLogCleanup';
 import {AccountProfile} from './accounts/AccountProfile';
+import {clearAccountSession} from './accounts/AccountSessionCleanup';
 import {AccountState} from './accounts/AccountState';
 import {AccountViews} from './accounts/AccountViews';
 import {readLegacyAccountState} from './accounts/readLegacyAccountState';
@@ -456,9 +457,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     session: account =>
       account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
     clearData: async (account, targetSession) => {
-      await targetSession.clearStorageData();
-      await targetSession.clearCache();
-      targetSession.flushStorageData();
+      await clearAccountSession(targetSession);
       await deleteNativeAccountLogs(account.id, getLogDirectory());
     },
     approveEnvironment: async (_account, candidate) => {
