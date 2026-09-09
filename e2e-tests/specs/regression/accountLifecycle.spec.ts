@@ -321,6 +321,7 @@ test(
       await app.close();
       app = undefined;
       app = await launch();
+      await expect.poll(() => !!findShell()).toBe(true);
       await expect.poll(readAccounts).toEqual([ids[0], newAccountId].sort().map(id => ({id, loading: false})));
       const restarted = await app.evaluate(
         async ({BrowserWindow, session}, {origin, partitionId, readStorage}) => {

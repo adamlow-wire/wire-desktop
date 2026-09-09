@@ -136,6 +136,7 @@ test(
 
       await app.close();
       app = await launch();
+      await expect.poll(() => !!findShell()).toBe(true);
       await expect
         .poll(() =>
           app!.evaluate(async ({webContents}, origin) => {
