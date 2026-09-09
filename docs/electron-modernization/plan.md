@@ -614,6 +614,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M2`
 - Dependencies: ARC-002
 - Scope: Assert effective web preferences, bridge surface, sender authorization, navigation policy, popup policy, permissions, session isolation, and fail-closed behavior.
+- M3 maintenance (2026-09-09): repeated macOS worker teardown failure is traced to the metadata test's first full-app close used only to seed legacy data. Replace that setup with an isolated sandboxed, JavaScript-disabled file-origin fixture, retaining all metadata/session/restart assertions. Five integration-based local repetitions pass; a wrong-storage-key perturbation fails the migration baselines before restoration. Require hosted acceptance; do not change production shutdown, deadlines, retries or M2 completion status.
 - Acceptance:
   - Tests fail if context isolation or sandboxing is disabled.
   - Tests fail if Node, Electron, raw IPC, or remote APIs become reachable from remote content.
