@@ -460,7 +460,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Production CSP does not include `unsafe-eval`.
   - Custom protocol privileges are minimal and tested.
   - Development-only relaxations cannot reach production builds.
-- Evidence: TBD
+- Evidence: CSP slice [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial are tested with sensitivity evidence. Custom protocol and storage migration remain open.
 
 #### SEC-011 — Harden Electron fuses and package integrity
 

@@ -24,8 +24,8 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete.** Electron stays at
 | IPC and renderer isolation | SEC-002–006 merged: registered authority, typed contracts, no remote dependency, isolated bridges and sandboxing | Maintain invariants through production view migration |
 | Production secure shell | Opt-in main-owned collection and targeted deletion; production metadata identity protected | SEC-007/CAP-001 production WebContentsView, main-owned state, lifecycle routing and legacy-session preservation |
 | Navigation and links | PRs #38/#39 merged: strict navigation, popup, external and incoming-link parsing | Main-authorized custom-backend changes and lifecycle/account routing under SEC-008/SEC-013/CAP-005/CAP-006 |
-| Local shell | PR #42 removes eval with production/development tests | Synchronized final-head gates, then custom scheme and storage migration under SEC-010 |
-| Permissions and previews | SEC-009 open; SEC-012 implementation preserved separately | Permission user-flow policy; finish preview parser/network limits and adversarial validation |
+| Local shell | PR #42 merged: eval removed with production/development tests | Custom scheme and storage migration under SEC-010 |
+| Permissions and previews | SEC-009 open; SEC-012 implemented in PR #44 | Permission user-flow policy; synchronized final-head preview validation |
 | Critical capabilities | PR #43 fixes isolated SSO completion and removes all three SSO test quarantines | Controlled live IdP checkpoint, certificate/configuration policy and deep-link/single-instance parity |
 | Closure | Not started | Audit every M3 acceptance criterion; final cross-platform package and authenticated E2E evidence |
 
@@ -48,7 +48,9 @@ PR #43 local combined validation: 431 native tests, zero pending; 94 React, 4 re
 
 ## Next executable work
 
-PR #42 synchronized local validation on September 9: 433 main tests (zero pending), 4 renderer, 97 React and 38 tools pass. Application/Mocha types, changed-file lint, formatting and diff coverage pass (no changed application TypeScript statements). Both development CSP tests pass; rebuilt production metadata/navigation/cleanup regressions pass 3/3 in 15.8 seconds on Linux. Prior sensitivity evidence remains in PR #42. Hosted final-head gates remain required.
+PR #44 synchronized with merged CSP on September 9: 530 main tests (zero pending), 4 renderer, 97 React and 38 tools pass. Application/Mocha types and fresh diff coverage pass: 176/180 changed statements (97.78%) and 114/121 security branches (94.21%). The synchronized head still requires hosted gates; initial-head results do not substitute for them.
+
+Rebuilt sandboxed product metadata/navigation tests pass 2/2 in 7.9 seconds, and the separately invoked `fixtureCleanup.spec.ts` passes in 2.0 seconds on Linux. CAP-001 lifecycle baseline is committed separately as `6d20d3fa` on `cap/CAP-001-production-accounts-2026-09-09`; routing perturbation failed and restoration passed before commit. Do not lose that branch when synchronizing dependencies.
 
 1. [CSP PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after final-head build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Keep custom-scheme/state migration open.
 2. [SEC-012 PR #44](https://github.com/adamlow-wire/wire-desktop/pull/44), published at `9d25f910`, passed build, lint, analysis and all-platform packages; its initial E2E/report is running. The active branch now incorporates merged CSP and must repeat final-head validation before merge. Baselines `41882ee3` and `b31f4b60` precede implementation `6d7760fc`; the recovery stash is restored and removed.
