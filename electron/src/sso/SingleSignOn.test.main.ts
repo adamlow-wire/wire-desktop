@@ -28,7 +28,7 @@ import {SingleSignOn} from './SingleSignOn';
 
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
-type ProtocolHandler = (request: ProtocolRequest) => void;
+type ProtocolHandler = (request: ProtocolRequest, respond: (response: unknown) => void) => void;
 
 const createProtocolHarness = (alreadyRegistered = false) => {
   let handler: ProtocolHandler | undefined;
@@ -50,20 +50,16 @@ const createProtocolHarness = (alreadyRegistered = false) => {
 
   const session = {protocol} as unknown as Session;
   return {
-    getHandler: () => handler,
+    getHandler: () => handler && ((request: ProtocolRequest) => handler!(request, () => {})),
     getRegisteredScheme: () => registeredScheme,
     getUnregisterCount: () => unregisterCount,
     session,
   };
 };
 
-const request = (url: string) => ({url} as ProtocolRequest);
+const request = (url: string) => ({url, method: 'GET'} as ProtocolRequest);
 
 describe('SingleSignOn', () => {
-  afterEach(() => {
-    SingleSignOn.loginAuthorizationSecret = undefined;
-  });
-
   describe('generateSecret', () => {
     it('[characterization][DCP-003] generates a secret of a specified size', async () => {
       const size = 24;
@@ -74,12 +70,32 @@ describe('SingleSignOn', () => {
   });
 
   describe('window identity and title', () => {
+    it('[security-target][CAP-002] refuses missing, shared or persistent SSO partitions', async () => {
+      for (const partition of [undefined, 'sso', 'persist:sso-11111111-1111-4111-8111-111111111111']) {
+        const sso = new SingleSignOn(
+          {} as BrowserWindow,
+          {} as WebContents,
+          Maybe.nothing<string>(),
+          'https://backend.test',
+          {webPreferences: {partition}},
+          new ViewIdentityRegistry(),
+        );
+        await assert.rejects(sso.init(), /fresh ephemeral session/);
+      }
+    });
     it('[security-target][SEC-008][DCP-003] creates SSO popups in the session required by initialization', () => {
       const options = SingleSignOn.getSingleSignOnLoginWindowOptions(
         undefined as unknown as BrowserWindow,
         'https://login.example.test',
       );
-      assert.strictEqual(options.webPreferences?.partition, 'sso');
+      assert.match(options.webPreferences?.partition ?? '', /^sso-[a-f0-9-]{36}$/);
+      assert.notStrictEqual(
+        options.webPreferences?.partition,
+        SingleSignOn.getSingleSignOnLoginWindowOptions(
+          undefined as unknown as BrowserWindow,
+          'https://login.example.test',
+        ).webPreferences?.partition,
+      );
       assert.strictEqual(options.webPreferences?.sandbox, true);
       assert.strictEqual(options.webPreferences?.contextIsolation, true);
       assert.strictEqual(options.webPreferences?.nodeIntegration, false);
@@ -103,7 +119,7 @@ describe('SingleSignOn', () => {
         wrongSessionWindow.webContents,
         Maybe.nothing<string>(),
         'https://login.example.test',
-        {},
+        SingleSignOn.getSingleSignOnLoginWindowOptions(wrongSessionWindow, 'https://login.example.test'),
         new ViewIdentityRegistry(),
       );
 
@@ -118,13 +134,12 @@ describe('SingleSignOn', () => {
   describe('custom protocol', () => {
     const register = async (finalizeLogin: (type: string) => void = () => {}) => {
       const harness = createProtocolHarness();
-      await SingleSignOn['registerProtocol'](harness.session, finalizeLogin);
-      const secret = SingleSignOn.loginAuthorizationSecret;
+      const {secret, dispose} = await SingleSignOn['registerProtocol'](harness.session, finalizeLogin);
       const handler = harness.getHandler();
       if (!secret || !handler) {
         throw new Error('SSO protocol registration did not create its handler and secret');
       }
-      return {handler, harness, secret};
+      return {handler, harness, secret, dispose};
     };
 
     it('[characterization][DCP-003] registers the dedicated scheme with a fresh 192-bit secret', async () => {
@@ -165,6 +180,24 @@ describe('SingleSignOn', () => {
         name: 'oversized response type',
         url: (secret: string) => `wire-sso://response?secret=${secret}&type=${'A'.repeat(256)}`,
       },
+      ...[
+        'wire-sso://user@response?secret=SECRET&type=AUTH_SUCCESS',
+        'wire-sso://response:80?secret=SECRET&type=AUTH_SUCCESS',
+        'wire-sso://response/path?secret=SECRET&type=AUTH_SUCCESS',
+        'wire-sso://response?secret=SECRET&type=AUTH_SUCCESS#fragment',
+        'wire-sso://response?secret=SECRET&type=AUTH_SUCCESS&extra=1',
+        'wire-sso://response?secret=SECRET&secret=SECRET&type=AUTH_SUCCESS',
+        'wire-sso://response?secret=SECRET&type=AUTH_SUCCESS&type=AUTH_ERROR',
+        'wire-sso://response?secret=SECRET&type=AUTH_SUCCESS&label=forbidden',
+        'wire-sso://response?secret=SECRET&type=AUTH_ERROR&label=',
+        'wire-sso://response?secret=SECRET&type=AUTH_ERROR&label=%27injection',
+        'wire-sso://response?secret=SECRET&type=AUTH_ERROR&extra=1',
+        'wire-sso://response?secret=SECRET&type=AUTH_SUCCESS\n',
+        'not a URL',
+      ].map((url, index) => ({
+        name: `ambiguous callback ${index}`,
+        url: (secret: string) => url.replaceAll('SECRET', secret),
+      })),
     ]) {
       it(`[characterization][DCP-003] rejects an invalid ${invalidRequest.name}`, async () => {
         const finalized: string[] = [];
@@ -178,8 +211,8 @@ describe('SingleSignOn', () => {
 
     it('[characterization][DCP-003] rejects a response after its authorization secret is cleared', async () => {
       const finalized: string[] = [];
-      const {handler, secret} = await register(type => finalized.push(type));
-      SingleSignOn.loginAuthorizationSecret = undefined;
+      const {handler, secret, dispose} = await register(type => finalized.push(type));
+      dispose();
 
       handler(request(`wire-sso://response?secret=${secret}&type=AUTH_SUCCESS`));
 
@@ -209,8 +242,7 @@ describe('SingleSignOn', () => {
       assert.match(scripts[0], /data: \{type: 'AUTH_ERROR_COOKIE'\}/);
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests -- CAP-002 owns this known legacy security failure.
-    it.skip('[security-target][INV-005][CAP-002] consumes the authorization secret after one response', async () => {
+    it('[security-target][INV-005][CAP-002] consumes the authorization secret after one response', async () => {
       const finalized: string[] = [];
       const {handler, secret} = await register(type => finalized.push(type));
       const response = request(`wire-sso://response?secret=${secret}&type=AUTH_SUCCESS`);
@@ -221,8 +253,7 @@ describe('SingleSignOn', () => {
       assert.deepStrictEqual(finalized, ['AUTH_SUCCESS']);
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests -- CAP-002 owns this known legacy security failure.
-    it.skip('[security-target][INV-005][CAP-002] rejects response types outside the explicit allowlist', async () => {
+    it('[security-target][INV-005][CAP-002] rejects response types outside the explicit allowlist', async () => {
       const finalized: string[] = [];
       const {handler, secret} = await register(type => finalized.push(type));
 
@@ -230,6 +261,44 @@ describe('SingleSignOn', () => {
 
       assert.deepStrictEqual(finalized, []);
     });
+  });
+
+  it('[security-target][CAP-002] keeps authorization separate across flows and revokes only the disposed flow', async () => {
+    const finalized: string[] = [];
+    const first = createProtocolHarness();
+    const second = createProtocolHarness();
+    const firstFlow = await SingleSignOn['registerProtocol'](first.session, type => {
+      finalized.push(`first:${type}`);
+    });
+    const secondFlow = await SingleSignOn['registerProtocol'](second.session, type => {
+      finalized.push(`second:${type}`);
+    });
+    assert.notStrictEqual(firstFlow.secret, secondFlow.secret);
+    second.getHandler()!(request(`wire-sso://response?secret=${firstFlow.secret}&type=AUTH_SUCCESS`));
+    firstFlow.dispose();
+    first.getHandler()!(request(`wire-sso://response?secret=${firstFlow.secret}&type=AUTH_SUCCESS`));
+    second.getHandler()!(request(`wire-sso://response?secret=${secondFlow.secret}&type=AUTH_SUCCESS`));
+    assert.deepStrictEqual(finalized, ['second:AUTH_SUCCESS']);
+  });
+
+  it('[security-target][CAP-002] refuses a second protocol registration in the same session', async () => {
+    await assert.rejects(
+      SingleSignOn['registerProtocol'](createProtocolHarness(true).session, () => {}),
+      /Failed to register/,
+    );
+  });
+
+  it('[security-target][CAP-002] rejects a POST callback without consuming the valid GET response', async () => {
+    const harness = createProtocolHarness();
+    const finalized: string[] = [];
+    const flow = await SingleSignOn['registerProtocol'](harness.session, type => {
+      finalized.push(type);
+    });
+    const callback = request(`wire-sso://response?secret=${flow.secret}&type=AUTH_SUCCESS`);
+    harness.getHandler()!({...callback, method: 'POST'});
+    assert.deepStrictEqual(finalized, []);
+    harness.getHandler()!(callback);
+    assert.deepStrictEqual(finalized, ['AUTH_SUCCESS']);
   });
 
   describe('cookie transfer', () => {
@@ -268,8 +337,7 @@ describe('SingleSignOn', () => {
       assert.strictEqual(flushCount, 1);
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests -- CAP-002 owns this known legacy security failure.
-    it.skip('[security-target][INV-004][CAP-002] rejects cookies outside the intended account origin', async () => {
+    it('[security-target][INV-004][CAP-002] rejects cookies outside the intended account origin', async () => {
       const copied: Electron.CookiesSetDetails[] = [];
       const source = {
         cookies: {
@@ -336,7 +404,88 @@ describe('SingleSignOn', () => {
     });
   });
 
+  it('[security-target][CAP-002] cancels pending cookie transfer and verdict delivery when the flow closes', async () => {
+    let release!: (cookies: Electron.Cookie[]) => void;
+    const copied: unknown[] = [];
+    const scripts: string[] = [];
+    const source = {
+      cookies: {
+        get: () =>
+          new Promise<Electron.Cookie[]>(resolve => {
+            release = resolve;
+          }),
+      },
+      clearStorageData: async () => {},
+      protocol: {unregisterProtocol: () => true},
+    } as unknown as Session;
+    const sender = {
+      executeJavaScript: async (script: string) => {
+        scripts.push(script);
+      },
+      session: {
+        cookies: {
+          set: async (value: unknown) => {
+            copied.push(value);
+          },
+          flushStore: async () => {},
+        },
+      },
+    } as unknown as WebContents;
+    const sso = new SingleSignOn(
+      {close: () => {}} as BrowserWindow,
+      sender,
+      Maybe.just('account-a'),
+      'https://app.wire.com',
+      {},
+      new ViewIdentityRegistry(),
+    );
+    sso['session'] = source;
+    const pending = sso['finalizeLogin']('AUTH_SUCCESS');
+    sso.close();
+    release([{name: 'zuid', value: 'late', domain: '.wire.com', path: '/'} as Electron.Cookie]);
+    await pending;
+    assert.deepStrictEqual(copied, []);
+    assert.deepStrictEqual(scripts, []);
+  });
+
   describe('window and session cleanup', () => {
+    it('[security-target][CAP-002] removes a late protocol registration after cancellation during initialization', async () => {
+      const original = SingleSignOn['generateSecret'];
+      let release!: (secret: string) => void;
+      SingleSignOn['generateSecret'] = () =>
+        new Promise<string>(resolve => {
+          release = resolve;
+        });
+      const parent = new BrowserWindow({show: false});
+      const sso = SingleSignOn.create(
+        parent,
+        parent.webContents,
+        Maybe.just('account-a'),
+        'https://backend.test',
+        new ViewIdentityRegistry(),
+      );
+      const child = sso['ssoWindow']!;
+      const isolated = child.webContents.session;
+      try {
+        const initializing = sso.init();
+        const closed = new Promise<void>(resolve => {
+          sso.onClose = resolve;
+        });
+        sso.close();
+        await closed;
+        release('a'.repeat(48));
+        await initializing;
+        assert.strictEqual(isolated.protocol.isProtocolRegistered('wire-sso'), false);
+        assert.deepStrictEqual(await isolated.cookies.get({}), []);
+        assert.strictEqual(child.isDestroyed(), true);
+      } finally {
+        SingleSignOn['generateSecret'] = original;
+        if (!child.isDestroyed()) {
+          child.destroy();
+        }
+        parent.destroy();
+      }
+    });
     it('[characterization][security-target][INV-004][SEC-003][CAP-002][DCP-003] focuses and closes only the owned active SSO window', () => {
       let closeCount = 0;
       let focusCount = 0;
@@ -636,12 +785,14 @@ describe('SingleSignOn', () => {
         show: false,
         webPreferences: {partition: `sso-target-${Date.now()}`},
       });
+      const ssoOptions = SingleSignOn.getSingleSignOnLoginWindowOptions(senderWindow, fixtureUrl);
       const ssoWindow = new BrowserWindow({
+        ...ssoOptions,
         show: false,
         webPreferences: {
           contextIsolation: true,
           nodeIntegration: false,
-          partition: 'sso',
+          partition: ssoOptions.webPreferences?.partition,
           sandbox: true,
         },
       });
@@ -652,7 +803,7 @@ describe('SingleSignOn', () => {
         senderWindow.webContents,
         Maybe.nothing<string>(),
         fixtureUrl,
-        {webPreferences: {partition: 'sso'}},
+        ssoOptions,
         registry,
       );
 

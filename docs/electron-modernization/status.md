@@ -2,17 +2,17 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-08
 milestone: M3
-active_work_item: CAP-001
-state: account-metadata-validation
+active_work_item: CAP-002
+state: sso-native-completion-validation
 integration_branch: integration/electron-modernization
 integration_base_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-integration_head_commit: 67dfb5db
+integration_head_commit: ebda3707
 scaffold_commit: 567be7646a61fdd725f7fdb693880a294d65d155
 fork_url: https://github.com/adamlow-wire/wire-desktop
 publication: published
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
-related_pending_branch: cap/CAP-001-account-metadata-2026-09-08
-next_work_item: CAP-002
+related_pending_branch: cap/CAP-002-sso-completion-2026-09-08
+next_work_item: SEC-010
 blockers: []
 ---
 
@@ -76,19 +76,19 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 
 [PR #35](https://github.com/adamlow-wire/wire-desktop/pull/35) closed SEC-005 with isolated immutable bridges. [PR #37](https://github.com/adamlow-wire/wire-desktop/pull/37) then closed SEC-006 as `5926e3d0` on 2026-09-08: production preloads are bundled, application-wide sandboxing is enabled, and final-head build, lint, analysis, all-platform packages, authenticated Windows/macOS E2E, and reports passed. The product still uses DOM webviews, `file://`, and `unsafe-eval`; M3 is not complete.
 
-| Field         | Value                                                                 |
-| ------------- | --------------------------------------------------------------------- |
-| Work item     | CAP-001 — Preserve desktop-owned account identity                     |
-| Owner         | `adamlow-wire`                                                        |
-| Active branch | `cap/CAP-001-account-metadata-2026-09-08`                             |
-| Goal          | Reject metadata overwrites of desktop-owned account and session state |
-| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                |
+| Field         | Value                                                                              |
+| ------------- | ---------------------------------------------------------------------------------- |
+| Work item     | CAP-002 — Restore isolated SSO backend completion                                  |
+| Owner         | `adamlow-wire`                                                                     |
+| Active branch | `cap/CAP-002-sso-completion-2026-09-08`                                            |
+| Goal          | Deliver one authorized backend verdict to the initiating account without an opener |
+| Starting gate | SEC-006 closed by PR #37 at `5926e3d0`                                             |
 
 ## Next executable sequence
 
-1. PR #38 is merged at `67dfb5db`. Validate synchronized metadata PR #41 locally, then require its final-head build, lint, analysis, all-platform packages and authenticated Windows/macOS E2E/reports before merging.
-2. Prioritize CAP-002's real backend completion regression: the webapp/backend use `window.opener.postMessage`, but the new main-created isolated SSO window has no opener. Existing open/close coverage does not establish successful IdP completion. Investigate the server's existing native redirect response without restoring opener privileges.
-3. Synchronize and validate CSP draft PR #42 after PR #41. Then continue production secure-shell cutover through SEC-007, SEC-010 and CAP-001.
+1. Metadata PR #41 merged as `ebda3707` after final-head build/lint/analysis, all-platform packages and [authenticated Windows/macOS E2E plus reports](https://github.com/adamlow-wire/wire-desktop/actions/runs/34234966274) passed without a rerun.
+2. [SSO PR #43](https://github.com/adamlow-wire/wire-desktop/pull/43) passed its independent build/lint/analysis and all-platform package checks at `fe549aae`. Validate its synchronization with PR #41, then require final-head authenticated E2E and all other applicable gates. Native backend-style completion passes locally; no live IdP completion is claimed yet.
+3. Synchronize and validate CSP draft PR #42 after PR #43. SEC-012 baseline commit `41882ee3` separately characterizes preview image/fallback behavior; five new deny targets reproduce direct, redirected and image private-network access and are safely stored in the named SEC-012 stash pending implementation. Continue that existing item while CI runs, then production secure-shell cutover through SEC-007, SEC-010 and CAP-001.
 4. Complete SEC-009, SEC-012, and SEC-013 policy hardening with adversarial deny-path tests.
 5. Complete CAP-002, CAP-005, and CAP-006 against the new boundary, then run the M3 closure audit and cross-platform E2E checkpoint.
 6. Keep Electron at `43.4.0` during M3; revisit Electron 44 and Windows ia32 scope before the next runtime upgrade or release-candidate cut.
@@ -117,6 +117,10 @@ M0, M1, and M2 are complete. M3 is active. [PR #8](https://github.com/adamlow-wi
 | SEC-006 — Enable renderer sandboxing everywhere | PR #37; actual OS sandbox, bundled preloads, all-platform CI and E2E |
 
 ## Last verified state
+
+PR #43 synchronized with merged PR #41: 431 main tests (zero pending), 94 React tests, renderer 4/4, tools 35/35, application/Mocha types, and changed statements 66/69 pass. Rebuilt metadata persistence, navigation/two SSO cycles, and fixture-cleanup product tests pass together (11.7 seconds, local Linux). Final-head authenticated E2E is now requested; controlled live IdP acceptance remains open.
+
+CAP-002 implementation `09260335`: fresh per-flow ephemeral sessions, 192-bit closure-owned one-use callback secrets, exact callback URL/type/error-label validation, originating-backend cookie scope, account-local transfer, cancellation checks and protocol responses. The two native backend verdict tests failed before the fix; legacy controls passed. All three previously quarantined security assertions now pass, and disabling their individual protections reproduced all three failures before restoration. The baseline verdict mutation failed both legacy controls. Final local: 431 main tests (zero pending), renderer 4/4, React 64/64, tools 35/35, application/Mocha types; changed statements 66/69 (95.65%), full SSO branches 108/119 (90.76%). The rebuilt sandboxed product navigation/two-cycle SSO fixture passes in 3.4 seconds. Commands: `yarn test:main:coverage`, `yarn test:renderer:coverage`, `yarn test:react:coverage --modulePathIgnorePatterns '<rootDir>/wrap/'`, `DIFF_COVERAGE_BASE=fork/integration/electron-modernization yarn coverage:diff`, `env -u ELECTRON_RUN_AS_NODE yarn playwright test e2e-tests/specs/regression/accountNavigation.spec.ts --project=macOS --workers=1` (actual local Linux). Hosted and controlled live IdP evidence remain required; a non-secret request for dedicated staging SSO access has been sent while other work continues.
 
 PR #41 synchronized validation (2026-09-08): 405 main tests pass with the same 3 CAP-002 targets pending; renderer 4/4, React 94/94, tools 35/35, application/Mocha types and changed coverage 9/9 statements pass. Three serial uninstrumented cold-restart tests pass (23.4 seconds). Earlier local attempts intermittently stalled at view startup or application quit; diagnostic logging found no policy denial, and no runtime fix or timeout increase is claimed. The readiness assertion now checks exactly two loaded account URLs, not just a count. Final-head hosted gates remain required.
 

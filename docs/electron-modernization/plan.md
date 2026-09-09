@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.14
+revision: 1.5.16
 status: draft
 updated: 2026-09-08
 owners:
@@ -653,7 +653,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-002 — Migrate enterprise and automated SSO
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: TST-002, SEC-008, CAP-001
 - Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation.
@@ -662,7 +662,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Every CAP-002 `security-target` quarantine in the SSO suite is removed and passes.
   - SSO windows use fixed secure preferences and ephemeral sessions.
   - Account targeting and cookie transfer cannot cross partitions.
-- Evidence: TBD
+  - The real backend verdict is delivered without a renderer opener, with success/error and backend error-label compatibility; synthetic direct finalization alone is insufficient.
+- Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. Local full validation and hosted evidence are pending; a controlled live IdP checkpoint remains required before CAP-002 closure.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
@@ -882,6 +883,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.16 | 2026-09-08 | Codex | Reproduced isolated SSO backend verdict loss; adopted native redirects with per-flow callback/session isolation and activated the three owned security targets | CAP-002, DCP-003, INV-004, INV-005 |
 | 1.5.14 | 2026-09-08 | Codex | Reproduced and rejected desktop-owned identity/session overwrites through webapp metadata; preserved known metadata and environment updates, retained main-owned lifecycle and destination-policy cutover | CAP-001, CAP-005, DCP-002, DCP-004 |
 | 1.5.13 | 2026-09-08 | Codex | Isolated a renderer-loss harness fix after proving host crash handling delayed process-loss notification; strengthened revocation-order evidence without changing runtime code or deadlines | CAP-001, TST-004 |
 | 1.5.12 | 2026-09-08 | Codex | Recorded merged sandboxing evidence and split incoming deep-link parsing ahead of navigation merge to preserve valid chat links; retained external/lifecycle closure | SEC-006, SEC-008, SEC-013, CAP-005, CAP-006 |
