@@ -24,6 +24,9 @@ export type ConversationJoinData = {
 };
 
 export type Account = {
+  canCancel?: boolean;
+  isLoading?: boolean;
+  loadError?: string;
   availability?: number;
   accentID?: number;
   badgeCount: number;

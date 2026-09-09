@@ -6,12 +6,12 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 
 | Operation | Current expected sender | Risk / side effect | State | Owning follow-up |
 | --- | --- | --- | --- | --- |
-| `wire-desktop:accounts:control:v1` | application shell | Fixed read/add/select/remove controls; main-owned IDs and private display snapshots | PR #47 draft binder and allow/deny tests; not yet registered in production | SEC-007, CAP-001 |
-| `wire-desktop:account:event:v1` | owning account | Bounded metadata, lifecycle, badge, activation, environment and join events; identity from registered sender, never payload | PR #47 draft binder and sensitivity-proven allow/deny tests; not yet registered in production; controller must authorize destination changes and revalidate queued authority | SEC-007, CAP-001, SEC-008 |
+| `wire-desktop:accounts:control:v1` | application shell | Named read/add/select/remove/reload/logout/context-menu/layout/join controls; main-owned IDs and private display snapshots | PR #47 working-copy startup now binds it; extended allow/deny tests pass, layout-bound denial is sensitivity-proven; full product qualification remains open | SEC-007, CAP-001 |
+| `wire-desktop:account:event:v1` | owning account | Bounded metadata, lifecycle, badge, activation, environment and join events; identity from registered sender, never payload | PR #47 working-copy startup now binds it; controller revalidates queued/post-approval authority; environment approval UX and full product qualification remain open | SEC-007, CAP-001, SEC-008 |
 | `wire-desktop:secure-shell:runtime-info:v1` | secure account proof | Runtime metadata read | merged in PR #14 | SEC-003 |
 | `wire-desktop:safe-storage:encrypt:v1` | account | OS key-store encryption | merged in PR #15 | SEC-003, DCP-016 |
 | `wire-desktop:safe-storage:decrypt:v1` | account | OS key-store decryption | merged in PR #15 | SEC-003, DCP-016 |
-| `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | merged in PR #16 | SEC-003, CAP-005 |
+| `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | merged in PR #16; PR #47 native preload startup uses immutable main-owned App-lock arguments to avoid synchronous reads before origin commitment; legacy entry retains this authorized channel | SEC-003, CAP-005 |
 | `wire-desktop:save-picture:v1` | account context action | Network-sized bytes, native dialog, file write | merged in PR #17 | SEC-003, SEC-004 |
 | `wire-desktop:notification:activate:v1` | account | Global window activation | merged in PR #18 | SEC-003, CAP-004 |
 | `wire-desktop:webapp:loaded:v1` | account | Flushes global queued actions | merged in PR #19 | SEC-003, CAP-001 |

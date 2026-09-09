@@ -26,6 +26,8 @@ import type {AccountEvent} from '../security/AccountEventContract';
 export type AccountSnapshot = Readonly<
   Omit<Account, 'sessionID' | 'ssoCode' | 'conversationJoinData'> & {
     canCancel: boolean;
+    isLoading?: boolean;
+    loadError?: string;
   }
 >;
 

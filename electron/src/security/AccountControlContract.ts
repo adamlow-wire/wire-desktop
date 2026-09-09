@@ -20,5 +20,10 @@
 export const ACCOUNT_CONTROL_CHANNEL = 'wire-desktop:accounts:control:v1';
 export const ACCOUNT_CONTROL_CAPABILITY = 'accounts:control';
 export const MAX_ACCOUNT_COMMANDS_PER_MINUTE = 120;
+export const ACCOUNT_SNAPSHOTS_CHANNEL = 'wire-desktop:accounts:changed:v1';
 
-export type AccountCommand = {action: 'read' | 'add'} | {action: 'select' | 'remove'; accountId: string};
+export type AccountCommand =
+  | {action: 'read' | 'add'}
+  | {action: 'select' | 'remove' | 'reload' | 'logout' | 'context-menu'; accountId: string}
+  | {action: 'layout'; sidebarWidth: number; headerHeight: number}
+  | {action: 'join'; accountId: string; code: string; key: string; domain?: string | null};

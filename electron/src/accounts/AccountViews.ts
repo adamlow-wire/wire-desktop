@@ -150,6 +150,12 @@ export class AccountViews {
     contents.focus();
   }
 
+  hide(): void {
+    for (const entry of this.entries.values()) {
+      entry.view.setVisible(false);
+    }
+  }
+
   setChrome(sidebarWidth: number, headerHeight: number): void {
     if (
       !Number.isSafeInteger(sidebarWidth) ||

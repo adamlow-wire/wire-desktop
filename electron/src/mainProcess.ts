@@ -23,7 +23,6 @@ import {
   dialog,
   BrowserWindow,
   BrowserWindowConstructorOptions,
-  Event as ElectronEvent,
   ipcMain,
   Menu,
   session,
@@ -44,6 +43,11 @@ import {URL, pathToFileURL} from 'url';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
+import {AccountController} from './accounts/AccountController';
+import {AccountProfile} from './accounts/AccountProfile';
+import {AccountState} from './accounts/AccountState';
+import {AccountViews} from './accounts/AccountViews';
+import {readLegacyAccountState} from './accounts/readLegacyAccountState';
 import * as ProxyAuth from './auth/ProxyAuth';
 import {createProxyPromptActions} from './auth/ProxyPromptActions';
 import {ProxyPromptCoordinator} from './auth/ProxyPromptCoordinator';
@@ -58,6 +62,7 @@ import {configureEnforcedDownloads} from './lib/configureEnforcedDownloads';
 import {CustomProtocolHandler} from './lib/CoreProtocol';
 import {downloadImage} from './lib/download';
 import {enumerateDesktopSources} from './lib/enumerateDesktopSources';
+import {EVENT_TYPE} from './lib/eventType';
 import {createFireAndForgetInvoker} from './lib/fireAndForgetInvoker';
 import {forwardWrapperReloadRequest} from './lib/forwardWrapperReloadRequest';
 import {deleteAccount} from './lib/LocalAccountDeletion';
@@ -76,7 +81,6 @@ import {attachAccountWebContentsTheme} from './menu/AccountTheme';
 import {createDeveloperMenu, openDevTools} from './menu/developer';
 import * as systemMenu from './menu/system';
 import {TrayHandler} from './menu/TrayHandler';
-import {configureLegacyWebviewPreferences} from './preload/LegacyWebviewPreferences';
 import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUserData';
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
@@ -87,13 +91,17 @@ import {bindSecureShellIpc} from './secureShell/ipc';
 import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from './secureShell/protocol';
 import {SecureShellController} from './secureShell/SecureShellController';
 import {AboutLocaleResponse, bindAboutWindowIpc} from './security/AboutWindowIpc';
+import {ACCOUNT_CONTROL_CAPABILITY, ACCOUNT_SNAPSHOTS_CHANNEL} from './security/AccountControlContract';
+import {bindAccountControlIpc} from './security/AccountControlIpc';
 import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
+import {ACCOUNT_EVENT_CAPABILITY} from './security/AccountEventContract';
+import {bindAccountEventIpc} from './security/AccountEventIpc';
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
 import {bindDesktopSourcesIpc} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
-import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
+import {ACCOUNT_CAPABILITIES} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNavigationGuard} from './security/NavigationGuard';
 import {isAllowedAccountNavigation} from './security/NavigationPolicy';
@@ -128,6 +136,7 @@ const getRendererRuntimeArguments = (): string[] =>
     locale: locale.getCurrent(),
     userDataPath: app.getPath('userData'),
     environment: snapshotRendererEnvironment(EnvironmentUtil),
+    applockOverride: getManagedConfig().applockOverride,
   });
 type WallClockModule = {
   readonly createDesktopWallClock: () => WallClock;
@@ -153,8 +162,8 @@ if (secureShellProof) {
 
 const APP_PATH = path.join(app.getAppPath(), config.electronDirectory);
 const INDEX_HTML = path.join(APP_PATH, 'renderer/index.html');
-const PRELOAD_JS = path.join(APP_PATH, 'dist/preload/preload-app.js');
-const PRELOAD_RENDERER_JS = path.join(APP_PATH, 'dist/preload/preload-webview.js');
+const PRELOAD_JS = path.join(APP_PATH, 'dist/preload/preload-shell.js');
+const PRELOAD_RENDERER_JS = path.join(APP_PATH, 'dist/preload/preload-account.js');
 const WRAPPER_CSS = path.join(APP_PATH, 'css/wrapper.css');
 const ICON = path.join(APP_PATH, 'img/download-dialog/logo@2x.png');
 
@@ -235,6 +244,9 @@ let tray: TrayHandler;
 let isFullScreen = false;
 let isQuitting = false;
 let main: BrowserWindow;
+let wrapperInit: ElectronWrapperInit;
+let accountController: AccountController | undefined;
+let accountViews: AccountViews | undefined;
 
 Object.entries(config).forEach(([key, value]) => {
   if (typeof value === 'undefined' || (typeof value === 'number' && isNaN(value))) {
@@ -388,7 +400,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
       preload: PRELOAD_JS,
       sandbox: true,
       nodeIntegrationInWorker: false,
-      webviewTag: true,
+      webviewTag: false,
     },
     width: mainWindowState.width,
     // eslint-disable-next-line id-length
@@ -405,11 +417,99 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   main = new BrowserWindow(options);
   const mainURL = getMainWindowUrl();
   registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href, [
+    ACCOUNT_CONTROL_CAPABILITY,
     BADGE_COUNT_CAPABILITY,
     ACCOUNT_DATA_DELETE_CAPABILITY,
     DEEP_LINK_SUBMIT_CAPABILITY,
     SSO_ACCOUNT_LIMIT_CAPABILITY,
   ]);
+
+  const profile = new AccountProfile(path.join(app.getPath('userData'), 'accounts.v1.json'), config.maximumAccounts);
+  const initial =
+    profile.read() ??
+    profile.importLegacy(
+      (await readLegacyAccountState(INDEX_HTML, session.defaultSession)) ?? JSON.stringify({accounts: []}),
+    );
+  const accountState = new AccountState(initial, config.maximumAccounts, records => profile.write(records));
+  const nativeViews = new AccountViews({
+    window: main,
+    registry: viewIdentityRegistry,
+    preload: PRELOAD_RENDERER_JS,
+    additionalArguments: getRendererRuntimeArguments(),
+    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY],
+    configure: (contents, account, url) => wrapperInit.configureAccountContents(contents, account, url),
+    lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),
+  });
+  accountViews = nativeViews;
+  const controller = new AccountController({
+    state: accountState,
+    views: nativeViews,
+    registry: viewIdentityRegistry,
+    destination: account => {
+      const url = new URL(account.webappUrl || decodeURIComponent(mainURL.searchParams.get('env') || ''));
+      url.searchParams.set('hl', currentLocale);
+      if (account.ssoCode && account.isAdding) {
+        url.pathname = '/auth';
+        url.hash = `#sso/${account.ssoCode}`;
+      }
+      return url.href;
+    },
+    session: account =>
+      account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
+    clearData: async (_account, targetSession) => {
+      await targetSession.clearStorageData();
+      await targetSession.clearCache();
+      targetSession.flushStorageData();
+    },
+    approveEnvironment: async (_account, candidate) => {
+      const result = await dialog.showMessageBox(main, {
+        type: 'question',
+        buttons: ['Cancel', 'Continue'],
+        defaultId: 0,
+        cancelId: 0,
+        message: 'Change this account’s server?',
+        detail: new URL(candidate).origin,
+      });
+      if (result.response !== 1) {
+        throw new Error('Account destination was not approved.');
+      }
+      return candidate;
+    },
+    changed: accounts => {
+      if (!main.isDestroyed()) {
+        main.webContents.send(ACCOUNT_SNAPSHOTS_CHANNEL, accounts);
+      }
+    },
+    badge: (count, ignoreFlash) => tray.showUnreadCount(main, count, ignoreFlash),
+    loaded: () => WindowManager.flushActionsQueue(),
+    menu: account =>
+      new Promise<void>(resolve => {
+        const menu = Menu.buildFromTemplate([
+          ...(account.lifecycle === EVENT_TYPE.LIFECYCLE.SIGNED_IN
+            ? [
+                {
+                  id: 'account-logout',
+                  label: locale.getText('wrapperLogOut'),
+                  click: () => mainProcessFireAndForgetInvoker.fireAndForget(() => controller.logout(account.id)),
+                },
+              ]
+            : []),
+          {
+            id: 'account-remove',
+            label: locale.getText('wrapperRemoveAccount'),
+            click: () => mainProcessFireAndForgetInvoker.fireAndForget(() => controller.remove(account.id)),
+          },
+        ]);
+        menu.popup({window: main, x: 39, y: account.accountIndex * 56 + 28, callback: resolve});
+      }),
+  });
+  accountController = controller;
+  const disposeControl = bindAccountControlIpc(ipcMain, viewIdentityRegistry, controller);
+  const disposeEvents = bindAccountEventIpc(ipcMain, viewIdentityRegistry, controller.receive);
+  main.once('closed', () => {
+    disposeControl();
+    disposeEvents();
+  });
 
   main.setMenuBarVisibility(showMenuBar);
 
@@ -464,7 +564,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     }
   });
 
-  app.on('render-process-gone', async (event, _, details) => {
+  main.webContents.on('render-process-gone', async (_event, details) => {
     logger.error('WebContents crashed. Will reload the window.');
     logger.error(JSON.stringify(details));
     try {
@@ -486,6 +586,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   await main.loadURL(mainURL.href);
   const wrapperCSSContent = await fs.readFile(WRAPPER_CSS, 'utf8');
   await main.webContents.insertCSS(wrapperCSSContent);
+  await controller.start();
 };
 
 // App Events
@@ -632,9 +733,11 @@ const applyProxySettings = async (authenticatedProxyDetails: URL, webContents: E
 
 class ElectronWrapperInit {
   logger: logdown.Logger;
-  private readonly ssoWindows = new SsoWindowCoordinator(() =>
-    main.webContents.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED),
-  );
+  private readonly ssoWindows = new SsoWindowCoordinator(accountId => {
+    if (accountViews?.has(accountId)) {
+      accountViews.get(accountId).send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
+    }
+  });
 
   constructor() {
     this.logger = getLogger('ElectronWrapperInit');
@@ -649,173 +752,120 @@ class ElectronWrapperInit {
     this.webviewProtection();
   }
 
-  // <webview> hardening
   webviewProtection(): void {
+    app.on('web-contents-created', (_event, contents) => {
+      contents.setWindowOpenHandler(() => ({action: 'deny'}));
+    });
+  }
+
+  async configureAccountContents(
+    contents: WebContents,
+    account: {id: string; sessionID?: string},
+    url: URL,
+  ): Promise<void> {
     const enableSpellChecking = settings.restore(SettingsType.ENABLE_SPELL_CHECKING, true);
+    const accountOrigin = url.origin;
+    const registeredAccountId = account.id;
+    const accountPartition = account.sessionID ?? 'default';
+    attachAccountContextMenu(contents, main);
+    attachAccountWebContentsTheme(contents);
+    if (proxyInfoArg?.origin && contents.session) {
+      this.logger.log('Found proxy settings in arguments, applying settings on the webview...');
+      await applyProxySettings(proxyInfoArg, contents);
+    }
+    // Open webview links outside of the app
+    contents.setWindowOpenHandler(details =>
+      handleAccountWindowOpen(details, {
+        accountSession: contents.session,
+        accountOrigin,
+        sourceUrl: contents.getURL(),
+        openExternal: url => mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(url)),
+        openDeepLink: url =>
+          mainProcessFireAndForgetInvoker.fireAndForget(() => customProtocolHandler.dispatchDeepLink(url)),
+        openSso: url =>
+          mainProcessFireAndForgetInvoker.fireAndForget(() =>
+            this.ssoWindows.open(registeredAccountId, () =>
+              SingleSignOn.create(main, contents, Maybe.of(registeredAccountId), url, viewIdentityRegistry),
+            ),
+          ),
+      }),
+    );
+    contents.on('did-create-window', (win, windowCreationDetails) => {
+      const {frameName, url} = windowCreationDetails;
+      if (isPictureInPictureCallWindow(frameName)) {
+        bindNavigationGuard(
+          win.webContents,
+          target => target === 'about:blank' || isAllowedAccountNavigation(target, accountOrigin),
+        );
+      }
 
-    app.on('web-contents-created', async (_webviewEvent: ElectronEvent, contents: WebContents) => {
-      // disable new Windows by default on everything
-      contents.setWindowOpenHandler(() => {
-        return {action: 'deny'};
+      bindPictureInPictureCallIdentity({
+        allowedUrl: url,
+        destroy: () => win.destroy(),
+        frameName,
+        logRejection: error => logger.error('Rejected unbound picture-in-picture window.', error),
+        partition: accountPartition ?? '',
+        registry: viewIdentityRegistry,
+        resolveAccountId: () => registeredAccountId,
+        webContents: win.webContents,
       });
-      switch (contents.getType()) {
-        case 'window': {
-          contents.on('will-attach-webview', (_event, webPreferences, params) => {
-            configureLegacyWebviewPreferences(webPreferences, params, {
-              additionalArguments: getRendererRuntimeArguments(),
-              preload: PRELOAD_RENDERER_JS,
-              spellcheck: enableSpellChecking,
-            });
+    });
+    if (ENABLE_LOGGING) {
+      const colorCodeRegex = /%c(.+?)%c/gm;
+      const stylingRegex = /(color:#|font-weight:)[^;]+; /gm;
+      const accessTokenRegex = /access_token=[^ &]+/gm;
+
+      contents.on('console-message', async (_event, _level, message) => {
+        const accountId = Maybe.of(account.id);
+
+        if (accountId.isJust) {
+          const logFilePath = getWebViewLogPath({
+            accountId: accountId.value,
+            date: new Date(),
+            logDirectory: getLogDirectory(),
           });
-          break;
+          try {
+            await writeBoundedLogMessage({
+              logFilePath,
+              message: message.replace(colorCodeRegex, '$1').replace(stylingRegex, '').replace(accessTokenRegex, ''),
+            });
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            logger.error(`Cannot write to log file "${logFilePath}": ${errorMessage}`, error);
+          }
         }
-        case 'webview': {
-          attachAccountContextMenu(contents, main);
-          attachAccountWebContentsTheme(contents);
-          let accountOrigin: string | undefined;
-          let accountUrl: string | undefined;
-          let registeredAccountId: string | undefined;
-          let accountPartition: string | undefined;
-          const registerAccountIdentity = (url: string): void => {
-            if (viewIdentityRegistry.has(contents.id)) {
-              return;
-            }
-            if (accountOrigin && !isAllowedAccountNavigation(url, accountOrigin)) {
-              return;
-            }
+      });
+    }
 
-            const partition = getLegacyAccountPartition(contents.session, session.defaultSession);
-            if (!partition) {
-              logger.error('Unable to register account view without a storage partition.');
-              return;
-            }
+    if (enableSpellChecking) {
+      try {
+        const availableSpellCheckerLanguages = contents.session.availableSpellCheckerLanguages;
+        const foundLanguages = locale.supportedSpellCheckLanguages[currentLocale].filter(language =>
+          availableSpellCheckerLanguages.includes(language),
+        );
+        contents.session.setSpellCheckerLanguages(foundLanguages);
+      } catch (error) {
+        logger.error(error);
+        contents.session.setSpellCheckerLanguages([]);
+      }
+    }
 
-            const registration = registerLegacyAccountViewIdentity(
-              viewIdentityRegistry,
-              contents,
-              accountUrl ?? url,
-              partition,
-            );
-            if (registration) {
-              accountUrl ??= url;
-              accountOrigin = registration.identity.allowedOrigin;
-              registeredAccountId = registration.identity.accountId;
-              accountPartition = registration.identity.partition;
-            }
-          };
-          registerAccountIdentity(contents.getURL());
-          contents.on('did-start-navigation', (_event, url, _isInPlace, isMainFrame) => {
-            if (isMainFrame) {
-              registerAccountIdentity(url);
-            }
-          });
-          bindNavigationGuard(contents, url => isAllowedAccountNavigation(url, accountOrigin));
+    // Disable TLS < v1.2
+    contents.session.setSSLConfig({minVersion: 'tls1.2'});
 
-          if (proxyInfoArg?.origin && contents.session) {
-            this.logger.log('Found proxy settings in arguments, applying settings on the webview...');
-            await applyProxySettings(proxyInfoArg, contents);
+    contents.session.setCertificateVerifyProc(setCertificateVerifyProc);
+
+    contents.on('before-input-event', (_event, input) => {
+      if (input.type === 'keyUp' && input.key === 'Alt') {
+        const mainBrowserWindow = WindowManager.getPrimaryWindow();
+
+        if (mainBrowserWindow) {
+          const isAutoHide = mainBrowserWindow.isMenuBarAutoHide();
+          const isVisible = mainBrowserWindow.isMenuBarVisible();
+          if (isAutoHide) {
+            mainBrowserWindow.setMenuBarVisibility(!isVisible);
           }
-          // Open webview links outside of the app
-          contents.setWindowOpenHandler(details =>
-            handleAccountWindowOpen(details, {
-              accountSession: contents.session,
-              accountOrigin,
-              sourceUrl: contents.getURL(),
-              openExternal: url => mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(url)),
-              openDeepLink: url =>
-                mainProcessFireAndForgetInvoker.fireAndForget(() => customProtocolHandler.dispatchDeepLink(url)),
-              openSso: url =>
-                mainProcessFireAndForgetInvoker.fireAndForget(() =>
-                  this.ssoWindows.open(registeredAccountId, () =>
-                    SingleSignOn.create(main, contents, Maybe.of(registeredAccountId), url, viewIdentityRegistry),
-                  ),
-                ),
-            }),
-          );
-          contents.on('did-create-window', (win, windowCreationDetails) => {
-            const {frameName, url} = windowCreationDetails;
-            if (isPictureInPictureCallWindow(frameName)) {
-              bindNavigationGuard(
-                win.webContents,
-                target => target === 'about:blank' || isAllowedAccountNavigation(target, accountOrigin),
-              );
-            }
-
-            bindPictureInPictureCallIdentity({
-              allowedUrl: url,
-              destroy: () => win.destroy(),
-              frameName,
-              logRejection: error => logger.error('Rejected unbound picture-in-picture window.', error),
-              partition: accountPartition ?? '',
-              registry: viewIdentityRegistry,
-              resolveAccountId: () => registeredAccountId,
-              webContents: win.webContents,
-            });
-          });
-          if (ENABLE_LOGGING) {
-            const colorCodeRegex = /%c(.+?)%c/gm;
-            const stylingRegex = /(color:#|font-weight:)[^;]+; /gm;
-            const accessTokenRegex = /access_token=[^ &]+/gm;
-
-            contents.on('console-message', async (_event, _level, message) => {
-              const accountId = lifecycle.getAccountId(contents);
-
-              if (accountId.isJust) {
-                const logFilePath = getWebViewLogPath({
-                  accountId: accountId.value,
-                  date: new Date(),
-                  logDirectory: getLogDirectory(),
-                });
-                try {
-                  await writeBoundedLogMessage({
-                    logFilePath,
-                    message: message
-                      .replace(colorCodeRegex, '$1')
-                      .replace(stylingRegex, '')
-                      .replace(accessTokenRegex, ''),
-                  });
-                } catch (error) {
-                  const errorMessage = error instanceof Error ? error.message : String(error);
-
-                  logger.error(`Cannot write to log file "${logFilePath}": ${errorMessage}`, error);
-                }
-              }
-            });
-          }
-
-          if (enableSpellChecking) {
-            try {
-              const availableSpellCheckerLanguages = contents.session.availableSpellCheckerLanguages;
-              const foundLanguages = locale.supportedSpellCheckLanguages[currentLocale].filter(language =>
-                availableSpellCheckerLanguages.includes(language),
-              );
-              contents.session.setSpellCheckerLanguages(foundLanguages);
-            } catch (error) {
-              logger.error(error);
-              contents.session.setSpellCheckerLanguages([]);
-            }
-          }
-
-          // Disable TLS < v1.2
-          contents.session.setSSLConfig({minVersion: 'tls1.2'});
-
-          contents.session.setCertificateVerifyProc(setCertificateVerifyProc);
-
-          contents.on('before-input-event', (_event, input) => {
-            if (input.type === 'keyUp' && input.key === 'Alt') {
-              const mainBrowserWindow = WindowManager.getPrimaryWindow();
-
-              if (mainBrowserWindow) {
-                const isAutoHide = mainBrowserWindow.isMenuBarAutoHide();
-                const isVisible = mainBrowserWindow.isMenuBarVisible();
-                if (isAutoHide) {
-                  mainBrowserWindow.setMenuBarVisibility(!isVisible);
-                }
-              }
-            }
-          });
-
-          break;
         }
       }
     });
@@ -862,7 +912,8 @@ if (secureShellProof) {
       handleAppEvents,
       initializeElectronWrapper() {
         try {
-          new ElectronWrapperInit().run();
+          wrapperInit = new ElectronWrapperInit();
+          wrapperInit.run();
         } catch (error) {
           logger.error(error);
         }

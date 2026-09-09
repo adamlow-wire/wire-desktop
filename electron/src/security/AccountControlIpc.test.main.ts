@@ -24,7 +24,7 @@ import {
   ACCOUNT_CONTROL_CHANNEL,
   MAX_ACCOUNT_COMMANDS_PER_MINUTE,
 } from './AccountControlContract';
-import {bindAccountControlIpc, isAccountSnapshots} from './AccountControlIpc';
+import {AccountControl, bindAccountControlIpc, isAccountSnapshots} from './AccountControlIpc';
 import {SenderIdentity, ViewIdentityRegistry, ViewType} from './ViewIdentityRegistry';
 
 import {parseLegacyAccounts} from '../accounts/AccountProfile';
@@ -55,13 +55,29 @@ const fixture = (viewType: ViewType = 'application-shell') => {
     () => undefined,
   );
   const handlers = new Map<string, Handler>();
-  const control = {
+  const effects: unknown[][] = [];
+  const control: AccountControl = {
     snapshots: () => state.snapshots(),
     add: async () => {
       state.add();
     },
     select: async (id: string) => state.select(id),
     remove: async (id: string) => state.remove(id),
+    reload: async (...args) => {
+      effects.push(['reload', ...args]);
+    },
+    logout: async (...args) => {
+      effects.push(['logout', ...args]);
+    },
+    contextMenu: async (...args) => {
+      effects.push(['context-menu', ...args]);
+    },
+    layout: async (...args) => {
+      effects.push(['layout', ...args]);
+    },
+    join: async (...args) => {
+      effects.push(['join', ...args]);
+    },
   };
   const dispose = bindAccountControlIpc(
     {
@@ -81,6 +97,7 @@ const fixture = (viewType: ViewType = 'application-shell') => {
     frame,
     registry,
     control,
+    effects,
     dispose,
     handlers,
     destroy: () => {
@@ -92,6 +109,65 @@ const fixture = (viewType: ViewType = 'application-shell') => {
 };
 
 describe('account control IPC', () => {
+  it('[security-target][CAP-001] routes layout, lifecycle and join controls with main-registered authority', async () => {
+    const {invoke, effects, registry, event} = fixture();
+    const identity = registry.authorize(event, ACCOUNT_CONTROL_CAPABILITY);
+    for (const action of ['reload', 'logout', 'context-menu']) {
+      await invoke({action, accountId});
+    }
+    await invoke({action: 'layout', sidebarWidth: 0, headerHeight: 0});
+    await invoke({action: 'layout', sidebarWidth: 240, headerHeight: 120});
+    for (const domain of [undefined, null, '', 'wire.test']) {
+      await invoke({action: 'join', accountId, code: 'code', key: 'key', domain});
+    }
+    assert.deepEqual(effects, [
+      ...['reload', 'logout', 'context-menu'].map(action => [action, accountId, identity]),
+      ['layout', 0, 0, identity],
+      ['layout', 240, 120, identity],
+      ...[undefined, null, '', 'wire.test'].map(domain => [
+        'join',
+        accountId,
+        {code: 'code', key: 'key', domain},
+        identity,
+      ]),
+    ]);
+  });
+
+  it('[security-target][CAP-001] denies malformed extended controls before any lifecycle side effect', async () => {
+    const {invoke, effects} = fixture();
+    for (const request of [
+      ...['reload', 'logout', 'context-menu'].flatMap(action => [
+        {action},
+        {action, accountId: '../other'},
+        {action, accountId, sessionID: accountId},
+      ]),
+      ...[-1, 241, 0.5, '78', Infinity].map(sidebarWidth => ({action: 'layout', sidebarWidth, headerHeight: 0})),
+      ...[-1, 121, 0.5, '56'].map(headerHeight => ({action: 'layout', sidebarWidth: 0, headerHeight})),
+      {action: 'layout', sidebarWidth: 78, headerHeight: 56, accountId},
+      ...['', 'x'.repeat(8193), null, 42].flatMap(value => [
+        {action: 'join', accountId, code: value, key: 'key'},
+        {action: 'join', accountId, code: 'code', key: value},
+      ]),
+      ...[42, {}, [], 'x'.repeat(254)].map(domain => ({action: 'join', accountId, code: 'code', key: 'key', domain})),
+      {action: 'join', accountId, code: 'code', key: 'key', partition: 'default'},
+    ]) {
+      await assert.rejects(invoke(request), /payload/);
+    }
+    assert.deepEqual(effects, []);
+  });
+
+  it('[security-target][CAP-001] denies every extended control from a remote account without effects', async () => {
+    const {invoke, effects} = fixture('account');
+    for (const request of [
+      ...['reload', 'logout', 'context-menu'].map(action => ({action, accountId})),
+      {action: 'layout', sidebarWidth: 78, headerHeight: 56},
+      {action: 'join', accountId, code: 'code', key: 'key'},
+    ]) {
+      await assert.rejects(invoke(request), /view type/);
+    }
+    assert.deepEqual(effects, []);
+  });
+
   it('[security-target][CAP-001] exposes only named controls to the registered shell and strips private state', async () => {
     const {invoke, state, handlers, dispose} = fixture();
     const initial = await invoke({action: 'read'});
@@ -183,6 +259,8 @@ describe('account control IPC', () => {
       [{...valid, ssoCode: 'secret'}],
       [{...valid, conversationJoinData: {code: 'secret', key: 'secret', domain: ''}}],
       [{...valid, canCancel: 'true'}],
+      [{...valid, isLoading: 'true'}],
+      [{...valid, loadError: 'x'.repeat(257)}],
       [{...valid, id: 'invalid'}],
       [{...valid, name: 'x'.repeat(4097)}],
     ]) {

@@ -21,7 +21,6 @@ import {connect} from 'react-redux';
 
 import './WebviewList.css';
 
-import {updateAccountBadgeCount} from '../../actions';
 import {State} from '../../index';
 import {AccountSelector} from '../../selector/AccountSelector';
 import {Account} from '../../types/account';
@@ -29,19 +28,16 @@ import Webview from '../WebView/Webview';
 
 interface WebviewListProps {
   accounts: Account[];
-  updateAccountBadgeCount: (id: string, count: number) => void;
 }
 
-const WebviewList = ({accounts, updateAccountBadgeCount}: WebviewListProps) => {
+const WebviewList = ({accounts}: WebviewListProps) => {
   return (
     <ul className="WebviewList">
       {accounts.map(account => (
-        <Webview key={account.id} account={account} onUnreadCountUpdated={updateAccountBadgeCount} />
+        <Webview key={account.id} account={account} />
       ))}
     </ul>
   );
 };
 
-export default connect((state: State) => ({accounts: AccountSelector.getAccounts(state)}), {updateAccountBadgeCount})(
-  WebviewList,
-);
+export default connect((state: State) => ({accounts: AccountSelector.getAccounts(state)}))(WebviewList);

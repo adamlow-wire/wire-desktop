@@ -28,16 +28,31 @@ import {
 import {AuthorizedIpcContract, bindAuthorizedIpc} from './AuthorizedIpc';
 import {AuthorizedViewIdentity, SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
+import type {ConversationJoinData} from '../../renderer/src/types/account';
 import type {AccountSnapshot} from '../accounts/AccountState';
 
 const commandSchema = Joi.alternatives()
   .try(
     Joi.object({action: Joi.string().valid('read', 'add').required()}).unknown(false),
     Joi.object({
-      action: Joi.string().valid('select', 'remove').required(),
+      action: Joi.string().valid('select', 'remove', 'reload', 'logout', 'context-menu').required(),
       accountId: Joi.string()
         .guid({version: ['uuidv4']})
         .required(),
+    }).unknown(false),
+    Joi.object({
+      action: Joi.valid('layout').required(),
+      sidebarWidth: Joi.number().integer().min(0).max(240).required(),
+      headerHeight: Joi.number().integer().min(0).max(120).required(),
+    }).unknown(false),
+    Joi.object({
+      action: Joi.valid('join').required(),
+      accountId: Joi.string()
+        .guid({version: ['uuidv4']})
+        .required(),
+      code: Joi.string().max(8192).required(),
+      key: Joi.string().max(8192).required(),
+      domain: Joi.string().allow('', null).max(253),
     }).unknown(false),
   )
   .required();
@@ -57,6 +72,8 @@ const snapshotSchema = Joi.object({
   isAdding: Joi.boolean().required(),
   visible: Joi.boolean().required(),
   canCancel: Joi.boolean().required(),
+  isLoading: Joi.boolean(),
+  loadError: Joi.string().max(256),
   name: Joi.string().allow('').max(4096),
   picture: Joi.string()
     .allow('')
@@ -84,6 +101,11 @@ export interface AccountControl {
   add(identity: AuthorizedViewIdentity): Promise<void>;
   select(accountId: string, identity: AuthorizedViewIdentity): Promise<void>;
   remove(accountId: string, identity: AuthorizedViewIdentity): Promise<void>;
+  reload(accountId: string, identity: AuthorizedViewIdentity): Promise<void>;
+  logout(accountId: string, identity: AuthorizedViewIdentity): Promise<void>;
+  contextMenu(accountId: string, identity: AuthorizedViewIdentity): Promise<void>;
+  layout(sidebarWidth: number, headerHeight: number, identity: AuthorizedViewIdentity): Promise<void>;
+  join(accountId: string, data: ConversationJoinData, identity: AuthorizedViewIdentity): Promise<void>;
 }
 
 const accountControlContract: AuthorizedIpcContract<AccountCommand, readonly AccountSnapshot[]> = Object.freeze({
@@ -112,6 +134,21 @@ export const bindAccountControlIpc = (
         break;
       case 'remove':
         await control.remove(command.accountId, identity);
+        break;
+      case 'reload':
+        await control.reload(command.accountId, identity);
+        break;
+      case 'logout':
+        await control.logout(command.accountId, identity);
+        break;
+      case 'context-menu':
+        await control.contextMenu(command.accountId, identity);
+        break;
+      case 'layout':
+        await control.layout(command.sidebarWidth, command.headerHeight, identity);
+        break;
+      case 'join':
+        await control.join(command.accountId, {code: command.code, key: command.key, domain: command.domain}, identity);
         break;
     }
     return control.snapshots();

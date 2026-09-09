@@ -24,6 +24,7 @@ import type {WebAppEvents} from '@wireapp/webapp-events';
 
 import type {DesktopAppConfig} from '../lib/desktopAppConfig';
 import type {i18nStrings, SupportedI18nLanguage} from '../locale';
+import type {AccountShellBridge} from '../preload/AccountShellBridge';
 import type * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 
 export declare global {
@@ -48,6 +49,7 @@ export declare global {
   /* eslint-enable no-var */
 
   interface Window {
+    wireAccounts: Readonly<AccountShellBridge>;
     amplify: amplify;
     isMac: boolean;
     locale: SupportedI18nLanguage;

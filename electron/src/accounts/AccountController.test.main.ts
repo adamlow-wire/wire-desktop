@@ -112,6 +112,7 @@ describe('production account controller integration', () => {
       changed: () => undefined,
       badge: () => undefined,
       loaded: () => undefined,
+      menu: async () => undefined,
     };
     controller = new AccountController(options);
     disposeControl = bindAccountControlIpc(ipcMain, registry, controller);
@@ -148,6 +149,74 @@ describe('production account controller integration', () => {
     assert.equal(views.has(added.id), false);
     assert.equal(state.snapshots().length, 2);
     assert.equal(state.get(second).visible, true);
+  });
+
+  it('[regression][CAP-001] keeps guest updates flowing while the native account menu is open', async () => {
+    let closeMenu!: () => void;
+    let opened!: () => void;
+    const opening = new Promise<void>(resolve => {
+      opened = resolve;
+    });
+    const first = views.get(records[0].id);
+    options.menu = async account => {
+      assert.equal(account.id, records[0].id);
+      opened();
+      await new Promise<void>(resolve => {
+        closeMenu = resolve;
+      });
+    };
+    const menu = controller.contextMenu(records[0].id);
+    await opening;
+    try {
+      await controller.receive(identity(first), {type: 'metadata', data: {name: 'Updated while menu is open'}});
+      assert.equal(state.get(records[0].id).name, 'Updated while menu is open');
+      assert.equal(state.get(records[1].id).name, undefined);
+    } finally {
+      closeMenu();
+      await menu;
+    }
+  });
+
+  it('[migration][CAP-001] reloads only the target view, preserving its session and the selected account', async () => {
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const firstSession = first.session;
+    await firstSession.cookies.set({url: origin, name: 'retained', value: 'first'});
+    await controller.select(records[1].id);
+    await controller.reload(records[0].id);
+    assert.equal(first.isDestroyed(), true);
+    assert.equal(registry.has(first.id), false);
+    assert.equal(views.get(records[0].id).session, firstSession);
+    assert.equal(views.get(records[1].id), second);
+    assert.equal(state.get(records[1].id).visible, true);
+    assert.equal((await firstSession.cookies.get({url: origin}))[0].value, 'first');
+    assert.equal(controller.snapshots().find(account => account.id === records[0].id)!.loadError, undefined);
+  });
+
+  it('[regression][CAP-001] publishes a recoverable per-account load failure without losing other accounts', async () => {
+    const firstId = records[0].id;
+    const second = views.get(records[1].id);
+    const destination = options.destination;
+    options.destination = account => {
+      if (account.id === firstId) {
+        throw new Error('Unavailable destination');
+      }
+      return destination(account);
+    };
+    const published: ReturnType<typeof controller.snapshots>[] = [];
+    options.changed = accounts => published.push(accounts);
+    await assert.rejects(controller.reload(firstId), /Unavailable destination/);
+    assert.equal(views.has(firstId), false);
+    assert.equal(views.get(records[1].id), second);
+    assert.equal(state.snapshots().length, 2);
+    assert.equal(published.at(-1)!.find(account => account.id === firstId)!.loadError, 'Account loading failed.');
+    assert.equal(published.at(-1)!.find(account => account.id === firstId)!.isLoading, false);
+    await controller.select(records[1].id);
+    options.destination = destination;
+    await controller.reload(firstId);
+    assert.equal(views.has(firstId), true);
+    assert.equal(controller.snapshots().find(account => account.id === firstId)!.loadError, undefined);
+    assert.equal(state.get(records[1].id).visible, true);
   });
 
   it('[security-target][CAP-001] binds guest metadata and joins to the real sender and denies shell commands from accounts', async () => {
@@ -318,6 +387,7 @@ describe('production account controller integration', () => {
         locale: 'en-US',
         userDataPath: app.getPath('userData'),
         environment: snapshotRendererEnvironment(EnvironmentUtil),
+        applockOverride: true,
       }),
       capabilities: [ACCOUNT_EVENT_CAPABILITY],
       configure: async () => undefined,
@@ -327,14 +397,22 @@ describe('production account controller integration', () => {
     controller = new AccountController(options);
     disposeControl = bindAccountControlIpc(ipcMain, registry, controller);
     disposeEvents = bindAccountEventIpc(ipcMain, registry, controller.receive);
+    let managedRequests = 0;
     const managedConfig = (event: Electron.IpcMainEvent) => {
+      managedRequests++;
       event.returnValue = {};
     };
     ipcMain.on(MANAGED_CONFIG_CHANNEL, managedConfig);
     try {
       await controller.start();
+      assert.equal(
+        managedRequests,
+        0,
+        'native account startup must not send synchronous IPC before navigation commits',
+      );
       const first = views.get(records[0].id);
       const second = views.get(records[1].id);
+      assert.deepEqual(await first.executeJavaScript('window.desktopAppConfig.managedConfig'), {applockOverride: true});
       const changed = new Promise<void>(resolve => {
         options.changed = () => resolve();
       });

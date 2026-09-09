@@ -21,8 +21,14 @@ import {ipcRenderer} from 'electron';
 
 import {installWebappPreload} from './installWebappPreload';
 
+import {readRendererApplockOverride} from '../runtime/rendererRuntimeArguments';
 import {ACCOUNT_EVENT_CHANNEL} from '../security/AccountEventContract';
 
-installWebappPreload(event => {
-  void ipcRenderer.invoke(ACCOUNT_EVENT_CHANNEL, event).catch(error => console.warn('Account event rejected.', error));
-});
+installWebappPreload(
+  event => {
+    void ipcRenderer
+      .invoke(ACCOUNT_EVENT_CHANNEL, event)
+      .catch(error => console.warn('Account event rejected.', error));
+  },
+  {applockOverride: readRendererApplockOverride()},
+);

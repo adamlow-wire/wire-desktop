@@ -39,6 +39,7 @@ test(
       )}, event => window.events.push({name:event.type,args:[event.detail]}));
       window.amplify={publish(name,...args){window.events.push({name,args})},subscribe(){},unsubscribe(){}};
       window.wire={};window.z={event:{},lifecycle:{UPDATE_SOURCE:{DESKTOP:'desktop'}},util:{Environment:{avsVersion(){return 'fixture'},version(){return 'fixture'}}}};
+      window.wireDesktopBridge.events.loaded();
     </script>`);
     });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -81,8 +82,35 @@ test(
         })),
       );
       app = await launch();
-      const shell = await app.firstWindow();
+      // Migration briefly opens a script-disabled storage reader; it is not the application shell.
+      const findShell = () =>
+        app!.windows().find(page => !page.isClosed() && new URL(page.url()).searchParams.has('env'));
+      await expect.poll(() => !!findShell()).toBe(true);
+      const shell = findShell()!;
       await expect.poll(readAccounts).toEqual(ids.map(id => ({id, loading: false})));
+      expect(await shell.locator('webview').count()).toBe(0);
+      expect(
+        await app.evaluate(({BrowserWindow, WebContentsView}, origin) => {
+          const main = BrowserWindow.getAllWindows().find(window =>
+            new URL(window.webContents.getURL()).searchParams.has('env'),
+          )!;
+          const preferences = (
+            main.webContents as Electron.WebContents & {
+              getLastWebPreferences(): Electron.WebPreferences;
+            }
+          ).getLastWebPreferences();
+          return {
+            webviewTag: preferences.webviewTag,
+            accounts: main.contentView.children
+              .filter(
+                (view): view is Electron.WebContentsView =>
+                  view instanceof WebContentsView && view.webContents.getURL().startsWith(origin),
+              )
+              .map(view => new URL(view.webContents.getURL()).searchParams.get('id'))
+              .sort((left, right) => String(left).localeCompare(String(right))),
+          };
+        }, origin),
+      ).toEqual({webviewTag: false, accounts: ids});
       await app.evaluate(
         async ({session}, {origin, partitionId}) => {
           await session.defaultSession.cookies.set({url: origin, name: 'marker', value: 'first'});
@@ -137,8 +165,31 @@ test(
       await expect.poll(readAccounts).toHaveLength(3);
       await shell.locator('[data-uie-name="do-close-webview"]').click();
       await expect.poll(readAccounts).toHaveLength(2);
+      // Observe the actual main-owned native menu; no test command is exposed to the shell or guest.
+      await app.evaluate(({Menu}) => {
+        const popup = Menu.prototype.popup;
+        Menu.prototype.popup = function (options) {
+          Reflect.set(globalThis, '__cap001NativeMenu', this);
+          Menu.prototype.popup = popup;
+          popup.call(this, options);
+        };
+      });
       await shell.locator(`[data-account-id="${ids[1]}"]`).click({button: 'right'});
-      await shell.locator('[data-uie-name="item-context-menu"]').last().click();
+      await expect
+        .poll(() =>
+          app!.evaluate(() => {
+            const menu = Reflect.get(globalThis, '__cap001NativeMenu') as Electron.Menu | undefined;
+            return menu?.items.map(item => item.id);
+          }),
+        )
+        .toEqual(['account-logout', 'account-remove']);
+      await app.evaluate(({BrowserWindow}) => {
+        const menu = Reflect.get(globalThis, '__cap001NativeMenu') as Electron.Menu;
+        const remove = menu.getMenuItemById('account-remove')!;
+        menu.closePopup();
+        remove.click(remove, BrowserWindow.getAllWindows()[0], {} as Electron.KeyboardEvent);
+        Reflect.deleteProperty(globalThis, '__cap001NativeMenu');
+      });
       await expect.poll(readAccounts).toEqual([{id: ids[0], loading: false}]);
       const cookies = await app.evaluate(
         async ({session}, {origin, partitionId}) => ({

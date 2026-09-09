@@ -27,6 +27,7 @@ import {createWebappMainWorld} from './WebappMainWorld';
 import {createWebappPreloadEvents} from './WebappPreloadEvents';
 
 import {createDesktopAppConfig} from '../lib/desktopAppConfig';
+import type {ManagedConfig} from '../managed/ManagedConfig';
 import {restoreRendererEnvironment} from '../runtime/rendererEnvironment';
 import {readRendererEnvironment} from '../runtime/rendererRuntimeArguments';
 import {reportWebappVersions as submitWebappVersions} from '../security/AboutWindowIpc';
@@ -41,7 +42,10 @@ import {handleWebAppLoaded} from '../security/WebAppLoadedIpc';
 import {requestWrapperRelaunch} from '../security/WrapperRelaunchIpc';
 import {requestWrapperReload} from '../security/WrapperReloadIpc';
 
-export const installWebappPreload = (sendAccountEvent?: (event: unknown) => void): void => {
+export const installWebappPreload = (
+  sendAccountEvent?: (event: unknown) => void,
+  startupConfig?: ManagedConfig,
+): void => {
   const logger = console;
   const environment = restoreRendererEnvironment(readRendererEnvironment());
   const mainWorld = createWebappMainWorld(contextBridge);
@@ -86,13 +90,16 @@ export const installWebappPreload = (sendAccountEvent?: (event: unknown) => void
 
   /* istanbul ignore next -- the real-Electron compatibility suite exercises this preload composition root. */
   const initializeWebappBridge = (): void => {
-    // Read synchronously so the value is present when the webapp evaluates its desktop configuration.
-    // The main-process handler returns a pre-read, memoized value, so the blocking call is negligible.
-    let managedConfig = {applockOverride: false};
-    try {
-      managedConfig = ipcRenderer.sendSync(MANAGED_CONFIG_CHANNEL) ?? {applockOverride: false};
-    } catch (error) {
-      logger.warn('Failed to read managed config from the main process, treating the device as unmanaged:', error);
+    // Native views use main-owned bootstrap: their first preload can run before a committed origin.
+    // Retain synchronous configuration only for the legacy preload entry.
+    let managedConfig: ManagedConfig = startupConfig ?? {applockOverride: false};
+    if (!startupConfig) {
+      try {
+        managedConfig = ipcRenderer.sendSync(MANAGED_CONFIG_CHANNEL) ?? {applockOverride: false};
+      } catch (error) {
+        logger.warn('Failed to read managed config from the main process, treating the device as unmanaged:', error);
+        managedConfig = {applockOverride: false};
+      }
     }
 
     const webappBridge = createWebappBridge({

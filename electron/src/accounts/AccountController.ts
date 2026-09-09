@@ -25,7 +25,7 @@ import {WebAppEvents} from '@wireapp/webapp-events';
 import {AccountState, AccountSnapshot} from './AccountState';
 import {AccountViews} from './AccountViews';
 
-import type {Account} from '../../renderer/src/types/account';
+import type {Account, ConversationJoinData} from '../../renderer/src/types/account';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
 import {ACCOUNT_EVENT_CAPABILITY, AccountEvent} from '../security/AccountEventContract';
@@ -43,22 +43,36 @@ export interface AccountControllerOptions {
   changed(accounts: readonly AccountSnapshot[]): void;
   badge(count: number, ignoreFlash: boolean): void;
   loaded(accountId: string): void;
+  menu(account: Account): Promise<void>;
 }
 
 // Serializes account lifecycle effects. Authority is checked again when queued work actually begins.
 export class AccountController {
   private pending: Promise<unknown> = Promise.resolve();
+  private readonly failures = new Set<string>();
 
   constructor(private readonly options: AccountControllerOptions) {}
 
-  snapshots = (): readonly AccountSnapshot[] => this.options.state.snapshots();
+  snapshots = (): readonly AccountSnapshot[] =>
+    this.options.state.snapshots().map(account =>
+      Object.freeze({
+        ...account,
+        isLoading:
+          !this.failures.has(account.id) &&
+          (!this.options.views.has(account.id) || this.options.views.get(account.id).isLoading()),
+        loadError: this.failures.has(account.id) ? 'Account loading failed.' : undefined,
+      }),
+    );
 
   start(): Promise<void> {
     return this.run(async () => {
-      for (const account of this.snapshots()) {
-        await this.ensureView(account.id);
+      await Promise.allSettled(this.snapshots().map(account => this.ensureView(account.id)));
+      const selected = this.snapshots().find(account => account.visible)!.id;
+      if (this.options.views.has(selected)) {
+        this.options.views.select(selected);
+      } else {
+        this.options.views.hide();
       }
-      this.options.views.select(this.snapshots().find(account => account.visible)!.id);
     });
   }
 
@@ -72,14 +86,57 @@ export class AccountController {
 
   select = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(async () => {
-      await this.ensureView(id);
       this.options.state.select(id);
+      this.options.views.hide();
+      await this.ensureView(id);
       this.options.views.select(id);
       this.publishBadge(id);
     }, identity);
 
   remove = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(() => this.removeAccount(id), identity);
+
+  join = (id: string, data: ConversationJoinData, identity?: AuthorizedViewIdentity): Promise<void> =>
+    this.run(async () => {
+      this.options.state.update(id, {type: 'join', ...data});
+      this.deliverJoin(id);
+    }, identity);
+
+  private deliverJoin(id: string): void {
+    const account = this.options.state.get(id);
+    if (account.lifecycle === EVENT_TYPE.LIFECYCLE.SIGNED_IN && account.conversationJoinData) {
+      this.options.views.get(id).send(WebAppEvents.CONVERSATION.JOIN, account.conversationJoinData);
+      this.options.state.clearPendingJoin(id);
+    }
+  }
+
+  reload = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
+    this.run(async () => {
+      this.options.state.get(id);
+      await this.options.views.close(id);
+      await this.ensureView(id);
+      this.options.views.select(this.snapshots().find(account => account.visible)!.id);
+    }, identity);
+
+  logout = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
+    this.run(async () => {
+      this.options.state.select(id);
+      this.options.views.select(id);
+      this.publishBadge(id);
+      this.options.views.get(id).send(EVENT_TYPE.ACTION.SIGN_OUT);
+    }, identity);
+
+  layout = (sidebarWidth: number, headerHeight: number, identity?: AuthorizedViewIdentity): Promise<void> =>
+    this.run(async () => this.options.views.setChrome(sidebarWidth, headerHeight), identity);
+
+  contextMenu = async (id: string, identity?: AuthorizedViewIdentity): Promise<void> => {
+    let closed: Promise<void> | undefined;
+    await this.run(async () => {
+      closed = this.options.menu(this.options.state.get(id));
+    }, identity);
+    // Do not stall guest events while the user is interacting with a native menu.
+    await closed;
+  };
 
   receive = (identity: AuthorizedViewIdentity, event: AccountEvent): Promise<void> => {
     const message = structuredClone(event);
@@ -113,11 +170,7 @@ export class AccountController {
           this.publishBadge(id);
         }
         if (message.type === 'join' || message.type === 'loaded') {
-          const account = state.get(id);
-          if (account.lifecycle === EVENT_TYPE.LIFECYCLE.SIGNED_IN && account.conversationJoinData) {
-            views.get(id).send(WebAppEvents.CONVERSATION.JOIN, account.conversationJoinData);
-            state.clearPendingJoin(id);
-          }
+          this.deliverJoin(id);
         }
         if (message.type === 'loaded') {
           this.options.loaded(id);
@@ -134,7 +187,13 @@ export class AccountController {
   private async ensureView(id: string): Promise<void> {
     const account = this.options.state.get(id);
     if (!this.options.views.has(id)) {
-      await this.options.views.create(account, this.options.destination(account));
+      this.failures.delete(id);
+      try {
+        await this.options.views.create(account, this.options.destination(account));
+      } catch (error) {
+        this.failures.add(id);
+        throw error;
+      }
     }
   }
 
@@ -144,6 +203,7 @@ export class AccountController {
     await this.options.views.close(id);
     await this.options.clearData(account, session);
     this.options.state.remove(id);
+    this.failures.delete(id);
     const selected = this.snapshots().find(record => record.visible)!;
     await this.ensureView(selected.id);
     this.options.views.select(selected.id);
@@ -196,8 +256,11 @@ export class AccountController {
       if (identity) {
         this.assertIdentity(identity, capability);
       }
-      await operation();
-      this.options.changed(this.snapshots());
+      try {
+        await operation();
+      } finally {
+        this.options.changed(this.snapshots());
+      }
     });
     this.pending = task.catch(() => undefined);
     return task;
