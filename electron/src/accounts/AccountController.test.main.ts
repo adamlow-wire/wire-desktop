@@ -18,7 +18,7 @@
  */
 
 import {app, BrowserWindow, ipcMain, session, WebContents} from 'electron';
-import {spy, restore} from 'sinon';
+import {spy, restore, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 import {randomUUID} from 'crypto';
@@ -154,6 +154,37 @@ describe('production account controller integration', () => {
     assert.deepEqual(secondSend.args, [[EVENT_TYPE.PREFERENCES.SHOW]]);
     await assert.rejects(controller.menuAction('arbitrary-channel'), /Unknown desktop menu/);
     assert.equal(secondSend.callCount, 1);
+  });
+
+  it('[regression][CAP-001] applies each native edit shortcut only to the selected account', async () => {
+    const methods = ['copy', 'cut', 'paste', 'redo', 'selectAll', 'undo'] as const;
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const firstEdits = methods.map(method => stub(first, method));
+    const secondEdits = methods.map(method => stub(second, method));
+    for (const [index, action] of Object.values(EVENT_TYPE.EDIT).entries()) {
+      await controller.desktopAction(action, []);
+      firstEdits.forEach((edit, editIndex) => assert.equal(edit.callCount, editIndex <= index ? 1 : 0));
+    }
+    firstEdits.forEach(edit => assert.equal(edit.callCount, 1));
+    secondEdits.forEach(edit => assert.equal(edit.callCount, 0));
+    await controller.desktopAction(EVENT_TYPE.ACTION.SWITCH_ACCOUNT, [1]);
+    assert.equal(state.get(records[1].id).visible, true);
+    await controller.desktopAction(EVENT_TYPE.EDIT.COPY, []);
+    assert.equal(firstEdits[0].callCount, 1);
+    assert.equal(secondEdits[0].callCount, 1);
+  });
+
+  it('[security-target][CAP-001] rejects unknown desktop actions and invalid shortcut arguments', async () => {
+    const copy = stub(views.get(records[0].id), 'copy');
+    for (const args of [[-1], [2], [0.5], ['1'], [], [1, 0]]) {
+      await assert.rejects(controller.desktopAction(EVENT_TYPE.ACTION.SWITCH_ACCOUNT, args));
+    }
+    await assert.rejects(controller.desktopAction(EVENT_TYPE.EDIT.COPY, ['extra']));
+    await assert.rejects(controller.desktopAction(EVENT_TYPE.UI.SYSTEM_MENU, [42]));
+    await assert.rejects(controller.desktopAction('arbitrary-channel', []));
+    assert.equal(state.get(records[0].id).visible, true);
+    assert.equal(copy.callCount, 0);
   });
 
   it('[security-target][CAP-001] bounds pending menus and discards them when the account reloads', async () => {

@@ -17,7 +17,7 @@
  *
  */
 
-import {Session} from 'electron';
+import {Session, WebContents} from 'electron';
 
 import {Availability} from '@wireapp/protocol-messaging';
 import {WebAppEvents} from '@wireapp/webapp-events';
@@ -97,6 +97,36 @@ export class AccountController {
 
   remove = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(() => this.removeAccount(id), identity);
+
+  // Called only by main-owned desktop controls, not by an IPC binder.
+  desktopAction = async (channel: string, args: readonly unknown[]): Promise<void> => {
+    if (channel === EVENT_TYPE.UI.SYSTEM_MENU && args.length === 1 && typeof args[0] === 'string') {
+      return this.menuAction(args[0]);
+    }
+    if (channel === EVENT_TYPE.ACTION.SWITCH_ACCOUNT && args.length === 1 && Number.isInteger(args[0])) {
+      const account = this.snapshots().find(record => record.accountIndex === args[0]);
+      if (!account) {
+        throw new Error('Unknown account shortcut index.');
+      }
+      return this.select(account.id);
+    }
+    const edits: Record<string, keyof Pick<WebContents, 'copy' | 'cut' | 'paste' | 'redo' | 'selectAll' | 'undo'>> = {
+      [EVENT_TYPE.EDIT.COPY]: 'copy',
+      [EVENT_TYPE.EDIT.CUT]: 'cut',
+      [EVENT_TYPE.EDIT.PASTE]: 'paste',
+      [EVENT_TYPE.EDIT.REDO]: 'redo',
+      [EVENT_TYPE.EDIT.SELECT_ALL]: 'selectAll',
+      [EVENT_TYPE.EDIT.UNDO]: 'undo',
+    };
+    if (Object.hasOwn(edits, channel) && args.length === 0) {
+      const id = this.snapshots().find(account => account.visible)!.id;
+      return this.run(async () => {
+        this.options.state.get(id);
+        this.options.views.get(id)[edits[channel]]();
+      });
+    }
+    throw new Error('Invalid desktop action.');
+  };
 
   // Main-owned menu commands only; never exposed as a renderer-selected IPC channel.
   menuAction = (action: string): Promise<void> => {

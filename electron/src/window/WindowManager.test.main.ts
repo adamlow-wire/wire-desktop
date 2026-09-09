@@ -37,17 +37,22 @@ describe('WindowManager queued actions', () => {
     const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
     const native = spy();
     const shell = spy(window.webContents, 'send');
-    const dispose = WindowManager.bindNativeMenu(window.id, native);
+    const dispose = WindowManager.bindNativeActions(window.id, native);
     try {
       sendToWebContents(window, EVENT_TYPE.UI.SYSTEM_MENU, EVENT_TYPE.CONVERSATION.SEARCH);
-      assert.deepEqual(native.args, [[EVENT_TYPE.CONVERSATION.SEARCH]]);
+      assert.deepEqual(native.args, [[EVENT_TYPE.UI.SYSTEM_MENU, [EVENT_TYPE.CONVERSATION.SEARCH]]]);
       sinonAssert.notCalled(shell);
-      assert.equal(WindowManager.dispatchNativeMenu(window.id + 1, EVENT_TYPE.UI.SYSTEM_MENU, ['wrong']), false);
-      assert.equal(WindowManager.dispatchNativeMenu(window.id, 'other-channel', []), false);
-      assert.equal(WindowManager.dispatchNativeMenu(window.id, EVENT_TYPE.UI.SYSTEM_MENU, [42]), true);
+      assert.equal(WindowManager.dispatchNativeAction(window.id + 1, EVENT_TYPE.UI.SYSTEM_MENU, ['wrong']), false);
+      assert.equal(WindowManager.dispatchNativeAction(window.id, 'other-channel', []), false);
+      assert.equal(WindowManager.dispatchNativeAction(window.id, EVENT_TYPE.UI.SYSTEM_MENU, [42]), true);
       sinonAssert.calledOnce(native);
+      sendToWebContents(window, EVENT_TYPE.EDIT.COPY);
+      sendToWebContents(window, EVENT_TYPE.ACTION.SWITCH_ACCOUNT, 1);
+      assert.deepEqual(native.secondCall.args, [EVENT_TYPE.EDIT.COPY, []]);
+      assert.deepEqual(native.thirdCall.args, [EVENT_TYPE.ACTION.SWITCH_ACCOUNT, [1]]);
+      sinonAssert.notCalled(shell);
       dispose();
-      assert.equal(WindowManager.dispatchNativeMenu(window.id, EVENT_TYPE.UI.SYSTEM_MENU, ['stale']), false);
+      assert.equal(WindowManager.dispatchNativeAction(window.id, EVENT_TYPE.UI.SYSTEM_MENU, ['stale']), false);
     } finally {
       dispose();
       window.destroy();

@@ -81,7 +81,7 @@ const isBrowserWindow = (baseWindow: unknown): baseWindow is BrowserWindow => {
 export const sendToWebContents = (baseWindow: BaseWindow | undefined, channel: string, ...args: any[]) => {
   if (isBrowserWindow(baseWindow)) {
     try {
-      if (WindowManager.dispatchNativeMenu(baseWindow.id, channel, args)) {
+      if (WindowManager.dispatchNativeAction(baseWindow.id, channel, args)) {
         return;
       }
       baseWindow.webContents.send(channel, ...args);

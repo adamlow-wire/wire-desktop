@@ -28,7 +28,7 @@ const logger = getLogger(path.basename(__filename));
 
 export class WindowManager {
   private static primaryWindowId: number | undefined;
-  private static nativeMenu: {windowId: number; send(action: string): void} | undefined;
+  private static nativeActions: {windowId: number; send(channel: string, args: unknown[]): void} | undefined;
   public static actionsQueue: {action: string; args: any[]}[] = [];
 
   static getPrimaryWindow(): BrowserWindow | undefined {
@@ -47,23 +47,28 @@ export class WindowManager {
     WindowManager.primaryWindowId = newPrimaryWindowId;
   }
 
-  static bindNativeMenu(windowId: number, send: (action: string) => void): () => void {
+  static bindNativeActions(windowId: number, send: (channel: string, args: unknown[]) => void): () => void {
     const binding = {windowId, send};
-    WindowManager.nativeMenu = binding;
+    WindowManager.nativeActions = binding;
     return () => {
-      if (WindowManager.nativeMenu === binding) {
-        WindowManager.nativeMenu = undefined;
+      if (WindowManager.nativeActions === binding) {
+        WindowManager.nativeActions = undefined;
       }
     };
   }
 
-  static dispatchNativeMenu(windowId: number, channel: string, args: unknown[]): boolean {
-    const binding = WindowManager.nativeMenu;
-    if (!binding || binding.windowId !== windowId || channel !== EVENT_TYPE.UI.SYSTEM_MENU) {
+  static dispatchNativeAction(windowId: number, channel: string, args: unknown[]): boolean {
+    const binding = WindowManager.nativeActions;
+    const supported: string[] = [
+      EVENT_TYPE.UI.SYSTEM_MENU,
+      EVENT_TYPE.ACTION.SWITCH_ACCOUNT,
+      ...Object.values(EVENT_TYPE.EDIT),
+    ];
+    if (!binding || binding.windowId !== windowId || !supported.includes(channel)) {
       return false;
     }
-    if (args.length === 1 && typeof args[0] === 'string') {
-      binding.send(args[0]);
+    if (channel !== EVENT_TYPE.UI.SYSTEM_MENU || (args.length === 1 && typeof args[0] === 'string')) {
+      binding.send(channel, args);
     }
     return true;
   }
@@ -87,7 +92,7 @@ export class WindowManager {
 
     if (primaryWindow) {
       logger.info(`Sending action "${action}" to window with ID "${primaryWindow.id}":`, {args});
-      if (WindowManager.dispatchNativeMenu(primaryWindow.id, action, args)) {
+      if (WindowManager.dispatchNativeAction(primaryWindow.id, action, args)) {
         return;
       }
       primaryWindow.webContents.send(action, ...args);
