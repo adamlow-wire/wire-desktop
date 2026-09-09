@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001 cleanup prerequisite: log-directory selection now rejects invalid account IDs and out-of-root candidate paths while preserving supported layouts. Both new deny targets reproduce unsafe selection before the guards. This strengthens candidate validation only; native filesystem cleanup, linked-path safety and failure propagation remain open for DCP-004.
+
 CAP-001/CAP-006 ordered-action checkpoint: a reproduced simultaneous login/join race is fixed with bounded main-only desktop dispatch and recovery after rejected commands. Rebuilt Linux product E2E emits real protocol events back-to-back and verifies the new account alone receives the invitation. Startup/running location, login reuse and ordering now have local evidence; final cross-platform and packaged protocol/focus acceptance are still open.
 
 CAP-001/CAP-006 focus checkpoint: regression tests cover restore/focus adapter calls for visible/minimized windows and startup-buffered login requests, while plain location links retain non-focus behavior. All three targets fail before the fix. Packaged OS focus behavior and ordered multi-action delivery still need qualification.

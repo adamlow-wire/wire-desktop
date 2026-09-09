@@ -51,7 +51,11 @@ const LEGACY_ACCOUNT_LOG_DIRECTORY_PATTERN =
   /^(\d+)_(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 
 function getRelativePathSegments(logDirectory: string, filePath: string): string[] {
-  return path.relative(logDirectory, filePath).split(path.sep);
+  const relative = path.relative(logDirectory, filePath);
+  if (!relative || path.isAbsolute(relative) || relative === '..' || relative.startsWith(`..${path.sep}`)) {
+    return [];
+  }
+  return relative.split(path.sep);
 }
 
 function isNewAccountLogPath(pathSegments: readonly string[], accountId: string): boolean {
@@ -87,6 +91,9 @@ function isLegacyTimestampedAccountLogPath(pathSegments: readonly string[], acco
 }
 
 export function getAccountLogDirectories(parameters: AccountLogDirectoryParameters): readonly string[] {
+  if (!ValidationUtil.isUUIDv4(parameters.accountId)) {
+    throw new Error('Invalid account identity for log deletion.');
+  }
   const accountDirectories = new Set<string>([path.join(parameters.logDirectory, parameters.accountId)]);
 
   for (const filePath of parameters.filePaths) {
