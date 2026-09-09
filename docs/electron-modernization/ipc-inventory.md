@@ -16,7 +16,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:notification:activate:v1` | account | Global window activation | merged in PR #18 | SEC-003, CAP-004 |
 | `wire-desktop:webapp:loaded:v1` | account | Flushes global queued actions | merged in PR #19 | SEC-003, CAP-001 |
 | `wire-desktop:badge-count:update:v1` | application shell | Tray, badge, dock, and flashing state | merged in PR #20 | SEC-003, CAP-004 |
-| `wire-desktop:account:delete-data:v1` | application shell | Exact-target session, partition, and log deletion | merged in PR #21 | SEC-003, CAP-001 |
+| `wire-desktop:account:delete-data:v1` | none in production | Legacy exact-target deletion | Introduced in PR #21; PR #47 removes the production binder and shell capability. Read-only product regression proves handler absence; named account-control removal replaces it. Legacy helper tests remain, not production authority | SEC-003, CAP-001 |
 | `wire-desktop:wrapper:reload-request:v1` | account | Reloads all native accounts through the main controller; preserves sessions and rechecks queued sender authority | authorization merged in PR #22; PR #47 native routing locally verifies exact sessions, revoked queued requests and partial restart failure | SEC-003, CAP-001 |
 | `wire-desktop:wrapper:relaunch-request:v1` | account | Relaunches the application or reloads account content on macOS | merged in PR #23 | SEC-003 |
 | `wire-desktop:open-graph:fetch:v1` | account | Main-process network fetch | authorization merged in PR #24; public-only pinned-DNS, redirect and bounded parsing policy merged in PR #44 | SEC-003, SEC-012 |

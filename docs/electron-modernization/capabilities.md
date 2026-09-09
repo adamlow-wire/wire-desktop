@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001 deletion-route retirement: PR #47 removes the legacy production deletion binder and shell capability. A read-only runtime assertion fails against the old handler registration and passes after rebuilding; Linux lifecycle/restart fixtures still verify native removal, exact-account cookie/log clearing and retained-account data. Legacy helper tests do not imply the channel remains registered. Persistent partition cleanup and final platform qualification remain open.
+
 CAP-001 native log-cleanup checkpoint: strict main-owned filesystem cleanup now propagates errors before account removal. Tests verify supported layouts, linked-path denial, unaffected external/other-account files and profile retention/retry after failure. Rebuilt Linux product E2E checks actual removed/retained account log markers after profile removal completes. Persistent partition-directory cleanup, legacy-delete authority retirement and final Windows/macOS qualification remain open; this is not complete DCP-004 acceptance.
 
 CAP-001 cleanup prerequisite: log-directory selection now rejects invalid account IDs and out-of-root candidate paths while preserving supported layouts. Both new deny targets reproduce unsafe selection before the guards. This strengthens candidate validation only; native filesystem cleanup, linked-path safety and failure propagation remain open for DCP-004.

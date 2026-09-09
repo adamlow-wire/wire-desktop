@@ -65,7 +65,6 @@ import {downloadImage} from './lib/download';
 import {enumerateDesktopSources} from './lib/enumerateDesktopSources';
 import {EVENT_TYPE} from './lib/eventType';
 import {createFireAndForgetInvoker} from './lib/fireAndForgetInvoker';
-import {deleteAccount} from './lib/LocalAccountDeletion';
 import {getOpenGraphDataAsync} from './lib/openGraph';
 import {showErrorDialog} from './lib/showDialog';
 import {updateDownloadLocation} from './lib/updateDownloadLocation';
@@ -93,7 +92,6 @@ import {SecureShellController} from './secureShell/SecureShellController';
 import {AboutLocaleResponse, bindAboutWindowIpc} from './security/AboutWindowIpc';
 import {ACCOUNT_CONTROL_CAPABILITY, ACCOUNT_SNAPSHOTS_CHANNEL} from './security/AccountControlContract';
 import {bindAccountControlIpc} from './security/AccountControlIpc';
-import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
 import {ACCOUNT_EVENT_CAPABILITY} from './security/AccountEventContract';
 import {bindAccountEventIpc} from './security/AccountEventIpc';
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
@@ -302,7 +300,6 @@ const bindIpcEvents = (): void => {
     createProxyPromptBoundary(proxyPromptCoordinator, label => locale.getText(label as locale.i18nLanguageIdentifier)),
   );
 
-  bindAccountDataDeletionIpc(ipcMain, viewIdentityRegistry, deleteAccount);
   bindWrapperReloadIpc(ipcMain, viewIdentityRegistry, identity => {
     if (!accountController) {
       throw new Error('Accounts are not initialized.');
@@ -421,7 +418,6 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   registerApplicationShellIdentity(viewIdentityRegistry, main.webContents, mainURL.href, [
     ACCOUNT_CONTROL_CAPABILITY,
     BADGE_COUNT_CAPABILITY,
-    ACCOUNT_DATA_DELETE_CAPABILITY,
     DEEP_LINK_SUBMIT_CAPABILITY,
     SSO_ACCOUNT_LIMIT_CAPABILITY,
   ]);

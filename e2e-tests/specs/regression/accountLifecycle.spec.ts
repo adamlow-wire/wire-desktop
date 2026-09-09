@@ -133,6 +133,16 @@ test(
           {origin, ids},
         );
       await expect.poll(readLocations).toEqual(['#/preferences/account', '']);
+      expect(
+        await app.evaluate(({ipcMain}) => {
+          // [security-target][INV-003] Read-only pinned-runtime inspection; never invoke the retired destructive channel.
+          const handlers = Reflect.get(ipcMain, '_invokeHandlers');
+          if (!(handlers instanceof Map)) {
+            throw new Error('Cannot inspect registered IPC handlers in this Electron version.');
+          }
+          return handlers.has('wire-desktop:account:delete-data:v1');
+        }),
+      ).toBe(false);
       await app.evaluate(
         async ({session}, {origin, partitionId}) => {
           await session.defaultSession.cookies.set({url: origin, name: 'marker', value: 'first'});
