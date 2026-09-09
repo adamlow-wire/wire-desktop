@@ -334,6 +334,39 @@ describe('production account controller integration', () => {
     );
   });
 
+  it('[regression][CAP-001] hides the old account on add failure and recovers the new selection on retry', async () => {
+    const original = views.get(records[0].id);
+    const originalView = window.contentView.children.find(view => (view as WebContentsView).webContents === original)!;
+    options.destination = account => {
+      if (!records.some(record => record.id === account.id)) {
+        throw new Error('Account destination unavailable');
+      }
+      return origin;
+    };
+    await assert.rejects(controller.add(), /Account destination unavailable/);
+    const selected = state.snapshots().find(account => account.visible)!;
+    records.push(state.get(selected.id));
+    assert.equal(originalView.getVisible(), false, 'old content must not remain under the new selected account');
+    assert.equal(original.isDestroyed(), false);
+    assert.equal(views.has(selected.id), false);
+    assert.equal(
+      controller.snapshots().find(account => account.id === selected.id)!.loadError,
+      'Account loading failed.',
+    );
+    options.destination = () => origin;
+    await controller.reload(selected.id);
+    const replacement = views.get(selected.id);
+    const replacementView = window.contentView.children.find(
+      view => (view as WebContentsView).webContents === replacement,
+    )!;
+    assert.equal(replacementView.getVisible(), true);
+    assert.equal(originalView.getVisible(), false);
+    assert.equal(controller.snapshots().find(account => account.id === selected.id)!.loadError, undefined);
+    await controller.select(records[0].id);
+    assert.equal(originalView.getVisible(), true);
+    assert.equal(replacementView.getVisible(), false);
+  });
+
   it('[regression][CAP-001] reloads every native account while preserving selection and sessions', async () => {
     await controller.select(records[1].id);
     const previous = records.map(account => views.get(account.id));

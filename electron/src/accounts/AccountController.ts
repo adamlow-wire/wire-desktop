@@ -88,6 +88,7 @@ export class AccountController {
   add = (identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(async () => {
       const id = this.options.state.add();
+      this.options.views.hide();
       await this.ensureView(id);
       this.options.views.select(id);
       this.publishBadge(id);
