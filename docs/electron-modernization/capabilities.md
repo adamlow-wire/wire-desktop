@@ -2,10 +2,11 @@
 
 ## Rules
 
-- SEC-010 CSP checkpoint: real production/development shell startup and ordinary-script eval/Function denial are locally tested. Hosted evidence and custom-scheme/account-state migration remain open; this is not global SEC-010 completion.
+- SEC-010 CSP checkpoint: PR #42 passed final-head hosted gates and merged. Real production/development shell startup and ordinary-script eval/Function denial are sensitivity-tested. Custom-scheme/account-state migration remains open; this is not global SEC-010 completion.
 
 - CAP-001 renderer-loss harness checkpoint: PR #40 passed all-platform gates and merged. Actual renderer termination preserves recovery/runtime assertions and deadlines, with a sensitivity-proven pre-replacement revocation check. This does not claim production account migration complete.
 - CAP-001 metadata checkpoint: sensitivity-proven reducer tests preserve targeted known metadata updates; nine hostile cases reproduce and then reject desktop-owned identity/session/state overwrites. Malformed-message and spoofed-property guards are tested. Two further targets prevent cross-account picture removal and prior-state/action mutation. The real sandboxed product fixture verifies metadata rejection and separate default/persistent-session cookies across cold restarts; re-enabling unknown fields fails it. PR #41 passed final-head hosted gates and merged; main-owned production state and custom-backend destination authorization remain open.
+- CAP-001 profile preparation: 26 local profile/reader tests cover exact legacy mappings, single import, isolated storage reads, retained cookies, bounded data and failed-write preservation. The reader disables page scripts, Node and webviews. This is not yet production-wired and does not raise DCP-002/DCP-004 migration confidence.
 - This matrix tracks behavioral confidence, not implementation progress alone.
 - `current confidence` describes the verified legacy baseline.
 - `target evidence` describes what must exist before migration is accepted.
