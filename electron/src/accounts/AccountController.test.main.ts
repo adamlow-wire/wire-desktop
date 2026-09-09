@@ -22,13 +22,16 @@ import {spy, restore, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 import {randomUUID} from 'crypto';
+import {mkdtemp, mkdir, rm, writeFile} from 'fs/promises';
 import {createServer, Server} from 'http';
 import {AddressInfo} from 'net';
+import os from 'os';
 import path from 'path';
 
 import {Availability} from '@wireapp/protocol-messaging';
 
 import {AccountController, AccountControllerOptions} from './AccountController';
+import {deleteNativeAccountLogs} from './AccountLogCleanup';
 import {parseLegacyAccounts} from './AccountProfile';
 import {AccountState} from './AccountState';
 import {AccountViews} from './AccountViews';
@@ -532,6 +535,32 @@ describe('production account controller integration', () => {
     assert.equal(state.get(records[0].id).conversationJoinData, undefined);
     await send(first, 'loaded');
     assert.equal((await send(first, 'readJoins')).length, 1);
+  });
+
+  it('[security-target][CAP-001] retains the account after filesystem cleanup fails and permits a successful retry', async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'wire-controller-cleanup-'));
+    const logs = path.join(directory, 'logs');
+    await writeFile(logs, 'invalid log root');
+    const clearSession = options.clearData;
+    options.clearData = async (account, targetSession) => {
+      await clearSession(account, targetSession);
+      await deleteNativeAccountLogs(account.id, logs);
+    };
+    try {
+      await assert.rejects(controller.remove(records[0].id), /Unsafe/);
+      assert.equal(state.snapshots().length, 2);
+      assert.equal(views.has(records[0].id), false);
+      assert.equal(views.has(records[1].id), true);
+      await rm(logs);
+      await mkdir(logs);
+      await controller.remove(records[0].id);
+      assert.deepEqual(
+        state.snapshots().map(account => account.id),
+        [records[1].id],
+      );
+    } finally {
+      await rm(directory, {recursive: true, force: true});
+    }
   });
 
   it('[security-target][CAP-001] revokes and closes the exact target before clearing only its cookies', async () => {

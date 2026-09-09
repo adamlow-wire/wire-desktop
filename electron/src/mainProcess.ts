@@ -44,6 +44,7 @@ import {URL, pathToFileURL} from 'url';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {AccountController} from './accounts/AccountController';
+import {deleteNativeAccountLogs} from './accounts/AccountLogCleanup';
 import {AccountProfile} from './accounts/AccountProfile';
 import {AccountState} from './accounts/AccountState';
 import {AccountViews} from './accounts/AccountViews';
@@ -458,10 +459,11 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     },
     session: account =>
       account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
-    clearData: async (_account, targetSession) => {
+    clearData: async (account, targetSession) => {
       await targetSession.clearStorageData();
       await targetSession.clearCache();
       targetSession.flushStorageData();
+      await deleteNativeAccountLogs(account.id, getLogDirectory());
     },
     approveEnvironment: async (_account, candidate) => {
       const result = await dialog.showMessageBox(main, {

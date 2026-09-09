@@ -19,8 +19,10 @@
 
 import {_electron, expect, test} from '@playwright/test';
 
+import {access, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
+import path from 'node:path';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
@@ -189,6 +191,13 @@ test(
       await expect.poll(readAccounts).toHaveLength(3);
       await shell.locator('[data-uie-name="do-close-webview"]').click();
       await expect.poll(readAccounts).toHaveLength(2);
+      const logMarkers = ids.map(id =>
+        path.join(testInfo.outputPath('profile'), 'logs', '2099-01-01', 'accounts', id, 'deletion-marker.log'),
+      );
+      for (const file of logMarkers) {
+        await mkdir(path.dirname(file), {recursive: true});
+        await writeFile(file, 'account-specific marker');
+      }
       // Observe the actual main-owned native menu; no test command is exposed to the shell or guest.
       await app.evaluate(({Menu}) => {
         const popup = Menu.prototype.popup;
@@ -215,6 +224,10 @@ test(
         Reflect.deleteProperty(globalThis, '__cap001NativeMenu');
       });
       await expect.poll(readAccounts).toEqual([{id: ids[0], loading: false}]);
+      // Closing the native view precedes cleanup; profile/sidebar removal signals completion.
+      await expect(shell.locator(`[data-account-id="${ids[1]}"]`)).toHaveCount(0);
+      await expect(access(logMarkers[1])).rejects.toMatchObject({code: 'ENOENT'});
+      expect(await readFile(logMarkers[0], 'utf8')).toBe('account-specific marker');
       const cookies = await app.evaluate(
         async ({session}, {origin, partitionId}) => ({
           first: (await session.defaultSession.cookies.get({url: origin, name: 'marker'})).map(cookie => cookie.value),
