@@ -105,6 +105,17 @@ export class AccountController {
 
   // Called only by main-owned desktop controls, not by an IPC binder.
   desktopAction = async (channel: string, args: readonly unknown[]): Promise<void> => {
+    if (channel === EVENT_TYPE.ACTION.START_LOGIN && args.length === 0) {
+      try {
+        await this.add();
+      } catch (error) {
+        // Preserve the legacy start-login no-op at the configured account limit.
+        if (!(error instanceof AccountLimitError)) {
+          throw error;
+        }
+      }
+      return;
+    }
     if (channel === EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH && args.length === 1 && typeof args[0] === 'string') {
       const parsed = parseDeepLink(`${config.customProtocolName}:/${args[0]}`);
       if (parsed?.kind === 'location' && parsed.location === args[0]) {

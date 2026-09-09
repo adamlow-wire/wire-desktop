@@ -236,6 +236,24 @@ describe('production account controller integration', () => {
     assert.equal(state.get(records[0].id).ssoCode, undefined);
   });
 
+  it('[compatibility][CAP-006] start-login creates one account, reuses unfinished login and respects the account limit', async () => {
+    await controller.desktopAction(EVENT_TYPE.ACTION.START_LOGIN, []);
+    const added = state.snapshots().find(account => account.visible)!;
+    records.push(state.get(added.id));
+    const contents = views.get(added.id);
+    await controller.select(records[0].id);
+    await controller.desktopAction(EVENT_TYPE.ACTION.START_LOGIN, []);
+    assert.equal(state.snapshots().length, 3);
+    assert.equal(state.get(added.id).visible, true);
+    assert.equal(views.get(added.id), contents);
+    await controller.receive(identity(contents), {type: 'metadata', data: {userID: 'third'}});
+    const before = state.snapshots();
+    await controller.desktopAction(EVENT_TYPE.ACTION.START_LOGIN, []);
+    assert.deepEqual(state.snapshots(), before);
+    await assert.rejects(controller.desktopAction(EVENT_TYPE.ACTION.START_LOGIN, ['extra']));
+    assert.deepEqual(state.snapshots(), before);
+  });
+
   it('[security-target][CAP-001] warns at the SSO account limit and rejects malformed codes without side effects', async () => {
     let warnings = 0;
     options.accountLimit = async () => {
