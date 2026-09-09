@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.18
+revision: 1.5.19
 status: draft
 updated: 2026-09-09
 owners:
@@ -460,7 +460,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Production CSP does not include `unsafe-eval`.
   - Custom protocol privileges are minimal and tested.
   - Development-only relaxations cannot reach production builds.
-- Evidence: TBD
+- Evidence: CSP slice [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial are tested with sensitivity evidence. Custom protocol and storage migration remain open.
 
 #### SEC-011 — Harden Electron fuses and package integrity
 
@@ -697,10 +697,12 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-005 — Migrate proxy, certificate, and managed configuration
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-003, SEC-009, TST-004
 - Scope: Preserve enterprise network behavior without global or unauthenticated renderer authority.
+- Download-path contract (2026-09-09): retain ordinary home-relative nested folders, Unicode/spaces and clearing the setting; normalize separators before persistence. Reject traversal, rooted/drive/UNC/device/stream paths, ambiguous names and linked directory components. Validate saved configuration at startup and revalidate at download start; invalid enforced configuration blocks downloads until corrected and restarted rather than silently bypassing enterprise policy. The main-selected home base is trusted; defending against a same-user filesystem race after validation is not claimed. Native Windows junction evidence is required in addition to platform-independent policy tests.
+- Path-policy reference: [Microsoft file/path naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file), including device aliases, superscript port numbers and trailing-dot/space ambiguity; use explicit Windows path semantics on every test host.
 - Acceptance:
   - Proxy credentials are handled only by the intended prompt and session.
   - Certificate verification and exception behavior are characterized and fail closed.
@@ -885,6 +887,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |
 | 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
 | 1.5.17 | 2026-09-09 | Codex | Reconciled merged SSO, navigation, metadata and parser evidence; restored concise M3 handoff and synchronized CSP validation without claiming remaining cutover or capability acceptance | SEC-008, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002 |
 | 1.5.16 | 2026-09-08 | Codex | Reproduced isolated SSO backend verdict loss; adopted native redirects with per-flow callback/session isolation and activated the three owned security targets | CAP-002, DCP-003, INV-004, INV-005 |

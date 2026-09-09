@@ -54,6 +54,7 @@ import {
   attachTo as attachCertificateVerifyProcManagerTo,
   setCertificateVerifyProc,
 } from './lib/CertificateVerifyProcManager';
+import {configureEnforcedDownloads} from './lib/configureEnforcedDownloads';
 import {CustomProtocolHandler} from './lib/CoreProtocol';
 import {downloadImage} from './lib/download';
 import {enumerateDesktopSources} from './lib/enumerateDesktopSources';
@@ -106,6 +107,7 @@ import {bindSsoWindowControlIpc} from './security/SsoWindowControlIpc';
 import {SsoWindowCoordinator} from './security/SsoWindowCoordinator';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {bindWebAppLoadedIpc} from './security/WebAppLoadedIpc';
+import {resolveWindowsDownloadPath} from './security/WindowsDownloadPath';
 import {bindWrapperRelaunchIpc} from './security/WrapperRelaunchIpc';
 import {bindWrapperReloadIpc} from './security/WrapperReloadIpc';
 import {config} from './settings/config';
@@ -173,21 +175,25 @@ const fileBasedProxyConfig = settings.restore<string | undefined>(SettingsType.P
 const currentLocale = locale.getCurrent();
 const startHidden = Boolean(argv[config.ARGUMENT.STARTUP] || argv[config.ARGUMENT.HIDDEN]);
 const customDownloadPath = settings.restore<string | undefined>(SettingsType.DOWNLOAD_PATH);
-const appHomePath = (path: string) => `${app.getPath('home')}\\${path}`;
+const appHomePath = (downloadPath: string) => resolveWindowsDownloadPath(app.getPath('home'), downloadPath);
 const isInternalBuild = (): boolean => config.environment === 'internal';
 
-if (customDownloadPath && !secureShellProof) {
-  electronDl({
-    directory: appHomePath(customDownloadPath),
-    saveAs: false,
-    onCompleted: () => {
+if (customDownloadPath && !secureShellProof && EnvironmentUtil.platform.IS_WINDOWS) {
+  configureEnforcedDownloads(customDownloadPath, {
+    resolvePath: appHomePath,
+    ensureDirectory: fs.ensureDirSync,
+    configure: electronDl,
+    blockDownloads: () =>
+      app.on('session-created', accountSession => {
+        accountSession.on('will-download', event => event.preventDefault());
+      }),
+    logRejected: () => logger.error('Enforced download directory validation failed; download blocked.'),
+    notifyComplete: directory => {
       dialog.showMessageBox({
         type: 'none',
         icon: ICON,
         title: locale.getText('enforcedDownloadComplete'),
-        message: locale.getText('enforcedDownloadMessage', {
-          path: appHomePath(customDownloadPath) ?? app.getPath('downloads'),
-        }),
+        message: locale.getText('enforcedDownloadMessage', {path: directory}),
         buttons: [locale.getText('enforcedDownloadButton')],
       });
     },

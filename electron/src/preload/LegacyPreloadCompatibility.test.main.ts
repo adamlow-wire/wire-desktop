@@ -21,6 +21,7 @@ import {app, BrowserWindow, ipcMain} from 'electron';
 
 import * as assert from 'assert';
 import * as path from 'path';
+import {pathToFileURL} from 'url';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
@@ -32,7 +33,7 @@ import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 const preloadPath = (name: 'preload-app' | 'preload-webview'): string =>
   path.resolve(__dirname, `../../dist/preload/${name}.js`);
 
-const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow =>
+const createWindow = (preload: string, contextIsolation: boolean, partition?: string): BrowserWindow =>
   new BrowserWindow({
     show: false,
     webPreferences: {
@@ -43,6 +44,7 @@ const createWindow = (preload: string, contextIsolation: boolean): BrowserWindow
       }),
       contextIsolation,
       nodeIntegration: false,
+      partition,
       preload,
       sandbox: true,
       nodeIntegrationInWorker: false,
@@ -78,6 +80,38 @@ describe('legacy preload compatibility surface', () => {
         window.destroy();
       }
     }
+  });
+
+  it('[characterization][SEC-010] renders the real local shell bundle under its production CSP', async function () {
+    this.timeout(10_000);
+    const window = createWindow(preloadPath('preload-app'), true, 'local-shell-csp');
+    windows.push(window);
+    await window.loadFile(path.resolve(__dirname, '../../renderer/index.html'), {query: {noUrlConfigured: 'true'}});
+
+    assert.strictEqual(
+      await window.webContents.executeJavaScript(
+        `Boolean(document.querySelector('[data-uie-name="status-no-url-configured"]'))`,
+      ),
+      true,
+    );
+  });
+
+  it('[security-target][SEC-010] blocks eval and Function in an ordinary shell script', async function () {
+    this.timeout(10_000);
+    const window = createWindow(preloadPath('preload-app'), true, 'local-shell-csp-denial');
+    windows.push(window);
+    await window.loadFile(path.resolve(__dirname, '../../renderer/index.html'), {query: {noUrlConfigured: 'true'}});
+    const probeUrl = pathToFileURL(path.resolve(__dirname, '../../test/fixtures/csp-probe.js')).href;
+    // Load a normal script: debugger/executeJavaScript evaluation can bypass CSP.
+    const result = await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.onload = () => resolve(JSON.parse(document.documentElement.getAttribute('data-csp-probe')));
+      script.onerror = () => reject(new Error('CSP probe script failed to load'));
+      script.src = ${JSON.stringify(probeUrl)};
+      document.head.appendChild(script);
+    })`);
+
+    assert.deepStrictEqual(result, {eval: 'EvalError', function: 'EvalError'});
   });
 
   it('[security-target][INV-001][SEC-006] loads both product preloads with effective sandbox preferences', async function () {

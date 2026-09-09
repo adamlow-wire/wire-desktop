@@ -17,6 +17,8 @@
  *
  */
 
+import {normalizeWindowsDownloadPath} from '../security/WindowsDownloadPath';
+
 interface DownloadLocationDependencies {
   readonly ensureDirectory: (path: string) => void;
   readonly isWindows: boolean;
@@ -33,6 +35,7 @@ export const updateDownloadLocation = (
     return;
   }
   if (downloadPath) {
+    downloadPath = normalizeWindowsDownloadPath(downloadPath);
     dependencies.ensureDirectory(dependencies.resolvePath(downloadPath));
   }
   dependencies.save(downloadPath);
