@@ -22,6 +22,13 @@ import {randomUUID} from 'crypto';
 import type {Account} from '../../renderer/src/types/account';
 import {EVENT_TYPE} from '../lib/eventType';
 import type {AccountEvent} from '../security/AccountEventContract';
+import {isSsoCode} from '../security/deepLinkPolicy';
+
+export class AccountLimitError extends Error {
+  constructor() {
+    super('Maximum account count reached.');
+  }
+}
 
 export type AccountSnapshot = Readonly<
   Omit<Account, 'sessionID' | 'ssoCode' | 'conversationJoinData'> & {
@@ -141,16 +148,29 @@ export class AccountState {
     this.commit(this.accounts.map(record => (record.id === account.id ? account : record)));
   }
 
-  add(): string {
+  add(ssoCode?: string): string {
+    if (ssoCode !== undefined && !isSsoCode(ssoCode)) {
+      throw new Error('Invalid SSO code.');
+    }
     const unbound = this.accounts.find(account => !account.userID);
     if (unbound) {
-      this.select(unbound.id);
+      this.commit(
+        this.accounts.map(account => ({
+          ...account,
+          visible: account.id === unbound.id,
+          badgeCount: account.id === unbound.id ? 0 : account.badgeCount,
+          ...(account.id === unbound.id && ssoCode !== undefined ? {ssoCode, isAdding: true} : {}),
+        })),
+      );
       return unbound.id;
     }
     if (this.accounts.length >= this.maximumAccounts) {
-      throw new Error('Maximum account count reached.');
+      throw new AccountLimitError();
     }
     const account = createAccount();
+    if (ssoCode !== undefined) {
+      account.ssoCode = ssoCode;
+    }
     this.commit([...this.accounts.map(record => ({...record, visible: false})), account]);
     return account.id;
   }

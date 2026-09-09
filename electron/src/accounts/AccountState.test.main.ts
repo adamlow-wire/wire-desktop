@@ -38,6 +38,22 @@ const initial = () =>
   );
 
 describe('main-owned account state', () => {
+  it('[migration][CAP-001] starts SSO atomically in an unfinished account without changing its session', () => {
+    const records = initial();
+    delete records[0].userID;
+    const writes: unknown[] = [];
+    const state = new AccountState(records, 2, accounts => writes.push(accounts));
+    const code = 'wire-11111111-1111-4111-8111-111111111111';
+    const id = state.add(code);
+    assert.equal(id, ids[0]);
+    assert.equal(state.get(id).sessionID, undefined);
+    assert.equal(state.get(id).ssoCode, code);
+    assert.equal(state.get(id).isAdding, true);
+    assert.equal(state.get(ids[1]).sessionID, partition);
+    assert.equal(writes.length, 1);
+    assert.equal('ssoCode' in state.snapshots()[0], false);
+  });
+
   it('[migration][CAP-001] applies guest metadata only to its owner while preserving legacy metadata semantics', () => {
     const records = initial();
     records[0].picture = 'old-first';

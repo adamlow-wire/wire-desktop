@@ -62,6 +62,7 @@ export class WindowManager {
     const supported: string[] = [
       EVENT_TYPE.UI.SYSTEM_MENU,
       EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION,
+      EVENT_TYPE.ACCOUNT.SSO_LOGIN,
       EVENT_TYPE.ACTION.SWITCH_ACCOUNT,
       ...Object.values(EVENT_TYPE.EDIT),
     ];

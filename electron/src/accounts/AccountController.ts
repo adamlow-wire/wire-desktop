@@ -22,13 +22,14 @@ import {Session, WebContents} from 'electron';
 import {Availability} from '@wireapp/protocol-messaging';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
-import {AccountState, AccountSnapshot} from './AccountState';
+import {AccountState, AccountSnapshot, AccountLimitError} from './AccountState';
 import {AccountViews} from './AccountViews';
 
 import type {Account, ConversationJoinData} from '../../renderer/src/types/account';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
 import {ACCOUNT_EVENT_CAPABILITY, AccountEvent} from '../security/AccountEventContract';
+import {isSsoCode} from '../security/deepLinkPolicy';
 import {isAllowedAccountNavigation, parseNetworkNavigation} from '../security/NavigationPolicy';
 import {AuthorizedViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {WRAPPER_RELOAD_CAPABILITY} from '../security/WrapperReloadContract';
@@ -45,6 +46,7 @@ export interface AccountControllerOptions {
   badge(count: number, ignoreFlash: boolean): void;
   loaded(accountId: string): void;
   menu(account: Account): Promise<void>;
+  accountLimit(): Promise<void>;
 }
 
 // Serializes account lifecycle effects. Authority is checked again when queued work actually begins.
@@ -101,6 +103,9 @@ export class AccountController {
 
   // Called only by main-owned desktop controls, not by an IPC binder.
   desktopAction = async (channel: string, args: readonly unknown[]): Promise<void> => {
+    if (channel === EVENT_TYPE.ACCOUNT.SSO_LOGIN && args.length === 1 && isSsoCode(args[0])) {
+      return this.startSso(args[0]);
+    }
     if (channel === EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION && args.length === 0) {
       return this.selectedEvent(channel);
     }
@@ -130,6 +135,26 @@ export class AccountController {
       });
     }
     throw new Error('Invalid desktop action.');
+  };
+
+  private startSso = async (code: string): Promise<void> => {
+    try {
+      await this.run(async () => {
+        const id = this.options.state.add(code);
+        this.options.views.hide();
+        this.resetMenu(id);
+        await this.options.views.close(id);
+        await this.ensureView(id);
+        this.options.views.select(id);
+        this.publishBadge(id);
+      });
+    } catch (error) {
+      if (!(error instanceof AccountLimitError)) {
+        throw error;
+      }
+      // Native dialogs must not hold up account events in the lifecycle queue.
+      await this.options.accountLimit();
+    }
   };
 
   // Main-owned menu commands only; never exposed as a renderer-selected IPC channel.

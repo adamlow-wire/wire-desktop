@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001/CAP-002 draft automated-SSO initiation: local native tests now cover validated codes, isolated creation, unfinished-account/session reuse, main-private SSO state, account-limit warnings and hiding the previous account when the SSO destination fails. Code-propagation removal fails the navigation target. Running-app initiation does not prove pre-window link delivery, hosted final-head compatibility or the controlled live IdP checkpoint; DCP-003 remains open.
+
 CAP-001 draft native reload/About checkpoint: controller tests verify all-account reload with exact session/cookie retention, preserved selection, queued-authority revocation and healthy-account recovery after partial failure. About's actual request path uses the main-owned native binding; version requests remain tied to the account selected when invoked. These local tests strengthen DCP-002/DCP-004 without establishing final cross-platform cutover acceptance or changing confidence ratings.
 
 SEC-012 preview contract: public default-port HTTP(S) only; no cookie replay or ambient proxy/account credentials. Private, authenticated-proxy and cookie-challenge previews may be unavailable without affecting ordinary login/backend traffic. Known title/description/site/type/URL and image fields, entities and title/first-image fallback remain compatible; arbitrary metadata paths and unused audio/video trees are excluded. PR #44 passed all final-head gates and merged as `62435cc6`; SEC-012 is complete without claiming broader certificate/configuration or M3 closure.

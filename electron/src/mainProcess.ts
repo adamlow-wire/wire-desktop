@@ -263,6 +263,15 @@ app.commandLine.appendSwitch('disable-features', 'webrtc-hide-local-ips-with-mdn
 app.commandLine.appendSwitch('force-webrtc-ip-handling-policy', 'default_public_and_private_interfaces');
 
 // IPC events
+const showAccountLimitWarning = async (): Promise<void> => {
+  const singular = config.maximumAccounts === 1;
+  await dialog.showMessageBox({
+    detail: locale.getText(singular ? 'wrapperAddAccountErrorMessageSingular' : 'wrapperAddAccountErrorMessagePlural'),
+    message: locale.getText(singular ? 'wrapperAddAccountErrorTitleSingular' : 'wrapperAddAccountErrorTitlePlural'),
+    type: 'warning',
+  });
+};
+
 const bindIpcEvents = (): void => {
   bindAboutWindowIpc(ipcMain, viewIdentityRegistry, {
     readLocaleValues(labels): AboutLocaleResponse {
@@ -279,16 +288,7 @@ const bindIpcEvents = (): void => {
   bindSavePictureIpc(ipcMain, viewIdentityRegistry, (bytes, timestamp) =>
     downloadImage(bytes, timestamp ? Maybe.just(timestamp) : Maybe.nothing<string>()),
   );
-  bindSsoAccountLimitIpc(ipcMain, viewIdentityRegistry, async () => {
-    const singular = config.maximumAccounts === 1;
-    await dialog.showMessageBox({
-      detail: locale.getText(
-        singular ? 'wrapperAddAccountErrorMessageSingular' : 'wrapperAddAccountErrorMessagePlural',
-      ),
-      message: locale.getText(singular ? 'wrapperAddAccountErrorTitleSingular' : 'wrapperAddAccountErrorTitlePlural'),
-      type: 'warning',
-    });
-  });
+  bindSsoAccountLimitIpc(ipcMain, viewIdentityRegistry, showAccountLimitWarning);
   bindNotificationActivationIpc(ipcMain, viewIdentityRegistry, () => WindowManager.showPrimaryWindow());
   bindWebAppLoadedIpc(ipcMain, viewIdentityRegistry, () => WindowManager.flushActionsQueue());
   bindBadgeCountIpc(ipcMain, viewIdentityRegistry, (count, ignoreFlash) =>
@@ -446,6 +446,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   });
   accountViews = nativeViews;
   const controller = new AccountController({
+    accountLimit: showAccountLimitWarning,
     state: accountState,
     views: nativeViews,
     registry: viewIdentityRegistry,

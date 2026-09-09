@@ -17,7 +17,7 @@
  *
  */
 
-import {app, BrowserWindow, ipcMain, session, WebContents} from 'electron';
+import {app, BrowserWindow, ipcMain, session, WebContents, WebContentsView} from 'electron';
 import {spy, restore, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
@@ -116,6 +116,7 @@ describe('production account controller integration', () => {
       badge: () => undefined,
       loaded: () => undefined,
       menu: async () => undefined,
+      accountLimit: async () => undefined,
     };
     controller = new AccountController(options);
     disposeControl = bindAccountControlIpc(ipcMain, registry, controller);
@@ -215,6 +216,74 @@ describe('production account controller integration', () => {
     assert.deepEqual(firstSend.args, [[EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION]]);
     await assert.rejects(controller.desktopAction(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, ['extra']));
     assert.equal(secondSend.callCount, 0);
+  });
+
+  it('[migration][CAP-001] starts native SSO in an isolated new account and reuses its unfinished session', async () => {
+    const code = 'wire-11111111-1111-4111-8111-111111111111';
+    options.destination = account => (account.ssoCode ? `${origin}/auth#sso/${account.ssoCode}` : origin);
+    await controller.desktopAction(EVENT_TYPE.ACCOUNT.SSO_LOGIN, [code]);
+    const added = state.snapshots().find(account => account.visible)!;
+    records.push(state.get(added.id));
+    const first = views.get(added.id);
+    const ownerSession = first.session;
+    assert.equal(new URL(first.getURL()).hash, `#sso/${code}`);
+    assert.equal('ssoCode' in added, false);
+    assert.notEqual(ownerSession, views.get(records[0].id).session);
+    await controller.desktopAction(EVENT_TYPE.ACCOUNT.SSO_LOGIN, [code]);
+    assert.equal(state.snapshots().length, 3);
+    assert.equal(first.isDestroyed(), true);
+    assert.equal(views.get(added.id).session, ownerSession);
+    assert.equal(state.get(records[0].id).ssoCode, undefined);
+  });
+
+  it('[security-target][CAP-001] warns at the SSO account limit and rejects malformed codes without side effects', async () => {
+    let warnings = 0;
+    options.accountLimit = async () => {
+      warnings++;
+    };
+    await controller.add();
+    const added = state.snapshots().find(account => account.visible)!;
+    records.push(state.get(added.id));
+    await controller.receive(identity(views.get(added.id)), {type: 'metadata', data: {userID: 'third'}});
+    const before = state.snapshots();
+    await controller.desktopAction(EVENT_TYPE.ACCOUNT.SSO_LOGIN, ['wire-11111111-1111-4111-8111-111111111111']);
+    assert.equal(warnings, 1);
+    assert.deepEqual(state.snapshots(), before);
+    for (const args of [
+      [],
+      ['bad-code'],
+      ['wire-11111111-1111-4111-8111-111111111111\n'],
+      ['wire-11111111-1111-4111-8111-111111111111', 'extra'],
+    ]) {
+      await assert.rejects(controller.desktopAction(EVENT_TYPE.ACCOUNT.SSO_LOGIN, args));
+    }
+    assert.equal(warnings, 1);
+    assert.deepEqual(state.snapshots(), before);
+  });
+
+  it('[regression][CAP-001] hides the previous account if the newly selected SSO destination fails', async () => {
+    const original = views.get(records[0].id);
+    const originalView = window.contentView.children.find(view => (view as WebContentsView).webContents === original)!;
+    assert.equal(originalView.getVisible(), true);
+    options.destination = account => {
+      if (account.ssoCode) {
+        throw new Error('SSO destination unavailable');
+      }
+      return origin;
+    };
+    await assert.rejects(
+      controller.desktopAction(EVENT_TYPE.ACCOUNT.SSO_LOGIN, ['wire-11111111-1111-4111-8111-111111111111']),
+      /SSO destination unavailable/,
+    );
+    const selected = state.snapshots().find(account => account.visible)!;
+    records.push(state.get(selected.id));
+    assert.equal(originalView.getVisible(), false);
+    assert.equal(original.isDestroyed(), false);
+    assert.equal(views.has(selected.id), false);
+    assert.equal(
+      controller.snapshots().find(account => account.id === selected.id)!.loadError,
+      'Account loading failed.',
+    );
   });
 
   it('[regression][CAP-001] reloads every native account while preserving selection and sessions', async () => {
