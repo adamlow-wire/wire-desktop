@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001/CAP-006 ordered-action checkpoint: a reproduced simultaneous login/join race is fixed with bounded main-only desktop dispatch and recovery after rejected commands. Rebuilt Linux product E2E emits real protocol events back-to-back and verifies the new account alone receives the invitation. Startup/running location, login reuse and ordering now have local evidence; final cross-platform and packaged protocol/focus acceptance are still open.
+
 CAP-001/CAP-006 focus checkpoint: regression tests cover restore/focus adapter calls for visible/minimized windows and startup-buffered login requests, while plain location links retain non-focus behavior. All three targets fail before the fix. Packaged OS focus behavior and ordered multi-action delivery still need qualification.
 
 CAP-001/CAP-006 start-login checkpoint: native tests preserve unfinished-view/session reuse, bounded creation, unchanged state at the account limit and extra-argument denial. The target fails before the missing route is implemented. Startup focus, ordered multiple actions and final product/platform qualification remain open.

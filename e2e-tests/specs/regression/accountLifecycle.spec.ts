@@ -225,6 +225,41 @@ test(
         {origin, partitionId},
       );
       expect(cookies).toEqual({first: ['first'], removed: []});
+      await app.evaluate(({app}) => {
+        app.emit('open-url', {preventDefault() {}}, 'wire://start-login');
+        app.emit('open-url', {preventDefault() {}}, 'wire://conversation-join?code=ordered-code&key=ordered-key');
+      });
+      await expect.poll(readAccounts).toHaveLength(2);
+      const newAccountId = (await readAccounts()).find(account => account.id !== ids[0])!.id!;
+      await expect
+        .poll(() =>
+          app!.evaluate(
+            async ({webContents}, {origin, targets, eventName}) => {
+              const results = [];
+              for (const id of targets) {
+                const contents = webContents
+                  .getAllWebContents()
+                  .find(
+                    contents =>
+                      contents.getURL().startsWith(origin) && new URL(contents.getURL()).searchParams.get('id') === id,
+                  )!;
+                results.push(
+                  await contents.executeJavaScript(
+                    `window.events.filter(event => event.name === ${JSON.stringify(
+                      eventName,
+                    )} && event.args[0]?.code === 'ordered-code')`,
+                  ),
+                );
+              }
+              return results;
+            },
+            {origin, targets: [ids[0], newAccountId], eventName: WebAppEvents.CONVERSATION.JOIN},
+          ),
+        )
+        .toEqual([
+          [],
+          [{name: WebAppEvents.CONVERSATION.JOIN, args: [{code: 'ordered-code', key: 'ordered-key', domain: null}]}],
+        ]);
     } finally {
       if (app) {
         await app.close();

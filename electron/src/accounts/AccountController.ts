@@ -54,6 +54,8 @@ export interface AccountControllerOptions {
 // Serializes account lifecycle effects. Authority is checked again when queued work actually begins.
 export class AccountController {
   private pending: Promise<unknown> = Promise.resolve();
+  private desktopPending: Promise<void> = Promise.resolve();
+  private desktopCount = 0;
   private readonly failures = new Set<string>();
   private readonly menuQueue = new Map<string, {action: string; args: unknown[]}[]>();
   private readonly ready = new Set<string>();
@@ -105,6 +107,21 @@ export class AccountController {
 
   // Called only by main-owned desktop controls, not by an IPC binder.
   desktopAction = async (channel: string, args: readonly unknown[]): Promise<void> => {
+    if (this.desktopCount >= 32) {
+      throw new Error('Desktop action queue is full.');
+    }
+    const message = structuredClone(args);
+    this.desktopCount++;
+    const task = this.desktopPending.then(() => this.executeDesktopAction(channel, message));
+    this.desktopPending = task.catch(() => undefined);
+    try {
+      await task;
+    } finally {
+      this.desktopCount--;
+    }
+  };
+
+  private executeDesktopAction = async (channel: string, args: readonly unknown[]): Promise<void> => {
     if (channel === EVENT_TYPE.ACTION.START_LOGIN && args.length === 0) {
       try {
         await this.add();

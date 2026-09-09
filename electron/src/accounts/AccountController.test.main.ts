@@ -254,6 +254,33 @@ describe('production account controller integration', () => {
     assert.deepEqual(state.snapshots(), before);
   });
 
+  it('[regression][CAP-006] orders a simultaneous login and join against the newly selected account', async () => {
+    const join = {code: 'ordered-code', key: 'ordered-key', domain: null};
+    const login = controller.desktopAction(EVENT_TYPE.ACTION.START_LOGIN, []);
+    const invitation = controller.desktopAction(EVENT_TYPE.ACTION.JOIN_CONVERSATION, [join]);
+    await Promise.all([login, invitation]);
+    const selected = state.snapshots().find(account => account.visible)!;
+    records.push(state.get(selected.id));
+    assert.notEqual(selected.id, records[0].id);
+    assert.deepEqual(state.get(selected.id).conversationJoinData, join);
+    assert.equal(state.get(records[0].id).conversationJoinData, undefined);
+    await controller.receive(identity(views.get(selected.id)), {type: 'loaded'});
+    assert.deepEqual(await send(views.get(selected.id), 'readJoins'), [join]);
+  });
+
+  it('[security-target][CAP-006] bounds desktop dispatch and recovers after failed commands', async () => {
+    const pending = Array.from({length: 32}, () => controller.desktopAction('unknown-action', []));
+    const settled = Promise.allSettled(pending);
+    await assert.rejects(controller.desktopAction(EVENT_TYPE.ACTION.START_LOGIN, []), /Desktop action queue is full/);
+    assert.equal((await settled).filter(result => result.status === 'rejected').length, 32);
+    assert.equal(state.snapshots().length, 2);
+    await controller.desktopAction(EVENT_TYPE.ACTION.START_LOGIN, []);
+    const added = state.snapshots().find(account => account.visible)!;
+    records.push(state.get(added.id));
+    assert.equal(state.snapshots().length, 3);
+    assert.equal(views.has(added.id), true);
+  });
+
   it('[security-target][CAP-001] warns at the SSO account limit and rejects malformed codes without side effects', async () => {
     let warnings = 0;
     options.accountLimit = async () => {
