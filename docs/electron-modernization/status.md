@@ -2,70 +2,69 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-09
 milestone: M3
-active_work_item: SEC-010
-state: synchronized-csp-validation
+active_work_item: TST-004
+state: macos-legacy-seed-teardown-fix
 integration_branch: integration/electron-modernization
-integration_head_commit: ef050e42a3cefa08dfecd8e4b37eb049ea72be5c
+integration_head_commit: 9c188bf1891fd9179d447acd5fcc6df857afec4f
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: sec/SEC-010-shell-csp-2026-09-08
+active_branch: test/TST-004-legacy-profile-seed-2026-09-09
 next_work_item: SEC-012
 blockers: []
 ---
 
 # Current project status
 
-## Outcome and remaining gates
+## Milestone checkpoint
 
-M0, M1 and M2 exit gates are complete. **M3 is not complete.** Electron stays at `43.4.0` under DEC-007; Electron 44 is intentionally deferred. The M1 runtime exit gate does not imply the broader ELC-003 dependency-audit work is complete.
+M0, M1 and M2 exit gates are complete. **M3 is not complete.** Electron stays at `43.4.0` under DEC-007; Electron 44 is intentionally deferred. The M1 runtime gate does not imply the broader ELC-003 dependency audit is complete.
 
-| M3 checkpoint | Verified state | Remaining acceptance |
+| Area | Verified state | Remaining M3 acceptance |
 | --- | --- | --- |
-| IPC and renderer isolation | SEC-002–006 merged: registered authority, typed contracts, no remote dependency, isolated bridges and sandboxing | Maintain invariants through production view migration |
-| Production secure shell | Opt-in main-owned collection and targeted deletion; production metadata identity protected | SEC-007/CAP-001 production WebContentsView, main-owned state, lifecycle routing and legacy-session preservation |
-| Navigation and links | PRs #38/#39 merged: strict navigation, popup, external and incoming-link parsing | Main-authorized custom-backend changes and lifecycle/account routing under SEC-008/SEC-013/CAP-005/CAP-006 |
-| Local shell | PR #42 removes eval with production/development tests | Synchronized final-head gates, then custom scheme and storage migration under SEC-010 |
-| Permissions and previews | SEC-009 open; SEC-012 implementation preserved separately | Permission user-flow policy; finish preview parser/network limits and adversarial validation |
-| Critical capabilities | PR #43 fixes isolated SSO completion and removes all three SSO test quarantines | Controlled live IdP checkpoint, certificate/configuration policy and deep-link/single-instance parity |
-| Closure | Not started | Audit every M3 acceptance criterion; final cross-platform package and authenticated E2E evidence |
+| IPC/isolation | SEC-002–006 merged: registered authority, typed contracts, no remote dependency, isolated bridges and sandboxing | Preserve invariants during production cutover |
+| Production accounts | Opt-in main-owned collection and targeted deletion; metadata identity protected | SEC-007/CAP-001 production WebContentsView, main-owned state, lifecycle routing and legacy sessions |
+| Navigation/links | PRs #38/#39 merged: strict navigation, popup, external and incoming-link parsing | Main-authorized custom-backend changes and lifecycle/account routing under SEC-008/SEC-013/CAP-005/CAP-006 |
+| Local shell | CSP PR #42 merged: production/development eval removed | SEC-010 custom scheme and storage migration |
+| Permissions/previews | SEC-009 open; SEC-012 implemented in PR #44 | Permission user-flow policy; final-head preview E2E/report |
+| Critical capabilities | SSO PR #43 merged with all three quarantines removed; download containment in draft #45 | Controlled live IdP checkpoint, certificate/configuration policy and deep-link/single-instance parity |
+| Closure | Not started | Audit every M3 acceptance criterion and final cross-platform evidence |
 
-Do not use PR counts as a completion metric. The previously communicated approximately 65% was an engineering estimate, not a measured acceptance percentage or time forecast.
+The previously communicated approximately 65% was an engineering estimate, not a measured acceptance percentage or time forecast. PR counts are not a completion metric.
 
-## Latest merged evidence
+## Merged evidence
 
-All entries passed applicable final-head gates before merge. Historical details remain in the linked PRs and plan.
+- [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42), CSP, merged `9c188bf1`: final-head build/lint/analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial have sensitivity evidence. Custom-scheme acceptance remains open.
+- [PR #43](https://github.com/adamlow-wire/wire-desktop/pull/43), native SSO completion, merged `ef050e42`: [build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239220717), [packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239220276), [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) all green. One-use callback secret, allowlist and cookie-scope mutations failed before restoration. The resolved CodeQL redirect comment concerns the deliberate loopback backend fixture; no production exemption or suppression was added. Ordinary login E2E does not prove live IdP completion.
+- Earlier PRs #37–41 cover sandboxing, navigation/parser, renderer-loss test harness and metadata identity. Their final-head evidence remains in the plan and linked PRs; no claim that the production view migration is already complete.
 
-| PR | Outcome | Durable validation |
-| --- | --- | --- |
-| [#37](https://github.com/adamlow-wire/wire-desktop/pull/37) | SEC-006 sandboxing, merge `5926e3d0` | [Packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873453), [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34212873692) |
-| [#38](https://github.com/adamlow-wire/wire-desktop/pull/38) | Navigation/window policy, merge `67dfb5db` | [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34228799065), [packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34228800662), [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34228799004); no final rerun |
-| [#39](https://github.com/adamlow-wire/wire-desktop/pull/39) | Incoming-link parser, merge `75b22ded` | [Packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325572), [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34223325647); one unchanged Windows rerun after proxy fixture timeout |
-| [#40](https://github.com/adamlow-wire/wire-desktop/pull/40) | Renderer-loss test harness, merge `cc8fc01d`; runtime unchanged | [Packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34227062520); E2E deferred under DEC-008 |
-| [#41](https://github.com/adamlow-wire/wire-desktop/pull/41) | Metadata/cross-account mutation protection, merge `ebda3707` | [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34234893145), [packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34234893191), [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34234966274); no rerun |
-| [#43](https://github.com/adamlow-wire/wire-desktop/pull/43) | Isolated native SSO completion, merge `ef050e42` on September 9 | [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239220717), [packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239220276), [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392); all final-head checks green |
+## Active branches and next executable work
 
-PR #43 local combined validation: 431 native tests, zero pending; 94 React, 4 renderer, 35 tools; application/Mocha types, lint and changed statements 66/69 (95.65%) pass. Three sandboxed product regressions pass. One-use secret, callback allowlist and cookie-domain mutations failed before restoration. The reviewed CodeQL redirect comment concerns the deliberately backend-compatible loopback test fixture only; no production exemption or analysis suppression was added. Ordinary authenticated E2E does not prove live IdP completion.
+Immediate task: publish a scoped test-only PR from integration replacing the metadata test's first full-app seed/close with the validated JavaScript-disabled legacy-profile fixture. Trace evidence from PR #44 identifies this exact close as the repeated macOS stall. Keep metadata/session/restart assertions and normal product shutdown unchanged; require hosted validation. After merge, synchronize PR #44 and rerun its final-head gates.
 
-## Next executable work
+Integration-based correction validation: application/Mocha types, lint (including explicit fixture JavaScript lint), formatting and five consecutive metadata/restart product runs pass (22.1 seconds on Linux). The wrong-storage-key sensitivity check previously made both metadata and lifecycle baselines fail before restoration. Only test setup and tracking docs change; no production runtime, assertions, timeouts or retry limits change.
 
-PR #42 synchronized local validation on September 9: 433 main tests (zero pending), 4 renderer, 97 React and 38 tools pass. Application/Mocha types, changed-file lint, formatting and diff coverage pass (no changed application TypeScript statements). Both development CSP tests pass; rebuilt production metadata/navigation/cleanup regressions pass 3/3 in 15.8 seconds on Linux. Prior sensitivity evidence remains in PR #42. Hosted final-head gates remain required.
+1. **CAP-001 preserved branch** now includes the security dependencies through draft #45; do not publish their changes as a duplicate integration diff. Baseline commit `6d20d3fa` adds actual sandboxed account switching, exact-account join/logout routing, add/cancel and removal with cross-account cookie retention. Baseline and restored run each pass in 4.6 seconds. Inverting the actual preload target identity makes the unchanged test fail. The fixture correctly observes join as a DOM CustomEvent, not amplify publish. Account production behavior is unchanged so far. Next: implement the SEC-007/CAP-001 production view/state cutover, preserving existing default and `persist:UUID` sessions.
+2. **[PR #44](https://github.com/adamlow-wire/wire-desktop/pull/44), SEC-012**, final head `8a7af56b2726a73266623aa30b2e6a9036f96760`, includes merged CSP. Final [build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34325903430), lint, analysis and [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34325903440) pass. [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34325903416) failed: Windows passed; macOS repeated the metadata-seeding close/worker-teardown stall. Require all final-head gates and reviewed comments before self-merge.
+3. **[Draft PR #45](https://github.com/adamlow-wire/wire-desktop/pull/45), CAP-005 download containment**, branch `cap/CAP-005-download-path-2026-09-09`, is based on PR #44, not integration. Implementation `ca1b8e22`, handoff `d25151d6`. [Native package preflight](https://github.com/adamlow-wire/wire-desktop/actions/runs/34327126999) passed at the implementation commit, including the real Windows junction test; this is not final-head acceptance for the later handoff commit. After #44 merges, retarget #45 to integration, make it ready and require applicable final-head gates before self-merge.
+4. Finish SEC-010 local-scheme migration, SEC-009 permissions, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 parity. Download containment does not close certificate policy or platform managed-config backend coverage.
+5. Complete CAP-002 live-provider evidence and the M3 closure audit. Do not mark M3 complete while any required acceptance remains open.
 
-1. Publish synchronized [CSP PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) based on integration `ef050e42` and require build, lint, analysis, all-platform packages and authenticated Windows/macOS E2E/report before self-merge. Keep custom-scheme/state migration open.
-2. Resume `sec/SEC-012-preview-fetch-2026-09-08`. Baseline commit `41882ee3` is separate. Six unfinished files are preserved in the named stash `SEC-012 preserved for CSP synchronization 2026-09-09`; inspect before restoring and drop only after successful application. No preview implementation PR is published yet.
-3. Finish SEC-012: public-only HTTP(S), pinned DNS, redirect revalidation, no cookies/ambient credentials, and byte/time limits have 87 focused passing tests. A subsequently added hostile metadata-key test **fails**: the old parser mutates an inherited built-in function. Replace that parser, preserve required metadata, test parsing limits and revalidate the branch. This is not green or complete yet.
-4. Execute production account/view/state cutover under SEC-007/CAP-001 and local-scheme migration under SEC-010, preserving existing default and `persist:UUID` sessions. Close SEC-009, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 parity.
-5. Complete CAP-002 live-provider evidence and the M3 closure audit. Do not mark M3 complete while any acceptance or required platform evidence remains open.
+## Local validation and known failures
+
+- **Immediate CI diagnosis:** PR #44 final-head Windows E2E passes but macOS again fails worker teardown. The downloaded trace locates the stall at the first `app.close()` in `accountMetadata.spec.ts:74`, before metadata assertions, used solely to prepare the legacy profile. Extract the already validated isolated seeding fixture into a test-only TST-004 PR; no blind rerun and no production shutdown change. PR #45 native preflight now passes all platforms, including the real Windows junction test.
+- **Uncommitted CAP-001 preparation:** `electron/src/accounts/AccountProfile.ts` and tests have 19 passing cases, including exact legacy mappings, case-aliased partition rejection and atomic-write failure preservation. The new `readLegacyAccountState` native reader has two failing script-execution tests; it is not wired into production and must not be claimed ready. These four files are preserved in stash `CAP-001 profile work preserved for macOS seed teardown fix 2026-09-09`. Restore them only on the CAP-001 branch, investigate the reader, and drop that stash only after successful restoration.
+- **CAP-001 migration fixture:** old-profile setup now runs a sandboxed, JavaScript-disabled file-origin window without loading the current application/migration logic. Both account lifecycle and metadata/restart baselines pass (8.6 seconds; restored run 7.9 seconds). Changing the stored key so legacy state is absent makes both fail; restored before commit. This prepares real one-time migration testing without changing product runtime or weakening the existing assertions.
+- **SEC-012:** separate baselines `41882ee3`/`b31f4b60`, implementation `6d7760fc`. Old transport fails five private-fetch targets; old parser fails inherited-object mutation. Title mutation fails three compatibility tests; private-address/DNS-pinning/compressed-wire mutations cause 22 failures. All restored. Synchronized full suite: 530 main (zero pending), 4 renderer, 97 React, 38 tools; application/Mocha types and lint pass. Diff: 176/180 statements (97.78%), 114/121 security branches (94.21%). Actual sandboxed metadata/navigation pass 2/2 in 7.9 seconds; cleanup passes in 2.0 seconds on Linux.
+- **SEC-012 initial CI failure:** head `9d25f910` passed Windows E2E, but [macOS](https://github.com/adamlow-wire/wire-desktop/actions/runs/34322872580/job/102373295119) failed with a 90-second worker-teardown timeout. Metadata restart, account search and authenticated-page timeouts passed on built-in retry (31 passed, 3 flaky). Do not attribute this to staging without evidence. No unchanged-head rerun was requested; the synchronized head requires fresh gates.
+- **CAP-005:** baseline `08135866`: 6 pass, skipped-preparation mutation gives 3 failures, restored baseline passes. Five unsafe-path targets fail on old code. Link-denial mutations fail; independently removing download-start revalidation gives one expected failure. All restored. Full suite: 598 main (zero pending), 4 renderer, 97 React, 38 tools; types/lint/formatting pass. Standalone diff vs #44: 39/47 statements (82.98%), 23/23 security branches (100%); integration diff: 215/227 statements (94.71%), 137/144 branches (95.14%). Sandbox product metadata/navigation/cleanup: 3/3 in 9.3 seconds on Linux. Native Windows junction evidence is pending.
+- Commands: `corepack yarn build:ts && corepack yarn bundle`; `test:types`; `build:ts:tests`; fresh `test:main:coverage`, `test:renderer:coverage`, `test:react:coverage --modulePathIgnorePatterns '<rootDir>/wrap/'`, `test:bin`, `coverage:report`; `DIFF_COVERAGE_BASE=fork/integration/electron-modernization corepack yarn coverage:diff`. CAP-005 standalone coverage uses `DIFF_COVERAGE_BASE=sec/SEC-012-preview-fetch-2026-09-08`. Product checks use `test:e2e --project=macOS` with the named regression specs; that local label is **Linux evidence**, not macOS.
 
 ## Maintainer input and operational constraints
 
-- No immediate input is needed for the executable work above. Controlled live SSO needs a staging SSO code and dedicated IdP test identity, or maintainer-run evidence. Do not paste credentials into chat or logs. Signing is M5, not ordinary local testing.
-- PR-only integration and self-merge authorization remain in force. Require **all applicable final-head checks**, even checks not enforced by protection; no admin bypass. Review substantive comments before resolving them.
-- Run native GUI suites serially. After branch switches run `corepack yarn build:ts && corepack yarn bundle` together before product/preload tests; never rebuild during a suite. Preserve product `chromiumSandbox: true`.
-- Local Playwright's `macOS` label executes Linux here; do not claim macOS evidence from it. Standalone Playwright types retain nine known generated-client/`window.wire` errors, not a green check.
-- Clear coverage before aggregating changed sources; diff coverage evaluates committed HEAD against integration. Exclude `wrap/` from local Jest. Preserve user worktree `wrap/worktrees/wpb-5221-deployment-audit`; never run local `build:prepare` or `clear:wrap`.
-- Known local metadata-fixture startup/quit stalls were not claimed fixed; hosted PR #41 passed without reruns. Renderer-loss tests avoid host crash-dump delays by terminating only their verified renderer PID.
-- Authoritative vault values work. Do not recreate credential normalization, Jira dependencies or production-test credential workarounds. MSI is integrated, not a pending feature branch.
-
-## Reconciliation note
-
-On September 9 the conversation goal was absent and was recreated at the maintainer's explicit request. GitHub state and final-head checks were read back; PR #43 merged normally. This file replaces stale active-PR and pending-test claims with verified state. Goal completion is governed by the plan's acceptance criteria, not the goal record.
+- No immediate input is needed for executable work. Controlled live SSO needs a staging SSO code and dedicated IdP test identity, or maintainer-run evidence. Never paste credentials into chat/logs. Signing is M5, not ordinary testing.
+- PR-only integration and self-merge authorization remain in force. Require every applicable final-head check, including checks not enforced by protection; no admin bypass. Review substantive comments before resolving.
+- Run native GUI suites serially. After branch switches rebuild TypeScript **and** bundled preloads before product tests; never rebuild during a suite. Preserve `chromiumSandbox: true`.
+- Clear coverage before aggregating changed sources; diff coverage evaluates committed HEAD. Exclude `wrap/` from Jest. Preserve user worktree `wrap/worktrees/wpb-5221-deployment-audit`; never run local `build:prepare` or `clear:wrap`.
+- Standalone Playwright types retain nine known generated-client/`window.wire` errors; not a green check. Metadata-fixture startup/quit stalls are not claimed fixed. Renderer-loss tests terminate only their verified renderer PID to avoid host dump delays.
+- Vault values work. Do not recreate credential normalization, Jira dependencies or production-test credential workarounds. MSI is integrated.
+- On September 9 the missing conversation goal was recreated at the maintainer's request. The goal is active; completion is governed by plan acceptance, not the goal record.

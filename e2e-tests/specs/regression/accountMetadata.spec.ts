@@ -22,6 +22,8 @@ import {_electron, expect, test} from '@playwright/test';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
 
+import {seedLegacyAccountProfile} from '../../utils/seedLegacyAccountProfile';
+
 test(
   '[CAP-001] metadata cannot replace account identity or partition across restart',
   {tag: ['@regression']},
@@ -58,22 +60,9 @@ test(
       });
     let app: Awaited<ReturnType<typeof launch>> | undefined;
     try {
+      await seedLegacyAccountProfile(testInfo.outputPath('profile'), accounts);
       app = await launch();
-      let shell = await app.firstWindow();
-      await expect(shell.locator('webview')).toHaveCount(1);
-      await shell.evaluate(seed => {
-        localStorage.setItem(
-          'state',
-          JSON.stringify({
-            accounts: seed,
-            contextMenuState: {accountId: '', isAtLeastAdmin: false, position: {centerX: 0, centerY: 0}},
-          }),
-        );
-      }, accounts);
-      await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].webContents.session.flushStorageData());
-      await app.close();
-      app = await launch();
-      shell = await app.firstWindow();
+      const shell = await app.firstWindow();
       await expect(shell.locator('webview')).toHaveCount(2);
       await expect
         .poll(() =>
