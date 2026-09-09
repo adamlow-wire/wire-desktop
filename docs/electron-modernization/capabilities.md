@@ -9,6 +9,7 @@
 - CAP-001 profile preparation: 26 local profile/reader tests cover exact legacy mappings, single import, isolated storage reads, retained cookies, bounded data and failed-write preservation. The reader disables page scripts, Node and webviews. This is not yet production-wired and does not raise DCP-002/DCP-004 migration confidence.
 - CAP-001 native owner preparation: twelve real-Electron tests cover pre-navigation main-owned identity, effective preferences, exact native selection/bounds, legacy sessions, isolated cookies, awaited closure, stale initialization and real renderer-loss recovery. Partition alias/close races and destroyed-view cleanup were reproduced and fixed; isolation/redirect mutations fail. The owner is not production-wired, so DCP-002/DCP-004 cutover acceptance remains open.
 - This matrix tracks behavioral confidence, not implementation progress alone.
+- CAP-001 controller checkpoint: 13 real-Electron tests connect named shell/guest IPC, state and native views, including the bundled webapp preload without a webview host. Targeted metadata/join, aggregate badges, isolated cookie deletion, failed-deletion retry, stale authority and destination approval paths pass with sensitivity evidence. Production startup/UI have not switched; DCP-002/DCP-004 acceptance remains open.
 - `current confidence` describes the verified legacy baseline.
 - `target evidence` describes what must exist before migration is accepted.
 - Update a row when tests, platform support, product scope, or confidence changes.

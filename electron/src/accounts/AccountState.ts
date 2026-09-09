@@ -129,6 +129,12 @@ export class AccountState {
     this.replace(account);
   }
 
+  setEnvironment(accountId: string, webappUrl: string): void {
+    const account = this.get(accountId);
+    account.webappUrl = webappUrl;
+    this.replace(account);
+  }
+
   private replace(account: Account): void {
     this.commit(this.accounts.map(record => (record.id === account.id ? account : record)));
   }

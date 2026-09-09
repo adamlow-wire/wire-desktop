@@ -17,6 +17,12 @@
  *
  */
 
+import {ipcRenderer} from 'electron';
+
 import {installWebappPreload} from './installWebappPreload';
 
-installWebappPreload();
+import {ACCOUNT_EVENT_CHANNEL} from '../security/AccountEventContract';
+
+installWebappPreload(event => {
+  void ipcRenderer.invoke(ACCOUNT_EVENT_CHANNEL, event).catch(error => console.warn('Account event rejected.', error));
+});

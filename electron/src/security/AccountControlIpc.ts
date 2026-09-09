@@ -26,7 +26,7 @@ import {
   MAX_ACCOUNT_COMMANDS_PER_MINUTE,
 } from './AccountControlContract';
 import {AuthorizedIpcContract, bindAuthorizedIpc} from './AuthorizedIpc';
-import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
+import {AuthorizedViewIdentity, SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 import type {AccountSnapshot} from '../accounts/AccountState';
 
@@ -81,9 +81,9 @@ interface IpcMainBinding {
 
 export interface AccountControl {
   snapshots(): readonly AccountSnapshot[];
-  add(): Promise<void>;
-  select(accountId: string): Promise<void>;
-  remove(accountId: string): Promise<void>;
+  add(identity: AuthorizedViewIdentity): Promise<void>;
+  select(accountId: string, identity: AuthorizedViewIdentity): Promise<void>;
+  remove(accountId: string, identity: AuthorizedViewIdentity): Promise<void>;
 }
 
 const accountControlContract: AuthorizedIpcContract<AccountCommand, readonly AccountSnapshot[]> = Object.freeze({
@@ -102,16 +102,16 @@ export const bindAccountControlIpc = (
   registry: ViewIdentityRegistry,
   control: AccountControl,
 ): (() => void) =>
-  bindAuthorizedIpc(ipc, registry, accountControlContract, async (_identity, command) => {
+  bindAuthorizedIpc(ipc, registry, accountControlContract, async (identity, command) => {
     switch (command.action) {
       case 'add':
-        await control.add();
+        await control.add(identity);
         break;
       case 'select':
-        await control.select(command.accountId);
+        await control.select(command.accountId, identity);
         break;
       case 'remove':
-        await control.remove(command.accountId);
+        await control.remove(command.accountId, identity);
         break;
     }
     return control.snapshots();

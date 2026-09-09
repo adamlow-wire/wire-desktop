@@ -129,6 +129,10 @@ export class AccountViews {
     }
   }
 
+  has(accountId: string): boolean {
+    return !!this.entries.get(accountId) && !this.entries.get(accountId)!.contents.isDestroyed();
+  }
+
   get(accountId: string): WebContents {
     const contents = this.entries.get(accountId)?.contents;
     if (!contents || contents.isDestroyed()) {

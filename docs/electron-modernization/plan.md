@@ -413,7 +413,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - No `allowpopups` behavior remains.
   - Account views resize, focus, hide/show, crash, reload, add, remove, and switch correctly.
   - Session-isolation tests prove accounts cannot observe each other's storage/cookies.
-- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines and validated legacy profile preparation. Production view creation and routing are not yet switched; no SEC-007 acceptance is claimed from the unused preparation modules.
+- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines, validated legacy profiles, main-owned state/native views and real-Electron controller/IPC/preload integration. The bundled webapp bridge works without a webview host, with exact-account metadata/join and session-deletion tests. Production startup and UI are not yet switched; these integration tests do not close SEC-007 acceptance.
 
 #### SEC-008 — Centralize navigation and window-open policy
 
