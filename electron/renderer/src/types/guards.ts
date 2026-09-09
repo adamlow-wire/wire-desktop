@@ -17,7 +17,7 @@
  *
  */
 
-import {Account, ConversationJoinData} from './account';
+import {ConversationJoinData} from './account';
 
 export const isString = (value: any): value is string => typeof value === 'string';
 
@@ -25,7 +25,12 @@ export const isNumber = (value: any): value is number => typeof value === 'numbe
 
 export const isBoolean = (value: any): value is boolean => typeof value === 'boolean';
 
-export const isAccount = (value: any): value is Account => value.hasOwnProperty('userID');
+export const isAccount = (value: unknown): value is {userID: string} =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.prototype.hasOwnProperty.call(value, 'userID') &&
+  typeof (value as {userID: unknown}).userID === 'string';
 
 export const isConversationJoinData = (value: any): value is ConversationJoinData =>
   value.hasOwnProperty('code') && value.hasOwnProperty('key');

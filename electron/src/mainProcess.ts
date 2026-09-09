@@ -30,7 +30,6 @@ import {
   WebContents,
   desktopCapturer,
   safeStorage,
-  HandlerDetails,
 } from 'electron';
 import electronDl from 'electron-dl';
 import windowStateKeeper from 'electron-window-state';
@@ -49,11 +48,7 @@ import * as ProxyAuth from './auth/ProxyAuth';
 import {createProxyPromptActions} from './auth/ProxyPromptActions';
 import {ProxyPromptCoordinator} from './auth/ProxyPromptCoordinator';
 import {showRegisteredProxyPrompt} from './auth/ProxyPromptRegistration';
-import {
-  bindPictureInPictureCallIdentity,
-  getPictureInPictureCallWindowOptions,
-  isPictureInPictureCallWindow,
-} from './calling/PictureInPictureCall';
+import {bindPictureInPictureCallIdentity, isPictureInPictureCallWindow} from './calling/PictureInPictureCall';
 import {initializeFirstInstance} from './lib/applicationBootstrap';
 import {
   attachTo as attachCertificateVerifyProcManagerTo,
@@ -84,7 +79,6 @@ import {configureLegacyWebviewPreferences} from './preload/LegacyWebviewPreferen
 import {getConfiguredPortableUserDataPath} from './runtime/configurePortableUserData';
 import * as EnvironmentUtil from './runtime/EnvironmentUtil';
 import * as lifecycle from './runtime/lifecycle';
-import {OriginValidator} from './runtime/OriginValidator';
 import {snapshotRendererEnvironment} from './runtime/rendererEnvironment';
 import {createRendererRuntimeArguments} from './runtime/rendererRuntimeArguments';
 import {startSecureShellProof} from './secureShell/bootstrap';
@@ -93,20 +87,23 @@ import {installSecureShellProtocol, registerSecureShellSchemePrivileges} from '.
 import {SecureShellController} from './secureShell/SecureShellController';
 import {AboutLocaleResponse, bindAboutWindowIpc} from './security/AboutWindowIpc';
 import {ACCOUNT_DATA_DELETE_CAPABILITY, bindAccountDataDeletionIpc} from './security/AccountDataDeletionIpc';
+import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
 import {bindDesktopSourcesIpc} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
+import {bindNavigationGuard} from './security/NavigationGuard';
+import {isAllowedAccountNavigation} from './security/NavigationPolicy';
 import {bindNotificationActivationIpc} from './security/NotificationActivationIpc';
 import {bindOpenGraphIpc} from './security/OpenGraphIpc';
 import {bindProxyPromptIpc, createProxyPromptBoundary} from './security/ProxyPromptIpc';
 import {bindSafeStorageIpc} from './security/SafeStorageIpc';
 import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {bindSsoAccountLimitIpc, SSO_ACCOUNT_LIMIT_CAPABILITY} from './security/SsoAccountLimitIpc';
-import {controlSsoWindowForAccount} from './security/SsoWindowControl';
 import {bindSsoWindowControlIpc} from './security/SsoWindowControlIpc';
+import {SsoWindowCoordinator} from './security/SsoWindowCoordinator';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {bindWebAppLoadedIpc} from './security/WebAppLoadedIpc';
 import {bindWrapperRelaunchIpc} from './security/WrapperRelaunchIpc';
@@ -144,15 +141,6 @@ const configuredUserDataPath = getConfiguredPortableUserDataPath();
 const viewIdentityRegistry = new ViewIdentityRegistry();
 const proxyPromptCoordinator = new ProxyPromptCoordinator();
 const developerMenu = createDeveloperMenu(viewIdentityRegistry);
-
-type OpenLinkInNewWindowParameters = {
-  accountId: Maybe<string>;
-  browserWindow: BrowserWindow;
-  frameName: string;
-  options: BrowserWindowConstructorOptions;
-  senderWebContents: WebContents;
-  url: string;
-};
 
 const argv = minimist(process.argv.slice(1));
 const secureShellProof = argv['secure-shell-proof'] === true;
@@ -438,10 +426,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     setTimeout(() => main.show(), 800);
   }
 
-  main.webContents.on('will-navigate', event => {
-    // Prevent any kind of navigation inside the main window
-    event.preventDefault();
-  });
+  bindNavigationGuard(main.webContents, () => false);
 
   // Handle the new window event in the main Browser Window
   main.webContents.setWindowOpenHandler(details => {
@@ -641,14 +626,15 @@ const applyProxySettings = async (authenticatedProxyDetails: URL, webContents: E
 
 class ElectronWrapperInit {
   logger: logdown.Logger;
-  ssoWindow: SingleSignOn | null;
+  private readonly ssoWindows = new SsoWindowCoordinator(() =>
+    main.webContents.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED),
+  );
 
   constructor() {
     this.logger = getLogger('ElectronWrapperInit');
-    this.ssoWindow = null;
     bindSsoWindowControlIpc(ipcMain, viewIdentityRegistry, {
-      close: this.closeSSOWindow,
-      focus: this.focusSSOWindow,
+      close: accountId => this.ssoWindows.control(accountId, 'close'),
+      focus: accountId => this.ssoWindows.control(accountId, 'focus'),
     });
   }
 
@@ -657,81 +643,8 @@ class ElectronWrapperInit {
     this.webviewProtection();
   }
 
-  closeSSOWindow = (accountId: string | undefined) => {
-    this.ssoWindow = controlSsoWindowForAccount(this.ssoWindow, accountId, 'close');
-  };
-
-  focusSSOWindow = (accountId: string | undefined) => {
-    controlSsoWindowForAccount(this.ssoWindow, accountId, 'focus');
-  };
-
-  sendSSOWindowCloseEvent = () => {
-    if (this.ssoWindow) {
-      main.webContents.send(WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED);
-    }
-  };
-
   // <webview> hardening
   webviewProtection(): void {
-    const openLinkInNewWindowHandler = (
-      details: HandlerDetails,
-    ): {action: 'deny'} | {action: 'allow'; overrideBrowserWindowOptions?: BrowserWindowConstructorOptions} => {
-      if (SingleSignOn.isSingleSignOnLoginWindow(details.frameName)) {
-        return {
-          action: 'allow',
-          overrideBrowserWindowOptions: SingleSignOn.getSingleSignOnLoginWindowOptions(main, details.url),
-        };
-      }
-
-      if (isPictureInPictureCallWindow(details.frameName)) {
-        return {
-          action: 'allow',
-          overrideBrowserWindowOptions: getPictureInPictureCallWindowOptions(),
-        };
-      }
-
-      this.logger.log('Opening an external window from a webview.');
-      mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(details.url));
-
-      return {action: 'deny'};
-    };
-
-    function openLinkInNewWindow(
-      electronWrapperInitialization: ElectronWrapperInit,
-      parameters: OpenLinkInNewWindowParameters,
-    ): Promise<void> | void {
-      if (SingleSignOn.isSingleSignOnLoginWindow(parameters.frameName)) {
-        const singleSignOn = new SingleSignOn(
-          parameters.browserWindow,
-          parameters.senderWebContents,
-          parameters.accountId,
-          parameters.url,
-          parameters.options,
-          viewIdentityRegistry,
-        ).init();
-
-        return new Promise(() => {
-          singleSignOn
-            .then(sso => {
-              electronWrapperInitialization.ssoWindow = sso;
-              electronWrapperInitialization.ssoWindow.onClose = electronWrapperInitialization.sendSSOWindowCloseEvent;
-            })
-            .catch(error => console.info(error));
-        });
-      }
-    }
-
-    // Keeping this Function for future use
-    const willNavigateInWebview = (event: ElectronEvent, url: string, baseUrl: string): void => {
-      // Ensure navigation is to an allowed domain
-      if (OriginValidator.isMatchingHost(url, baseUrl)) {
-        this.logger.log(`Navigating inside <webview>. URL: ${url}`);
-      } else {
-        // ToDo: Add a back button to the webview to navigate back to the main app
-        this.logger.log(`Navigating outside <webview>. URL: ${url}`);
-      }
-    };
-
     const enableSpellChecking = settings.restore(SettingsType.ENABLE_SPELL_CHECKING, true);
 
     app.on('web-contents-created', async (_webviewEvent: ElectronEvent, contents: WebContents) => {
@@ -753,8 +666,15 @@ class ElectronWrapperInit {
         case 'webview': {
           attachAccountContextMenu(contents, main);
           attachAccountWebContentsTheme(contents);
+          let accountOrigin: string | undefined;
+          let accountUrl: string | undefined;
+          let registeredAccountId: string | undefined;
+          let accountPartition: string | undefined;
           const registerAccountIdentity = (url: string): void => {
             if (viewIdentityRegistry.has(contents.id)) {
+              return;
+            }
+            if (accountOrigin && !isAllowedAccountNavigation(url, accountOrigin)) {
               return;
             }
 
@@ -764,7 +684,18 @@ class ElectronWrapperInit {
               return;
             }
 
-            registerLegacyAccountViewIdentity(viewIdentityRegistry, contents, url, partition);
+            const registration = registerLegacyAccountViewIdentity(
+              viewIdentityRegistry,
+              contents,
+              accountUrl ?? url,
+              partition,
+            );
+            if (registration) {
+              accountUrl ??= url;
+              accountOrigin = registration.identity.allowedOrigin;
+              registeredAccountId = registration.identity.accountId;
+              accountPartition = registration.identity.partition;
+            }
           };
           registerAccountIdentity(contents.getURL());
           contents.on('did-start-navigation', (_event, url, _isInPlace, isMainFrame) => {
@@ -772,42 +703,48 @@ class ElectronWrapperInit {
               registerAccountIdentity(url);
             }
           });
+          bindNavigationGuard(contents, url => isAllowedAccountNavigation(url, accountOrigin));
 
           if (proxyInfoArg?.origin && contents.session) {
             this.logger.log('Found proxy settings in arguments, applying settings on the webview...');
             await applyProxySettings(proxyInfoArg, contents);
           }
           // Open webview links outside of the app
-          contents.setWindowOpenHandler(openLinkInNewWindowHandler);
-          contents.on('did-create-window', async (win, windowCreationDetails) => {
-            const {frameName, options, url} = windowCreationDetails;
-
-            if (
-              !bindPictureInPictureCallIdentity({
-                allowedUrl: url,
-                destroy: () => win.destroy(),
-                frameName,
-                logRejection: error => logger.error('Rejected unbound picture-in-picture window.', error),
-                partition: options.webPreferences?.partition ?? '',
-                registry: viewIdentityRegistry,
-                resolveAccountId: () => lifecycle.getAccountId(contents).unwrapOr('') || undefined,
-                webContents: win.webContents,
-              })
-            ) {
-              return;
+          contents.setWindowOpenHandler(details =>
+            handleAccountWindowOpen(details, {
+              accountSession: contents.session,
+              accountOrigin,
+              sourceUrl: contents.getURL(),
+              openExternal: url => mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(url)),
+              openDeepLink: url =>
+                mainProcessFireAndForgetInvoker.fireAndForget(() => customProtocolHandler.dispatchDeepLink(url)),
+              openSso: url =>
+                mainProcessFireAndForgetInvoker.fireAndForget(() =>
+                  this.ssoWindows.open(registeredAccountId, () =>
+                    SingleSignOn.create(main, contents, Maybe.of(registeredAccountId), url, viewIdentityRegistry),
+                  ),
+                ),
+            }),
+          );
+          contents.on('did-create-window', (win, windowCreationDetails) => {
+            const {frameName, url} = windowCreationDetails;
+            if (isPictureInPictureCallWindow(frameName)) {
+              bindNavigationGuard(
+                win.webContents,
+                target => target === 'about:blank' || isAllowedAccountNavigation(target, accountOrigin),
+              );
             }
 
-            await openLinkInNewWindow(this, {
-              accountId: lifecycle.getAccountId(contents),
-              browserWindow: win,
+            bindPictureInPictureCallIdentity({
+              allowedUrl: url,
+              destroy: () => win.destroy(),
               frameName,
-              options,
-              senderWebContents: contents,
-              url,
+              logRejection: error => logger.error('Rejected unbound picture-in-picture window.', error),
+              partition: accountPartition ?? '',
+              registry: viewIdentityRegistry,
+              resolveAccountId: () => registeredAccountId,
+              webContents: win.webContents,
             });
-          });
-          contents.on('will-navigate', (event: ElectronEvent, url: string) => {
-            willNavigateInWebview(event, url, contents.getURL());
           });
           if (ENABLE_LOGGING) {
             const colorCodeRegex = /%c(.+?)%c/gm;

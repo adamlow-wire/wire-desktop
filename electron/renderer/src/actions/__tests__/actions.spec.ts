@@ -25,6 +25,7 @@ import {
   updateAccount,
   updateAccountBadge,
   updateAccountBadgeCount,
+  updateAccountData,
 } from '../';
 import type {AppDispatch, State} from '../../index';
 import {generateUUID} from '../../lib/util';
@@ -51,6 +52,121 @@ describe('action creators', () => {
       };
       expect(updateAccount(id, data)).toEqual(action);
     });
+  });
+
+  describe('updateAccountData', () => {
+    it('[security-target][CAP-001] cannot remove another account picture while updating metadata', () => {
+      const account = {...createAccount(), picture: 'data:image/png;base64,dGFyZ2V0'};
+      const other = {...createAccount(), picture: 'data:image/png;base64,b3RoZXI='};
+      const originalOther = {...other};
+      let accounts: State['accounts'] = [account, other];
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        accounts = accountReducer(accounts, action);
+        return action;
+      });
+
+      updateAccountData(account.id, {userID: generateUUID(), name: 'Updated team'})(dispatch as AppDispatch);
+
+      expect(accounts[0].picture).toBeUndefined();
+      expect(accounts[1]).toEqual(originalOther);
+      expect(accounts[1]).toBe(other);
+    });
+
+    it('[security-target][CAP-001] preserves prior state and the action while clearing a picture', () => {
+      const account = Object.freeze({
+        ...createAccount(),
+        picture: 'data:image/png;base64,dGFyZ2V0',
+        webappUrl: 'https://custom.example.test/',
+      });
+      const data = Object.freeze({name: 'Updated team', webappUrl: undefined});
+
+      const [updated] = accountReducer([account], updateAccount(account.id, data));
+
+      expect(updated.picture).toBeUndefined();
+      expect(updated.webappUrl).toBe(account.webappUrl);
+      expect(updated.name).toBe(data.name);
+      expect(account.picture).toBe('data:image/png;base64,dGFyZ2V0');
+      expect(Object.prototype.hasOwnProperty.call(data, 'webappUrl')).toBe(true);
+    });
+
+    it('[characterization][CAP-001] applies webapp metadata only to the addressed account', () => {
+      const account = createAccount({sessionID: generateUUID()});
+      const other = createAccount({sessionID: generateUUID()});
+      let accounts = [account, other];
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        accounts = accountReducer(accounts, action);
+        return action;
+      });
+      const metadata = {
+        accentID: 2,
+        availability: 1,
+        name: 'Example team',
+        picture: 'data:image/png;base64,aGVsbG8=',
+        teamID: generateUUID(),
+        teamRole: 'member',
+        userID: generateUUID(),
+      };
+
+      updateAccountData(account.id, metadata)(dispatch as AppDispatch);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(accounts[0]).toEqual({...account, ...metadata, isAdding: false, ssoCode: undefined});
+      expect(accounts[1]).toBe(other);
+    });
+
+    it('[characterization][CAP-001] preserves the separate environment URL update', () => {
+      const dispatch = jest.fn();
+      const id = generateUUID();
+      const data = {webappUrl: 'https://custom.example.test/auth/'};
+
+      updateAccountData(id, data)(dispatch);
+
+      expect(dispatch).toHaveBeenCalledWith(updateAccount(id, data));
+    });
+
+    it.each([
+      {id: 'different-account'},
+      {sessionID: 'different-session'},
+      {visible: true},
+      {isAdding: true},
+      {badgeCount: 0},
+      {ssoCode: 'different-flow'},
+      {accountIndex: 0},
+      {lifecycle: 'signed-in'},
+      {unexpected: 'field'},
+    ])('[security-target][CAP-001] rejects desktop-owned or unknown metadata %j', injected => {
+      const account = createAccount({sessionID: generateUUID(), visible: false});
+      const other = createAccount({sessionID: generateUUID()});
+      const initial = [account, other];
+      let accounts = initial;
+      const dispatch = jest.fn((action: Parameters<typeof accountReducer>[1]) => {
+        accounts = accountReducer(accounts, action);
+        return action;
+      });
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        updateAccountData(account.id, {userID: generateUUID(), ...injected})(dispatch as AppDispatch);
+
+        expect(accounts).toBe(initial);
+        expect(dispatch).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it.each([null, undefined, [], 'metadata', 1, {userID: null}])(
+      '[security-target][CAP-001] rejects malformed updates %j',
+      data => {
+        const dispatch = jest.fn();
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+          updateAccountData(generateUUID(), data)(dispatch);
+          expect(dispatch).not.toHaveBeenCalled();
+        } finally {
+          warn.mockRestore();
+        }
+      },
+    );
   });
 
   describe('switchAccount', () => {

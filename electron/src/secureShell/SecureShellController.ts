@@ -25,6 +25,7 @@ import {SECURE_SHELL_ORIGIN, SECURE_SHELL_RUNTIME_INFO_CAPABILITY} from './const
 import {createSecureAccountPartition, isAllowedAccountNavigation, parseSecureAccountUrl} from './policy';
 
 import {getLogger} from '../logging/getLogger';
+import {bindNavigationGuard} from '../security/NavigationGuard';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 const logger = getLogger(path.basename(__filename));
@@ -83,7 +84,7 @@ export class SecureShellController {
       webContents: shellWebContents,
     });
     this.revokeShellIdentity = shellRegistration.revoke;
-    shellWebContents.on('will-navigate', event => event.preventDefault());
+    bindNavigationGuard(shellWebContents, () => false);
     shellWebContents.setWindowOpenHandler(() => ({action: 'deny'}));
     window.on('resize', () => this.layoutAccountViews());
     window.on('closed', () => this.disposeAccountViews());
@@ -221,13 +222,7 @@ export class SecureShellController {
       webContents,
     });
 
-    const preventUnexpectedNavigation = (event: Event, url: string): void => {
-      if (!isAllowedAccountNavigation(url, this.accountUrl.origin)) {
-        event.preventDefault();
-      }
-    };
-    webContents.on('will-navigate', preventUnexpectedNavigation);
-    webContents.on('will-redirect', preventUnexpectedNavigation);
+    bindNavigationGuard(webContents, url => isAllowedAccountNavigation(url, this.accountUrl.origin));
     webContents.setWindowOpenHandler(() => ({action: 'deny'}));
     webContents.once('destroyed', () => this.registry.unregister(webContents.id));
     webContents.once('render-process-gone', () => {

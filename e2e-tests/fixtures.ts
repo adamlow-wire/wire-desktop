@@ -144,21 +144,18 @@ export const test = baseTest.extend<TestOptions & Fixtures>({
 
   createPage: async ({browser}, use) => {
     const contexts: BrowserContext[] = [];
-    const pages: Page[] = [];
 
     await use(async () => {
       const context = await browser.newContext();
       contexts.push(context);
 
       const page = await context.newPage();
-      pages.push(page);
       await page.goto('/'); // Open the base url to ensure the page starts in the same state as the app
 
       return page;
     });
 
-    // Close all pages created throughout the tests and dismiss before unload dialogs
-    await Promise.all(pages.map(page => page.close({runBeforeUnload: true})));
+    // Close test-owned contexts directly; asynchronous unload dialogs can race their destruction.
     await Promise.all(contexts.map(ctx => ctx.close()));
   },
 });
