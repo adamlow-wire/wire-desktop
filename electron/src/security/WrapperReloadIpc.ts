@@ -18,7 +18,7 @@
  */
 
 import {AuthorizedIpcContract, bindAuthorizedIpc} from './AuthorizedIpc';
-import {SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
+import {AuthorizedViewIdentity, SenderIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 import {
   MAX_WRAPPER_RELOAD_REQUESTS_PER_MINUTE,
   WRAPPER_RELOAD_CAPABILITY,
@@ -44,7 +44,7 @@ interface FailureLogger {
   error(message: string, error: unknown): void;
 }
 
-type ReloadBoundary = () => void;
+type ReloadBoundary = (identity: AuthorizedViewIdentity) => void | Promise<void>;
 
 const wrapperReloadContract: AuthorizedIpcContract<undefined, void> = Object.freeze({
   capability: WRAPPER_RELOAD_CAPABILITY,
@@ -72,4 +72,4 @@ export const bindWrapperReloadIpc = (
   ipc: IpcMainBinding,
   registry: ViewIdentityRegistry,
   reload: ReloadBoundary,
-): (() => void) => bindAuthorizedIpc(ipc, registry, wrapperReloadContract, () => reload());
+): (() => void) => bindAuthorizedIpc(ipc, registry, wrapperReloadContract, identity => reload(identity));

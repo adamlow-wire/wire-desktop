@@ -43,6 +43,7 @@ import {ACCOUNT_EVENT_CAPABILITY} from '../security/AccountEventContract';
 import {bindAccountEventIpc} from '../security/AccountEventIpc';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
+import {WRAPPER_RELOAD_CAPABILITY} from '../security/WrapperReloadContract';
 
 describe('production account controller integration', () => {
   let server: Server;
@@ -92,7 +93,7 @@ describe('production account controller integration', () => {
       registry,
       preload,
       additionalArguments: [],
-      capabilities: [ACCOUNT_EVENT_CAPABILITY],
+      capabilities: [ACCOUNT_EVENT_CAPABILITY, WRAPPER_RELOAD_CAPABILITY],
       configure: async () => undefined,
       lost: () => undefined,
     });
@@ -199,6 +200,69 @@ describe('production account controller integration', () => {
     assert.equal(sent.callCount, 0);
     await controller.menuAction(EVENT_TYPE.CONVERSATION.SEARCH);
     assert.deepEqual(sent.args, [[EVENT_TYPE.CONVERSATION.SEARCH]]);
+  });
+
+  it('[regression][CAP-001] routes version requests to the original account once ready', async () => {
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const firstSend = spy(first, 'send');
+    const secondSend = spy(second, 'send');
+    await controller.desktopAction(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, []);
+    await controller.select(records[1].id);
+    await controller.receive(identity(second), {type: 'loaded'});
+    assert.equal(secondSend.callCount, 0);
+    await controller.receive(identity(first), {type: 'loaded'});
+    assert.deepEqual(firstSend.args, [[EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION]]);
+    await assert.rejects(controller.desktopAction(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION, ['extra']));
+    assert.equal(secondSend.callCount, 0);
+  });
+
+  it('[regression][CAP-001] reloads every native account while preserving selection and sessions', async () => {
+    await controller.select(records[1].id);
+    const previous = records.map(account => views.get(account.id));
+    const sessions = previous.map(contents => contents.session);
+    for (let index = 0; index < sessions.length; index++) {
+      await sessions[index].cookies.set({url: origin, name: 'reload-owner', value: String(index)});
+    }
+    await controller.reloadAll(identity(previous[0]));
+    assert.equal(state.get(records[1].id).visible, true);
+    for (let index = 0; index < records.length; index++) {
+      const replacement = views.get(records[index].id);
+      assert.equal(previous[index].isDestroyed(), true);
+      assert.equal(replacement.session, sessions[index]);
+      assert.equal(
+        (await replacement.session.cookies.get({url: origin, name: 'reload-owner'}))[0].value,
+        String(index),
+      );
+    }
+  });
+
+  it('[security-target][CAP-001] rechecks queued reload authority before destroying any account', async () => {
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const pending = controller.reloadAll(identity(first));
+    registry.unregister(first.id);
+    await assert.rejects(pending, /authorized/);
+    assert.equal(views.get(records[0].id), first);
+    assert.equal(views.get(records[1].id), second);
+    assert.equal(first.isDestroyed(), false);
+    assert.equal(second.isDestroyed(), false);
+  });
+
+  it('[regression][CAP-001] reloads healthy accounts even when another account cannot restart', async () => {
+    const second = views.get(records[1].id);
+    options.destination = account => {
+      if (account.id === records[0].id) {
+        throw new Error('Unavailable destination');
+      }
+      return origin;
+    };
+    await assert.rejects(controller.reloadAll(), /Some accounts failed/);
+    assert.equal(views.has(records[0].id), false);
+    assert.equal(second.isDestroyed(), true);
+    assert.equal(views.has(records[1].id), true);
+    assert.equal(controller.snapshots()[0].loadError, 'Account loading failed.');
+    assert.equal(state.get(records[0].id).visible, true);
   });
 
   it('[migration][CAP-001] connects real shell controls to native view selection, unfinished-login reuse and cancellation', async () => {

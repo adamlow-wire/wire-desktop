@@ -64,7 +64,6 @@ import {downloadImage} from './lib/download';
 import {enumerateDesktopSources} from './lib/enumerateDesktopSources';
 import {EVENT_TYPE} from './lib/eventType';
 import {createFireAndForgetInvoker} from './lib/fireAndForgetInvoker';
-import {forwardWrapperReloadRequest} from './lib/forwardWrapperReloadRequest';
 import {deleteAccount} from './lib/LocalAccountDeletion';
 import {getOpenGraphDataAsync} from './lib/openGraph';
 import {showErrorDialog} from './lib/showDialog';
@@ -303,7 +302,12 @@ const bindIpcEvents = (): void => {
   );
 
   bindAccountDataDeletionIpc(ipcMain, viewIdentityRegistry, deleteAccount);
-  bindWrapperReloadIpc(ipcMain, viewIdentityRegistry, () => forwardWrapperReloadRequest(main.webContents));
+  bindWrapperReloadIpc(ipcMain, viewIdentityRegistry, identity => {
+    if (!accountController) {
+      throw new Error('Accounts are not initialized.');
+    }
+    return accountController.reloadAll(identity);
+  });
   bindWrapperRelaunchIpc(ipcMain, viewIdentityRegistry, lifecycle.relaunch);
 
   bindManagedConfigIpc(ipcMain, viewIdentityRegistry, getManagedConfig);
@@ -901,6 +905,7 @@ if (secureShellProof) {
 
   // Reloads the entire view when a `relaunch` is triggered (MacOS only, as other platform will quit and restart the app)
   lifecycle.addRelaunchListeners(async () => {
+    await accountController?.reloadAll();
     const mainURL = getMainWindowUrl();
     await main.loadURL(mainURL.href);
   });

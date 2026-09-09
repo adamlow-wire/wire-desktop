@@ -31,6 +31,7 @@ import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
 import {ACCOUNT_EVENT_CAPABILITY, AccountEvent} from '../security/AccountEventContract';
 import {isAllowedAccountNavigation, parseNetworkNavigation} from '../security/NavigationPolicy';
 import {AuthorizedViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
+import {WRAPPER_RELOAD_CAPABILITY} from '../security/WrapperReloadContract';
 
 export interface AccountControllerOptions {
   state: AccountState;
@@ -100,6 +101,9 @@ export class AccountController {
 
   // Called only by main-owned desktop controls, not by an IPC binder.
   desktopAction = async (channel: string, args: readonly unknown[]): Promise<void> => {
+    if (channel === EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION && args.length === 0) {
+      return this.selectedEvent(channel);
+    }
     if (channel === EVENT_TYPE.UI.SYSTEM_MENU && args.length === 1 && typeof args[0] === 'string') {
       return this.menuAction(args[0]);
     }
@@ -138,6 +142,10 @@ export class AccountController {
     if (!allowed.includes(action)) {
       return Promise.reject(new Error('Unknown desktop menu action.'));
     }
+    return this.selectedEvent(action);
+  };
+
+  private selectedEvent = (action: string): Promise<void> => {
     const id = this.snapshots().find(account => account.visible)!.id;
     return this.run(async () => {
       this.options.state.get(id);
@@ -176,6 +184,33 @@ export class AccountController {
       await this.ensureView(id);
       this.options.views.select(this.snapshots().find(account => account.visible)!.id);
     }, identity);
+
+  reloadAll = (identity?: AuthorizedViewIdentity): Promise<void> =>
+    this.run(
+      async () => {
+      const accounts = this.snapshots();
+        for (const account of accounts) {
+          this.resetMenu(account.id);
+          await this.options.views.close(account.id);
+        }
+        const results = await Promise.allSettled(accounts.map(account => this.ensureView(account.id)));
+        const selected = accounts.find(account => account.visible)!.id;
+        if (this.options.views.has(selected)) {
+          this.options.views.select(selected);
+        } else {
+          this.options.views.hide();
+        }
+        const errors = results.filter(result => result.status === 'rejected');
+        if (errors.length) {
+          throw new AggregateError(
+            errors.map(result => result.reason),
+            'Some accounts failed to reload.',
+          );
+        }
+      },
+      identity,
+      WRAPPER_RELOAD_CAPABILITY,
+    );
 
   logout = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(async () => {

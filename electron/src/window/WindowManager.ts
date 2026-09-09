@@ -61,6 +61,7 @@ export class WindowManager {
     const binding = WindowManager.nativeActions;
     const supported: string[] = [
       EVENT_TYPE.UI.SYSTEM_MENU,
+      EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION,
       EVENT_TYPE.ACTION.SWITCH_ACCOUNT,
       ...Object.values(EVENT_TYPE.EDIT),
     ];
