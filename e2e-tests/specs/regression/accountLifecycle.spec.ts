@@ -32,8 +32,12 @@ test(
   '[characterization][CAP-001] account controls preserve routing, cancellation and session isolation',
   {tag: ['@regression']},
   async ({}, testInfo) => {
-    const server = createServer((_request, response) => {
+    const server = createServer((request, response) => {
       response.setHeader('Content-Type', 'text/html');
+      if (request.url === '/storage-probe') {
+        response.end('<!doctype html><title>Storage probe</title>');
+        return;
+      }
       response.end(`<!doctype html><title>Account lifecycle fixture</title><script>
       window.events=[];
       addEventListener(${JSON.stringify(
@@ -48,6 +52,12 @@ test(
     const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'];
     const partitionId = '33333333-3333-4333-8333-333333333333';
+    const readStorage = `(async () => ({
+      local: localStorage.getItem('cap001-cleanup'),
+      cached: await caches.has('cap001-cleanup')
+        ? await (await (await caches.open('cap001-cleanup')).match('/marker')).text() : null,
+      databases: (await indexedDB.databases()).map(database => database.name),
+    }))()`;
     const launch = () =>
       _electron.launch({
         chromiumSandbox: true,
@@ -145,13 +155,36 @@ test(
       ).toBe(false);
       await app.evaluate(
         async ({session}, {origin, partitionId}) => {
-          await session.defaultSession.cookies.set({url: origin, name: 'marker', value: 'first'});
-          await session
-            .fromPartition(`persist:${partitionId}`)
-            .cookies.set({url: origin, name: 'marker', value: 'second'});
+          const cookie = {url: origin, name: 'marker', expirationDate: Date.now() / 1000 + 3600};
+          await session.defaultSession.cookies.set({...cookie, value: 'first'});
+          await session.fromPartition(`persist:${partitionId}`).cookies.set({...cookie, value: 'second'});
         },
         {origin, partitionId},
       );
+      const seeded = await app.evaluate(
+        async ({webContents}, {origin, ids, readStorage}) => {
+          const result = [];
+          for (const id of ids) {
+            const contents = webContents.getAllWebContents().find(contents => {
+              const url = new URL(contents.getURL());
+              return url.origin === origin && url.searchParams.get('id') === id;
+            })!;
+            await contents.executeJavaScript(`(async () => {
+              localStorage.setItem('cap001-cleanup', ${JSON.stringify(id)});
+              await (await caches.open('cap001-cleanup')).put('/marker', new Response(${JSON.stringify(id)}));
+              await new Promise((resolve, reject) => {
+                const request = indexedDB.open('cap001-cleanup', 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => { request.result.close(); resolve(); };
+              });
+            })()`);
+            result.push(await contents.executeJavaScript(readStorage));
+          }
+          return result;
+        },
+        {origin, ids, readStorage},
+      );
+      expect(seeded).toEqual(ids.map(id => ({local: id, cached: id, databases: ['cap001-cleanup']})));
 
       await shell.locator(`[data-account-id="${ids[1]}"]`).click();
       await expect(shell.locator(`[data-account-id="${ids[1]}"] [data-uie-name="item-selected"]`)).toBeVisible();
@@ -283,6 +316,46 @@ test(
           [],
           [{name: WebAppEvents.CONVERSATION.JOIN, args: [{code: 'ordered-code', key: 'ordered-key', domain: null}]}],
         ]);
+
+      // [migration][DCP-004] Verify actual persistent data after the owning app exits and restarts.
+      await app.close();
+      app = undefined;
+      app = await launch();
+      await expect.poll(readAccounts).toEqual([ids[0], newAccountId].sort().map(id => ({id, loading: false})));
+      const restarted = await app.evaluate(
+        async ({BrowserWindow, session}, {origin, partitionId, readStorage}) => {
+          const result = [];
+          for (const owned of [session.defaultSession, session.fromPartition(`persist:${partitionId}`)]) {
+            const probe = new BrowserWindow({
+              show: false,
+              webPreferences: {
+                session: owned,
+                sandbox: true,
+                contextIsolation: true,
+                nodeIntegration: false,
+                webviewTag: false,
+              },
+            });
+            try {
+              await probe.loadURL(`${origin}/storage-probe`);
+              result.push({
+                storage: await probe.webContents.executeJavaScript(readStorage),
+                cookies: (await owned.cookies.get({url: origin, name: 'marker'})).map(cookie => cookie.value),
+              });
+            } finally {
+              const destroyed = new Promise<void>(resolve => probe.webContents.once('destroyed', () => resolve()));
+              probe.destroy();
+              await destroyed;
+            }
+          }
+          return result;
+        },
+        {origin, partitionId, readStorage},
+      );
+      expect(restarted).toEqual([
+        {storage: {local: ids[0], cached: ids[0], databases: ['cap001-cleanup']}, cookies: ['first']},
+        {storage: {local: null, cached: null, databases: []}, cookies: []},
+      ]);
     } finally {
       if (app) {
         await app.close();

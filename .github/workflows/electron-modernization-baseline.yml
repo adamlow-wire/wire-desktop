@@ -53,6 +53,14 @@ jobs:
           else
             yarn electron-mocha --require .babel-register.js "electron/src/secureShell/**/*.test.main.ts" --no-sandbox
           fi
+      - name: Test native account lifecycle and cleanup
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+          else
+            yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+          fi
       - name: Test sandboxed product boundaries
         shell: bash
         run: |
