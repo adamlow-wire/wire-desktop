@@ -36,6 +36,25 @@ const createDependencies = (isWindows: boolean) => {
 };
 
 describe('download location update', () => {
+  it('[CAP-005] persists the same normalized relative path used for directory creation', () => {
+    const {calls, dependencies} = createDependencies(true);
+    updateDownloadLocation('Documents//Wire Files', dependencies);
+    assert.deepStrictEqual(calls, [
+      'ensure:C:\\Users\\wire\\Documents\\Wire Files',
+      'save:Documents\\Wire Files',
+      'persist',
+    ]);
+  });
+
+  for (const downloadPath of ['..\\outside', 'C:\\outside', '\\\\server\\share', 'NUL.txt', 'folder:stream']) {
+    it(`[security-target][CAP-005] rejects unsafe Windows download path ${JSON.stringify(downloadPath)}`, () => {
+      const {calls, dependencies} = createDependencies(true);
+
+      assert.throws(() => updateDownloadLocation(downloadPath, dependencies));
+      assert.deepStrictEqual(calls, []);
+    });
+  }
+
   it('[characterization][CAP-005] preserves nested Windows directory names and spaces', () => {
     const {calls, dependencies} = createDependencies(true);
 

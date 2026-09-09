@@ -2,13 +2,13 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-09
 milestone: M3
-active_work_item: SEC-012
-state: preview-synchronized-validation
+active_work_item: CAP-005
+state: download-path-containment-validation
 integration_branch: integration/electron-modernization
 integration_head_commit: 9c188bf1891fd9179d447acd5fcc6df857afec4f
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: sec/SEC-012-preview-fetch-2026-09-08
+active_branch: cap/CAP-005-download-path-2026-09-09
 next_work_item: SEC-007
 blockers: []
 ---
@@ -48,7 +48,11 @@ PR #43 local combined validation: 431 native tests, zero pending; 94 React, 4 re
 
 ## Next executable work
 
+Active CAP-005 branch stacks on PR #44; do not publish its dependency changes as a duplicate integration PR. Baseline `08135866` adds directory-preparation failure and nested-folder characterization: 6 pass, temporary skipped-preparation mutation causes 3 failures, restored baseline passes. Five unsafe-path targets then fail on the old implementation before the new policy. Implementation adds normalized path validation, linked-component checks, startup fail-closed behavior and download-start revalidation. Full validation, sensitivity checks and native Windows junction evidence remain required; certificate/backend obligations remain open. PR #44 final head is `8a7af56b`; [packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34325903440) and [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34325903416) are running.
+
 PR #44 synchronized with merged CSP on September 9: 530 main tests (zero pending), 4 renderer, 97 React and 38 tools pass. Application/Mocha types and fresh diff coverage pass: 176/180 changed statements (97.78%) and 114/121 security branches (94.21%). The synchronized head still requires hosted gates; initial-head results do not substitute for them.
+
+CAP-005 local validation: 598 main tests (zero pending), 4 renderer and 97 React pass. Separate link-policy and download-start sensitivity checks fail before restoration (the isolated start-check mutation produces one expected failure); both protections are restored. Native Windows junction coverage is wired into package baselines, not claimed from Linux. Remaining local tooling/committed-diff and product checks must finish before publication.
 
 Rebuilt sandboxed product metadata/navigation tests pass 2/2 in 7.9 seconds, and the separately invoked `fixtureCleanup.spec.ts` passes in 2.0 seconds on Linux. CAP-001 lifecycle baseline is committed separately as `6d20d3fa` on `cap/CAP-001-production-accounts-2026-09-09`; routing perturbation failed and restoration passed before commit. Do not lose that branch when synchronizing dependencies.
 
