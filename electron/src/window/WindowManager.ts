@@ -72,10 +72,8 @@ export class WindowManager {
 
   static flushActionsQueue() {
     const actions = WindowManager.actionsQueue;
-    if (actions) {
-      actions.forEach(({action, args}) => this.sendActionToPrimaryWindow(action, ...args));
-      WindowManager.actionsQueue = [];
-    }
+    WindowManager.actionsQueue = [];
+    actions.forEach(({action, args}) => this.sendActionToPrimaryWindow(action, ...args));
   }
 
   static async sendActionAndFocusWindow(action: string, ...args: any[]): Promise<void> {

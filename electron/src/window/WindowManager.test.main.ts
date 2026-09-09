@@ -44,4 +44,23 @@ describe('WindowManager queued actions', () => {
     assert.deepStrictEqual(sendAction.secondCall.args, ['action:second', {conversationId: 'conversation-a'}]);
     assert.deepStrictEqual(WindowManager.actionsQueue, []);
   });
+
+  it('[regression][DCP-010][CAP-001] retains actions queued during a flush for the next flush', () => {
+    const sendAction = spy(() => {
+      if (sendAction.callCount === 1) {
+        WindowManager.actionsQueue.push({action: 'action:later', args: ['account-b']});
+      }
+    });
+    replace(WindowManager, 'sendActionToPrimaryWindow', sendAction);
+    WindowManager.actionsQueue = [{action: 'action:first', args: ['account-a']}];
+
+    WindowManager.flushActionsQueue();
+
+    sinonAssert.calledOnce(sendAction);
+    assert.deepStrictEqual(WindowManager.actionsQueue, [{action: 'action:later', args: ['account-b']}]);
+    WindowManager.flushActionsQueue();
+    sinonAssert.calledTwice(sendAction);
+    assert.deepStrictEqual(sendAction.secondCall.args, ['action:later', 'account-b']);
+    assert.deepStrictEqual(WindowManager.actionsQueue, []);
+  });
 });
