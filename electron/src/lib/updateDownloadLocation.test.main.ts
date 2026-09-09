@@ -36,6 +36,38 @@ const createDependencies = (isWindows: boolean) => {
 };
 
 describe('download location update', () => {
+  it('[characterization][CAP-005] preserves nested Windows directory names and spaces', () => {
+    const {calls, dependencies} = createDependencies(true);
+
+    updateDownloadLocation('Documents\\Wire Files', dependencies);
+
+    assert.deepStrictEqual(calls, [
+      'ensure:C:\\Users\\wire\\Documents\\Wire Files',
+      'save:Documents\\Wire Files',
+      'persist',
+    ]);
+  });
+
+  it('[characterization][CAP-005] never persists a directory that could not be prepared', () => {
+    const {calls, dependencies} = createDependencies(true);
+    dependencies.ensureDirectory = () => {
+      throw new Error('Directory unavailable');
+    };
+
+    assert.throws(() => updateDownloadLocation('downloads', dependencies), /Directory unavailable/);
+    assert.deepStrictEqual(calls, []);
+  });
+
+  it('[characterization][CAP-005] rejects a failed path resolution before any side effect', () => {
+    const {calls, dependencies} = createDependencies(true);
+    dependencies.resolvePath = () => {
+      throw new Error('Path rejected');
+    };
+
+    assert.throws(() => updateDownloadLocation('downloads', dependencies), /Path rejected/);
+    assert.deepStrictEqual(calls, []);
+  });
+
   it('[characterization][CAP-005] creates and persists a configured Windows download directory', () => {
     const {calls, dependencies} = createDependencies(true);
 
