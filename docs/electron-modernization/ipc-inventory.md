@@ -6,6 +6,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 
 | Operation | Current expected sender | Risk / side effect | State | Owning follow-up |
 | --- | --- | --- | --- | --- |
+| `wire-desktop:accounts:control:v1` | application shell | Fixed read/add/select/remove controls; main-owned IDs and private display snapshots | CAP-001 draft binder and allow/deny tests; not yet registered in production | SEC-007, CAP-001 |
 | `wire-desktop:secure-shell:runtime-info:v1` | secure account proof | Runtime metadata read | merged in PR #14 | SEC-003 |
 | `wire-desktop:safe-storage:encrypt:v1` | account | OS key-store encryption | merged in PR #15 | SEC-003, DCP-016 |
 | `wire-desktop:safe-storage:decrypt:v1` | account | OS key-store decryption | merged in PR #15 | SEC-003, DCP-016 |
