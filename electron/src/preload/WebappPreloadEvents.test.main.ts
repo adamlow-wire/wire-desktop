@@ -72,6 +72,28 @@ describe('webapp preload event routing', () => {
     return {calls, emit, preloadEvents, setVersions: (value: typeof versions) => (versions = value)};
   };
 
+  it('[regression][CAP-001][CAP-006] delivers non-federated conversation joins using the webapp domain fallback', () => {
+    for (const data of [
+      {code: 'code', key: 'key'},
+      {code: 'code', key: 'key', domain: null},
+    ]) {
+      const {calls, emit, preloadEvents} = createHarness();
+      preloadEvents.subscribeToMainProcessEvents();
+      emit(WebAppEvents.CONVERSATION.JOIN, data);
+      const delivered = calls.filter(call => call.name === `dispatch:${WebAppEvents.CONVERSATION.JOIN}`);
+      assert.deepStrictEqual(
+        delivered.map(call => call.args[0]),
+        [{...data, domain: data.domain}],
+      );
+    }
+    for (const domain of [42, {}, []]) {
+      const {calls, emit, preloadEvents} = createHarness();
+      preloadEvents.subscribeToMainProcessEvents();
+      emit(WebAppEvents.CONVERSATION.JOIN, {code: 'code', key: 'key', domain});
+      assert.equal(calls.some(call => call.name === `dispatch:${WebAppEvents.CONVERSATION.JOIN}`), false);
+    }
+  });
+
   it('[characterization][security-target][INV-002][SEC-005] preserves named webapp-to-shell capabilities', () => {
     const {calls, preloadEvents} = createHarness();
 

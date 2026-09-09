@@ -48,7 +48,7 @@ const accountSchema = Joi.object({
   conversationJoinData: Joi.object({
     code: Joi.string().max(8192).required(),
     key: Joi.string().max(8192).required(),
-    domain: Joi.string().allow('').max(253).required(),
+    domain: Joi.string().allow('', null).max(253),
   }),
 });
 

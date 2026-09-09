@@ -86,6 +86,16 @@ describe('main-owned account profile', () => {
     assert.deepEqual(fs.readdirSync(directory), ['accounts-v1.json']);
   });
 
+  it('[migration][CAP-001] preserves pending non-federated join links without inventing a domain', () => {
+    for (const data of [
+      {code: 'code', key: 'key'},
+      {code: 'code', key: 'key', domain: null},
+    ]) {
+      const accounts = parseLegacyAccounts(JSON.stringify({accounts: [{id: ids[0], conversationJoinData: data}]}), 3);
+      assert.deepEqual(accounts[0].conversationJoinData, data);
+    }
+  });
+
   it('[migration][CAP-001] reloads main-owned selection and new partitions without reimporting stale state', () => {
     const filename = path.join(directory, 'accounts-v1.json');
     const profile = new AccountProfile(filename, 3);

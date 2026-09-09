@@ -97,6 +97,8 @@ test(
       await expect(shell.locator(`[data-account-id="${ids[1]}"] [data-uie-name="item-selected"]`)).toBeVisible();
       await shell.evaluate(async ([first, second]) => {
         await window.sendConversationJoinToHost(first, 'code', 'key', 'example.com');
+        await window.sendConversationJoinToHost(first, 'local-code', 'local-key');
+        await window.sendConversationJoinToHost(first, 'null-code', 'null-key', null);
         await window.sendLogoutAccount(second);
       }, ids);
       await expect
@@ -123,7 +125,11 @@ test(
           ),
         )
         .toEqual([
-          [{name: WebAppEvents.CONVERSATION.JOIN, args: [{code: 'code', key: 'key', domain: 'example.com'}]}],
+          [
+            {name: WebAppEvents.CONVERSATION.JOIN, args: [{code: 'code', key: 'key', domain: 'example.com'}]},
+            {name: WebAppEvents.CONVERSATION.JOIN, args: [{code: 'local-code', key: 'local-key', domain: undefined}]},
+            {name: WebAppEvents.CONVERSATION.JOIN, args: [{code: 'null-code', key: 'null-key', domain: null}]},
+          ],
           [{name: WebAppEvents.LIFECYCLE.ASK_TO_CLEAR_DATA, args: []}],
         ]);
 

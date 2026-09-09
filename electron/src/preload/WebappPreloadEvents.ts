@@ -148,7 +148,7 @@ export const createWebappPreloadEvents = ({
         isRecord(value) &&
         typeof value.code === 'string' &&
         typeof value.key === 'string' &&
-        typeof value.domain === 'string'
+        (value.domain === undefined || value.domain === null || typeof value.domain === 'string')
       ) {
         mainWorld.dispatch(WebAppEvents.CONVERSATION.JOIN, {
           code: value.code,
