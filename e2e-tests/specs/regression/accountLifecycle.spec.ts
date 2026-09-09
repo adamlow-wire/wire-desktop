@@ -24,6 +24,8 @@ import type {AddressInfo} from 'node:net';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
+import {seedLegacyAccountProfile} from '../../utils/seedLegacyAccountProfile';
+
 test(
   '[characterization][CAP-001] account controls preserve routing, cancellation and session isolation',
   {tag: ['@regression']},
@@ -62,37 +64,24 @@ test(
         origin,
       );
     try {
-      app = await launch();
-      let shell = await app.firstWindow();
-      await expect.poll(readAccounts).toHaveLength(1);
-      await shell.evaluate(
-        ({ids, partitionId, origin}) => {
-          localStorage.setItem(
-            'state',
-            JSON.stringify({
-              accounts: ids.map((id, index) => ({
-                id,
-                userID: id,
-                accountIndex: index,
-                sessionID: index ? partitionId : undefined,
-                badgeCount: 0,
-                darkMode: true,
-                isAdding: false,
-                name: `Account ${index}`,
-                teamRole: 'member',
-                visible: !index,
-                webappUrl: origin,
-              })),
-              contextMenuState: {accountId: '', isAtLeastAdmin: false, position: {centerX: 0, centerY: 0}},
-            }),
-          );
-        },
-        {ids, partitionId, origin},
+      await seedLegacyAccountProfile(
+        testInfo.outputPath('profile'),
+        ids.map((id, index) => ({
+          id,
+          userID: id,
+          accountIndex: index,
+          sessionID: index ? partitionId : undefined,
+          badgeCount: 0,
+          darkMode: true,
+          isAdding: false,
+          name: `Account ${index}`,
+          teamRole: 'member',
+          visible: !index,
+          webappUrl: origin,
+        })),
       );
-      await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].webContents.session.flushStorageData());
-      await app.close();
       app = await launch();
-      shell = await app.firstWindow();
+      const shell = await app.firstWindow();
       await expect.poll(readAccounts).toEqual(ids.map(id => ({id, loading: false})));
       await app.evaluate(
         async ({session}, {origin, partitionId}) => {

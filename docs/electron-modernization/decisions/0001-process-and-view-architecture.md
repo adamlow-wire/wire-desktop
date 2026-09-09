@@ -13,7 +13,7 @@ supersedes: []
 
 ## Context
 
-The current local renderer creates DOM `<webview>` elements for remote account content. Its remote preload is unsandboxed, context isolation is disabled, `@electron/remote` is enabled, and main-process code infers view/account identity from mutable renderer-visible state. Electron recommends avoiding `<webview>`, and the target invariants require main-owned identity and capability boundaries.
+At the start of modernization, the local renderer created DOM `<webview>` elements for remote account content, the remote preload was unsandboxed, context isolation was disabled, and `@electron/remote` was enabled. SEC-002–006 have since added registered authority, isolated bridges and sandboxing and removed remote; production account view creation and state still need the cutover below. Electron recommends avoiding `<webview>`, and the target invariants require main-owned identity and capability boundaries.
 
 ## Options considered
 
@@ -40,6 +40,7 @@ Each account view:
 
 - Is created and destroyed only by the main process.
 - Uses a unique main-generated persistent partition bound to one account record.
+- Preserves an existing profile's validated default-session or `persist:UUID` mapping during one-time migration; never silently generates replacement partitions for existing logins. New accounts receive main-generated isolated partitions.
 - Runs sandboxed and context-isolated with Node integration and `<webview>` disabled.
 - Has a minimal versioned preload bridge whose capability set is registered before navigation.
 - Is authorized by exact `WebContents` and frame identity; account IDs supplied by renderer payloads are never authoritative.
