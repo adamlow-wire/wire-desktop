@@ -35,7 +35,7 @@ interface ApplicationShellBridgeDependencies {
 
 export interface ApplicationShellBridge {
   sendBadgeCount(count: number, ignoreFlash: boolean): void;
-  sendConversationJoinToHost(accountId: string, code: string, key: string, domain?: string): Promise<void>;
+  sendConversationJoinToHost(accountId: string, code: string, key: string, domain?: string | null): Promise<void>;
   sendDeleteAccount(accountId: string, sessionId?: string): Promise<void>;
   sendLogoutAccount(accountId: string): Promise<void>;
   submitDeepLink(url: string): void;
@@ -61,7 +61,7 @@ export const createApplicationShellBridge = (
       accountId: string,
       code: string,
       key: string,
-      domain?: string,
+      domain?: string | null,
     ): Promise<void> => {
       dependencies.log(`Sending conversation join data to webview for account "${truncate(accountId, {length: 5})}".`);
       await dependencies.sendToAccount(accountId, WebAppEvents.CONVERSATION.JOIN, {code, key, domain});

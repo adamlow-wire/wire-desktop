@@ -17,322 +17,42 @@
  *
  */
 
-import {useEffect, useRef, useState} from 'react';
+import {useEffect} from 'react';
 
 import {SVGIcon} from '@wireapp/react-ui-kit/lib/Icon/SVGIcon';
-import {connect} from 'react-redux';
 
-import {ContainerSM, COLOR, H1, Logo, Text, TextLink} from '@wireapp/react-ui-kit';
+import {ContainerSM, H1, Logo, Text, TextLink} from '@wireapp/react-ui-kit';
 
 import './Webview.css';
 
-import {EVENT_TYPE} from '../../../../src/lib/eventType';
-import {
-  abortAccountCreation,
-  resetIdentity,
-  setConversationJoinData,
-  updateAccountBadgeCount,
-  updateAccountData,
-  updateAccountLifecycle,
-  updateAccountDarkMode,
-} from '../../actions';
-import {accountAction} from '../../actions/AccountAction';
-import {State} from '../../index';
-import {getText, wrapperLocale} from '../../lib/locale';
-import {WindowUrl} from '../../lib/WindowUrl';
-import {AccountSelector} from '../../selector/AccountSelector';
-import {Account, ConversationJoinData} from '../../types/account';
-import {isAccount, isBoolean, isConversationJoinData, isNumber, isString} from '../../types/guards';
+import {getText} from '../../lib/locale';
+import {Account} from '../../types/account';
 import {LoadingSpinner} from '../LoadingSpinner';
 import {NoUrlConfigured} from '../NoUrlConfigured/NoUrlConfigured';
 
-type WebviewTag = Electron.WebviewTag;
-type DidFailLoadEvent = Electron.DidFailLoadEvent;
-
-const isNoUrlConfigured = () => {
+const Webview = ({account}: {account: Account}) => {
   const currentLocation = new URL(window.location.href);
-  return currentLocation.searchParams.get('noUrlConfigured') === 'true';
-};
-
-const getEnvironmentUrl = (account: Account) => {
-  const currentLocation = new URL(window.location.href);
-  const envParam = account.webappUrl || currentLocation.searchParams.get('env');
-  const decodedEnvParam = decodeURIComponent(envParam!);
-  const url = new URL(decodedEnvParam);
-
-  // pass account id to webview, so we can access it in the preload script
-  url.searchParams.set('id', account.id);
-
-  // set the current language
-  url.searchParams.set('hl', wrapperLocale);
-
-  if (account.ssoCode && account.isAdding) {
-    url.pathname = '/auth';
-    url.hash = `#sso/${account.ssoCode}`;
-  }
-
-  return url.href;
-};
-
-interface WebviewProps {
-  abortAccountCreation: (accountId: string) => void;
-  account: Account;
-  accountIndex: number;
-  accountLifecycle?: string;
-  conversationJoinData?: ConversationJoinData;
-  onUnreadCountUpdated: (accountId: string, badgeCount: number) => void;
-  resetIdentity: (accountId: string) => void;
-  setConversationJoinData: (accountId: string, data?: ConversationJoinData) => void;
-  switchWebview: (accountIndex: number) => void;
-  updateAccountDarkMode: (accountId: string, darkMode: boolean) => void;
-  updateAccountData: (accountId: string, data: Partial<Account>) => void;
-  updateAccountLifecycle: (accountId: string, channel: string) => void;
-}
-
-const ON_IPC_MESSAGE = 'ipc-message';
-const ON_WEBVIEW_ERROR = 'did-fail-load';
-
-const Webview = ({
-  abortAccountCreation,
-  account,
-  accountIndex,
-  accountLifecycle,
-  conversationJoinData,
-  onUnreadCountUpdated,
-  resetIdentity,
-  setConversationJoinData,
-  switchWebview,
-  updateAccountData,
-  updateAccountLifecycle,
-  updateAccountDarkMode,
-}: WebviewProps) => {
-  const noUrlConfigured = isNoUrlConfigured();
-  const webviewRef = useRef<WebviewTag | null>(null);
-  const [canDelete, setCanDelete] = useState(false);
-  const [url, setUrl] = useState(noUrlConfigured ? '' : getEnvironmentUrl(account));
-  const [webviewError, setWebviewError] = useState<DidFailLoadEvent | null>(null);
-
+  const noUrlConfigured = currentLocation.searchParams.get('noUrlConfigured') === 'true';
+  const canDelete = !!account.canCancel;
+  const webviewError = account.loadError
+    ? {
+        validatedURL: account.webappUrl || decodeURIComponent(currentLocation.searchParams.get('env') || ''),
+        errorDescription: account.loadError,
+      }
+    : null;
   useEffect(() => {
-    if (noUrlConfigured) {
+    if (!account.visible) {
       return;
     }
-    const newUrl = getEnvironmentUrl(account);
-    console.info(`Loading WebApp URL "${newUrl}" ...`);
-    if (url !== newUrl && webviewRef.current) {
-      setUrl(newUrl);
-      try {
-        webviewRef.current
-          .loadURL(newUrl)
-          .catch((error: any) => console.error(`Navigating to ${newUrl} failed`, error));
-      } catch (error) {
-        console.warn('Can not #loadURL before attaching webview to DOM', error);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account]);
-
-  // https://github.com/electron/electron/issues/14474#issuecomment-425794480
-  useEffect(() => {
-    const webview = webviewRef.current;
-    const currentLocation = new URL(window.location.href);
-    const focusParam = currentLocation.searchParams.get('focus');
-
-    const focusWebView = () => {
-      if (focusParam === 'true') {
-        webview?.blur();
-        webview?.focus();
-      }
-    };
-
-    if (account.visible && webview) {
-      webview.addEventListener('dom-ready', focusWebView);
-    }
-    return () => {
-      if (webview) {
-        webview.removeEventListener('dom-ready', focusWebView);
-      }
-    };
-  }, [account, webviewRef]);
-
-  useEffect(() => {
-    setCanDelete(!account.userID && !!account.sessionID);
-  }, [account]);
-
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout | number;
-    if (webviewError) {
-      timeoutId = window.setTimeout(() => {
-        setWebviewError(null);
-        webviewRef.current?.reload();
-      }, 5000);
-    }
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [webviewError]);
-
-  useEffect(() => {
-    const webview = webviewRef.current;
-    if (noUrlConfigured) {
-      return;
-    }
-    const listener = (error: DidFailLoadEvent) => {
-      const urlOrigin = new URL(getEnvironmentUrl(account)).origin;
-      console.warn(`Webview fired "did-fail-load" for URL "${error.validatedURL}" and account ID "${account.id}"`);
-      if (error.validatedURL.startsWith(urlOrigin)) {
-        setWebviewError(error);
-      }
-    };
-    webview?.addEventListener(ON_WEBVIEW_ERROR, listener);
-
-    return () => {
-      if (webview) {
-        webview.removeEventListener(ON_WEBVIEW_ERROR, listener);
-      }
-    };
-  }, [webviewRef, account, noUrlConfigured]);
-
-  useEffect(() => {
-    const onIpcMessage = ({channel, args}: {args: unknown[]; channel: string}) => {
-      const accountId = account.id;
-
-      switch (channel) {
-        case EVENT_TYPE.WRAPPER.NAVIGATE_WEBVIEW: {
-          const [customUrl] = args;
-
-          if (isString(customUrl)) {
-            try {
-              const updatedWebapp = WindowUrl.createWebAppUrl(window.location.toString(), customUrl);
-              updateAccountData(accountId, {
-                webappUrl: updatedWebapp,
-              });
-            } catch (error) {
-              console.warn(`Ignoring invalid WebApp navigation URL "${customUrl}"`, error);
-            }
-          }
-          break;
-        }
-
-        case EVENT_TYPE.ACCOUNT.UPDATE_INFO: {
-          const [accountData] = args;
-          if (isAccount(accountData)) {
-            updateAccountData(account.id, accountData);
-          }
-          break;
-        }
-
-        case EVENT_TYPE.ACTION.NOTIFICATION_CLICK: {
-          switchWebview(accountIndex);
-          break;
-        }
-
-        case EVENT_TYPE.LIFECYCLE.SIGNED_IN: {
-          if (conversationJoinData) {
-            const {code, key, domain} = conversationJoinData;
-            window.sendConversationJoinToHost(accountId, code, key, domain);
-            setConversationJoinData(accountId, undefined);
-          }
-          updateAccountLifecycle(accountId, channel);
-          break;
-        }
-
-        case EVENT_TYPE.LIFECYCLE.SIGN_OUT: {
-          updateAccountLifecycle(accountId, channel);
-          break;
-        }
-
-        case EVENT_TYPE.LIFECYCLE.SIGNED_OUT: {
-          const [clearData] = args;
-
-          if (isBoolean(clearData)) {
-            if (clearData) {
-              deleteWebview(account);
-            } else {
-              resetIdentity(accountId);
-            }
-          }
-          break;
-        }
-
-        case EVENT_TYPE.ACTION.JOIN_CONVERSATION: {
-          const [data] = args;
-
-          if (isConversationJoinData(data)) {
-            if (accountLifecycle === EVENT_TYPE.LIFECYCLE.SIGNED_IN) {
-              window.sendConversationJoinToHost(accountId, data.code, data.key, data.domain);
-              setConversationJoinData(accountId, undefined);
-            } else {
-              setConversationJoinData(accountId, data);
-            }
-          }
-          break;
-        }
-
-        case EVENT_TYPE.LIFECYCLE.UNREAD_COUNT: {
-          const [badgeCount] = args;
-          if (isNumber(badgeCount)) {
-            onUnreadCountUpdated(accountId, badgeCount);
-          }
-          break;
-        }
-
-        case EVENT_TYPE.UI.THEME_UPDATE: {
-          const [theme] = args;
-
-          if (isString(theme)) {
-            const darkMode = theme === 'dark';
-            if (darkMode !== account.darkMode) {
-              updateAccountDarkMode(account.id, darkMode);
-            }
-          }
-          break;
-        }
-      }
-    };
-
-    const webview = webviewRef.current;
-
-    webviewRef.current?.addEventListener(ON_IPC_MESSAGE, onIpcMessage);
-
-    return () => {
-      if (webview) {
-        webview.removeEventListener(ON_IPC_MESSAGE, onIpcMessage);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, accountLifecycle, conversationJoinData]);
-
-  const deleteWebview = (account: Account) => {
-    window.sendDeleteAccount(account.id, account.sessionID).then(() => {
-      abortAccountCreation(account.id);
-    });
-  };
-
+    const sidebarWidth = document.querySelector('.Sidebar')?.getBoundingClientRect().width ?? 0;
+    void window.wireAccounts.layout(Math.round(sidebarWidth), canDelete ? 56 : 0).catch(console.error);
+  }, [account.visible, canDelete, account.userID]);
   if (noUrlConfigured) {
     return <NoUrlConfigured accountId={account.id} visible={account.visible} />;
   }
-
   return (
     <>
-      <LoadingSpinner visible={!!account.visible} webviewRef={webviewRef} />
-
-      <webview
-        /* Eslint disabled because we're missing webview types */
-        /* eslint-disable react/no-unknown-property */
-        // @ts-ignore allowpopups need string boolean value
-        allowpopups="true"
-        className={`Webview${account.visible ? '' : ' hide'}`}
-        data-accountid={account.id}
-        // @ts-ignore Type doesn't exist there, keep it to not broke functionality
-        visible={String(!!account.visible)}
-        src={url}
-        partition={account.sessionID ? `persist:${account.sessionID}` : ''}
-        webpreferences="backgroundThrottling=false"
-        ref={webviewRef}
-        style={{backgroundColor: COLOR.GRAY_LIGHTEN_88}}
-        tabIndex={account.visible ? 0 : -1}
-      />
-
+      <LoadingSpinner visible={account.visible} isLoading={!!account.isLoading} />
       {webviewError && (
         <div
           className={`Webview${account.visible ? '' : ' hide'}`}
@@ -376,8 +96,7 @@ const Webview = ({
               center
               style={{marginTop: '32px'}}
               onClick={() => {
-                setWebviewError(null);
-                webviewRef.current?.reload();
+                void window.wireAccounts.reload(account.id).catch(console.error);
               }}
             >
               {getText('webviewErrorRetryAction')}
@@ -388,7 +107,11 @@ const Webview = ({
 
       {canDelete && account.visible && (
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions
-        <div className="Webview-close" onClick={() => deleteWebview(account)} data-uie-name="do-close-webview">
+        <div
+          className="Webview-close"
+          onClick={() => void window.wireAccounts.remove(account.id).catch(console.error)}
+          data-uie-name="do-close-webview"
+        >
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path
               d="M2.757 14.657L8 9.414l5.243 5.243 1.414-1.414L9.414 8l5.243-5.243-1.414-1.414L8 6.586 2.757 1.343 1.343 2.757 6.586 8l-5.243 5.243"
@@ -401,24 +124,4 @@ const Webview = ({
   );
 };
 
-type Props = {
-  account: Account;
-};
-
-export default connect(
-  (state: State, props: Props) => ({
-    accountIndex: AccountSelector.getAccountIndex(state, props.account.id),
-    accountLifecycle: AccountSelector.getAccountLifecycle(state, props.account.id),
-    conversationJoinData: AccountSelector.getConversationJoinData(state, props.account.id),
-  }),
-  {
-    abortAccountCreation,
-    resetIdentity,
-    setConversationJoinData,
-    switchWebview: accountAction.switchWebview,
-    updateAccountBadgeCount,
-    updateAccountDarkMode,
-    updateAccountData,
-    updateAccountLifecycle,
-  },
-)(Webview);
+export default Webview;

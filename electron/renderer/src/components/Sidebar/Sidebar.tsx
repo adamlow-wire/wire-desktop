@@ -17,33 +17,22 @@
  *
  */
 
-import React, {CSSProperties, useEffect, useRef} from 'react';
+import React, {CSSProperties} from 'react';
 
 import {connect} from 'react-redux';
 
 import './Sidebar.css';
 
 import {EVENT_TYPE} from '../../../../src/lib/eventType';
-import {addAccountWithSession, setAccountContextHidden, toggleEditAccountMenuVisibility} from '../../actions';
 import {State} from '../../index';
 import {colorFromId} from '../../lib/accentColor';
 import {isEnterKey} from '../../lib/keyboardUtil';
 import {getText} from '../../lib/locale';
 import {preventFocus} from '../../lib/util';
 import {AccountSelector} from '../../selector/AccountSelector';
-import {ContextMenuSelector} from '../../selector/ContextMenuSelector';
 import {Account} from '../../types/account';
-import {ContextMenuState} from '../../types/contextMenuState';
 import {AccountIcon} from '../AccountIcon';
 import AddAccountTrigger from '../context/AddAccountTrigger';
-import EditAccountMenu from '../context/EditAccountMenu';
-
-const centerOfTarget = (target: Element) => {
-  const clientRectangle = target.getBoundingClientRect();
-  const centerX = clientRectangle.left + clientRectangle.width / 2;
-  const centerY = clientRectangle.top + clientRectangle.height / 2;
-  return {centerX, centerY};
-};
 
 const getClassName = (account: Account) => {
   const showIconBadge = account.badgeCount > 0 ? ' Sidebar-icon-badge' : '';
@@ -62,9 +51,6 @@ interface SidebarProps {
   hasReachedLimitOfAccounts: boolean;
   isAddingAccount: boolean;
   isDarkMode?: boolean;
-  isEditAccountMenuVisible?: boolean;
-  setAccountContextHidden: () => void;
-  toggleEditAccountMenuVisibility: (contextMenuState: ContextMenuState) => void;
   addAccountWithSession: () => void;
 }
 
@@ -77,38 +63,17 @@ const Sidebar = ({
   hasCreatedAccount,
   hasReachedLimitOfAccounts,
   isAddingAccount,
-  isEditAccountMenuVisible = false,
   ...connected
 }: SidebarProps) => {
-  const menuTriggerRef = useRef<HTMLElement | null>(null);
-  const shouldRestoreFocusRef = useRef(false);
-
-  useEffect(() => {
-    if (!isEditAccountMenuVisible && shouldRestoreFocusRef.current && menuTriggerRef.current) {
-      menuTriggerRef.current.focus();
-      shouldRestoreFocusRef.current = false;
-    }
-  }, [isEditAccountMenuVisible]);
-
-  const showAccountContextMenu = (target: Element, account: Account, shouldAutoFocus = false) => {
-    const {centerX, centerY} = centerOfTarget(target);
-    const isAtLeastAdmin =
-      account.teamRole === 'z.team.TeamRole.ROLE.OWNER' || account.teamRole === 'z.team.TeamRole.ROLE.ADMIN';
-
-    menuTriggerRef.current = target as HTMLElement;
-    shouldRestoreFocusRef.current = shouldAutoFocus;
-
-    connected.toggleEditAccountMenuVisibility({
-      position: {
-        centerY,
-        centerX,
-      },
-      isAtLeastAdmin,
-      accountId: account.id,
-      sessionID: account.sessionID,
-      lifecycle: account.lifecycle,
-      shouldAutoFocus,
-    });
+  const showAccountContextMenu = (target: Element, account: Account, restoreFocus = false) => {
+    void window.wireAccounts
+      .contextMenu(account.id)
+      .then(() => {
+        if (restoreFocus && target instanceof HTMLElement && target.isConnected) {
+          target.focus();
+        }
+      })
+      .catch(console.error);
   };
 
   const accountLabel = (account: Account) => {
@@ -178,8 +143,6 @@ const Sidebar = ({
       {!isAddingAccount && !hasReachedLimitOfAccounts && (
         <AddAccountTrigger id="account" onClick={connected.addAccountWithSession} />
       )}
-
-      {isEditAccountMenuVisible && <EditAccountMenu />}
     </div>
   );
 };
@@ -192,11 +155,6 @@ export default connect(
     hasReachedLimitOfAccounts: AccountSelector.hasReachedLimitOfAccounts(state),
     isAddingAccount: AccountSelector.isAddingAccount(state),
     isDarkMode: AccountSelector.getSelectedAccountDarkMode(state),
-    isEditAccountMenuVisible: ContextMenuSelector.isEditAccountMenuVisible(state),
   }),
-  {
-    addAccountWithSession,
-    setAccountContextHidden,
-    toggleEditAccountMenuVisibility,
-  },
+  () => ({addAccountWithSession: () => void window.wireAccounts.add().catch(console.error)}),
 )(Sidebar);

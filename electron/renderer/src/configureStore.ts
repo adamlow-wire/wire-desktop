@@ -17,35 +17,17 @@
  *
  */
 
-import throttle from 'lodash/throttle';
 import {applyMiddleware, createStore} from 'redux';
 import {createLogger} from 'redux-logger';
 import thunk from 'redux-thunk';
 
-import {loadState, saveState} from './lib/localStorage';
 import reducers from './reducers';
+import {initialState as contextMenuState} from './reducers/contextMenuReducer';
 
-const HALF_SECOND = 500;
-const persistedState = loadState();
-
-export const configureStore = (thunkArguments: Object) => {
-  const store = createStore(reducers, persistedState, createMiddleware(thunkArguments));
-
-  store.subscribe(
-    throttle(() => {
-      saveState({
-        accounts: store.getState().accounts.map(account => {
-          // no need to store badge count
-          return {
-            ...account,
-            badgeCount: 0,
-            lifecycle: undefined,
-          };
-        }),
-        contextMenuState: store.getState().contextMenuState,
-      });
-    }, HALF_SECOND),
-  );
+export const configureStore = async (thunkArguments: Object) => {
+  const accounts = await window.wireAccounts.read();
+  const store = createStore(reducers, {accounts: [...accounts], contextMenuState}, createMiddleware(thunkArguments));
+  window.wireAccounts.subscribe(accounts => store.dispatch({type: 'SYNC_ACCOUNTS', accounts: [...accounts]}));
   return store;
 };
 

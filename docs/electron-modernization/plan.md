@@ -413,7 +413,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - No `allowpopups` behavior remains.
   - Account views resize, focus, hide/show, crash, reload, add, remove, and switch correctly.
   - Session-isolation tests prove accounts cannot observe each other's storage/cookies.
-- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines and validated legacy profile preparation. Production view creation and routing are not yet switched; no SEC-007 acceptance is claimed from the unused preparation modules.
+- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines, validated legacy profiles, main-owned state/native views and real-Electron controller/IPC/preload integration. The bundled webapp bridge works without a webview host, with exact-account metadata/join and session-deletion tests. The working copy switches default startup/UI; full product qualification, action routing and lifecycle acceptance remain open. Focused integration tests do not close SEC-007 acceptance.
 
 #### SEC-008 — Centralize navigation and window-open policy
 
@@ -711,7 +711,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Managed configuration is read through an authorized, immutable contract.
   - Enforced Windows download paths are normalized and cannot traverse outside the approved base or select device/UNC targets.
   - Windows, macOS, and Linux managed-config backends have representative tests.
-- Evidence: PR #16 provides authorized immutable managed-configuration reads and PR #25 provides bounded enforced-download-location updates. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds sensitivity-proven exact-prompt authorization, bounded credential handling, one-shot submit/cancel coordination, retry semantics, challenged-session proxy application, and cancellation reload behavior; all applicable hosted gates passed before merge. Certificate policy, download-path containment, platform backend coverage, and packaged enterprise proxy/configuration evidence remain open.
+- Evidence: PR #16 provides authorized immutable managed-configuration reads and PR #25 provides bounded enforced-download-location updates. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds sensitivity-proven exact-prompt authorization, bounded credential handling, one-shot submit/cancel coordination, retry semantics, challenged-session proxy application, and cancellation reload behavior; all applicable hosted gates passed before merge. Download containment PR #45 merged as `d94253c9` after final-head build/lint/analysis, all-platform packages (including real Windows junction denial) and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34337502792) passed. Certificate policy, platform backend coverage, and packaged enterprise proxy/configuration evidence remain open.
 
 #### CAP-006 — Migrate deep links and single-instance behavior
 

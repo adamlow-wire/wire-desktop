@@ -24,6 +24,7 @@ import type {WebAppEvents} from '@wireapp/webapp-events';
 
 import type {DesktopAppConfig} from '../lib/desktopAppConfig';
 import type {i18nStrings, SupportedI18nLanguage} from '../locale';
+import type {AccountShellBridge} from '../preload/AccountShellBridge';
 import type * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 
 export declare global {
@@ -48,13 +49,14 @@ export declare global {
   /* eslint-enable no-var */
 
   interface Window {
+    wireAccounts: Readonly<AccountShellBridge>;
     amplify: amplify;
     isMac: boolean;
     locale: SupportedI18nLanguage;
     locStrings: i18nStrings;
     locStringsDefault: i18nStrings;
     sendBadgeCount(count: number, ignoreFlash: boolean): void;
-    sendConversationJoinToHost(accountId: string, code: string, key: string, domain?: string): void;
+    sendConversationJoinToHost(accountId: string, code: string, key: string, domain?: string | null): void;
     sendDeleteAccount(accountId: string, sessionID?: string): Promise<void>;
     sendLogoutAccount(accountId: string): Promise<void>;
     submitDeepLink(url: string): void;

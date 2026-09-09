@@ -26,7 +26,7 @@ import {createWebappPreloadEvents, WebappPreloadEventActions} from './WebappPrel
 import {EVENT_TYPE} from '../lib/eventType';
 
 describe('webapp preload event routing', () => {
-  const createHarness = () => {
+  const createHarness = (sendAccountEvent?: (event: unknown) => void) => {
     const calls: Array<{args: unknown[]; name: string}> = [];
     const listeners = new Map<string, (event: unknown, ...args: unknown[]) => void>();
     let versions: {webappVersion: string} | undefined = {webappVersion: 'webapp'};
@@ -49,6 +49,7 @@ describe('webapp preload event routing', () => {
       updateDownloadPath: record('download'),
     };
     const preloadEvents = createWebappPreloadEvents({
+      sendAccountEvent,
       actions,
       ipc: {
         on: (channel, listener) => listeners.set(channel, listener),
@@ -71,6 +72,61 @@ describe('webapp preload event routing', () => {
     };
     return {calls, emit, preloadEvents, setVersions: (value: typeof versions) => (versions = value)};
   };
+
+  it('[compatibility][CAP-001] routes named native-account events without depending on a webview host', () => {
+    const events: unknown[] = [];
+    const {calls, emit, preloadEvents} = createHarness(event => events.push(event));
+    preloadEvents.subscribeToMainProcessEvents();
+    preloadEvents.events.activateNotification();
+    preloadEvents.events.changeEnvironment('https://custom.wire.test/');
+    preloadEvents.events.loaded();
+    preloadEvents.events.signedOut(false);
+    preloadEvents.events.signOut();
+    preloadEvents.events.teamInfo({name: 'Account'});
+    preloadEvents.events.theme('dark');
+    preloadEvents.events.unreadCount(3);
+    emit(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code: 'code', key: 'key'});
+    assert.deepStrictEqual(events, [
+      {type: 'activate'},
+      {type: 'environment', url: 'https://custom.wire.test/'},
+      {type: 'loaded'},
+      {type: 'signed-out', clearData: false},
+      {type: 'sign-out'},
+      {type: 'metadata', data: {name: 'Account'}},
+      {type: 'theme', theme: 'dark'},
+      {type: 'unread', count: 3},
+      {type: 'join', code: 'code', key: 'key', domain: undefined},
+    ]);
+    assert.equal(
+      calls.some(call => call.name.startsWith('host:')),
+      false,
+    );
+  });
+
+  it('[regression][CAP-001][CAP-006] delivers non-federated conversation joins using the webapp domain fallback', () => {
+    for (const data of [
+      {code: 'code', key: 'key'},
+      {code: 'code', key: 'key', domain: null},
+    ]) {
+      const {calls, emit, preloadEvents} = createHarness();
+      preloadEvents.subscribeToMainProcessEvents();
+      emit(WebAppEvents.CONVERSATION.JOIN, data);
+      const delivered = calls.filter(call => call.name === `dispatch:${WebAppEvents.CONVERSATION.JOIN}`);
+      assert.deepStrictEqual(
+        delivered.map(call => call.args[0]),
+        [{...data, domain: data.domain}],
+      );
+    }
+    for (const domain of [42, {}, []]) {
+      const {calls, emit, preloadEvents} = createHarness();
+      preloadEvents.subscribeToMainProcessEvents();
+      emit(WebAppEvents.CONVERSATION.JOIN, {code: 'code', key: 'key', domain});
+      assert.equal(
+        calls.some(call => call.name === `dispatch:${WebAppEvents.CONVERSATION.JOIN}`),
+        false,
+      );
+    }
+  });
 
   it('[characterization][security-target][INV-002][SEC-005] preserves named webapp-to-shell capabilities', () => {
     const {calls, preloadEvents} = createHarness();

@@ -13,7 +13,7 @@ supersedes: []
 
 ## Context
 
-The current local renderer creates DOM `<webview>` elements for remote account content. Its remote preload is unsandboxed, context isolation is disabled, `@electron/remote` is enabled, and main-process code infers view/account identity from mutable renderer-visible state. Electron recommends avoiding `<webview>`, and the target invariants require main-owned identity and capability boundaries.
+At the start of modernization, the local renderer created DOM `<webview>` elements for remote account content, the remote preload was unsandboxed, context isolation was disabled, and `@electron/remote` was enabled. SEC-002–006 have since added registered authority, isolated bridges and sandboxing and removed remote; production account view creation and state still need the cutover below. Electron recommends avoiding `<webview>`, and the target invariants require main-owned identity and capability boundaries.
 
 ## Options considered
 
@@ -40,6 +40,7 @@ Each account view:
 
 - Is created and destroyed only by the main process.
 - Uses a unique main-generated persistent partition bound to one account record.
+- Preserves an existing profile's validated default-session or `persist:UUID` mapping during one-time migration; never silently generates replacement partitions for existing logins. New accounts receive main-generated isolated partitions.
 - Runs sandboxed and context-isolated with Node integration and `<webview>` disabled.
 - Has a minimal versioned preload bridge whose capability set is registered before navigation.
 - Is authorized by exact `WebContents` and frame identity; account IDs supplied by renderer payloads are never authoritative.
@@ -78,6 +79,10 @@ An account view moves through `absent -> creating -> registered -> navigating ->
 - Popup, navigation, permission, download, and certificate handlers consult the same immutable registry identity and default to deny.
 
 ## Consequences
+
+Native-account preloads receive the immutable App-lock override boolean through main-owned startup arguments, alongside existing locale/environment bootstrap. The production cutover reproduced synchronous managed-config IPC before the frame had a committed URL, causing authorized-origin rejection and a startup stall. Bootstrap must not require an early-origin authorization exception. Missing, malformed or duplicate policy arguments prevent native bridge installation; both true and false are explicit. The legacy preload retains its existing contract until its retirement; no runtime permission or configuration-write capability is added.
+
+Production composition keeps the existing account sidebar and uses a main-owned native popup for its existing logout/remove actions. Account views are native siblings rather than DOM children, so the old HTML menu cannot simply overlay them with CSS; a native menu avoids another renderer/window or hiding account content. Only the account ID crosses the shell boundary, and main derives menu entries and targets from its current records. A small reserved shell header keeps the existing unfinished-login cancellation control reachable. Keyboard invocation and focus restoration remain acceptance tests, not waived UI behavior. This follows Electron's [native view ordering](https://www.electronjs.org/docs/latest/api/view#viewaddchildviewview-index) and [main-process menu API](https://www.electronjs.org/docs/latest/api/menu).
 
 This removes renderer-owned `<webview>` creation and provides one main-process source of truth for account authorization. It also makes layout coordination, focus/accessibility behavior, crash recovery, and child `WebContents` cleanup explicit responsibilities. A narrow webapp adapter may be required because the existing preload mutates remote globals directly; that contract must be coordinated under Q-003 rather than recreating the legacy global surface.
 

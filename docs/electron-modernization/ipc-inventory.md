@@ -6,20 +6,21 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 
 | Operation | Current expected sender | Risk / side effect | State | Owning follow-up |
 | --- | --- | --- | --- | --- |
-| `wire-desktop:accounts:control:v1` | application shell | Fixed read/add/select/remove controls; main-owned IDs and private display snapshots | PR #47 draft binder and allow/deny tests; not yet registered in production | SEC-007, CAP-001 |
+| `wire-desktop:accounts:control:v1` | application shell | Named read/add/select/remove/reload/logout/context-menu/layout/join controls; main-owned IDs and private display snapshots | PR #47 working-copy startup now binds it; extended allow/deny tests pass, layout-bound denial is sensitivity-proven; full product qualification remains open | SEC-007, CAP-001 |
+| `wire-desktop:account:event:v1` | owning account | Bounded metadata, lifecycle, badge, activation, environment and join events; identity from registered sender, never payload | PR #47 working-copy startup now binds it; controller revalidates queued/post-approval authority; environment approval UX and full product qualification remain open | SEC-007, CAP-001, SEC-008 |
 | `wire-desktop:secure-shell:runtime-info:v1` | secure account proof | Runtime metadata read | merged in PR #14 | SEC-003 |
 | `wire-desktop:safe-storage:encrypt:v1` | account | OS key-store encryption | merged in PR #15 | SEC-003, DCP-016 |
 | `wire-desktop:safe-storage:decrypt:v1` | account | OS key-store decryption | merged in PR #15 | SEC-003, DCP-016 |
-| `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | merged in PR #16 | SEC-003, CAP-005 |
+| `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | merged in PR #16; PR #47 native preload startup uses immutable main-owned App-lock arguments to avoid synchronous reads before origin commitment; legacy entry retains this authorized channel | SEC-003, CAP-005 |
 | `wire-desktop:save-picture:v1` | account context action | Network-sized bytes, native dialog, file write | merged in PR #17 | SEC-003, SEC-004 |
 | `wire-desktop:notification:activate:v1` | account | Global window activation | merged in PR #18 | SEC-003, CAP-004 |
 | `wire-desktop:webapp:loaded:v1` | account | Flushes global queued actions | merged in PR #19 | SEC-003, CAP-001 |
 | `wire-desktop:badge-count:update:v1` | application shell | Tray, badge, dock, and flashing state | merged in PR #20 | SEC-003, CAP-004 |
-| `wire-desktop:account:delete-data:v1` | application shell | Exact-target session, partition, and log deletion | merged in PR #21 | SEC-003, CAP-001 |
-| `wire-desktop:wrapper:reload-request:v1` | account | Reloads all account content through the application shell | merged in PR #22 | SEC-003, CAP-001 |
+| `wire-desktop:account:delete-data:v1` | none in production | Legacy exact-target deletion | Introduced in PR #21; PR #47 removes the production binder and shell capability. Read-only product regression proves handler absence; named account-control removal replaces it. Legacy helper tests remain, not production authority | SEC-003, CAP-001 |
+| `wire-desktop:wrapper:reload-request:v1` | account | Reloads all native accounts through the main controller; preserves sessions and rechecks queued sender authority | authorization merged in PR #22; PR #47 native routing locally verifies exact sessions, revoked queued requests and partial restart failure | SEC-003, CAP-001 |
 | `wire-desktop:wrapper:relaunch-request:v1` | account | Relaunches the application or reloads account content on macOS | merged in PR #23 | SEC-003 |
 | `wire-desktop:open-graph:fetch:v1` | account | Main-process network fetch | authorization merged in PR #24; public-only pinned-DNS, redirect and bounded parsing policy merged in PR #44 | SEC-003, SEC-012 |
-| `wire-desktop:download-location:update:v1` | account | Directory creation and persistent settings write | authorization merged in PR #25; normalized home-relative path and linked-directory denial in CAP-005 local validation | SEC-003, CAP-005 |
+| `wire-desktop:download-location:update:v1` | account | Directory creation and persistent settings write | authorization merged in PR #25; normalized home-relative path and linked-directory denial merged in PR #45 | SEC-003, CAP-005 |
 | `wire-desktop:desktop-sources:enumerate:v1` | account | Enumerates display/window capture sources | merged in PR #26; user-gesture policy remains open | SEC-003, SEC-009, CAP-003 |
 | `wire-desktop:deep-link:submit:v1` | application shell | Protocol/action dispatch | merged in PR #27; parser and lifecycle policy remain open | SEC-003, SEC-013, CAP-006 |
 | `wire-desktop:sso-window:close:v1` / `wire-desktop:sso-window:focus:v1` | owning account | Controls the account-owned SSO window | merged in PR #29 | SEC-003, CAP-002 |

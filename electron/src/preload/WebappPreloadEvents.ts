@@ -59,12 +59,21 @@ export const createWebappPreloadEvents = ({
   ipc,
   logger,
   mainWorld,
+  sendAccountEvent,
 }: {
   actions: WebappPreloadEventActions;
   ipc: IpcBoundary;
   logger: Logger;
   mainWorld: WebappMainWorld;
+  sendAccountEvent?: (event: unknown) => void;
 }): WebappPreloadEvents => {
+  const send = (event: unknown, legacyChannel: string, ...args: unknown[]): void => {
+    if (sendAccountEvent) {
+      sendAccountEvent(event);
+    } else {
+      ipc.sendToHost(legacyChannel, ...args);
+    }
+  };
   const themeReceiver = createAccountThemeReceiver(shouldUseDarkColors => {
     logger.info(`Switching dark mode ${shouldUseDarkColors ? 'on' : 'off'} ...`);
     mainWorld.publish(WebAppEvents.PROPERTIES.UPDATE.INTERFACE.USE_DARK_MODE, shouldUseDarkColors);
@@ -73,27 +82,27 @@ export const createWebappPreloadEvents = ({
   const events = createWebappEventBridge({
     activateNotification: () => {
       actions.activateNotification();
-      ipc.sendToHost(EVENT_TYPE.ACTION.NOTIFICATION_CLICK);
+      send({type: 'activate'}, EVENT_TYPE.ACTION.NOTIFICATION_CLICK);
     },
     changeEnvironment: url => {
       if (typeof url === 'string' && url.length > 0) {
-        ipc.sendToHost(EVENT_TYPE.WRAPPER.NAVIGATE_WEBVIEW, url);
+        send({type: 'environment', url}, EVENT_TYPE.WRAPPER.NAVIGATE_WEBVIEW, url);
       }
     },
     closeSsoWindow: actions.closeSsoWindow,
     focusSsoWindow: actions.focusSsoWindow,
     loaded: () => {
-      ipc.sendToHost(EVENT_TYPE.LIFECYCLE.SIGNED_IN);
+      send({type: 'loaded'}, EVENT_TYPE.LIFECYCLE.SIGNED_IN);
       actions.loaded(themeReceiver.markWebAppLoaded);
     },
     relaunch: actions.relaunch,
     reload: actions.reload,
     reportVersions: actions.reportVersions,
-    sendSignedOut: clearData => ipc.sendToHost(EVENT_TYPE.LIFECYCLE.SIGNED_OUT, clearData),
-    sendSignOut: () => ipc.sendToHost(EVENT_TYPE.LIFECYCLE.SIGN_OUT),
-    sendTeamInfo: info => ipc.sendToHost(EVENT_TYPE.ACCOUNT.UPDATE_INFO, info),
-    sendTheme: theme => ipc.sendToHost(EVENT_TYPE.UI.THEME_UPDATE, theme),
-    sendUnreadCount: count => ipc.sendToHost(EVENT_TYPE.LIFECYCLE.UNREAD_COUNT, count),
+    sendSignedOut: clearData => send({type: 'signed-out', clearData}, EVENT_TYPE.LIFECYCLE.SIGNED_OUT, clearData),
+    sendSignOut: () => send({type: 'sign-out'}, EVENT_TYPE.LIFECYCLE.SIGN_OUT),
+    sendTeamInfo: data => send({type: 'metadata', data}, EVENT_TYPE.ACCOUNT.UPDATE_INFO, data),
+    sendTheme: theme => send({type: 'theme', theme}, EVENT_TYPE.UI.THEME_UPDATE, theme),
+    sendUnreadCount: count => send({type: 'unread', count}, EVENT_TYPE.LIFECYCLE.UNREAD_COUNT, count),
     updateDownloadPath: downloadPath => {
       if (typeof downloadPath === 'undefined' || typeof downloadPath === 'string') {
         actions.updateDownloadPath(downloadPath);
@@ -140,7 +149,8 @@ export const createWebappPreloadEvents = ({
     ipc.on(EVENT_TYPE.ACTION.JOIN_CONVERSATION, (_event, value) => {
       if (isRecord(value) && typeof value.code === 'string' && typeof value.key === 'string') {
         const domain = typeof value.domain === 'string' ? value.domain : undefined;
-        ipc.sendToHost(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code: value.code, domain, key: value.key});
+        const data = {code: value.code, domain, key: value.key};
+        send({type: 'join', ...data}, EVENT_TYPE.ACTION.JOIN_CONVERSATION, data);
       }
     });
     ipc.on(WebAppEvents.CONVERSATION.JOIN, (_event, value) => {
@@ -148,7 +158,7 @@ export const createWebappPreloadEvents = ({
         isRecord(value) &&
         typeof value.code === 'string' &&
         typeof value.key === 'string' &&
-        typeof value.domain === 'string'
+        (value.domain === undefined || value.domain === null || typeof value.domain === 'string')
       ) {
         mainWorld.dispatch(WebAppEvents.CONVERSATION.JOIN, {
           code: value.code,

@@ -86,7 +86,7 @@ export function requestActiveWebappVersions(timeoutMilliseconds = VERSION_REQUES
     };
     const timeoutId = setTimeout(() => resolveRequest(getCachedWebappVersions()), timeoutMilliseconds);
     pendingVersionRequests.add(resolveRequest);
-    primaryWindow.webContents.send(EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
+    WindowUtil.sendToWebContents(primaryWindow, EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
   });
 }
 
