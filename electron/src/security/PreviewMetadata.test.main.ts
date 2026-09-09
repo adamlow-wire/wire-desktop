@@ -17,11 +17,58 @@
  *
  */
 
-import {parse as parsePreviewMetadata} from 'open-graph';
-
 import * as assert from 'assert';
 
+import {parsePreviewMetadata} from './PreviewMetadata';
+
 describe('Preview metadata [SEC-012][DCP-015]', () => {
+  it('[security-target] ignores arbitrary object paths without changing shared objects', () => {
+    const before = Object.getOwnPropertyDescriptors(Object.prototype.toString);
+    const result = parsePreviewMetadata(`<meta property="og:toString:probe" content="polluted">
+      <meta property="og:__proto__:probe" content="polluted">
+      <meta property="og:constructor:prototype:probe" content="polluted">
+      <meta property="og:image:constructor:probe" content="polluted">
+      <meta property="ogx:description" content="wrong namespace">
+      <meta property="og:description" content="safe">`);
+    assert.deepStrictEqual(result, {title: '', description: 'safe'});
+    assert.deepStrictEqual(Object.getOwnPropertyDescriptors(Object.prototype.toString), before);
+  });
+
+  for (const [label, html, error] of [
+    ['HTML bytes', 'é'.repeat(500_001), /HTML is too large/],
+    ['tag count', '<br>'.repeat(10_001), /too many tags/],
+    ['metadata count', '<meta>'.repeat(129), /too many metadata/],
+    ['scalar length', `<meta property="og:description" content="${'x'.repeat(8193)}">`, /field is too large/],
+    ['image length', `<meta property="og:image" content="${'x'.repeat(8193)}">`, /field is too large/],
+    ['fallback title length', `<title>${'x'.repeat(8193)}</title>`, /field is too large/],
+    ['fallback image length', `<img src="${'x'.repeat(8193)}">`, /field is too large/],
+  ] as const) {
+    it(`[security-target] bounds ${label}`, () => assert.throws(() => parsePreviewMetadata(html), error));
+  }
+
+  it('[security-target] accepts the exact documented limits', () => {
+    assert.deepStrictEqual(parsePreviewMetadata(' '.repeat(1_000_000)), {title: ''});
+    assert.deepStrictEqual(parsePreviewMetadata('<br>'.repeat(10_000)), {title: ''});
+    assert.deepStrictEqual(parsePreviewMetadata('<meta>'.repeat(128)), {title: ''});
+    assert.strictEqual(
+      parsePreviewMetadata(`<meta property="og:title" content="${'x'.repeat(8192)}">`).title.length,
+      8192,
+    );
+  });
+
+  it('[compatibility] skips missing content and unrelated metadata, and prefers Open Graph images', () => {
+    assert.deepStrictEqual(
+      parsePreviewMetadata(`<meta name="description" content="not Open Graph">
+      <meta property="og:title"><img src="fallback.png">
+      <meta property="og:image:secure_url" content="https://example.com/image.png">
+      <meta property="og:image:alt" content="Picture">`),
+      {
+        title: '',
+        image: {secure_url: 'https://example.com/image.png', alt: 'Picture'},
+      },
+    );
+  });
+
   it('[characterization] preserves entities, repeated fields and image metadata', () => {
     const result = parsePreviewMetadata(`<html><head>
       <title>Fallback</title>
