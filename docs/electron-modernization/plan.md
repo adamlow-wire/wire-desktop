@@ -404,7 +404,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-007 — Replace `<webview>` account rendering
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-001, SEC-005, SEC-006
 - Scope: Implement account content with main-process-owned `WebContentsView` instances and preserve isolated persistent sessions.
@@ -413,7 +413,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - No `allowpopups` behavior remains.
   - Account views resize, focus, hide/show, crash, reload, add, remove, and switch correctly.
   - Session-isolation tests prove accounts cannot observe each other's storage/cookies.
-- Evidence: TBD
+- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines and validated legacy profile preparation. Production view creation and routing are not yet switched; no SEC-007 acceptance is claimed from the unused preparation modules.
 
 #### SEC-008 — Centralize navigation and window-open policy
 

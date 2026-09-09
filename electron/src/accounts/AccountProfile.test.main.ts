@@ -25,6 +25,7 @@ import os from 'os';
 import path from 'path';
 
 import {AccountProfile, parseLegacyAccounts} from './AccountProfile';
+import {AccountState} from './AccountState';
 
 const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'];
 const partition = '33333333-3333-4333-8333-333333333333';
@@ -83,6 +84,29 @@ describe('main-owned account profile', () => {
     );
     assert.equal(reloaded.read()![0].lifecycle, undefined);
     assert.deepEqual(fs.readdirSync(directory), ['accounts-v1.json']);
+  });
+
+  it('[migration][CAP-001] reloads main-owned selection and new partitions without reimporting stale state', () => {
+    const filename = path.join(directory, 'accounts-v1.json');
+    const profile = new AccountProfile(filename, 3);
+    const owner = new AccountState(profile.importLegacy(JSON.stringify(legacy())), 3, records =>
+      profile.write(records),
+    );
+    const added = owner.add();
+    const newPartition = owner.get(added).sessionID;
+    owner.select(ids[1]);
+    const reopened = new AccountProfile(filename, 3);
+    const restored = new AccountState(reopened.importLegacy(JSON.stringify(legacy())), 3, records =>
+      reopened.write(records),
+    );
+    assert.equal(restored.snapshots().length, 3);
+    assert.equal(restored.get(added).sessionID, newPartition);
+    assert.equal(restored.get(ids[0]).sessionID, undefined);
+    assert.equal(restored.get(ids[1]).sessionID, partition);
+    assert.deepEqual(
+      restored.snapshots().map(account => account.visible),
+      [false, true, false],
+    );
   });
 
   it('[security-target][CAP-001] rejects duplicate identities and shared legacy partitions', () => {
