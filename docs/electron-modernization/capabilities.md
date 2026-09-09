@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001/CAP-006 incoming location/join checkpoint: validated native actions stay with the account selected at handling time and wait for that account's current webapp readiness. Local rebuilt lifecycle E2E now launches with a protocol argument and emits a running-app `open-url` event, asserting each changes only its intended account's hash. Shared startup hash injection is removed. Wrong-account routing fails the native target. Start-login/focus/multi-action ordering and final cross-platform evidence remain required for DCP-010.
+
 CAP-001/CAP-006 startup buffering checkpoint: native tests verify bounded retention of recognized incoming actions before the primary window/native binding exists, exactly-once flushing and no early shell delivery. The binding-gap perturbation fails its target. Complete startup acceptance still requires location/join/start-login routing, removal of shared startup hash state, focus and multi-action ordering; this is not a full DCP-010 pass.
 
 CAP-001/CAP-002 draft automated-SSO initiation: local native tests now cover validated codes, isolated creation, unfinished-account/session reuse, main-private SSO state, account-limit warnings and hiding the previous account when the SSO destination fails. Code-propagation removal fails the navigation target. Running-app initiation does not prove pre-window link delivery, hosted final-head compatibility or the controlled live IdP checkpoint; DCP-003 remains open.

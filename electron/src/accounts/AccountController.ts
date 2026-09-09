@@ -28,11 +28,13 @@ import {AccountViews} from './AccountViews';
 import type {Account, ConversationJoinData} from '../../renderer/src/types/account';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
+import {isAccountCommand} from '../security/AccountControlIpc';
 import {ACCOUNT_EVENT_CAPABILITY, AccountEvent} from '../security/AccountEventContract';
-import {isSsoCode} from '../security/deepLinkPolicy';
+import {isSsoCode, parseDeepLink} from '../security/deepLinkPolicy';
 import {isAllowedAccountNavigation, parseNetworkNavigation} from '../security/NavigationPolicy';
 import {AuthorizedViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {WRAPPER_RELOAD_CAPABILITY} from '../security/WrapperReloadContract';
+import {config} from '../settings/config';
 
 export interface AccountControllerOptions {
   state: AccountState;
@@ -53,7 +55,7 @@ export interface AccountControllerOptions {
 export class AccountController {
   private pending: Promise<unknown> = Promise.resolve();
   private readonly failures = new Set<string>();
-  private readonly menuQueue = new Map<string, string[]>();
+  private readonly menuQueue = new Map<string, {action: string; args: unknown[]}[]>();
   private readonly ready = new Set<string>();
 
   constructor(private readonly options: AccountControllerOptions) {}
@@ -103,6 +105,27 @@ export class AccountController {
 
   // Called only by main-owned desktop controls, not by an IPC binder.
   desktopAction = async (channel: string, args: readonly unknown[]): Promise<void> => {
+    if (channel === EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH && args.length === 1 && typeof args[0] === 'string') {
+      const parsed = parseDeepLink(`${config.customProtocolName}:/${args[0]}`);
+      if (parsed?.kind === 'location' && parsed.location === args[0]) {
+        return this.selectedEvent(channel, parsed.location);
+      }
+    }
+    if (channel === EVENT_TYPE.ACTION.JOIN_CONVERSATION && args.length === 1) {
+      const value = args[0];
+      if (
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        Object.keys(value).every(key => ['code', 'key', 'domain'].includes(key))
+      ) {
+        const id = this.snapshots().find(account => account.visible)!.id;
+        const command = {...value, action: 'join', accountId: id};
+        if (isAccountCommand(command) && command.action === 'join') {
+          return this.join(id, {code: command.code, key: command.key, domain: command.domain});
+        }
+      }
+    }
     if (channel === EVENT_TYPE.ACCOUNT.SSO_LOGIN && args.length === 1 && isSsoCode(args[0])) {
       return this.startSso(args[0]);
     }
@@ -170,19 +193,19 @@ export class AccountController {
     return this.selectedEvent(action);
   };
 
-  private selectedEvent = (action: string): Promise<void> => {
+  private selectedEvent = (action: string, ...args: unknown[]): Promise<void> => {
     const id = this.snapshots().find(account => account.visible)!.id;
     return this.run(async () => {
       this.options.state.get(id);
       if (this.ready.has(id) && this.options.views.has(id)) {
-        this.options.views.get(id).send(action);
+        this.options.views.get(id).send(action, ...args);
         return;
       }
       const queued = this.menuQueue.get(id) ?? [];
       if (queued.length >= 32) {
         throw new Error('Account menu queue is full.');
       }
-      queued.push(action);
+      queued.push({action, args: structuredClone(args)});
       this.menuQueue.set(id, queued);
     });
   };
@@ -298,7 +321,7 @@ export class AccountController {
         if (message.type === 'loaded') {
           const queued = this.menuQueue.get(id) ?? [];
           this.menuQueue.delete(id);
-          queued.forEach(action => views.get(id).send(action));
+          queued.forEach(({action, args}) => views.get(id).send(action, ...args));
           this.options.loaded(id);
         }
         if (message.type === 'unread') {

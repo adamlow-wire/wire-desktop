@@ -439,6 +439,38 @@ describe('production account controller integration', () => {
     assert.deepEqual(await send(replacement, 'readJoins'), [joined]);
   });
 
+  it('[regression][CAP-006] routes incoming joins and locations once to the originally selected account', async () => {
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const firstSend = spy(first, 'send');
+    const secondSend = spy(second, 'send');
+    const join = {code: 'invite-code', key: 'invite-key', domain: null};
+    await controller.desktopAction(EVENT_TYPE.ACTION.JOIN_CONVERSATION, [join]);
+    await controller.desktopAction(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, ['/preferences/account']);
+    await controller.select(records[1].id);
+    await controller.receive(identity(second), {type: 'loaded'});
+    assert.equal(firstSend.callCount, 0);
+    assert.equal(secondSend.callCount, 0);
+    await controller.receive(identity(first), {type: 'loaded'});
+    assert.deepEqual(await send(first, 'readJoins'), [join]);
+    assert.deepEqual(firstSend.lastCall.args, [EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, '/preferences/account']);
+    await controller.receive(identity(first), {type: 'loaded'});
+    assert.equal(firstSend.callCount, 2);
+    assert.equal(secondSend.callCount, 0);
+  });
+
+  it('[security-target][CAP-006] rejects malformed incoming joins and unsupported locations without delivery', async () => {
+    const sent = spy(views.get(records[0].id), 'send');
+    for (const data of [null, [], {code: 'code'}, {code: 'code', key: 'key', accountId: records[1].id}]) {
+      await assert.rejects(controller.desktopAction(EVENT_TYPE.ACTION.JOIN_CONVERSATION, [data]));
+    }
+    for (const location of ['https://unapproved.test/', '/unknown/admin', '/preferences/account#extra', 42]) {
+      await assert.rejects(controller.desktopAction(EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH, [location]));
+    }
+    assert.equal(sent.callCount, 0);
+    assert.equal(state.get(records[0].id).conversationJoinData, undefined);
+  });
+
   it('[security-target][CAP-001] binds guest metadata and joins to the real sender and denies shell commands from accounts', async () => {
     const first = views.get(records[0].id);
     const second = views.get(records[1].id);

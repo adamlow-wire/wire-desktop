@@ -49,7 +49,12 @@ test(
     const launch = () =>
       _electron.launch({
         chromiumSandbox: true,
-        args: ['.', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`],
+        args: [
+          '.',
+          `--env=${origin}`,
+          `--user-data-dir=${testInfo.outputPath('profile')}`,
+          'wire://preferences/account',
+        ],
       });
     let app: Awaited<ReturnType<typeof launch>> | undefined;
     const readAccounts = () =>
@@ -111,6 +116,21 @@ test(
           };
         }, origin),
       ).toEqual({webviewTag: false, accounts: ids});
+      const readLocations = () =>
+        app!.evaluate(
+          ({webContents}, {origin, ids}) =>
+            ids.map(id => {
+              const contents = webContents
+                .getAllWebContents()
+                .find(
+                  contents =>
+                    contents.getURL().startsWith(origin) && new URL(contents.getURL()).searchParams.get('id') === id,
+                )!;
+              return new URL(contents.getURL()).hash;
+            }),
+          {origin, ids},
+        );
+      await expect.poll(readLocations).toEqual(['#/preferences/account', '']);
       await app.evaluate(
         async ({session}, {origin, partitionId}) => {
           await session.defaultSession.cookies.set({url: origin, name: 'marker', value: 'first'});
@@ -123,6 +143,10 @@ test(
 
       await shell.locator(`[data-account-id="${ids[1]}"]`).click();
       await expect(shell.locator(`[data-account-id="${ids[1]}"] [data-uie-name="item-selected"]`)).toBeVisible();
+      await app.evaluate(({app}) => {
+        app.emit('open-url', {preventDefault() {}}, 'wire://preferences/devices');
+      });
+      await expect.poll(readLocations).toEqual(['#/preferences/account', '#/preferences/devices']);
       await shell.evaluate(async ([first, second]) => {
         await window.sendConversationJoinToHost(first, 'code', 'key', 'example.com');
         await window.sendConversationJoinToHost(first, 'local-code', 'local-key');

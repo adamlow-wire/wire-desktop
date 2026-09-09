@@ -375,9 +375,6 @@ function getMainWindowUrl() {
     webappURL.searchParams.set('enableLogging', '@wireapp/*');
   }
 
-  if (customProtocolHandler.hashLocation) {
-    webappURL.hash = customProtocolHandler.hashLocation;
-  }
   mainURL.searchParams.set('env', encodeURIComponent(webappURL.href));
 
   return mainURL;
