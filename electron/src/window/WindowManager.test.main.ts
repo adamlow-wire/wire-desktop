@@ -18,7 +18,7 @@
  */
 
 import {BrowserWindow} from 'electron';
-import {assert as sinonAssert, replace, restore, spy} from 'sinon';
+import {assert as sinonAssert, replace, restore, spy, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 
@@ -31,6 +31,48 @@ describe('WindowManager queued actions', () => {
   afterEach(() => {
     WindowManager.actionsQueue = [];
     restore();
+  });
+
+  for (const minimized of [false, true]) {
+    it(`[regression][CAP-006] focuses an already visible window for login (minimized=${minimized})`, async () => {
+      const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+      replace(WindowManager, 'getPrimaryWindow', () => window);
+      stub(window, 'isVisible').returns(true);
+      stub(window, 'isMinimized').returns(minimized);
+      stub(window.webContents, 'isLoading').returns(false);
+      const focus = stub(window, 'focus');
+      const restoreWindow = stub(window, 'restore');
+      const native = spy();
+      const dispose = WindowManager.bindNativeActions(window.id, native);
+      try {
+        await WindowManager.sendActionAndFocusWindow(EVENT_TYPE.ACTION.START_LOGIN);
+        sinonAssert.calledOnce(focus);
+        assert.strictEqual(restoreWindow.callCount, minimized ? 1 : 0);
+        assert.deepStrictEqual(native.args, [[EVENT_TYPE.ACTION.START_LOGIN, []]]);
+      } finally {
+        dispose();
+        window.destroy();
+      }
+    });
+  }
+
+  it('[regression][CAP-006] restores focus when a pre-window login request is finally flushed', async () => {
+    const target: {window: BrowserWindow | undefined} = {window: undefined};
+    replace(WindowManager, 'getPrimaryWindow', () => target.window);
+    await WindowManager.sendActionAndFocusWindow(EVENT_TYPE.ACTION.START_LOGIN);
+    const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+    target.window = window;
+    const focus = stub(window, 'focus');
+    const native = spy();
+    const dispose = WindowManager.bindNativeActions(window.id, native);
+    try {
+      WindowManager.flushActionsQueue();
+      sinonAssert.calledOnce(focus);
+      assert.deepStrictEqual(native.args, [[EVENT_TYPE.ACTION.START_LOGIN, []]]);
+    } finally {
+      dispose();
+      window.destroy();
+    }
   });
 
   it('[regression][CAP-001] routes native menu callbacks only for the bound window and releases the binding', () => {

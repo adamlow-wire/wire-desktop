@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001/CAP-006 focus checkpoint: regression tests cover restore/focus adapter calls for visible/minimized windows and startup-buffered login requests, while plain location links retain non-focus behavior. All three targets fail before the fix. Packaged OS focus behavior and ordered multi-action delivery still need qualification.
+
 CAP-001/CAP-006 start-login checkpoint: native tests preserve unfinished-view/session reuse, bounded creation, unchanged state at the account limit and extra-argument denial. The target fails before the missing route is implemented. Startup focus, ordered multiple actions and final product/platform qualification remain open.
 
 CAP-001/CAP-006 incoming location/join checkpoint: validated native actions stay with the account selected at handling time and wait for that account's current webapp readiness. Local rebuilt lifecycle E2E now launches with a protocol argument and emits a running-app `open-url` event, asserting each changes only its intended account's hash. Shared startup hash injection is removed. Wrong-account routing fails the native target. Start-login/focus/multi-action ordering and final cross-platform evidence remain required for DCP-010.

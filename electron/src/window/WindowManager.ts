@@ -130,6 +130,11 @@ export class WindowManager {
   static flushActionsQueue() {
     const actions = WindowManager.actionsQueue;
     WindowManager.actionsQueue = [];
+    if (
+      actions.some(({action}) => incomingActions.includes(action) && action !== EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH)
+    ) {
+      WindowManager.showPrimaryWindow();
+    }
     actions.forEach(({action, args}) => this.sendActionToPrimaryWindow(action, ...args));
   }
 
@@ -139,14 +144,11 @@ export class WindowManager {
     const primaryWindow = WindowManager.getPrimaryWindow();
 
     if (primaryWindow) {
+      WindowManager.showPrimaryWindow();
       if (primaryWindow.webContents.isLoading()) {
         // If the webapp is not yet loaded we queue the action we want to send. It will be flushed later on by the flushActionsQueue` method
         WindowManager.queueAction(action, args);
       } else {
-        if (!primaryWindow.isVisible()) {
-          primaryWindow.show();
-          primaryWindow.focus();
-        }
         WindowManager.sendActionToPrimaryWindow(action, ...args);
       }
     } else {
