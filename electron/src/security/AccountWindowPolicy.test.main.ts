@@ -163,10 +163,10 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
     const child = createdSso?.['ssoWindow'];
     assert.ok(child);
     try {
+      assert.strictEqual(child.webContents.session.isPersistent(), false, 'SSO must use an ephemeral session');
       assert.strictEqual(
-        child.webContents.session === session.fromPartition('sso'),
-        true,
-        'SSO must use its isolated session',
+        child.webContents.session,
+        session.fromPartition(createdSso!['windowOptions'].webPreferences!.partition!),
       );
       assert.strictEqual(child.webContents.session === parent.webContents.session, false);
       const preferences = getPreferences(child);

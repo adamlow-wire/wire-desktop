@@ -151,11 +151,13 @@ test(
         await expect
           .poll(() =>
             app.evaluate(
-              ({BrowserWindow, session}, origin) =>
+              ({BrowserWindow, webContents}, origin) =>
                 BrowserWindow.getAllWindows().filter(
                   window =>
-                    window.webContents.session === session.fromPartition('sso') &&
-                    window.webContents.getURL() === `${origin}/sso`,
+                    !window.webContents.session.isPersistent() &&
+                    window.webContents.session !==
+                      webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!.session &&
+                    window.webContents.getURL().startsWith(`${origin}/sso?`),
                 ).length,
               origin,
             ),
@@ -179,10 +181,10 @@ test(
         await expect
           .poll(() =>
             app.evaluate(
-              ({BrowserWindow, session}) =>
-                BrowserWindow.getAllWindows().filter(
-                  window => window.webContents.session === session.fromPartition('sso'),
-                ).length,
+              ({BrowserWindow}, origin) =>
+                BrowserWindow.getAllWindows().filter(window => window.webContents.getURL().startsWith(`${origin}/sso?`))
+                  .length,
+              origin,
             ),
           )
           .toBe(0);
