@@ -596,6 +596,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
   const wrapperCSSContent = await fs.readFile(WRAPPER_CSS, 'utf8');
   await main.webContents.insertCSS(wrapperCSSContent);
   await controller.start();
+  WindowManager.flushActionsQueue();
 };
 
 // App Events

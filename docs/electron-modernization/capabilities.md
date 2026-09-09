@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001/CAP-006 startup buffering checkpoint: native tests verify bounded retention of recognized incoming actions before the primary window/native binding exists, exactly-once flushing and no early shell delivery. The binding-gap perturbation fails its target. Complete startup acceptance still requires location/join/start-login routing, removal of shared startup hash state, focus and multi-action ordering; this is not a full DCP-010 pass.
+
 CAP-001/CAP-002 draft automated-SSO initiation: local native tests now cover validated codes, isolated creation, unfinished-account/session reuse, main-private SSO state, account-limit warnings and hiding the previous account when the SSO destination fails. Code-propagation removal fails the navigation target. Running-app initiation does not prove pre-window link delivery, hosted final-head compatibility or the controlled live IdP checkpoint; DCP-003 remains open.
 
 CAP-001 draft native reload/About checkpoint: controller tests verify all-account reload with exact session/cookie retention, preserved selection, queued-authority revocation and healthy-account recovery after partial failure. About's actual request path uses the main-owned native binding; version requests remain tied to the account selected when invoked. These local tests strengthen DCP-002/DCP-004 without establishing final cross-platform cutover acceptance or changing confidence ratings.

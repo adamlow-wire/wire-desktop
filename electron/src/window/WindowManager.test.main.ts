@@ -75,6 +75,57 @@ describe('WindowManager queued actions', () => {
     assert.deepStrictEqual(WindowManager.actionsQueue, []);
   });
 
+  it('[regression][CAP-006] retains SSO received before the primary window and dispatches it once when startup flushes', async () => {
+    replace(WindowManager, 'getPrimaryWindow', () => undefined);
+    const code = 'wire-11111111-1111-4111-8111-111111111111';
+    await WindowManager.sendActionAndFocusWindow(EVENT_TYPE.ACCOUNT.SSO_LOGIN, code);
+    assert.deepStrictEqual(WindowManager.actionsQueue, [{action: EVENT_TYPE.ACCOUNT.SSO_LOGIN, args: [code]}]);
+    const sendAction = spy();
+    replace(WindowManager, 'sendActionToPrimaryWindow', sendAction);
+    WindowManager.flushActionsQueue();
+    WindowManager.flushActionsQueue();
+    assert.deepStrictEqual(sendAction.args, [[EVENT_TYPE.ACCOUNT.SSO_LOGIN, code]]);
+  });
+
+  it('[security-target][CAP-006] bounds incoming startup actions and does not queue arbitrary channels', () => {
+    replace(WindowManager, 'getPrimaryWindow', () => undefined);
+    WindowManager.sendActionToPrimaryWindow('arbitrary-channel');
+    assert.deepStrictEqual(WindowManager.actionsQueue, []);
+    for (let index = 0; index < 32; index++) {
+      WindowManager.sendActionToPrimaryWindow(EVENT_TYPE.ACCOUNT.SSO_LOGIN, `code-${index}`);
+    }
+    assert.throws(
+      () => WindowManager.sendActionToPrimaryWindow(EVENT_TYPE.ACCOUNT.SSO_LOGIN, 'overflow'),
+      /queue is full/,
+    );
+    assert.strictEqual(WindowManager.actionsQueue.length, 32);
+    assert.strictEqual(WindowManager.actionsQueue[0].args[0], 'code-0');
+  });
+
+  it('[regression][CAP-006] retains incoming SSO while the window exists but its native binding is not ready', () => {
+    const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+    replace(WindowManager, 'getPrimaryWindow', () => window);
+    const shell = spy(window.webContents, 'send');
+    const native = spy();
+    let dispose = () => {};
+    try {
+      WindowManager.sendActionToPrimaryWindow(EVENT_TYPE.ACCOUNT.SSO_LOGIN, 'pending-code');
+      sinonAssert.notCalled(shell);
+      assert.strictEqual(WindowManager.actionsQueue.length, 1);
+      WindowManager.flushActionsQueue();
+      assert.strictEqual(WindowManager.actionsQueue.length, 1);
+      dispose = WindowManager.bindNativeActions(window.id, native);
+      WindowManager.flushActionsQueue();
+      WindowManager.flushActionsQueue();
+      assert.deepStrictEqual(native.args, [[EVENT_TYPE.ACCOUNT.SSO_LOGIN, ['pending-code']]]);
+      assert.deepStrictEqual(WindowManager.actionsQueue, []);
+      sinonAssert.notCalled(shell);
+    } finally {
+      dispose();
+      window.destroy();
+    }
+  });
+
   it('[regression][DCP-010][CAP-001] retains actions queued during a flush for the next flush', () => {
     const sendAction = spy(() => {
       if (sendAction.callCount === 1) {

@@ -25,6 +25,12 @@ import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 
 const logger = getLogger(path.basename(__filename));
+const incomingActions: readonly string[] = [
+  EVENT_TYPE.ACCOUNT.SSO_LOGIN,
+  EVENT_TYPE.ACTION.START_LOGIN,
+  EVENT_TYPE.ACTION.JOIN_CONVERSATION,
+  EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH,
+];
 
 export class WindowManager {
   private static primaryWindowId: number | undefined;
@@ -92,6 +98,14 @@ export class WindowManager {
   static sendActionToPrimaryWindow(action: string, ...args: any[]): void {
     const primaryWindow = WindowManager.getPrimaryWindow();
 
+    if (
+      incomingActions.includes(action) &&
+      (!primaryWindow || WindowManager.nativeActions?.windowId !== primaryWindow.id)
+    ) {
+      WindowManager.queueAction(action, args);
+      return;
+    }
+
     if (primaryWindow) {
       logger.info(`Sending action "${action}" to window with ID "${primaryWindow.id}":`, {args});
       if (WindowManager.dispatchNativeAction(primaryWindow.id, action, args)) {
@@ -101,6 +115,13 @@ export class WindowManager {
     } else {
       logger.warn(`Got no primary window, can't send action "${action}".`);
     }
+  }
+
+  private static queueAction(action: string, args: any[]): void {
+    if (WindowManager.actionsQueue.length >= 32) {
+      throw new Error('Desktop startup queue is full.');
+    }
+    WindowManager.actionsQueue.push({action, args: structuredClone(args)});
   }
 
   static flushActionsQueue() {
@@ -117,7 +138,7 @@ export class WindowManager {
     if (primaryWindow) {
       if (primaryWindow.webContents.isLoading()) {
         // If the webapp is not yet loaded we queue the action we want to send. It will be flushed later on by the flushActionsQueue` method
-        WindowManager.actionsQueue.push({action, args});
+        WindowManager.queueAction(action, args);
       } else {
         if (!primaryWindow.isVisible()) {
           primaryWindow.show();
@@ -126,7 +147,7 @@ export class WindowManager {
         WindowManager.sendActionToPrimaryWindow(action, ...args);
       }
     } else {
-      logger.warn(`Got no primary window, can't send action "${action}".`);
+      WindowManager.sendActionToPrimaryWindow(action, ...args);
     }
   }
 }
