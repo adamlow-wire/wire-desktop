@@ -26,7 +26,7 @@ const path = require('path');
  * */
 
 const rendererConfig = (env = {}) => ({
-  devtool: env.production ? undefined : 'eval-cheap-source-map',
+  devtool: env.production ? undefined : 'cheap-module-source-map',
   entry: path.resolve(__dirname, 'electron/renderer/src/index.tsx'),
   externals: {
     'fs-extra': '{}',
