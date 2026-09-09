@@ -99,6 +99,16 @@ test(
         expect(hostileRequests).toBe(0);
       }
 
+      // SEC-012: exercise the actual sandboxed page bridge and main fetch boundary, not an IPC mock.
+      const previewResult = await app.evaluate(async ({webContents}, url) => {
+        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+        return account.executeJavaScript(
+          `window.openGraphAsync(${JSON.stringify(url)}).then(() => 'allowed', () => 'denied')`,
+        );
+      }, `${hostileOrigin}/private-preview`);
+      expect(previewResult).toBe('denied');
+      expect(hostileRequests).toBe(0);
+
       const popup = await app.evaluate(async ({BrowserWindow, webContents}) => {
         const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
         const opened = await account.executeJavaScript(`

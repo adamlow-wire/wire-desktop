@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.17
+revision: 1.5.18
 status: draft
 updated: 2026-09-09
 owners:
@@ -404,7 +404,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-007 — Replace `<webview>` account rendering
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-001, SEC-005, SEC-006
 - Scope: Implement account content with main-process-owned `WebContentsView` instances and preserve isolated persistent sessions.
@@ -413,7 +413,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - No `allowpopups` behavior remains.
   - Account views resize, focus, hide/show, crash, reload, add, remove, and switch correctly.
   - Session-isolation tests prove accounts cannot observe each other's storage/cookies.
-- Evidence: TBD
+- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines and validated legacy profile preparation. Production view creation and routing are not yet switched; no SEC-007 acceptance is claimed from the unused preparation modules.
 
 #### SEC-008 — Centralize navigation and window-open policy
 
@@ -460,7 +460,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Production CSP does not include `unsafe-eval`.
   - Custom protocol privileges are minimal and tested.
   - Development-only relaxations cannot reach production builds.
-- Evidence: TBD
+- Evidence: CSP slice [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial are tested with sensitivity evidence. Custom protocol and storage migration remain open.
 
 #### SEC-011 — Harden Electron fuses and package integrity
 
@@ -479,17 +479,18 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-012 — Harden renderer-initiated network fetches
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Review or replace Open Graph and other main-process network operations for SSRF, redirects, protocols, DNS/IP ranges, response limits, cookies, and timeouts.
+- Preview contract: Optional previews use only public HTTP(S) destinations on default ports, reject mixed/private DNS answers, pin validated addresses and revalidate every redirect. No response cookies, account credentials or ambient proxy credentials are replayed. Pages behind private networks, authenticated proxies or cookie challenges may lose previews; ordinary account/backend traffic is unchanged. Enforce a 10-second per-resource deadline, five redirects, 1 MB HTML and 5 MB image wire/decoded limits. Replace the inherited-property-mutating parser with an HTML tokenizer that collects only known preview fields, preserves title/image fallbacks and entities, and bounds tags, fields and field length. Arbitrary metadata object paths and unused audio/video trees are not part of the retained webapp preview contract.
 - Acceptance:
   - Only required protocols are accepted.
   - Loopback, link-local, private, metadata-service, and otherwise prohibited destinations are handled by explicit policy.
   - Every redirect target is revalidated.
   - Response byte, time, redirect, and parsing limits are tested.
   - Renderer-controlled fetches do not receive privileged ambient credentials.
-- Evidence: The current SEC-003 Open Graph IPC slice adds account sender authorization, an exact bounded request, response validation, and a per-view quota. It deliberately does not claim SEC-012 completion: protocol, private-address, DNS, redirect, credential, timeout, and response-byte controls remain open for a dedicated work item.
+- Evidence: Baseline `41882ee3` protects image/text behavior; `b31f4b60` protects metadata, entity, duplicate and fallback behavior. The old implementation fails five private-fetch targets and an inherited-object mutation target. Native pinned-DNS transport and bounded metadata collection pass 528 full main tests, 4 renderer, 94 React and 35 tools. New parser/destination/fetch branch coverage is 96%/95%/92.16%. Deliberate private-address, DNS-pinning and compressed wire-limit regressions fail 22 assertions and are restored. All-platform focused suites are mandatory; final hosted gates remain required before closure. Source inventory finds no other renderer-supplied main-process URL fetch: context-menu image retrieval runs in the account preload/session and passes bounded bytes to main; electron-dl handles browser downloads; updater URLs come from main configuration. Certificate/configuration and download-path policies retain their CAP-005/PKG ownership. `open-graph` and its obsolete `request` dependency tree are removed; type-only bridge declarations remain. The [htmlparser2 10.1.0 manifest](https://raw.githubusercontent.com/fb55/htmlparser2/v10.1.0/package.json) provides the CommonJS entrypoint compatible with the existing build; no claim of adopting its latest major is made. Address policy conservatively follows the [IANA IPv4](https://www.iana.org/assignments/iana-ipv4-special-registry) and [IPv6](https://www.iana.org/assignments/iana-ipv6-special-registry) special-use registries.
 
 #### SEC-013 — Harden deep-link and external-link handling
 
@@ -614,7 +615,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M2`
 - Dependencies: ARC-002
 - Scope: Assert effective web preferences, bridge surface, sender authorization, navigation policy, popup policy, permissions, session isolation, and fail-closed behavior.
-- M3 maintenance (2026-09-09): repeated macOS worker teardown failure is traced to the metadata test's first full-app close used only to seed legacy data. Replace that setup with an isolated sandboxed, JavaScript-disabled file-origin fixture, retaining all metadata/session/restart assertions. Five integration-based local repetitions pass; a wrong-storage-key perturbation fails the migration baselines before restoration. Require hosted acceptance; do not change production shutdown, deadlines, retries or M2 completion status.
+- M3 maintenance (2026-09-09): PR #46 replaces the metadata test's first full-app seed/close, traced as the repeated macOS teardown stall, with an isolated sandboxed, JavaScript-disabled file-origin fixture. All metadata/session/restart assertions are retained. Five local repetitions pass; wrong-storage-key perturbation fails before restoration. Final-head all-platform packages and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34329781004) pass; merged as `6f256d59`. macOS has two disclosed multi-account retry passes, not a metadata teardown error. Product shutdown, deadlines, retries and M2 completion status are unchanged.
 - Acceptance:
   - Tests fail if context isolation or sandboxing is disabled.
   - Tests fail if Node, Electron, raw IPC, or remote APIs become reachable from remote content.
@@ -885,6 +886,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
 | 1.5.17 | 2026-09-09 | Codex | Reconciled merged SSO, navigation, metadata and parser evidence; restored concise M3 handoff and synchronized CSP validation without claiming remaining cutover or capability acceptance | SEC-008, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002 |
 | 1.5.16 | 2026-09-08 | Codex | Reproduced isolated SSO backend verdict loss; adopted native redirects with per-flow callback/session isolation and activated the three owned security targets | CAP-002, DCP-003, INV-004, INV-005 |
 | 1.5.15 | 2026-09-08 | Codex | Started independent CSP eval removal with production/development compatibility and real ordinary-script denial evidence; retained custom-scheme/account-state migration as an explicit gate | SEC-010, CAP-001 |
