@@ -404,7 +404,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-007 — Replace `<webview>` account rendering
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-001, SEC-005, SEC-006
 - Scope: Implement account content with main-process-owned `WebContentsView` instances and preserve isolated persistent sessions.
@@ -413,7 +413,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - No `allowpopups` behavior remains.
   - Account views resize, focus, hide/show, crash, reload, add, remove, and switch correctly.
   - Session-isolation tests prove accounts cannot observe each other's storage/cookies.
-- Evidence: TBD
+- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines and validated legacy profile preparation. Production view creation and routing are not yet switched; no SEC-007 acceptance is claimed from the unused preparation modules.
 
 #### SEC-008 — Centralize navigation and window-open policy
 
@@ -615,7 +615,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M2`
 - Dependencies: ARC-002
 - Scope: Assert effective web preferences, bridge surface, sender authorization, navigation policy, popup policy, permissions, session isolation, and fail-closed behavior.
-- M3 maintenance (2026-09-09): repeated macOS worker teardown failure is traced to the metadata test's first full-app close used only to seed legacy data. Replace that setup with an isolated sandboxed, JavaScript-disabled file-origin fixture, retaining all metadata/session/restart assertions. Five integration-based local repetitions pass; a wrong-storage-key perturbation fails the migration baselines before restoration. Require hosted acceptance; do not change production shutdown, deadlines, retries or M2 completion status.
+- M3 maintenance (2026-09-09): PR #46 replaces the metadata test's first full-app seed/close, traced as the repeated macOS teardown stall, with an isolated sandboxed, JavaScript-disabled file-origin fixture. All metadata/session/restart assertions are retained. Five local repetitions pass; wrong-storage-key perturbation fails before restoration. Final-head all-platform packages and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34329781004) pass; merged as `6f256d59`. macOS has two disclosed multi-account retry passes, not a metadata teardown error. Product shutdown, deadlines, retries and M2 completion status are unchanged.
 - Acceptance:
   - Tests fail if context isolation or sandboxing is disabled.
   - Tests fail if Node, Electron, raw IPC, or remote APIs become reachable from remote content.
