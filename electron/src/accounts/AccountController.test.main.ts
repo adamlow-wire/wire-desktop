@@ -351,6 +351,25 @@ describe('production account controller integration', () => {
     assert.equal(state.get(records[1].id).visible, true);
   });
 
+  it('[regression][CAP-001] retains a join after reload until the replacement webapp is ready', async () => {
+    const accountId = records[0].id;
+    await controller.receive(identity(views.get(accountId)), {type: 'loaded'});
+    await controller.reload(accountId);
+    const replacement = views.get(accountId);
+    const joined = {code: 'pending-code', key: 'pending-key', domain: null};
+    await controller.join(accountId, joined);
+    assert.deepEqual(await send(replacement, 'readJoins'), []);
+    assert.deepEqual(state.get(accountId).conversationJoinData, joined);
+    await controller.select(records[1].id);
+    await controller.receive(identity(views.get(records[1].id)), {type: 'loaded'});
+    assert.deepEqual(await send(replacement, 'readJoins'), []);
+    await controller.receive(identity(replacement), {type: 'loaded'});
+    assert.deepEqual(await send(replacement, 'readJoins'), [joined]);
+    assert.equal(state.get(accountId).conversationJoinData, undefined);
+    await controller.receive(identity(replacement), {type: 'loaded'});
+    assert.deepEqual(await send(replacement, 'readJoins'), [joined]);
+  });
+
   it('[security-target][CAP-001] binds guest metadata and joins to the real sender and denies shell commands from accounts', async () => {
     const first = views.get(records[0].id);
     const second = views.get(records[1].id);

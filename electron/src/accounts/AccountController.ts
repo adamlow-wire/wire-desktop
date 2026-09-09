@@ -170,7 +170,7 @@ export class AccountController {
 
   private deliverJoin(id: string): void {
     const account = this.options.state.get(id);
-    if (account.lifecycle === EVENT_TYPE.LIFECYCLE.SIGNED_IN && account.conversationJoinData) {
+    if (this.ready.has(id) && account.lifecycle === EVENT_TYPE.LIFECYCLE.SIGNED_IN && account.conversationJoinData) {
       this.options.views.get(id).send(WebAppEvents.CONVERSATION.JOIN, account.conversationJoinData);
       this.options.state.clearPendingJoin(id);
     }
@@ -188,7 +188,7 @@ export class AccountController {
   reloadAll = (identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(
       async () => {
-      const accounts = this.snapshots();
+        const accounts = this.snapshots();
         for (const account of accounts) {
           this.resetMenu(account.id);
           await this.options.views.close(account.id);
@@ -264,11 +264,13 @@ export class AccountController {
           views.select(id);
           this.publishBadge(id);
         }
+        if (message.type === 'loaded') {
+          this.ready.add(id);
+        }
         if (message.type === 'join' || message.type === 'loaded') {
           this.deliverJoin(id);
         }
         if (message.type === 'loaded') {
-          this.ready.add(id);
           const queued = this.menuQueue.get(id) ?? [];
           this.menuQueue.delete(id);
           queued.forEach(action => views.get(id).send(action));
