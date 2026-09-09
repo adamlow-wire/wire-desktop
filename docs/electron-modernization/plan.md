@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.16
+revision: 1.5.18
 status: draft
-updated: 2026-09-08
+updated: 2026-09-09
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -429,7 +429,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - New windows default to deny.
   - Allowed SSO/PiP windows use fixed reviewed preferences.
   - External URLs use protocol and origin policy with adversarial tests.
-- Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. Local implementation validation is ongoing; hosted gates and production E2E remain required before completion.
+- Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. PR #38 merged as `67dfb5db` after final-head build, analysis, all-platform packages and authenticated Windows/macOS E2E/report passed; the custom-backend cutover gate below remains open.
 - SSO lifecycle refinement: reserve the single active flow before asynchronous initialization and retain it until cleanup completes. Repeated requests from its owner focus it; requests from another account cannot replace or control it. Close and native closed events share one captured-session cleanup operation; a new target reproduced a duplicate-cleanup `undefined.protocol` error. Failed cleanup does not mark the session reusable. CAP-002 still owns one-time callback validation, cookie scope, and full IdP acceptance.
 - Remaining cutover gate: the legacy environment-change bridge can initiate programmatic `loadURL`, which is not governed by cancellable renderer navigation events. CAP-001/CAP-005 must preserve approved custom backend switching through a main-owned destination policy before SEC-008 is globally complete.
 
@@ -450,10 +450,11 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
+- Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
   - Production CSP does not include `unsafe-eval`.
@@ -478,17 +479,18 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-012 — Harden renderer-initiated network fetches
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Review or replace Open Graph and other main-process network operations for SSRF, redirects, protocols, DNS/IP ranges, response limits, cookies, and timeouts.
+- Preview contract: Optional previews use only public HTTP(S) destinations on default ports, reject mixed/private DNS answers, pin validated addresses and revalidate every redirect. No response cookies, account credentials or ambient proxy credentials are replayed. Pages behind private networks, authenticated proxies or cookie challenges may lose previews; ordinary account/backend traffic is unchanged. Enforce a 10-second per-resource deadline, five redirects, 1 MB HTML and 5 MB image wire/decoded limits. Replace the inherited-property-mutating parser with an HTML tokenizer that collects only known preview fields, preserves title/image fallbacks and entities, and bounds tags, fields and field length. Arbitrary metadata object paths and unused audio/video trees are not part of the retained webapp preview contract.
 - Acceptance:
   - Only required protocols are accepted.
   - Loopback, link-local, private, metadata-service, and otherwise prohibited destinations are handled by explicit policy.
   - Every redirect target is revalidated.
   - Response byte, time, redirect, and parsing limits are tested.
   - Renderer-controlled fetches do not receive privileged ambient credentials.
-- Evidence: The current SEC-003 Open Graph IPC slice adds account sender authorization, an exact bounded request, response validation, and a per-view quota. It deliberately does not claim SEC-012 completion: protocol, private-address, DNS, redirect, credential, timeout, and response-byte controls remain open for a dedicated work item.
+- Evidence: Baseline `41882ee3` protects image/text behavior; `b31f4b60` protects metadata, entity, duplicate and fallback behavior. The old implementation fails five private-fetch targets and an inherited-object mutation target. Native pinned-DNS transport and bounded metadata collection pass 528 full main tests, 4 renderer, 94 React and 35 tools. New parser/destination/fetch branch coverage is 96%/95%/92.16%. Deliberate private-address, DNS-pinning and compressed wire-limit regressions fail 22 assertions and are restored. All-platform focused suites are mandatory; final hosted gates remain required before closure. Source inventory finds no other renderer-supplied main-process URL fetch: context-menu image retrieval runs in the account preload/session and passes bounded bytes to main; electron-dl handles browser downloads; updater URLs come from main configuration. Certificate/configuration and download-path policies retain their CAP-005/PKG ownership. `open-graph` and its obsolete `request` dependency tree are removed; type-only bridge declarations remain. The [htmlparser2 10.1.0 manifest](https://raw.githubusercontent.com/fb55/htmlparser2/v10.1.0/package.json) provides the CommonJS entrypoint compatible with the existing build; no claim of adopting its latest major is made. Address policy conservatively follows the [IANA IPv4](https://www.iana.org/assignments/iana-ipv4-special-registry) and [IPv6](https://www.iana.org/assignments/iana-ipv6-special-registry) special-use registries.
 
 #### SEC-013 — Harden deep-link and external-link handling
 
@@ -503,7 +505,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - External links cannot invoke dangerous local protocols.
 - Boundary contract: Only bounded recognized user/conversation (including federated and file-list), preferences, meetings, SSO, login and join actions are accepted. Malformed paths, traversal, encoded path delimiters, credentials, ports, fragments, unknown routes, duplicate/unknown parameters and invalid backend domains fail closed. Absent join domain stays null at the existing dispatch boundary. Desktop has no existing access/config route; adding remote backend configuration remains CAP-005 scope.
 - Execution split: Publish incoming parsing independently on `sec/SEC-013-incoming-links-2026-09-08`, then reuse it in SEC-008 for safe internal popup routing. Do not close SEC-013 until external-link and lifecycle acceptance is evidenced.
-- Evidence: Existing parser work was reconciled without restoring raw IPC. Thirteen baseline dispatch tests pass; destination mutation fails all seven added route tests. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks initially pass 36/36; final full Electron-main run passes 366 with 3 owned CAP-002 targets pending, Jest passes 64/64. Hosted validation and changed coverage are pending. Route contracts were checked against sibling webapp page/appMain.tsx and router/routeGenerator.ts; domains against sibling server libs/types-common/src/Data/Domain.hs.
+- Evidence: Existing parser work was reconciled without restoring raw IPC. Thirteen baseline dispatch tests pass; destination mutation fails all seven added route tests. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks initially pass 36/36; final full Electron-main run passes 366 with 3 owned CAP-002 targets pending, Jest passes 64/64. PR #39 merged as `75b22ded` after applicable final-head coverage, package and E2E gates; PR #38 supplies validated internal/external popup routing. Account-targeted lifecycle acceptance remains open. Route contracts were checked against sibling webapp page/appMain.tsx and router/routeGenerator.ts; domains against sibling server libs/types-common/src/Data/Domain.hs.
 
 ### 10.3 Electron and dependency currency
 
@@ -648,7 +650,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
-- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. [PR #10](https://github.com/adamlow-wire/wire-desktop/pull/10) merged on 2026-09-02 with exact-session local-storage/cookie clearing while another account remains intact; all required hosted checks passed. Production action routing remains open.
+- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. [PR #10](https://github.com/adamlow-wire/wire-desktop/pull/10) merged on 2026-09-02 with exact-session local-storage/cookie clearing while another account remains intact; all required hosted checks passed. PR #41 additionally preserves metadata identity and cross-account state through sensitivity-proven cold-restart tests and green hosted gates. Production action routing remains open.
 
 #### CAP-002 — Migrate enterprise and automated SSO
 
@@ -663,7 +665,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - SSO windows use fixed secure preferences and ephemeral sessions.
   - Account targeting and cookie transfer cannot cross partitions.
   - The real backend verdict is delivered without a renderer opener, with success/error and backend error-label compatibility; synthetic direct finalization alone is insufficient.
-- Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. Local full validation and hosted evidence are pending; a controlled live IdP checkpoint remains required before CAP-002 closure.
+- Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. A controlled live IdP checkpoint remains required before CAP-002 closure.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
@@ -705,7 +707,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Managed configuration is read through an authorized, immutable contract.
   - Enforced Windows download paths are normalized and cannot traverse outside the approved base or select device/UNC targets.
   - Windows, macOS, and Linux managed-config backends have representative tests.
-- Evidence: PR #16 provides authorized immutable managed-configuration reads and PR #25 provides bounded enforced-download-location updates. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds sensitivity-proven exact-prompt authorization, bounded credential handling, one-shot submit/cancel coordination, retry semantics, challenged-session proxy application, and cancellation reload behavior; hosted validation is pending. Certificate policy, download-path containment, platform backend coverage, and packaged enterprise proxy/configuration evidence remain open.
+- Evidence: PR #16 provides authorized immutable managed-configuration reads and PR #25 provides bounded enforced-download-location updates. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds sensitivity-proven exact-prompt authorization, bounded credential handling, one-shot submit/cancel coordination, retry semantics, challenged-session proxy application, and cancellation reload behavior; all applicable hosted gates passed before merge. Certificate policy, download-path containment, platform backend coverage, and packaged enterprise proxy/configuration evidence remain open.
 
 #### CAP-006 — Migrate deep links and single-instance behavior
 
@@ -883,7 +885,10 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
+| 1.5.17 | 2026-09-09 | Codex | Reconciled merged SSO, navigation, metadata and parser evidence; restored concise M3 handoff and synchronized CSP validation without claiming remaining cutover or capability acceptance | SEC-008, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002 |
 | 1.5.16 | 2026-09-08 | Codex | Reproduced isolated SSO backend verdict loss; adopted native redirects with per-flow callback/session isolation and activated the three owned security targets | CAP-002, DCP-003, INV-004, INV-005 |
+| 1.5.15 | 2026-09-08 | Codex | Started independent CSP eval removal with production/development compatibility and real ordinary-script denial evidence; retained custom-scheme/account-state migration as an explicit gate | SEC-010, CAP-001 |
 | 1.5.14 | 2026-09-08 | Codex | Reproduced and rejected desktop-owned identity/session overwrites through webapp metadata; preserved known metadata and environment updates, retained main-owned lifecycle and destination-policy cutover | CAP-001, CAP-005, DCP-002, DCP-004 |
 | 1.5.13 | 2026-09-08 | Codex | Isolated a renderer-loss harness fix after proving host crash handling delayed process-loss notification; strengthened revocation-order evidence without changing runtime code or deadlines | CAP-001, TST-004 |
 | 1.5.12 | 2026-09-08 | Codex | Recorded merged sandboxing evidence and split incoming deep-link parsing ahead of navigation merge to preserve valid chat links; retained external/lifecycle closure | SEC-006, SEC-008, SEC-013, CAP-005, CAP-006 |
