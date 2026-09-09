@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.18
+revision: 1.5.19
 status: draft
 updated: 2026-09-09
 owners:
@@ -479,18 +479,19 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-012 — Harden renderer-initiated network fetches
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-003
 - Scope: Review or replace Open Graph and other main-process network operations for SSRF, redirects, protocols, DNS/IP ranges, response limits, cookies, and timeouts.
 - Preview contract: Optional previews use only public HTTP(S) destinations on default ports, reject mixed/private DNS answers, pin validated addresses and revalidate every redirect. No response cookies, account credentials or ambient proxy credentials are replayed. Pages behind private networks, authenticated proxies or cookie challenges may lose previews; ordinary account/backend traffic is unchanged. Enforce a 10-second per-resource deadline, five redirects, 1 MB HTML and 5 MB image wire/decoded limits. Replace the inherited-property-mutating parser with an HTML tokenizer that collects only known preview fields, preserves title/image fallbacks and entities, and bounds tags, fields and field length. Arbitrary metadata object paths and unused audio/video trees are not part of the retained webapp preview contract.
+- Closure: PR #44 merged as `62435cc6` after head `9bac19b2` passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34333303038), lint, analysis, [Windows/macOS/Linux packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34333303096) and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34333303173). No unresolved review threads or security exception. Earlier failed macOS fixture runs are retained as diagnosis evidence; PR #46 repaired the seed-only teardown without weakening product assertions or production shutdown. CAP-005 retains certificate/configuration/download policy; this closes SEC-012, not M3.
 - Acceptance:
   - Only required protocols are accepted.
   - Loopback, link-local, private, metadata-service, and otherwise prohibited destinations are handled by explicit policy.
   - Every redirect target is revalidated.
   - Response byte, time, redirect, and parsing limits are tested.
   - Renderer-controlled fetches do not receive privileged ambient credentials.
-- Evidence: Baseline `41882ee3` protects image/text behavior; `b31f4b60` protects metadata, entity, duplicate and fallback behavior. The old implementation fails five private-fetch targets and an inherited-object mutation target. Native pinned-DNS transport and bounded metadata collection pass 528 full main tests, 4 renderer, 94 React and 35 tools. New parser/destination/fetch branch coverage is 96%/95%/92.16%. Deliberate private-address, DNS-pinning and compressed wire-limit regressions fail 22 assertions and are restored. All-platform focused suites are mandatory; final hosted gates remain required before closure. Source inventory finds no other renderer-supplied main-process URL fetch: context-menu image retrieval runs in the account preload/session and passes bounded bytes to main; electron-dl handles browser downloads; updater URLs come from main configuration. Certificate/configuration and download-path policies retain their CAP-005/PKG ownership. `open-graph` and its obsolete `request` dependency tree are removed; type-only bridge declarations remain. The [htmlparser2 10.1.0 manifest](https://raw.githubusercontent.com/fb55/htmlparser2/v10.1.0/package.json) provides the CommonJS entrypoint compatible with the existing build; no claim of adopting its latest major is made. Address policy conservatively follows the [IANA IPv4](https://www.iana.org/assignments/iana-ipv4-special-registry) and [IPv6](https://www.iana.org/assignments/iana-ipv6-special-registry) special-use registries.
+- Evidence: Baseline `41882ee3` protects image/text behavior; `b31f4b60` protects metadata, entity, duplicate and fallback behavior. The old implementation fails five private-fetch targets and an inherited-object mutation target. Native pinned-DNS transport and bounded metadata collection pass 528 full main tests, 4 renderer, 94 React and 35 tools. New parser/destination/fetch branch coverage is 96%/95%/92.16%. Deliberate private-address, DNS-pinning and compressed wire-limit regressions fail 22 assertions and are restored. All-platform focused suites and final hosted gates passed in the closure run above. Source inventory finds no other renderer-supplied main-process URL fetch: context-menu image retrieval runs in the account preload/session and passes bounded bytes to main; electron-dl handles browser downloads; updater URLs come from main configuration. Certificate/configuration and download-path policies retain their CAP-005/PKG ownership. `open-graph` and its obsolete `request` dependency tree are removed; type-only bridge declarations remain. The [htmlparser2 10.1.0 manifest](https://raw.githubusercontent.com/fb55/htmlparser2/v10.1.0/package.json) provides the CommonJS entrypoint compatible with the existing build; no claim of adopting its latest major is made. Address policy conservatively follows the [IANA IPv4](https://www.iana.org/assignments/iana-ipv4-special-registry) and [IPv6](https://www.iana.org/assignments/iana-ipv6-special-registry) special-use registries.
 
 #### SEC-013 — Harden deep-link and external-link handling
 
@@ -698,10 +699,12 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-005 — Migrate proxy, certificate, and managed configuration
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-003, SEC-009, TST-004
 - Scope: Preserve enterprise network behavior without global or unauthenticated renderer authority.
+- Download-path contract (2026-09-09): retain ordinary home-relative nested folders, Unicode/spaces and clearing the setting; normalize separators before persistence. Reject traversal, rooted/drive/UNC/device/stream paths, ambiguous names and linked directory components. Validate saved configuration at startup and revalidate at download start; invalid enforced configuration blocks downloads until corrected and restarted rather than silently bypassing enterprise policy. The main-selected home base is trusted; defending against a same-user filesystem race after validation is not claimed. Native Windows junction evidence is required in addition to platform-independent policy tests.
+- Path-policy reference: [Microsoft file/path naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file), including device aliases, superscript port numbers and trailing-dot/space ambiguity; use explicit Windows path semantics on every test host.
 - Acceptance:
   - Proxy credentials are handled only by the intended prompt and session.
   - Certificate verification and exception behavior are characterized and fail closed.
@@ -886,6 +889,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |
 | 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
 | 1.5.17 | 2026-09-09 | Codex | Reconciled merged SSO, navigation, metadata and parser evidence; restored concise M3 handoff and synchronized CSP validation without claiming remaining cutover or capability acceptance | SEC-008, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002 |
 | 1.5.16 | 2026-09-08 | Codex | Reproduced isolated SSO backend verdict loss; adopted native redirects with per-flow callback/session isolation and activated the three owned security targets | CAP-002, DCP-003, INV-004, INV-005 |

@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-09
 milestone: M3
-active_work_item: SEC-012
-state: preview-final-head-validation
+active_work_item: CAP-005
+state: download-final-head-validation
 integration_branch: integration/electron-modernization
-integration_head_commit: 6f256d590b38a1ddb5f6a1f6ea4b8349c806abc6
+integration_head_commit: 62435cc60b8df14f605ad22676289ad20cb1e7ee
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: sec/SEC-012-preview-fetch-2026-09-08
-next_work_item: SEC-007
+active_branch: cap/CAP-005-download-path-2026-09-09
+next_work_item: CAP-001
 blockers: []
 ---
 
@@ -25,7 +25,7 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete.** Electron stays at
 | Production accounts | Opt-in main-owned collection and targeted deletion; metadata identity protected | SEC-007/CAP-001 production WebContentsView, main-owned state, lifecycle routing and legacy sessions |
 | Navigation/links | PRs #38/#39 merged: strict navigation, popup, external and incoming-link parsing | Main-authorized custom-backend changes and lifecycle/account routing under SEC-008/SEC-013/CAP-005/CAP-006 |
 | Local shell | CSP PR #42 merged: production/development eval removed | SEC-010 custom scheme and storage migration |
-| Permissions/previews | SEC-009 open; SEC-012 implemented in PR #44 | Permission user-flow policy; final-head preview E2E/report |
+| Permissions/previews | SEC-012 merged in PR #44 after all final-head gates passed | SEC-009 permission user-flow policy |
 | Critical capabilities | SSO PR #43 merged with all three quarantines removed; download containment in draft #45 | Controlled live IdP checkpoint, certificate/configuration policy and deep-link/single-instance parity |
 | Closure | Not started | Audit every M3 acceptance criterion and final cross-platform evidence |
 
@@ -33,6 +33,7 @@ The previously communicated approximately 65% was an engineering estimate, not a
 
 ## Merged evidence
 
+- [PR #44](https://github.com/adamlow-wire/wire-desktop/pull/44), public-only preview fetches and bounded metadata parsing, merged `62435cc6`: head `9bac19b2` passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34333303038), lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34333303096) and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34333303173). No unresolved review threads. SEC-012 is complete; M3 remains open.
 - [PR #46](https://github.com/adamlow-wire/wire-desktop/pull/46), isolated legacy-profile seeding, merged `6f256d59`: final-head build/lint/analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34329710696) and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34329781004) pass. The metadata fixture passes without the previous seed-close teardown error; macOS has two disclosed built-in retry passes in existing multi-account flows (32 first-attempt passes). Product shutdown, timeouts and assertions are unchanged.
 
 - [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42), CSP, merged `9c188bf1`: final-head build/lint/analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial have sensitivity evidence. Custom-scheme acceptance remains open.
@@ -42,13 +43,16 @@ The previously communicated approximately 65% was an engineering estimate, not a
 ## Active branches and next executable work
 
 1. **[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, is stacked on draft #45; do not publish their changes as a duplicate integration diff. Baseline commit `6d20d3fa` adds actual sandboxed account switching, exact-account join/logout routing, add/cancel and removal with cross-account cookie retention. Baseline and restored run each pass in 4.6 seconds. Inverting the actual preload target identity makes the unchanged test fail. The fixture correctly observes join as a DOM CustomEvent, not amplify publish. Profile groundwork is committed as `11b3e46b`; account production behavior is unchanged so far. Next: implement the SEC-007/CAP-001 production view/state cutover, preserving existing default and `persist:UUID` sessions.
-2. **[PR #44](https://github.com/adamlow-wire/wire-desktop/pull/44), SEC-012**, is synchronized with merged #46. Previous head `8a7af56b` passed Windows E2E and all static/package gates but failed macOS fixture teardown. New final-head local and hosted gates are required; do not substitute #46 results or rerun the old head. After all pass and comments are reviewed, self-merge #44, then synchronize and retarget #45.
-3. **[Draft PR #45](https://github.com/adamlow-wire/wire-desktop/pull/45), CAP-005 download containment**, branch `cap/CAP-005-download-path-2026-09-09`, is based on PR #44, not integration. Implementation `ca1b8e22`, handoff `d25151d6`. [Native package preflight](https://github.com/adamlow-wire/wire-desktop/actions/runs/34327126999) runs at the implementation commit and includes a real Windows junction test; this is not final-head acceptance for the later handoff commit. After #44 merges, retarget #45 to integration, make it ready and require applicable final-head gates before self-merge.
+2. **PR #44 is merged and SEC-012 is complete.** Preserve its public-only preview contract during later account integration. Prior failed heads remain diagnosis evidence, not waived checks; the synchronized final head passed every gate.
+3. **[Draft PR #45](https://github.com/adamlow-wire/wire-desktop/pull/45), CAP-005 download containment**, branch `cap/CAP-005-download-path-2026-09-09`, is being synchronized with integration after PR #44 merged. Implementation `ca1b8e22`, handoff `d25151d6`. [Native preflight](https://github.com/adamlow-wire/wire-desktop/actions/runs/34327126999) passes all platforms, including a real Windows junction test. Retarget #45 to integration, make it ready and require applicable final-head gates before self-merge. Preflight is not a substitute for those gates.
 4. Finish SEC-010 local-scheme migration, SEC-009 permissions, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 parity. Download containment does not close certificate policy or platform managed-config backend coverage.
 5. Complete CAP-002 live-provider evidence and the M3 closure audit. Do not mark M3 complete while any required acceptance remains open.
 
 ## Local validation and known failures
 
+- **CAP-005 integration synchronization:** merge `29fa5021` incorporates merged SEC-012 and the validated isolated legacy-profile fixture without changing download policy. Rebuilt application/preloads; application/Mocha types, 598 main tests (zero pending), and sandboxed metadata/navigation regressions (2/2 in 6.9 seconds on Linux) pass. Retargeted final-head hosted gates remain mandatory; the earlier native preflight does not replace them.
+- **CAP-001 native view owner:** `AccountViews` registers main-owned account/session authority before navigation, fixes secure preferences, defaults permissions/popups to deny, selects/resizes views and revokes authority before awaited destruction. Twelve real-Electron tests cover legacy default/persistent sessions, cross-account cookies, real renderer loss/recreation, foreign redirects, stale initialization and parent teardown. New targets first reproduced partition aliases, premature recreation during close and cleanup after Electron removes a destroyed view's `webContents`; fixes pass. Isolation/redirect-policy mutations produce two expected failures and are restored. Full main suite: 651 passing, zero pending; owner coverage 91/92 statements and 47/48 branches. This remains **unwired preparation**: production setup, guest-event routing, shell layout/UI and permission user flows must be integrated before PR #47 is ready.
+- **CAP-001 shell command boundary:** draft `accounts:control:v1` permits only read/add/select/remove from a capability-authorized application shell, with exact request/response schemas and 120 requests/minute per view. It accepts no renderer-selected session/partition. Seven allow/deny tests pass; temporarily widening the view type and request/response fields produces three expected failures, then all pass after restoration. Inventory marks the binder as not yet registered in production. Remaining wiring must use named shell bridge methods and main-owned guest/view lifecycle, not expose the command transport directly to page code.
 - **SEC-012 after PR #46 synchronization:** merge `f266b954` retains unchanged preview runtime, incorporates the validated isolated seeding fixture and reconciles current tracking. Rebuilt TypeScript/preloads; application/Mocha types, 530 main tests (zero pending), and sandboxed metadata/navigation product tests (2/2, 6.2 seconds on Linux) pass. Fresh hosted final-head gates remain required.
 - **CAP-001 main state owner:** `AccountState` now owns generated identities, selection, unfinished-login reuse and account-limit enforcement. Display snapshots omit session IDs and pending SSO/join secrets; failed saves do not publish transient state. Seven owner tests plus a real-file restart integration test pass. Exposing session IDs and publishing before the write produce two expected failures; restored before commit. Full main suite: 632 passing, zero pending; application/Mocha types and targeted lint pass. Owner coverage: 39/39 statements and 16/16 branches. The next implementation step is authorized guest/shell commands and production view integration; no new IPC or runtime cutover is active yet.
 - **CAP-001 groundwork at `11b3e46b`:** rebuilt TypeScript and bundled preloads; 624 main (zero pending), 4 renderer, 97 React and 38 tooling tests pass. Own diff versus #45: 88/90 statements (97.78%). Profile module: 64/64 statements and 34/34 branches; native reader: 24/26 statements and 9/10 branches. Sandbox product lifecycle and metadata/restart checks pass 2/2 in 8.7 seconds on Linux. These results validate the current preparation, not future production wiring.
