@@ -2,13 +2,13 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-09
 milestone: M3
-active_work_item: SEC-012
-state: preview-parser-and-network-hardening
+active_work_item: CAP-001
+state: production-account-lifecycle-characterization
 integration_branch: integration/electron-modernization
-integration_head_commit: ef050e42a3cefa08dfecd8e4b37eb049ea72be5c
+integration_head_commit: 9c188bf1891fd9179d447acd5fcc6df857afec4f
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: sec/SEC-012-preview-fetch-2026-09-08
+active_branch: cap/CAP-001-production-accounts-2026-09-09
 next_work_item: SEC-007
 blockers: []
 ---
@@ -24,7 +24,7 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete.** Electron stays at
 | IPC and renderer isolation | SEC-002–006 merged: registered authority, typed contracts, no remote dependency, isolated bridges and sandboxing | Maintain invariants through production view migration |
 | Production secure shell | Opt-in main-owned collection and targeted deletion; production metadata identity protected | SEC-007/CAP-001 production WebContentsView, main-owned state, lifecycle routing and legacy-session preservation |
 | Navigation and links | PRs #38/#39 merged: strict navigation, popup, external and incoming-link parsing | Main-authorized custom-backend changes and lifecycle/account routing under SEC-008/SEC-013/CAP-005/CAP-006 |
-| Local shell | PR #42 removes eval with production/development tests | Synchronized final-head gates, then custom scheme and storage migration under SEC-010 |
+| Local shell | PR #42 merged: eval removed with production/development tests | Custom scheme and storage migration under SEC-010 |
 | Permissions and previews | SEC-009 open; SEC-012 implementation preserved separately | Permission user-flow policy; finish preview parser/network limits and adversarial validation |
 | Critical capabilities | PR #43 fixes isolated SSO completion and removes all three SSO test quarantines | Controlled live IdP checkpoint, certificate/configuration policy and deep-link/single-instance parity |
 | Closure | Not started | Audit every M3 acceptance criterion; final cross-platform package and authenticated E2E evidence |
@@ -50,11 +50,11 @@ PR #43 local combined validation: 431 native tests, zero pending; 94 React, 4 re
 
 PR #42 synchronized local validation on September 9: 433 main tests (zero pending), 4 renderer, 97 React and 38 tools pass. Application/Mocha types, changed-file lint, formatting and diff coverage pass (no changed application TypeScript statements). Both development CSP tests pass; rebuilt production metadata/navigation/cleanup regressions pass 3/3 in 15.8 seconds on Linux. Prior sensitivity evidence remains in PR #42. Hosted final-head gates remain required.
 
-1. Monitor synchronized [CSP PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42), published at `5dabc833` with `run-e2e`. Require build, lint, analysis, all-platform packages and authenticated Windows/macOS E2E/report before self-merge. Keep custom-scheme/state migration open.
-2. Active `sec/SEC-012-preview-fetch-2026-09-08` includes merged SSO. Baselines `41882ee3` and `b31f4b60` precede implementation `6d7760fc`. The six unfinished files were restored successfully and their recovery stash was removed. Publish the validated implementation PR with the final evidence below.
+1. [CSP PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after final-head build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Keep custom-scheme/state migration open.
+2. [SEC-012 PR #44](https://github.com/adamlow-wire/wire-desktop/pull/44) is published at `9d25f910` with `run-e2e`. Baselines `41882ee3` and `b31f4b60` precede implementation `6d7760fc`. Recovery stash is restored and removed. Final-head [build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34322809790), lint, analysis and [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34322809694) passed; [E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34322872580) is running. Require every gate before merge; synchronize if PR #42 merges first.
 3. Publish SEC-012 after final committed-diff validation. The old parser's inherited-object mutation is reproduced and fixed; public-only transport and bounded metadata collection pass the full local suite: 528 main (zero pending), 4 renderer, 94 React and 35 tools. Application/Mocha types and changed-file lint pass. New security branch coverage: parser 48/50 (96%), destination policy 19/20 (95%), fetch 47/51 (92.16%). Private-address, DNS-pinning and compressed wire-limit perturbations produce 22 expected failures; all are restored. Hosted gates remain open. The committed SEC-012 diff passes 176/180 statements (97.78%) and 114/121 changed security branches (94.21%). Rebuilt sandboxed product regressions pass 3/3 in 12.6 seconds on Linux, including actual page-to-main preview rejection with zero local-target requests. Commands: `corepack yarn test:main:coverage`, `corepack yarn test:renderer:coverage`, `corepack yarn test:react:coverage --modulePathIgnorePatterns '<rootDir>/wrap/'`, `corepack yarn test:bin`, `DIFF_COVERAGE_BASE=fork/integration/electron-modernization corepack yarn coverage:diff`, and `corepack yarn test:e2e --project=macOS` with the metadata/navigation/cleanup specs. The project label is not macOS evidence.
 
-4. Execute production account/view/state cutover under SEC-007/CAP-001 and local-scheme migration under SEC-010, preserving existing default and `persist:UUID` sessions. Close SEC-009, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 parity.
+4. Active CAP-001 branch stacks on published PR #44 to preserve tested dependencies; do not publish a duplicate integration diff before dependencies merge. Its new product lifecycle characterization covers switching, exact-account join/logout events, add/cancel and removal with cross-account cookie retention. The first fixture incorrectly observed join through amplify; the source and sibling webapp use a DOM CustomEvent. The fixture now observes that existing contract without changing expected data. Baseline passes in 4.6 seconds. A temporary target-identity inversion in the actual preload makes join/logout arrive in the wrong accounts and fails the test; after source restoration and rebuilding, the unchanged baseline passes again in 4.6 seconds. Production account runtime is unchanged. Then execute SEC-007/CAP-001 view/state cutover and SEC-010 local-scheme migration, preserving default and `persist:UUID` sessions; close SEC-009, SEC-008/SEC-013 and CAP-005/CAP-006 follow-ups.
 5. Complete CAP-002 live-provider evidence and the M3 closure audit. Do not mark M3 complete while any acceptance or required platform evidence remains open.
 
 ## Maintainer input and operational constraints
