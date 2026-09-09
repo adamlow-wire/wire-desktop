@@ -17,56 +17,8 @@
  *
  */
 
-import Joi from '@hapi/joi';
-
-import type {AccountSnapshot} from '../accounts/AccountState';
-
 export const ACCOUNT_CONTROL_CHANNEL = 'wire-desktop:accounts:control:v1';
 export const ACCOUNT_CONTROL_CAPABILITY = 'accounts:control';
 export const MAX_ACCOUNT_COMMANDS_PER_MINUTE = 120;
 
 export type AccountCommand = {action: 'read' | 'add'} | {action: 'select' | 'remove'; accountId: string};
-
-const commandSchema = Joi.alternatives()
-  .try(
-    Joi.object({action: Joi.string().valid('read', 'add').required()}).unknown(false),
-    Joi.object({
-      action: Joi.string().valid('select', 'remove').required(),
-      accountId: Joi.string()
-        .guid({version: ['uuidv4']})
-        .required(),
-    }).unknown(false),
-  )
-  .required();
-
-export const isAccountCommand = (value: unknown): value is AccountCommand =>
-  !commandSchema.validate(value, {convert: false}).error;
-
-const snapshotSchema = Joi.object({
-  id: Joi.string()
-    .guid({version: ['uuidv4']})
-    .required(),
-  accountIndex: Joi.number().integer().min(0).required(),
-  availability: Joi.number(),
-  accentID: Joi.number(),
-  badgeCount: Joi.number().integer().min(0).required(),
-  darkMode: Joi.boolean().required(),
-  isAdding: Joi.boolean().required(),
-  visible: Joi.boolean().required(),
-  canCancel: Joi.boolean().required(),
-  name: Joi.string().allow('').max(4096),
-  picture: Joi.string()
-    .allow('')
-    .max(2 * 1024 * 1024),
-  teamID: Joi.string().max(256),
-  userID: Joi.string().max(256),
-  teamRole: Joi.string().allow('').max(256).required(),
-  lifecycle: Joi.string().max(256),
-  webappUrl: Joi.string().max(8192),
-})
-  .unknown(false)
-  .required();
-const snapshotsSchema = Joi.array().items(snapshotSchema).min(1).max(32).required();
-
-export const isAccountSnapshots = (value: unknown): value is readonly AccountSnapshot[] =>
-  !snapshotsSchema.validate(value, {convert: false}).error;

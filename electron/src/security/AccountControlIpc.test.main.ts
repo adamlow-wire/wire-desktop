@@ -22,10 +22,9 @@ import {strict as assert} from 'assert';
 import {
   ACCOUNT_CONTROL_CAPABILITY,
   ACCOUNT_CONTROL_CHANNEL,
-  isAccountSnapshots,
   MAX_ACCOUNT_COMMANDS_PER_MINUTE,
 } from './AccountControlContract';
-import {bindAccountControlIpc} from './AccountControlIpc';
+import {bindAccountControlIpc, isAccountSnapshots} from './AccountControlIpc';
 import {SenderIdentity, ViewIdentityRegistry, ViewType} from './ViewIdentityRegistry';
 
 import {parseLegacyAccounts} from '../accounts/AccountProfile';

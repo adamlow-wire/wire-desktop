@@ -20,6 +20,8 @@
 import {randomUUID} from 'crypto';
 
 import type {Account} from '../../renderer/src/types/account';
+import {EVENT_TYPE} from '../lib/eventType';
+import type {AccountEvent} from '../security/AccountEventContract';
 
 export type AccountSnapshot = Readonly<
   Omit<Account, 'sessionID' | 'ssoCode' | 'conversationJoinData'> & {
@@ -72,6 +74,63 @@ export class AccountState {
       throw new Error('Unknown account.');
     }
     return structuredClone(account);
+  }
+
+  // Destructive events and environment changes require controller side effects/policy first.
+  update(accountId: string, event: Exclude<AccountEvent, {type: 'signed-out' | 'environment'}>): void {
+    const account = this.get(accountId);
+    switch (event.type) {
+      case 'metadata': {
+        const previousUrl = account.webappUrl;
+        Object.assign(account, event.data, {isAdding: false, ssoCode: undefined});
+        if (previousUrl && !event.data.webappUrl) {
+          account.webappUrl = previousUrl;
+        }
+        if (!event.data.picture) {
+          delete account.picture;
+        }
+        break;
+      }
+      case 'loaded':
+        account.lifecycle = EVENT_TYPE.LIFECYCLE.SIGNED_IN;
+        break;
+      case 'sign-out':
+        account.lifecycle = EVENT_TYPE.LIFECYCLE.SIGN_OUT;
+        break;
+      case 'theme':
+        account.darkMode = event.theme === 'dark';
+        break;
+      case 'unread':
+        if (event.count === account.badgeCount || (!account.visible && event.count < account.badgeCount)) {
+          return;
+        }
+        account.badgeCount = event.count;
+        break;
+      case 'join':
+        account.conversationJoinData = {code: event.code, key: event.key, domain: event.domain};
+        break;
+      case 'activate':
+        this.select(accountId);
+        return;
+    }
+    this.replace(account);
+  }
+
+  clearPendingJoin(accountId: string): void {
+    const account = this.get(accountId);
+    delete account.conversationJoinData;
+    this.replace(account);
+  }
+
+  resetIdentity(accountId: string): void {
+    const account = this.get(accountId);
+    delete account.userID;
+    delete account.teamID;
+    this.replace(account);
+  }
+
+  private replace(account: Account): void {
+    this.commit(this.accounts.map(record => (record.id === account.id ? account : record)));
   }
 
   add(): string {

@@ -22,6 +22,8 @@ import {strict as assert} from 'assert';
 import {parseLegacyAccounts} from './AccountProfile';
 import {AccountState} from './AccountState';
 
+import {EVENT_TYPE} from '../lib/eventType';
+
 const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'];
 const partition = '33333333-3333-4333-8333-333333333333';
 const initial = () =>
@@ -36,6 +38,88 @@ const initial = () =>
   );
 
 describe('main-owned account state', () => {
+  it('[migration][CAP-001] applies guest metadata only to its owner while preserving legacy metadata semantics', () => {
+    const records = initial();
+    records[0].picture = 'old-first';
+    records[0].webappUrl = 'https://custom.wire.test/';
+    records[0].ssoCode = 'pending-secret';
+    records[1].picture = 'old-second';
+    const state = new AccountState(records, 3, () => undefined);
+    const other = state.get(ids[1]);
+    state.update(ids[0], {type: 'metadata', data: {name: 'Updated', userID: 'user', webappUrl: undefined}});
+    const updated = state.get(ids[0]);
+    assert.equal(updated.name, 'Updated');
+    assert.equal(updated.userID, 'user');
+    assert.equal(updated.isAdding, false);
+    assert.equal(updated.ssoCode, undefined);
+    assert.equal(updated.picture, undefined);
+    assert.equal(updated.webappUrl, 'https://custom.wire.test/');
+    assert.equal(updated.id, ids[0]);
+    assert.equal(updated.sessionID, undefined);
+    assert.deepEqual(state.get(ids[1]), other);
+  });
+
+  it('[migration][CAP-001] retains targeted lifecycle, theme, pending join and identity-reset behavior', () => {
+    const state = new AccountState(initial(), 3, () => undefined);
+    const other = state.get(ids[0]);
+    state.update(ids[1], {type: 'loaded'});
+    assert.equal(state.get(ids[1]).lifecycle, EVENT_TYPE.LIFECYCLE.SIGNED_IN);
+    state.update(ids[1], {type: 'theme', theme: 'light'});
+    assert.equal(state.get(ids[1]).darkMode, false);
+    state.update(ids[1], {type: 'theme', theme: 'dark'});
+    assert.equal(state.get(ids[1]).darkMode, true);
+    state.update(ids[1], {type: 'join', code: 'code', key: 'key', domain: null});
+    assert.deepEqual(state.get(ids[1]).conversationJoinData, {code: 'code', key: 'key', domain: null});
+    state.clearPendingJoin(ids[1]);
+    assert.equal(state.get(ids[1]).conversationJoinData, undefined);
+    state.update(ids[1], {type: 'sign-out'});
+    assert.equal(state.get(ids[1]).lifecycle, EVENT_TYPE.LIFECYCLE.SIGN_OUT);
+    state.resetIdentity(ids[1]);
+    assert.equal(state.get(ids[1]).userID, undefined);
+    assert.equal(state.get(ids[1]).teamID, undefined);
+    assert.equal(state.get(ids[1]).sessionID, partition);
+    assert.deepEqual(state.get(ids[0]), other);
+  });
+
+  it('[migration][CAP-001] ignores hidden unread decreases until selection clears only that badge', () => {
+    const state = new AccountState(initial(), 3, () => undefined);
+    state.update(ids[1], {type: 'unread', count: 5});
+    state.update(ids[1], {type: 'unread', count: 2});
+    assert.equal(state.get(ids[1]).badgeCount, 5);
+    state.update(ids[0], {type: 'unread', count: 3});
+    state.update(ids[0], {type: 'unread', count: 1});
+    assert.equal(state.get(ids[0]).badgeCount, 1);
+    state.select(ids[1]);
+    assert.equal(state.get(ids[1]).badgeCount, 0);
+    assert.equal(state.get(ids[0]).badgeCount, 1);
+  });
+
+  it('[migration][CAP-001] selects only the activating account and avoids writes for unchanged badges', () => {
+    let writes = 0;
+    const state = new AccountState(initial(), 3, () => {
+      writes++;
+    });
+    state.update(ids[0], {type: 'unread', count: 0});
+    assert.equal(writes, 0);
+    state.update(ids[1], {type: 'activate'});
+    assert.deepEqual(
+      state.snapshots().map(account => account.visible),
+      [false, true],
+    );
+    assert.equal(writes, 1);
+  });
+
+  it('[security-target][CAP-001] preserves all state when an event write fails and rejects unknown targets', () => {
+    const state = new AccountState(initial(), 3, () => {
+      throw new Error('Disk full');
+    });
+    const before = state.snapshots();
+    assert.throws(() => state.update('unknown', {type: 'loaded'}), /Unknown/);
+    assert.throws(() => state.update(ids[0], {type: 'metadata', data: {name: 'Lost'}}), /Disk full/);
+    assert.throws(() => state.resetIdentity(ids[0]), /Disk full/);
+    assert.deepEqual(state.snapshots(), before);
+  });
+
   it('[migration][CAP-001] retains legacy identity and selection without exposing session or flow secrets', () => {
     const records = initial();
     records[0].ssoCode = 'private-flow';
