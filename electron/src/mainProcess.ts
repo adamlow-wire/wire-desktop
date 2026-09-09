@@ -504,9 +504,13 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
       }),
   });
   accountController = controller;
+  const disposeMenu = WindowManager.bindNativeMenu(main.id, action =>
+    mainProcessFireAndForgetInvoker.fireAndForget(() => controller.menuAction(action)),
+  );
   const disposeControl = bindAccountControlIpc(ipcMain, viewIdentityRegistry, controller);
   const disposeEvents = bindAccountEventIpc(ipcMain, viewIdentityRegistry, controller.receive);
   main.once('closed', () => {
+    disposeMenu();
     disposeControl();
     disposeEvents();
   });

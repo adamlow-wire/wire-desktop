@@ -18,6 +18,7 @@
  */
 
 import {app, BrowserWindow, ipcMain, session, WebContents} from 'electron';
+import {spy, restore} from 'sinon';
 
 import {strict as assert} from 'assert';
 import {randomUUID} from 'crypto';
@@ -32,6 +33,7 @@ import {parseLegacyAccounts} from './AccountProfile';
 import {AccountState} from './AccountState';
 import {AccountViews} from './AccountViews';
 
+import {EVENT_TYPE} from '../lib/eventType';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {snapshotRendererEnvironment} from '../runtime/rendererEnvironment';
 import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
@@ -121,6 +123,7 @@ describe('production account controller integration', () => {
   });
 
   afterEach(async () => {
+    restore();
     disposeControl?.();
     disposeEvents?.();
     await views?.dispose();
@@ -131,6 +134,40 @@ describe('production account controller integration', () => {
       await options.session(account).clearStorageData();
     }
     await new Promise<void>(resolve => server.close(() => resolve()));
+  });
+
+  it('[regression][CAP-001] queues menu commands for their original account until that account is ready', async () => {
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const firstSend = spy(first, 'send');
+    const secondSend = spy(second, 'send');
+    await controller.menuAction(EVENT_TYPE.CONVERSATION.SEARCH);
+    await controller.select(records[1].id);
+    await controller.receive(identity(second), {type: 'loaded'});
+    assert.equal(firstSend.callCount, 0);
+    assert.equal(secondSend.callCount, 0);
+    await controller.receive(identity(first), {type: 'loaded'});
+    assert.deepEqual(firstSend.args, [[EVENT_TYPE.CONVERSATION.SEARCH]]);
+    await controller.receive(identity(first), {type: 'loaded'});
+    assert.equal(firstSend.callCount, 1);
+    await controller.menuAction(EVENT_TYPE.PREFERENCES.SHOW);
+    assert.deepEqual(secondSend.args, [[EVENT_TYPE.PREFERENCES.SHOW]]);
+    await assert.rejects(controller.menuAction('arbitrary-channel'), /Unknown desktop menu/);
+    assert.equal(secondSend.callCount, 1);
+  });
+
+  it('[security-target][CAP-001] bounds pending menus and discards them when the account reloads', async () => {
+    for (let index = 0; index < 32; index++) {
+      await controller.menuAction(EVENT_TYPE.CONVERSATION.SEARCH);
+    }
+    await assert.rejects(controller.menuAction(EVENT_TYPE.CONVERSATION.SEARCH), /queue is full/);
+    await controller.reload(records[0].id);
+    const replacement = views.get(records[0].id);
+    const sent = spy(replacement, 'send');
+    await controller.receive(identity(replacement), {type: 'loaded'});
+    assert.equal(sent.callCount, 0);
+    await controller.menuAction(EVENT_TYPE.CONVERSATION.SEARCH);
+    assert.deepEqual(sent.args, [[EVENT_TYPE.CONVERSATION.SEARCH]]);
   });
 
   it('[migration][CAP-001] connects real shell controls to native view selection, unfinished-login reuse and cancellation', async () => {

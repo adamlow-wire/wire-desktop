@@ -17,16 +17,41 @@
  *
  */
 
+import {BrowserWindow} from 'electron';
 import {assert as sinonAssert, replace, restore, spy} from 'sinon';
 
 import {strict as assert} from 'assert';
 
 import {WindowManager} from './WindowManager';
+import {sendToWebContents} from './WindowUtil';
+
+import {EVENT_TYPE} from '../lib/eventType';
 
 describe('WindowManager queued actions', () => {
   afterEach(() => {
     WindowManager.actionsQueue = [];
     restore();
+  });
+
+  it('[regression][CAP-001] routes native menu callbacks only for the bound window and releases the binding', () => {
+    const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+    const native = spy();
+    const shell = spy(window.webContents, 'send');
+    const dispose = WindowManager.bindNativeMenu(window.id, native);
+    try {
+      sendToWebContents(window, EVENT_TYPE.UI.SYSTEM_MENU, EVENT_TYPE.CONVERSATION.SEARCH);
+      assert.deepEqual(native.args, [[EVENT_TYPE.CONVERSATION.SEARCH]]);
+      sinonAssert.notCalled(shell);
+      assert.equal(WindowManager.dispatchNativeMenu(window.id + 1, EVENT_TYPE.UI.SYSTEM_MENU, ['wrong']), false);
+      assert.equal(WindowManager.dispatchNativeMenu(window.id, 'other-channel', []), false);
+      assert.equal(WindowManager.dispatchNativeMenu(window.id, EVENT_TYPE.UI.SYSTEM_MENU, [42]), true);
+      sinonAssert.calledOnce(native);
+      dispose();
+      assert.equal(WindowManager.dispatchNativeMenu(window.id, EVENT_TYPE.UI.SYSTEM_MENU, ['stale']), false);
+    } finally {
+      dispose();
+      window.destroy();
+    }
   });
 
   it('[characterization][DCP-002][CAP-001] forwards every queued action once and empties the queue', () => {

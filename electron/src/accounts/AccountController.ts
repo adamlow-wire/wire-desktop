@@ -50,6 +50,8 @@ export interface AccountControllerOptions {
 export class AccountController {
   private pending: Promise<unknown> = Promise.resolve();
   private readonly failures = new Set<string>();
+  private readonly menuQueue = new Map<string, string[]>();
+  private readonly ready = new Set<string>();
 
   constructor(private readonly options: AccountControllerOptions) {}
 
@@ -96,6 +98,32 @@ export class AccountController {
   remove = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(() => this.removeAccount(id), identity);
 
+  // Main-owned menu commands only; never exposed as a renderer-selected IPC channel.
+  menuAction = (action: string): Promise<void> => {
+    const allowed: string[] = [
+      ...Object.values(EVENT_TYPE.CONVERSATION),
+      EVENT_TYPE.PREFERENCES.SHOW,
+      EVENT_TYPE.ACTION.SIGN_OUT,
+    ];
+    if (!allowed.includes(action)) {
+      return Promise.reject(new Error('Unknown desktop menu action.'));
+    }
+    const id = this.snapshots().find(account => account.visible)!.id;
+    return this.run(async () => {
+      this.options.state.get(id);
+      if (this.ready.has(id) && this.options.views.has(id)) {
+        this.options.views.get(id).send(action);
+        return;
+      }
+      const queued = this.menuQueue.get(id) ?? [];
+      if (queued.length >= 32) {
+        throw new Error('Account menu queue is full.');
+      }
+      queued.push(action);
+      this.menuQueue.set(id, queued);
+    });
+  };
+
   join = (id: string, data: ConversationJoinData, identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(async () => {
       this.options.state.update(id, {type: 'join', ...data});
@@ -113,6 +141,7 @@ export class AccountController {
   reload = (id: string, identity?: AuthorizedViewIdentity): Promise<void> =>
     this.run(async () => {
       this.options.state.get(id);
+      this.resetMenu(id);
       await this.options.views.close(id);
       await this.ensureView(id);
       this.options.views.select(this.snapshots().find(account => account.visible)!.id);
@@ -146,6 +175,7 @@ export class AccountController {
         const {state, views} = this.options;
         state.get(id);
         if (message.type === 'signed-out') {
+          this.resetMenu(id);
           if (message.clearData) {
             await this.removeAccount(id);
           } else {
@@ -173,6 +203,10 @@ export class AccountController {
           this.deliverJoin(id);
         }
         if (message.type === 'loaded') {
+          this.ready.add(id);
+          const queued = this.menuQueue.get(id) ?? [];
+          this.menuQueue.delete(id);
+          queued.forEach(action => views.get(id).send(action));
           this.options.loaded(id);
         }
         if (message.type === 'unread') {
@@ -199,6 +233,7 @@ export class AccountController {
 
   private async removeAccount(id: string): Promise<void> {
     const account = this.options.state.get(id);
+    this.resetMenu(id);
     const session = this.options.views.has(id) ? this.options.views.get(id).session : this.options.session(account);
     await this.options.views.close(id);
     await this.options.clearData(account, session);
@@ -220,6 +255,7 @@ export class AccountController {
     if (!parseNetworkNavigation(approved)) {
       throw new Error('Invalid approved account destination.');
     }
+    this.resetMenu(id);
     await this.options.views.close(id);
     this.options.state.setEnvironment(id, approved);
     await this.ensureView(id);
@@ -232,6 +268,11 @@ export class AccountController {
       this.snapshots().reduce((sum, account) => sum + account.badgeCount, 0),
       this.options.state.get(id).availability === Availability.Type.BUSY,
     );
+  }
+
+  private resetMenu(id: string): void {
+    this.ready.delete(id);
+    this.menuQueue.delete(id);
   }
 
   private assertIdentity(identity: AuthorizedViewIdentity, capability: string): void {

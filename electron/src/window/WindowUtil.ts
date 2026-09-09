@@ -21,6 +21,8 @@ import {BaseWindow, BrowserWindow, screen, shell} from 'electron';
 
 import * as path from 'path';
 
+import {WindowManager} from './WindowManager';
+
 import {showWarningDialog} from '../lib/showDialog';
 import * as locale from '../locale';
 import {getLogger} from '../logging/getLogger';
@@ -79,6 +81,9 @@ const isBrowserWindow = (baseWindow: unknown): baseWindow is BrowserWindow => {
 export const sendToWebContents = (baseWindow: BaseWindow | undefined, channel: string, ...args: any[]) => {
   if (isBrowserWindow(baseWindow)) {
     try {
+      if (WindowManager.dispatchNativeMenu(baseWindow.id, channel, args)) {
+        return;
+      }
       baseWindow.webContents.send(channel, ...args);
     } catch (error) {
       logger.error('Failed to send event to webContents', error);

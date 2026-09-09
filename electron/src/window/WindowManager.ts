@@ -21,12 +21,14 @@ import {app, BrowserWindow} from 'electron';
 
 import * as path from 'path';
 
+import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 
 const logger = getLogger(path.basename(__filename));
 
 export class WindowManager {
   private static primaryWindowId: number | undefined;
+  private static nativeMenu: {windowId: number; send(action: string): void} | undefined;
   public static actionsQueue: {action: string; args: any[]}[] = [];
 
   static getPrimaryWindow(): BrowserWindow | undefined {
@@ -43,6 +45,27 @@ export class WindowManager {
   static setPrimaryWindowId(newPrimaryWindowId: number): void {
     logger.info(`Setting primary window ID to "${newPrimaryWindowId}" ...`);
     WindowManager.primaryWindowId = newPrimaryWindowId;
+  }
+
+  static bindNativeMenu(windowId: number, send: (action: string) => void): () => void {
+    const binding = {windowId, send};
+    WindowManager.nativeMenu = binding;
+    return () => {
+      if (WindowManager.nativeMenu === binding) {
+        WindowManager.nativeMenu = undefined;
+      }
+    };
+  }
+
+  static dispatchNativeMenu(windowId: number, channel: string, args: unknown[]): boolean {
+    const binding = WindowManager.nativeMenu;
+    if (!binding || binding.windowId !== windowId || channel !== EVENT_TYPE.UI.SYSTEM_MENU) {
+      return false;
+    }
+    if (args.length === 1 && typeof args[0] === 'string') {
+      binding.send(args[0]);
+    }
+    return true;
   }
 
   static showPrimaryWindow(): void {
@@ -64,6 +87,9 @@ export class WindowManager {
 
     if (primaryWindow) {
       logger.info(`Sending action "${action}" to window with ID "${primaryWindow.id}":`, {args});
+      if (WindowManager.dispatchNativeMenu(primaryWindow.id, action, args)) {
+        return;
+      }
       primaryWindow.webContents.send(action, ...args);
     } else {
       logger.warn(`Got no primary window, can't send action "${action}".`);
@@ -90,7 +116,7 @@ export class WindowManager {
           primaryWindow.show();
           primaryWindow.focus();
         }
-        primaryWindow.webContents.send(action, ...args);
+        WindowManager.sendActionToPrimaryWindow(action, ...args);
       }
     } else {
       logger.warn(`Got no primary window, can't send action "${action}".`);
