@@ -19,6 +19,7 @@
 
 import {_electron, expect, test} from '@playwright/test';
 
+import {spawn} from 'node:child_process';
 import {access, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
@@ -192,6 +193,36 @@ test(
         app.emit('open-url', {preventDefault() {}}, 'wire://preferences/devices');
       });
       await expect.poll(readLocations).toEqual(['#/preferences/account', '#/preferences/devices']);
+      if (process.platform !== 'darwin') {
+        // Windows/Linux receive argv from another process; macOS uses open-url.
+        const environment = {...process.env};
+        delete environment.ELECTRON_RUN_AS_NODE;
+        const secondInstance = spawn(
+          app.process().spawnfile,
+          ['.', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`, 'wire://preferences/account'],
+          {env: environment, stdio: 'ignore'},
+        );
+        let launchError: Error | undefined;
+        secondInstance.once('error', error => {
+          launchError = error;
+        });
+        const closed = new Promise<void>(resolve => secondInstance.once('close', () => resolve()));
+        try {
+          await expect
+            .poll(() => ({error: launchError?.message, exit: secondInstance.exitCode}))
+            .toEqual({
+              error: undefined,
+              exit: 0,
+            });
+          await expect.poll(readLocations).toEqual(['#/preferences/account', '#/preferences/account']);
+          await expect.poll(readAccounts).toEqual(ids.map(id => ({id, loading: false})));
+        } finally {
+          if (secondInstance.exitCode === null && secondInstance.signalCode === null) {
+            secondInstance.kill('SIGKILL');
+          }
+          await closed;
+        }
+      }
       await shell.evaluate(async ([first, second]) => {
         await window.sendConversationJoinToHost(first, 'code', 'key', 'example.com');
         await window.sendConversationJoinToHost(first, 'local-code', 'local-key');
