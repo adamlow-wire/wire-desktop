@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.20
+revision: 1.5.21
 status: draft
 updated: 2026-09-10
 owners:
@@ -861,6 +861,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
+| DEC-009 | 2026-09-10 | proposed | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Origin identity alone does not prove user consent; production remains deny-all while policy and runtime evidence are developed | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
 | DEC-003 | 2026-08-18 | accepted | Supported Electron runtime and security-boundary work are P0 | The current runtime is EOL and the current boundary violates modern Electron security guidance | Never; only implementation ordering may change |
@@ -889,6 +890,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.21 | 2026-09-10 | Codex | Recorded proposed main-owned consent/document-scoped grant ADR and sensitivity-tested unwired policy; production stays deny-all and permission integration/platform gates remain open | SEC-009, DEC-009, INV-006 |
 | 1.5.20 | 2026-09-10 | Codex | Started SEC-009 on a separate dependent branch with real native permission callback characterization; retained deny-all and all existing acceptance gates while consent/grant policy is designed | SEC-009, INV-006 |
 | 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |
 | 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
