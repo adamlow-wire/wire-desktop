@@ -42,6 +42,7 @@ interface ViewEntry {
   identity: AuthorizedViewIdentity;
   ready: boolean;
   notificationRequested: boolean;
+  cancelConsent(): void;
   revoke(): void;
 }
 
@@ -123,6 +124,7 @@ export class AccountViews {
       identity: registration.identity,
       ready: false,
       notificationRequested: false,
+      cancelConsent: () => undefined,
       revoke: registration.revoke,
     };
     this.entries.set(account.id, entry);
@@ -152,6 +154,7 @@ export class AccountViews {
         permissions,
         this.options.permissionFailure ?? (() => console.error('Account permission request failed.')),
       );
+      entry.cancelConsent = () => permissions.cancelPending();
       entry.revoke = () => {
         registration.revoke();
         disposePermissions();
@@ -187,6 +190,9 @@ export class AccountViews {
   select(accountId: string): void {
     const contents = this.get(accountId);
     for (const [id, entry] of this.entries) {
+      if (id !== accountId) {
+        entry.cancelConsent();
+      }
       entry.view.setVisible(id === accountId);
     }
     this.options.window.focus();
@@ -224,6 +230,7 @@ export class AccountViews {
 
   hide(): void {
     for (const entry of this.entries.values()) {
+      entry.cancelConsent();
       entry.view.setVisible(false);
     }
   }

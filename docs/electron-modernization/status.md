@@ -39,6 +39,7 @@ The implemented path includes document revocation and abortable consent, separat
 
 ### Local evidence and limits
 
+- **Pending account transitions:** switching away or hiding now cancels pending consent, while already-approved background grants are retained. The regression initially observes a non-aborted signal; removing the final abort check after implementation produces a stale `granted` result on switch-away/back. Restored; 42 affected policy/session/account tests pass, with application/Mocha types and changed-source lint green. Logs: `/tmp/sec009-switch-consent-before.log`, `/tmp/sec009-switch-consent-sensitivity.log`, `/tmp/sec009-switch-consent-final.log`.
 - **Activated product:** `test:e2e --project=macOS accountPermissions.spec.ts` passes on **Linux** in 5.1 seconds. It exercises real foreground eligibility and the actual main/preload policy, separate notification/microphone/camera approval, notification state publication, and notification/microphone denial after document reload. Synthetic-device mode is enforced and tracks stop immediately. Only dialog responses are controlled by the test runner; no production bypass or displayed notification is introduced. Before activation, the notification-grant assertion fails. Logs: `/tmp/sec009-production-permissions-before.log`, `/tmp/sec009-production-permissions-final.log`.
 - **Existing product behavior:** rebuilt lifecycle and metadata/restart fixtures pass 2/2 in 10.5 seconds after activation (`/tmp/sec009-activation-lifecycle-product.log`). This does not qualify authenticated staging calling or native user approval.
 - **Native composition:** 57 account/controller/menu tests pass; removing visibility gating fails background-initiation denial. The rebuilt production-preload approval/denial and bridge compatibility group passes 19/19 despite a page API override. Logs: `/tmp/sec009-notification-init-final.log`, `/tmp/sec009-notification-readiness-sensitivity.log`, `/tmp/sec009-notification-real-preload-final.log`.
@@ -49,7 +50,7 @@ The implemented path includes document revocation and abortable consent, separat
 
 ### Next executable work
 
-Finish activated notification/media qualification, including pending-consent account transitions and authenticated calling test handling; then implement display-source choice and deny paths under SEC-009. Cross-platform native prompt/OS permission evidence, final-head aggregate coverage, substantive review and hosted gates remain open. DEC-009 is still a proposed design under review, not milestone closure.
+Pending-consent switch/hide transitions now pass their targets. After rebuilding, all three local permission/lifecycle/metadata product fixtures pass in 13.5 seconds (`/tmp/sec009-switch-product-final.log`). Next, verify legacy screen-capture constraints cannot reuse camera consent, then implement display-source choice and deny paths under SEC-009. Authenticated calling test handling, cross-platform native prompt/OS permission evidence, final-head aggregate coverage, substantive review and hosted gates remain open. DEC-009 is still a proposed design under review, not milestone closure.
 
 GitHub PR #47 readback still fails with a TLS handshake timeout (September 10, 11:06 Berlin). Verify remote state before publishing; no publication or merge is claimed. Preserve CAP-001's separate qualification below.
 

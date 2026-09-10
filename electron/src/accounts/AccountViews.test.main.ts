@@ -238,6 +238,49 @@ describe('main-owned native account views', () => {
     assert.equal(secondSend.callCount, 1);
   });
 
+  for (const transition of ['switch', 'hide'] as const) {
+    it(`[security-target][SEC-009] cancels pending consent on ${transition} even if the account is selected again`, async () => {
+      await views.dispose();
+      let cancellation!: AbortSignal;
+      let answer!: (value: boolean) => void;
+      let started!: () => void;
+      const requested = new Promise<void>(resolve => {
+        started = resolve;
+      });
+      views = new AccountViews({
+        ...options(),
+        capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+        permissionConsent: {
+          canPrompt: () => true,
+          ask: async (_identity, _scopes, signal) => {
+            cancellation = signal;
+            started();
+            return new Promise(resolve => {
+              answer = resolve;
+            });
+          },
+        },
+      });
+      const first = record();
+      const second = record();
+      const contents = await views.create(first, origin);
+      await views.create(second, origin);
+      views.select(first.id);
+      const result = contents.executeJavaScript('Notification.requestPermission()');
+      await requested;
+      if (transition === 'switch') {
+        views.select(second.id);
+      } else {
+        views.hide();
+      }
+      views.select(first.id);
+      assert.equal(cancellation.aborted, true);
+      answer(true);
+      assert.equal(await result, 'denied');
+      assert.equal(await contents.executeJavaScript('Notification.permission'), 'denied');
+    });
+  }
+
   it('[security-target][SEC-009] defaults to denial without consent or without the permission capability', async () => {
     for (const missing of ['consent', 'capability'] as const) {
       await views.dispose();

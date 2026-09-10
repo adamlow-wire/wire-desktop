@@ -75,6 +75,7 @@ export class AccountPermissionPolicy {
       const accepted = await this.consent.ask(this.owner, Object.freeze(missing), consent.signal);
       if (
         accepted !== true ||
+        consent.signal.aborted ||
         generation !== this.generation ||
         !this.authorized(sender, details) ||
         !this.consent.canPrompt(this.owner)
@@ -101,10 +102,14 @@ export class AccountPermissionPolicy {
     return !!scopes && scopes.every(scope => this.grants.has(scope));
   }
 
+  cancelPending(): void {
+    this.pending?.abort();
+  }
+
   revoke(): void {
     this.generation++;
     this.grants.clear();
-    this.pending?.abort();
+    this.cancelPending();
   }
 
   private sameOrigin(value: string | undefined): boolean {
