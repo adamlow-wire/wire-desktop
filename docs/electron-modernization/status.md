@@ -31,7 +31,7 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**
 
 ## Active work and next executable steps
 
-**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. Local checkpoint `8a58de40` localizes and validates native environment approval; its push failed during TLS negotiation. The current follow-up fixes failed-removal UI state. Verify the remote before publishing; no merge is authorized while these gates remain open.
+**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Last verified published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. Local `8a58de40` fixes native environment approval and `894df496` fixes failed-removal UI state. Publishing failed during TLS negotiation; a bounded retry and remote readback also timed out. Verify the remote before publishing again; no merge is authorized while these gates remain open.
 
 Implemented on the draft branch:
 
@@ -53,10 +53,10 @@ Next work, without creating overlapping plan items:
 
 | Check | Latest local result | Evidence |
 | --- | --- | --- |
-| Electron main | Removal follow-up rerun 739 passing; prior run 738 passing / one native tray-focus prerequisite failure; isolated unchanged tray tests 2 passing | `/tmp/cap001-removal-full-main-repeat.log`, `/tmp/cap001-removal-full-main.log`, `/tmp/cap001-removal-tray-check.log` |
-| Electron renderer | 4 passing | `/tmp/cap001-final-renderer-coverage.log` |
-| React | 112 passing, 27 suites | `/tmp/cap001-removal-full-react.log` |
-| Changed-code coverage | 718/897 statements **80.04%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-final-diff.log`, runtime head `f6604dd5` |
+| Electron main | Clean coverage run 739 passing; preceding unchanged rerun also passes; prior tray-focus failure retained below | `/tmp/cap001-894d-main-coverage.log`, `/tmp/cap001-removal-full-main-repeat.log` |
+| Electron renderer | 4 passing | `/tmp/cap001-894d-renderer-coverage.log` |
+| React | 112 passing, 27 suites | `/tmp/cap001-894d-react-coverage.log` |
+| Changed-code coverage | 737/913 statements **80.72%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-894d-diff.log`, runtime head `894df496` |
 | Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-removal-*-types.log` |
 | Changed-source lint/builds | Pass | `/tmp/cap001-removal-lint.log`, `/tmp/cap001-removal-build.log` |
 | Rebuilt lifecycle and metadata/restart | **2/2 in 12.0 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-removal-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
