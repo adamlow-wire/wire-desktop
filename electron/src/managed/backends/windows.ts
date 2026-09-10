@@ -37,10 +37,11 @@ interface RegistryValue {
   type: string;
   data: unknown;
 }
+type RegistryHive = 'HKEY_CURRENT_USER' | 'HKEY_LOCAL_MACHINE';
 interface RegistryJs {
-  HKEY: {HKEY_CURRENT_USER: number; HKEY_LOCAL_MACHINE: number};
-  enumerateKeys: (hive: number, subkey: string) => string[];
-  enumerateValues: (hive: number, subkey: string) => RegistryValue[];
+  HKEY: {HKEY_CURRENT_USER: 'HKEY_CURRENT_USER'; HKEY_LOCAL_MACHINE: 'HKEY_LOCAL_MACHINE'};
+  enumerateKeys: (hive: RegistryHive, subkey: string) => readonly string[];
+  enumerateValues: (hive: RegistryHive, subkey: string) => readonly RegistryValue[];
 }
 
 function loadRegistry(): RegistryJs | undefined {
@@ -54,7 +55,7 @@ function loadRegistry(): RegistryJs | undefined {
   }
 }
 
-function valuesOf(registry: RegistryJs, hive: number, subkey: string): RegistryValue[] {
+function valuesOf(registry: RegistryJs, hive: RegistryHive, subkey: string): readonly RegistryValue[] {
   try {
     return registry.enumerateValues(hive, subkey) ?? [];
   } catch {
@@ -62,7 +63,7 @@ function valuesOf(registry: RegistryJs, hive: number, subkey: string): RegistryV
   }
 }
 
-function subkeysOf(registry: RegistryJs, hive: number, subkey: string): string[] {
+function subkeysOf(registry: RegistryJs, hive: RegistryHive, subkey: string): readonly string[] {
   try {
     return registry.enumerateKeys(hive, subkey) ?? [];
   } catch {
