@@ -716,10 +716,11 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-006 — Migrate deep links and single-instance behavior
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-013, CAP-001
 - Scope: Preserve conversation, user, login, and SSO links while safely routing them to the intended account/window.
+- Second-instance checkpoint (2026-09-10): branch from CAP-001 `a4ce662c` adds a real second Electron invocation using the product fixture's isolated profile/local backend, checking clean child exit, selected-account delivery and unchanged account count. Prior startup and `open-url` fixture evidence does not by itself prove OS second-instance delivery. Windows/Linux argv and macOS open-url handling remain distinct contracts; final platform gates are retained.
 - Acceptance:
   - Valid links work before and after application readiness.
   - Invalid and hostile links fail closed.
