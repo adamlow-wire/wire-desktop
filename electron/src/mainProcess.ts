@@ -96,6 +96,8 @@ import {ACCOUNT_CONTROL_CAPABILITY, ACCOUNT_SNAPSHOTS_CHANNEL} from './security/
 import {bindAccountControlIpc} from './security/AccountControlIpc';
 import {ACCOUNT_EVENT_CAPABILITY} from './security/AccountEventContract';
 import {bindAccountEventIpc} from './security/AccountEventIpc';
+import {createAccountPermissionConsent} from './security/AccountPermissionConsent';
+import {ACCOUNT_PERMISSION_CAPABILITY} from './security/AccountPermissionPolicy';
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
@@ -436,7 +438,8 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     registry: viewIdentityRegistry,
     preload: PRELOAD_RENDERER_JS,
     additionalArguments: getRendererRuntimeArguments(),
-    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY],
+    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY, ACCOUNT_PERMISSION_CAPABILITY],
+    permissionConsent: createAccountPermissionConsent(main),
     configure: (contents, account, url) => wrapperInit.configureAccountContents(contents, account, url),
     lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),
   });

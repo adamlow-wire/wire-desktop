@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.22
+revision: 1.5.23
 status: draft
 updated: 2026-09-10
 owners:
@@ -445,7 +445,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Grants bind permission type to authorized origin, view, account, and user flow.
   - Main-frame and subframe behavior is defined.
   - Allowed and denied cases are tested on supported platforms.
-- Evidence: The dependent branch `sec/SEC-009-account-permissions-2026-09-10` (based on CAP-001 `a4ce662c`) now composes account-scoped request/check policy, document revocation and consent cancellation. Fake-device media allow/deny, native notification query/result propagation and readiness/menu routing have local sensitivity-proven tests. A bounded native consent provider exists but is not production-activated; production remains deny-all. Real native prompt/platform acceptance, display capture and final-head qualification remain open. See [current validation and gaps](./status.md) and proposed DEC-009; acceptance is unchanged. Exact-version contracts: [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
+- Evidence: The dependent branch `sec/SEC-009-account-permissions-2026-09-10` (based on CAP-001 `a4ce662c`) activates account-scoped request/check policy and native notification/media consent in the local application candidate. A product target fails before activation and passes after it for separate notification/microphone/camera approval and reload denial, using real foreground eligibility, synthetic devices and test-controlled dialog responses. Defaults remain denied without consent. Integration has not changed. Real user approval/OS-platform acceptance, display capture and final-head qualification remain open. See [current validation and gaps](./status.md) and proposed DEC-009; acceptance is unchanged. Exact-version contracts: [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
 
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
@@ -890,6 +890,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.23 | 2026-09-10 | Codex | Activated native account notification/media consent in the local candidate after product baseline/allow/reload-denial evidence; retained all display, platform and final-head acceptance gates | SEC-009, DEC-009, CAP-003 |
 | 1.5.22 | 2026-09-10 | Codex | Reconciled SEC-009 implementation evidence for native policy/session composition, cancellation, fake media and notification routing/readiness; retained production denial and all platform/display acceptance gates | SEC-009, DEC-009, INV-006 |
 | 1.5.21 | 2026-09-10 | Codex | Recorded proposed main-owned consent/document-scoped grant ADR and sensitivity-tested unwired policy; production stays deny-all and permission integration/platform gates remain open | SEC-009, DEC-009, INV-006 |
 | 1.5.20 | 2026-09-10 | Codex | Started SEC-009 on a separate dependent branch with real native permission callback characterization; retained deny-all and all existing acceptance gates while consent/grant policy is designed | SEC-009, INV-006 |
