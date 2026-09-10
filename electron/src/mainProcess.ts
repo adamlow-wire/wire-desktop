@@ -44,6 +44,7 @@ import {URL, pathToFileURL} from 'url';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {AccountController} from './accounts/AccountController';
+import {getAccountDestination} from './accounts/AccountDestination';
 import {approveAccountEnvironment} from './accounts/AccountEnvironmentApproval';
 import {deleteNativeAccountLogs} from './accounts/AccountLogCleanup';
 import {AccountProfile} from './accounts/AccountProfile';
@@ -454,15 +455,8 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     state: accountState,
     views: nativeViews,
     registry: viewIdentityRegistry,
-    destination: account => {
-      const url = new URL(account.webappUrl || decodeURIComponent(mainURL.searchParams.get('env') || ''));
-      url.searchParams.set('hl', currentLocale);
-      if (account.ssoCode && account.isAdding) {
-        url.pathname = '/auth';
-        url.hash = `#sso/${account.ssoCode}`;
-      }
-      return url.href;
-    },
+    destination: account =>
+      getAccountDestination(account, decodeURIComponent(mainURL.searchParams.get('env') || ''), currentLocale),
     session: account =>
       account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
     clearData: async (account, targetSession) => {
