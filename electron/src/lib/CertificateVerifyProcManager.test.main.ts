@@ -18,7 +18,7 @@
  */
 
 import {dialog, session} from 'electron';
-import type {Certificate, Request as CertificateRequest} from 'electron';
+import type {BrowserWindow, Certificate, Request as CertificateRequest} from 'electron';
 import {createSandbox} from 'sinon';
 import type {SinonFakeTimers, SinonStub} from 'sinon';
 
@@ -34,6 +34,11 @@ const requireFixture = createRequire(
   path.join(process.cwd(), 'electron/src/lib/CertificateVerifyProcManager.test.main.ts'),
 );
 const certificateUtils: typeof import('@wireapp/certificate-check') = requireFixture('@wireapp/certificate-check');
+const fileSystem: typeof import('fs-extra') = requireFixture('fs-extra');
+const environment: typeof import('../runtime/EnvironmentUtil') = requireFixture('../runtime/EnvironmentUtil.ts');
+const {withTemporaryDirectory}: typeof import('../../test/withTemporaryDirectory') = requireFixture(
+  '../../test/withTemporaryDirectory.ts',
+);
 
 describe('[CAP-005] certificate verification completion', () => {
   const sandbox = createSandbox();
@@ -157,6 +162,80 @@ describe('[CAP-005] certificate verification completion', () => {
       await verify(input, result);
       assert.deepEqual(result.args, [[-2], [-2]]);
       assert.equal(messageBox.callCount, 2, 'a rejected dialog must not permanently suppress later warnings');
+    });
+  }
+
+  for (const outcome of ['save', 'cancel', 'cancel with stale path', 'write failure'] as const) {
+    it(
+      `${
+        outcome.startsWith('cancel') ? '[regression]' : '[characterization]'
+      } preserves certificate detail navigation and ${outcome} without accepting the connection`,
+      withTemporaryDirectory('cap005-certificate-details-', async directory => {
+        sandbox.stub(environment.platform, 'IS_MAC_OS').value(false);
+        sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+        sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+        messageBox.onCall(0).resolves({checkboxChecked: false, response: 1});
+        messageBox.onCall(1).resolves({checkboxChecked: false, response: 1});
+        const chosenPath = path.join(
+          directory,
+          outcome === 'write failure' ? 'missing/certificate.pem' : 'certificate.pem',
+        );
+        const save: SinonStub = sandbox.stub(dialog, 'showSaveDialog').resolves({
+          canceled: outcome.startsWith('cancel'),
+          filePath: outcome === 'cancel' ? '' : chosenPath,
+        });
+        const result = sandbox.spy();
+        await verify(request(), result);
+        assert.deepEqual(result.args, [[-2]]);
+        assert.equal(save.callCount, 1);
+        assert.equal(save.firstCall.args[1].defaultPath, 'fixture.example.pem');
+        assert.equal(messageBox.getCall(1).args[1].cancelId, 0);
+        assert.match(messageBox.getCall(1).args[1].detail, /fixture\.example/);
+        if (outcome === 'save') {
+          assert.equal(await fileSystem.readFile(chosenPath, 'utf8'), certificate.data);
+          assert.deepEqual(await fileSystem.readdir(directory), ['certificate.pem']);
+        } else {
+          assert.deepEqual(await fileSystem.readdir(directory), []);
+        }
+        if (outcome === 'write failure') {
+          await verify(request(), result);
+          assert.equal(messageBox.callCount, 3, 'a failed save must release the warning lock');
+          assert.deepEqual(result.args, [[-2], [-2]]);
+        } else {
+          assert.equal(messageBox.callCount, 4, 'save/cancel returns through details to the warning');
+        }
+      }),
+    );
+  }
+
+  for (const trustDialogFails of [false, true]) {
+    it(`[compatibility] keeps macOS certificate details owner-bound and denied when dialog failure is ${trustDialogFails}`, async () => {
+      sandbox.stub(environment.platform, 'IS_MAC_OS').value(true);
+      sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+      sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+      const owner = {} as BrowserWindow;
+      requireFixture('./CertificateVerifyProcManager.ts').attachTo(owner);
+      const trust: SinonStub = sandbox.stub(dialog, 'showCertificateTrustDialog');
+      if (trustDialogFails) {
+        trust.rejects(new Error('synthetic trust dialog failure'));
+      } else {
+        trust.resolves();
+      }
+      const save = sandbox.stub(dialog, 'showSaveDialog');
+      messageBox.onFirstCall().resolves({checkboxChecked: false, response: 1});
+      const result = sandbox.spy();
+      await verify(request(), result);
+      assert.deepEqual(result.args, [[-2]]);
+      assert.equal(trust.callCount, 1);
+      assert.equal(trust.firstCall.args[0], owner);
+      assert.equal(trust.firstCall.args[1].certificate, certificate);
+      assert.match(trust.firstCall.args[1].message, /fixture\.example/);
+      assert.equal(save.callCount, 0);
+      if (trustDialogFails) {
+        await verify(request(), result);
+        assert.deepEqual(result.args, [[-2], [-2]]);
+      }
+      assert.equal(messageBox.callCount, 2, 'details or its failure must return to an available warning');
     });
   }
 });

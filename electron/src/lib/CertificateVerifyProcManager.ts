@@ -111,10 +111,10 @@ class CertificateVerifyProcManager {
       });
       switch (response) {
         case RESPONSE.SAVE_CERTIFICATE: {
-          const {filePath: chosenPath} = await dialog.showSaveDialog(this.mainWindow, {
+          const {canceled, filePath: chosenPath} = await dialog.showSaveDialog(this.mainWindow, {
             defaultPath: `${hostname}.pem`,
           });
-          if (chosenPath !== undefined) {
+          if (!canceled && chosenPath) {
             await fs.writeFile(chosenPath, Buffer.from(certificate.data));
           }
           // Go back on details window
