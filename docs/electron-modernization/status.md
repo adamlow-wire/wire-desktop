@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-10
 milestone: M3
-active_work_item: CAP-001
-state: production-account-cutover
+active_work_item: SEC-009
+state: permission-characterization
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: cap/CAP-001-production-accounts-2026-09-09
-next_work_item: SEC-007
+active_branch: sec/SEC-009-account-permissions-2026-09-10
+next_work_item: SEC-009
 blockers: []
 ---
 
@@ -31,6 +31,10 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**
 
 ## Active work and next executable steps
 
+**SEC-009 is active on a separate dependent branch**, based on CAP-001 checkpoint `a4ce662c`. Begin with real Electron request/check characterization and define the narrow grant lifecycle before enabling permissions. Native account sessions currently deny all permission checks/requests; this prevents treating ordinary calling parity as complete. No grants have been enabled. Open the dependent PR once GitHub access recovers; keep CAP-001's unfinished qualification distinct.
+
+SEC-009 baseline: three real native-account tests pass for notification/geolocation denial, request main-frame identity and direct notification permission queries. Temporarily granting notification permission fails the denial assertion (`granted` versus `denied`); restored before completion, with no notification displayed or device access granted. The direct query supplies the owning `WebContents` on this Linux runtime, contrary to the documentation's broad null-sender wording; nullable API inputs still require explicit denial. Initial null-only expectation was a test assumption, not a discovered security defect. Commands: `test:main --grep 'native account permission callbacks'`, `build:ts:tests`, changed-file ESLint/Prettier. Logs: `/tmp/sec009-permission-final.log`, `/tmp/sec009-notification-sensitivity.log`, `/tmp/sec009-baseline-types.log`. These are focused baseline results, not new full-platform or grant acceptance.
+
 **[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Last verified published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. Local runtime checkpoints: `8a58de40` native environment approval, `894df496` failed-removal UI and `496e636a` background destination handling. `f721bf5c` repairs the tray-test focus prerequisite; its clean local coverage gate passes. Publishing failed during TLS negotiation; bounded retries/readbacks also timed out. Verify the remote before publishing again; no merge is authorized while these gates remain open.
 
 Implemented on the draft branch:
@@ -45,10 +49,11 @@ Implemented on the draft branch:
 
 Next work, without creating overlapping plan items:
 
-1. Continue main-owned destination/managed-policy and lifecycle audits, then publish and qualify the local follow-ups. The tray-focus repair now passes the clean full suite; retain native platform qualification rather than another unchanged local rerun. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
-2. Qualify PR #47 on its final head. All three expanded platform account gates passed at `23fb964b`; the earlier macOS timeout did not recur. Authenticated E2E is draft-skipped, not waived. Diagnose any recurring failure from its actual stage; do not increase deadlines without evidence.
-3. Finish SEC-009 permission user flows, SEC-010 local scheme, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 certificate/configuration/link acceptance. Permission default-denial alone is not calling parity.
-4. Obtain CAP-002 controlled live IdP evidence, then audit every M3 criterion and complete final package/authenticated E2E/review gates. Signed installer/update qualification remains M4/M5, not an additional M3 signing prerequisite.
+1. SEC-009: characterize request/check metadata and denial on real Electron, then implement origin/view/account/user-flow grants with negative tests, revocation and calling/display compatibility. Keep unknown permissions, unknown senders and subframes denied. Define any native consent/grant persistence decision before implementation; do not silently auto-allow media for every registered account.
+2. CAP-001 follow-ups remain: destination/managed-policy and lifecycle audits, publication and qualification. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. The product test itself reopens the removed session to read storage, so post-test folder existence alone does not prove retained account data. A read-only scan of the isolated removed partition found neither seeded account-ID nor storage-key markers; this is not proof of forensic erasure. Do not blindly remove a live partition or the default user-data directory.
+3. Qualify PR #47 on its final head. All three expanded platform account gates passed at `23fb964b`; the earlier macOS timeout did not recur. Authenticated E2E is draft-skipped, not waived. Diagnose any recurring failure from its actual stage; do not increase deadlines without evidence.
+4. Finish SEC-010 local scheme, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 certificate/configuration/link acceptance. Permission default-denial alone is not calling parity.
+5. Obtain CAP-002 controlled live IdP evidence, then audit every M3 criterion and complete final package/authenticated E2E/review gates. Signed installer/update qualification remains M4/M5, not an additional M3 signing prerequisite.
 
 ## Current validation
 

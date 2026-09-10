@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.19
+revision: 1.5.20
 status: draft
-updated: 2026-09-09
+updated: 2026-09-10
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -436,7 +436,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-009 — Centralize permission policy
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002, SEC-003
 - Scope: Implement request and check handlers for camera, microphone, notifications, display media, and any device permissions.
@@ -445,7 +445,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Grants bind permission type to authorized origin, view, account, and user flow.
   - Main-frame and subframe behavior is defined.
   - Allowed and denied cases are tested on supported platforms.
-- Evidence: TBD
+- Evidence: Native account cutover currently installs deny-all request/check handlers. Separate dependent branch `sec/SEC-009-account-permissions-2026-09-10` starts from CAP-001 `a4ce662c` with real-runtime characterization; no grant implementation or platform acceptance is claimed. Exact-version request/check contracts are in [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
 
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
@@ -889,6 +889,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.20 | 2026-09-10 | Codex | Started SEC-009 on a separate dependent branch with real native permission callback characterization; retained deny-all and all existing acceptance gates while consent/grant policy is designed | SEC-009, INV-006 |
 | 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |
 | 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
 | 1.5.17 | 2026-09-09 | Codex | Reconciled merged SSO, navigation, metadata and parser evidence; restored concise M3 handoff and synchronized CSP validation without claiming remaining cutover or capability acceptance | SEC-008, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002 |
