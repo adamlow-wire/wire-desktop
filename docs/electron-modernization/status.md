@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-10
 milestone: M3
 active_work_item: SEC-009
-state: local-qualified-hosted-and-authentication-gates-open
+state: blocked-on-external-prerequisites-and-maintainer-decisions
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -13,6 +13,8 @@ next_work_item: CAP-001
 blockers:
   - authenticated-local-linux-needs-secure-storage
   - remote-pr-state-unverified-network-timeouts
+  - live-sso-e2ei-provider-configuration-pending
+  - certificate-exception-and-display-phase-decisions-pending
 ---
 
 # Current project status
@@ -25,8 +27,10 @@ M0–M2 exit gates are complete. **M3 remains approximately 70%**, an engineerin
 
 ## Resume here
 
+Autonomous goal execution is blocked, not complete. The same GitHub/secure-storage/provider/policy prerequisites persisted across at least three consecutive goal turns. Independent local work completed in that interval (sidebar regression, scope reconciliation and bounded protocol review), but it cannot substitute for the remaining qualification or authorize an unspecified provider/policy implementation. No process is currently live to monitor. Resume when an access condition changes or the maintainer supplies a pending decision; do not manufacture further progress through repeated checks or documentation-only restatements.
+
 1. Inspect the worktree and verify local/tracking integration refs against the explicit recorded SHA; a stale local integration ref previously produced a misleading coverage failure.
-2. The native sidebar helper repair below is locally qualified. Review remaining authenticated E2E helpers for obsolete webview/native-menu assumptions before their final staging run; keep this within CAP-001, not another architecture task.
+2. The native sidebar helper repair below is locally qualified. The latest helper scan found an unreferenced legacy launcher but no further confirmed failure warranting another fix. Qualify the existing authenticated tests when their runner prerequisite is met, and diagnose any actual failures within CAP-001.
 3. Once secure storage is available, run staging login, then calling allow/deny and multi-account tests using the general consent harness. Never count a Linux `--project=macOS` run as macOS evidence.
 4. Once GitHub is reachable, read back PR #47 and branch heads before publishing. Qualify CAP-001 first, then its dependent candidates through scoped PRs with final-head checks and substantive self-review. Do not merge an unqualified draft or bypass checks.
 5. Finish every remaining M3 gate below and perform criterion-by-criterion closure; narrow local passes are not milestone completion.
@@ -128,4 +132,4 @@ Detailed checkpoint chronology is retained in Git, not as competing next-step in
 - Use explicit integration SHA for coverage base after verifying refs. Coverage examines committed HEAD; regenerate clean reports for the active candidate.
 - Preserve `wrap/worktrees/wpb-5221-deployment-audit` and MSI artifacts. Never run `clear:wrap`, broad cleanup or local `build:prepare`. Format exact files.
 - Never capture real devices/screens, display notifications, modify trust stores, expose credentials, or weaken an invariant to get a pass.
-- The unlimited goal remains active. No current narrow pass or estimate proves M3 closure.
+- The full M3 objective is retained with goal status blocked. No current narrow pass or estimate proves M3 closure; no acceptance gate has been waived.
