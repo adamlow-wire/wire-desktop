@@ -49,6 +49,12 @@ Linux now has an actual native-dialog cancellation test: the owner-bound API ret
 
 Sensitive allow/deny tests must cover scope separation, sender/frame/session isolation, cancellation, errors, concurrent requests and revocation during consent. Real fake-device media tests and notification/display checks must prove the API callbacks actually enforce the policy; Windows/macOS/Linux evidence remains required.
 
+### Display boundary finding
+
+The [Electron 43.4.0 permission helper](https://github.com/electron/electron/blob/v43.4.0/shell/browser/web_contents_permission_helper.cc) populates `mediaTypes` only for physical device audio/video. Both legacy desktop capture and modern display capture therefore arrive without these device types. After permission approval, legacy capture uses its requested source directly, whereas modern capture proceeds to `ChooseDisplayMediaDevice`. Inference: allowing empty types merely to reach a modern chooser would also authorize the legacy route. A preload override is not an authorization boundary against compromised content.
+
+The native regression confirms the relevant legacy behavior using only its own fixture window: current policy returns `NotAllowedError` after device consent; removing the empty-types guard returns video. The guard is restored. Preserve this deny test while investigating a native-enforced distinction or secure alternative; no screen-selection design is accepted yet.
+
 ## Revisit conditions
 
 Revisit if real-runtime tests show a required flow cannot supply sufficient identity, if legacy display capture bypasses this boundary, or if consent renewal breaks required calling behavior.

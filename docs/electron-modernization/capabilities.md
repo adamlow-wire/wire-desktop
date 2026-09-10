@@ -82,6 +82,8 @@ The isolated preload cannot trust a page override or a supplied permission resul
 
 Windows/macOS execution, real user approval/OS permissions, authenticated calling, display-source choice and final package/review gates remain open. This is not CAP-003 or SEC-009 completion.
 
+DCP-008 now has a real Linux legacy-capture deny target after camera/microphone consent. It targets only its own fixture window and stops any returned tracks immediately. Removing the empty-media-types guard makes it return video and fail; the restored three-test media suite passes. This proves that denial guard, not modern source-selection compatibility; the callback distinction remains an open design issue in DEC-009.
+
 CAP-001 removal failure: native regression reproduces indefinite loading after cleanup rejects. The shell now receives only a boolean failure flag and offers exact-account removal retry, leaving the profile record intact and not presenting reload as cleanup retry. The React target fails before implementation and passes after it; schema tests accept the boolean and reject strings. This does not change the data-deletion scope or establish final platform qualification.
 
 CAP-001 environment approval: seven local native tests protect exact-candidate preservation, owner binding, localized canonical-origin display, cancellation and invalid/closed-owner rejection. Changing the dialog default to Connect fails the characterization test. Dialog presentation is stubbed; actual platform presentation and complete programmatic destination policy are not established by these tests.

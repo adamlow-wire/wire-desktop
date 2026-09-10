@@ -80,7 +80,10 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
-  const capture = (constraints: {audio?: boolean; video?: boolean}) =>
+  const capture = (constraints: {
+    audio?: boolean;
+    video?: boolean | {mandatory: {chromeMediaSource: string; chromeMediaSourceId: string}};
+  }) =>
     contents.executeJavaScript(`(async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia(${JSON.stringify(constraints)});
@@ -96,6 +99,28 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
   it('denies real media requests when main-owned consent is cancelled', async () => {
     assert.deepEqual(await capture({audio: true, video: true}), {error: 'NotAllowedError'});
     assert.deepEqual(prompts, [['audio', 'video']]);
+  });
+
+  it('does not reuse device consent for legacy capture of a test-owned fixture window', async () => {
+    consent = true;
+    assert.deepEqual(await capture({audio: true, video: true}), {kinds: ['audio', 'video']});
+    // Never use a screen id or enumerate sources: only this fixture's own window.
+    await window.webContents.loadURL('data:text/html,<title>Blank capture fixture</title>');
+    const sourceId = window.getMediaSourceId();
+    assert.match(sourceId, /^window:/);
+    window.show();
+    assert.deepEqual(
+      await capture({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: 'desktop',
+            chromeMediaSourceId: sourceId,
+          },
+        },
+      }),
+      {error: 'NotAllowedError'},
+    );
   });
 
   it('grants fake microphone and camera separately and revokes grants after reload', async () => {
