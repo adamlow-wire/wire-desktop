@@ -39,6 +39,9 @@ const relaunchListeners: (() => void)[] = [];
 
 export async function initSquirrelListener(): Promise<void> {
   if (EnvironmentUtil.platform.IS_WINDOWS && Squirrel.isSquirrelInstallation()) {
+    if (isFirstInstance === false && !Squirrel.isSquirrelLifecycleEvent()) {
+      return;
+    }
     logger.info('Checking for Windows update ...');
     await Squirrel.handleSquirrelArgs();
   }
@@ -51,8 +54,14 @@ export const checkSingleInstance = async () => {
     isFirstInstance = app.requestSingleInstanceLock();
     logger.info('Checking if we are the first instance ...', isFirstInstance);
 
-    if (!EnvironmentUtil.platform.IS_WINDOWS && !isFirstInstance) {
-      await quit();
+    if (!isFirstInstance) {
+      // Installer lifecycle launches must finish their shortcut/update handling.
+      const installerLaunch =
+        EnvironmentUtil.platform.IS_WINDOWS && Squirrel.isSquirrelLifecycleEvent() && Squirrel.isSquirrelInstallation();
+      if (!installerLaunch) {
+        // A secondary process must not persist its stale copy of primary settings.
+        app.quit();
+      }
     } else {
       app.on('second-instance', () => WindowManager.showPrimaryWindow());
     }

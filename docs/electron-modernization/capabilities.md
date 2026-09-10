@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-006 shutdown checkpoint: six sensitivity-proven adapter baselines preserve primary activation and four Squirrel lifecycle events. Four regressions reproduce secondary-process exit/settings errors; ordinary lock losers now exit without saving settings or scheduling updates, while actual Squirrel lifecycle handling remains available. Combined lifecycle/IPC/installer tests pass 22/22; rebuilt Linux second-process/account-restart fixtures pass 2/2. Windows/macOS native qualification remains open; installer deployment behavior is not certified by these stubs.
+
 CAP-006 second-instance baseline: the actual Linux product fixture launches another Electron process with its own test profile, observes clean child exit and checks delivery only to the selected account without creating another account. Removing generated second-instance dispatch fails the selected-account location assertion; restored. Lifecycle and metadata/restart fixtures pass 2/2 locally. This supplements existing startup/open-url simulation; Windows command-line and macOS OS invocation remain unqualified.
 
 CAP-001 removal failure: native regression reproduces indefinite loading after cleanup rejects. The shell now receives only a boolean failure flag and offers exact-account removal retry, leaving the profile record intact and not presenting reload as cleanup retry. The React target fails before implementation and passes after it; schema tests accept the boolean and reject strings. This does not change the data-deletion scope or establish final platform qualification.

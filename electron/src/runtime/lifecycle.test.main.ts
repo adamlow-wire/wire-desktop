@@ -87,10 +87,47 @@ describe('[characterization][CAP-006] single-instance ownership', () => {
       assert.strictEqual((settings.persistToFile as ReturnType<typeof fake>).callCount, 0);
     });
   }
+
+  for (const {windows, squirrel, argument} of [
+    {windows: false, squirrel: false, argument: 'wire://preferences/account'},
+    {windows: true, squirrel: false, argument: 'wire://preferences/account'},
+    {windows: true, squirrel: true, argument: 'wire://preferences/account'},
+    {windows: true, squirrel: false, argument: '--squirrel-install'},
+  ]) {
+    it(`[regression] exits without saving settings or starting updates (Windows=${windows}, Squirrel=${squirrel}, argument=${argument})`, async () => {
+      replace(EnvironmentUtil, 'platform', {IS_WINDOWS: windows, IS_MAC_OS: false, IS_LINUX: !windows});
+      replace(app, 'requestSingleInstanceLock', fake.returns(false));
+      replace(Squirrel, 'isSquirrelInstallation', fake.returns(squirrel));
+      const handle = fake.resolves(undefined);
+      replace(Squirrel, 'handleSquirrelArgs', handle);
+      process.argv = ['Wire.exe', argument];
+
+      await checkSingleInstance();
+      await initSquirrelListener();
+
+      assert.strictEqual(isFirstInstance, false);
+      assert.strictEqual((app.quit as ReturnType<typeof fake>).callCount, 1);
+      assert.strictEqual((settings.persistToFile as ReturnType<typeof fake>).callCount, 0);
+      assert.strictEqual(handle.callCount, 0);
+      assert.deepStrictEqual(app.listeners('second-instance'), originalListeners);
+    });
+  }
 });
 
 describe('initSquirrelListener', () => {
+  let originalListeners: ReturnType<typeof app.listeners>;
+  beforeEach(async () => {
+    originalListeners = app.listeners('second-instance');
+    replace(app, 'requestSingleInstanceLock', fake.returns(true));
+    await checkSingleInstance();
+  });
+
   afterEach(() => {
+    for (const listener of app.listeners('second-instance')) {
+      if (!originalListeners.includes(listener)) {
+        app.removeListener('second-instance', listener as () => void);
+      }
+    }
     restore();
   });
 
