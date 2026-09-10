@@ -49,6 +49,22 @@ const createRuntime = (
 });
 
 describe('TrayHandler', () => {
+  const windows: BrowserWindow[] = [];
+  const createWindow = (options?: Electron.BrowserWindowConstructorOptions) => {
+    const window = new BrowserWindow(options);
+    windows.push(window);
+    return window;
+  };
+
+  afterEach(() => {
+    for (const window of windows.splice(0)) {
+      if (!window.isDestroyed()) {
+        window.destroy();
+      }
+      assert.equal(window.isDestroyed(), true, 'The tray fixture must release its native window');
+    }
+  });
+
   describe('platform icon policy', () => {
     it('selects the default, GNOME X11, and high-resolution Linux icon variants', () => {
       assert.deepStrictEqual(resolveTrayIconNames({isGnomeX11: false, isLinux: false}), {
@@ -112,7 +128,7 @@ describe('TrayHandler', () => {
         const tray = new TrayHandler();
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow();
+        const appWindow = createWindow();
         const flashFrameSpy = spy(appWindow, 'flashFrame');
 
         await appWindow.loadURL('about:blank');
@@ -133,7 +149,7 @@ describe('TrayHandler', () => {
         tray.initTray(TrayMock);
         setImageSpy.resetHistory();
 
-        const appWindow = new BrowserWindow({show: false});
+        const appWindow = createWindow({show: false});
         const setOverlayIconSpy = spy(appWindow, 'setOverlayIcon');
         await appWindow.loadURL('about:blank');
 
@@ -166,7 +182,7 @@ describe('TrayHandler', () => {
         const tray = new TrayHandler();
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow({show: false});
+        const appWindow = createWindow({show: false});
         const flashFrameSpy = spy(appWindow, 'flashFrame');
 
         await appWindow.loadFile(path.join(fixturesDir, 'badge.html'));
@@ -188,7 +204,7 @@ describe('TrayHandler', () => {
         const tray = new TrayHandler(runtime);
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow({show: false, useContentSize: true});
+        const appWindow = createWindow({show: false, useContentSize: true});
         const flashFrameSpy = spy(appWindow, 'flashFrame');
 
         await appWindow.loadURL('about:blank');
@@ -204,7 +220,7 @@ describe('TrayHandler', () => {
         const tray = new TrayHandler(runtime);
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow({show: false, useContentSize: true});
+        const appWindow = createWindow({show: false, useContentSize: true});
         const flashFrameSpy = spy(appWindow, 'flashFrame');
 
         await appWindow.loadURL('about:blank');
@@ -220,7 +236,7 @@ describe('TrayHandler', () => {
         tray.initTray(TrayMock);
         tray['lastUnreadCount'] = 5;
 
-        const appWindow = new BrowserWindow({
+        const appWindow = createWindow({
           show: false,
           useContentSize: true,
         });
