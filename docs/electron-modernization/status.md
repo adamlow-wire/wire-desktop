@@ -9,7 +9,7 @@ integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: sec/SEC-009-account-permissions-2026-09-10
-next_work_item: SEC-010
+next_work_item: SEC-009
 blockers: []
 ---
 
@@ -17,7 +17,7 @@ blockers: []
 
 ## Milestone checkpoint
 
-M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 67%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
+M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 70%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
 
 | Area | Verified integration state | Remaining M3 acceptance |
 | --- | --- | --- |
@@ -32,6 +32,12 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 67%**
 ## Active work and next executable steps
 
 ### Current SEC-009 candidate
+
+Qualification refresh at `dc511b7d`: applied only the sensitivity-proven owned-window cleanup and shared-focus fixture repair from TST-003. Rebuilt production bundles and fresh coverage pass **785 native tests**, **112 React tests/27 suites**, **four fake-device media tests**, and **four renderer tests**. The unmodified checker against explicit integration SHA `d94253c9` passes **915/1095 statements (83.56%)** and **107/108 security branches (99.07%)**. Application/Mocha types and changed-source ESLint pass. Rebuilt permission/lifecycle/metadata product fixtures pass **3/3 in 21 seconds** on Linux (the `macOS` Playwright label is not native macOS evidence). Logs: `/tmp/sec009-final-{main-coverage,react-coverage,media,renderer-coverage,diff-coverage,app-types,test-types,changed-lint,product}.log`. No permission relaxation, runtime upgrade, real capture or displayed notification was introduced. All processes are terminal; no publication or merge is claimed.
+
+Scope clarification is awaiting the maintainer: CAP-003 explicitly assigns screen-sharing migration to M4, while later SEC-009 handoff notes treated the unfinished chooser as an M3 blocker. The question asks whether to retain secure capture denial through M3 and implement sharing in M4, or require a working chooser in M3. No acceptance change is assumed. Q-005 separately asks whether to retain an exact-certificate/hostname/account-session restart-cleared override or remove manual overrides; Chromium errors remain denied either way. The pinned [Electron permission helper](https://github.com/electron/electron/blob/v43.4.0/shell/browser/web_contents_permission_helper.cc) still gives both legacy and modern display requests empty device types. Bounded searches of upstream browser/renderer sources and the installed binary did not identify a selective legacy-disable switch; this is not proof that no alternative exists, and no switch was added.
+
+Next executable work: characterize the general authenticated E2E launcher's consent behavior. `e2e-tests/actions/createApp.ts` still uses `--use-fake-ui-for-media-stream` by default and has no handler for the new native account-consent dialog. The dedicated permission product fixture deliberately avoids that bypass and controls only dialog results; preserve that distinction. Repair the test harness without adding production permission flags or granting real device access, then obtain authenticated/platform gates when GitHub is reachable. SEC-010 is separately locally qualified at `2ce86631`; other candidates remain preserved at managed destinations `2fdf3aba`, CAP-006 `6902448a`, managed backends `78d09079`, certificates `ad1211cd`. The stale integration ref is corrected to `d94253c9`; optional TST-001 buffer work is parked at `de29631d`, not an M3 prerequisite.
 
 SEC-009 remains on its dependent branch, based on CAP-001 `a4ce662c`. **The local application's main composition now enables account-scoped notification, microphone and camera consent.** Integration and the remote PR have not changed. Permissions still default to deny; grants require the native cancel-default dialog and exact authorized view/session/origin/document. Unknown permissions, missing identities and subframes remain denied. Display capture is not complete.
 
