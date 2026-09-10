@@ -52,7 +52,7 @@ Do not duplicate status across documents. The plan describes intended work; `sta
 When resuming after a gap:
 
 1. Confirm the current branch, commit, remotes, and worktree state.
-2. Read `status.md` and verify its recorded commit still matches history.
+2. Read `status.md` and verify its recorded commit against both the local integration branch and remote-tracking ref. Use the verified explicit base SHA for coverage/PR comparisons; a stale local branch name is not current integration evidence.
 3. Refresh the latest stable Electron version if runtime work is involved.
 4. Select the first unblocked work item whose dependencies are complete.
 5. Re-run the narrow baseline relevant to that item before editing.
