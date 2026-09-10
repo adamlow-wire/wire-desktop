@@ -9,7 +9,7 @@ integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: sec/SEC-009-account-permissions-2026-09-10
-next_work_item: SEC-009
+next_work_item: SEC-010
 blockers: []
 ---
 
@@ -39,6 +39,7 @@ The implemented path includes document revocation and abortable consent, separat
 
 ### Local evidence and limits
 
+- **Latest full native run:** at `4b4bea28`, 785 pass and one existing tray-focus target times out at its unchanged two-second deadline (`/tmp/sec009-display-checkpoint-main.log`). Permission targets pass. This is not a green full-suite gate; no retry or assertion change was made to hide the failure.
 - **Modern display gate:** all four native media tests pass (`/tmp/sec009-modern-display-final.log`). The added `getDisplayMedia` target uses a test-induced gesture and a handler that always returns no source: device consent still yields `NotAllowedError`, with zero source-selection callbacks. Removing the empty-types guard reaches that callback once and yields `AbortError`, failing both recorded expectations (`/tmp/sec009-modern-display-sensitivity.log`); restored. This confirms the callback-order constraint without capturing a display. Application/Mocha types and changed-test lint pass.
 - **Pending account transitions:** switching away or hiding now cancels pending consent, while already-approved background grants are retained. The regression initially observes a non-aborted signal; removing the final abort check after implementation produces a stale `granted` result on switch-away/back. Restored; 42 affected policy/session/account tests pass, with application/Mocha types and changed-source lint green. Logs: `/tmp/sec009-switch-consent-before.log`, `/tmp/sec009-switch-consent-sensitivity.log`, `/tmp/sec009-switch-consent-final.log`.
 - **Activated product:** `test:e2e --project=macOS accountPermissions.spec.ts` passes on **Linux** in 5.1 seconds. It exercises real foreground eligibility and the actual main/preload policy, separate notification/microphone/camera approval, notification state publication, and notification/microphone denial after document reload. Synthetic-device mode is enforced and tracks stop immediately. Only dialog responses are controlled by the test runner; no production bypass or displayed notification is introduced. Before activation, the notification-grant assertion fails. Logs: `/tmp/sec009-production-permissions-before.log`, `/tmp/sec009-production-permissions-final.log`.
@@ -54,6 +55,8 @@ The implemented path includes document revocation and abortable consent, separat
 Pending-consent switch/hide transitions and legacy video-only capture denial now pass their targets. After rebuilding, all three local permission/lifecycle/metadata product fixtures pass in 13.5 seconds (`/tmp/sec009-switch-product-final.log`). Next, resolve the native distinction between legacy capture and modern display selection before implementing a chooser: Electron 43.4.0 reports empty media types for both, but only the modern path reaches its display handler (see DEC-009). Do not allow empty types globally or trust a page API override. A separate mixed microphone/legacy-video diagnostic terminated its fixture renderer with Chromium bad-IPC reason 263; it produced no observed stream and is not evidence of a bypass or graceful denial (`/tmp/sec009-legacy-window-capture-probe.log`). Authenticated calling test handling, cross-platform native prompt/OS permission evidence, final-head aggregate coverage, substantive review and hosted gates remain open. DEC-009 is still a proposed design under review, not milestone closure.
 
 GitHub PR #47 readback still fails with a TLS handshake timeout (September 10, 11:44 Berlin, after allowing network access outside the local sandbox). Verify remote state before publishing; no publication or merge is claimed. Preserve CAP-001's separate qualification below.
+
+Screen-selection investigation has not established a secure implementation on the pinned runtime. The maintainer has been asked whether a newer 43.x patch may be investigated without adoption; Electron remains 43.4.0 and no exception is approved. While that decision is pending, the next independent implementation is **SEC-010**, on its own branch based on CAP-001 `a4ce662c`, not mixed into SEC-009. Reuse the existing `wire-app` scheme foundation; first characterize shell/auxiliary resource loading and legacy profile import, then define a bounded resource allowlist and migrate the production shell, About and proxy prompt. Preserve the script-disabled legacy file-origin reader strictly for migration until its data-retention contract is resolved. Current renderer startup reads accounts through `wireAccounts.read`, not renderer local storage. SEC-009 remains incomplete on `sec/SEC-009-account-permissions-2026-09-10` at `4b4bea28`; the full-native tray failure remains an open qualification issue.
 
 ### CAP-001 dependency and remaining qualification
 
@@ -81,7 +84,7 @@ Next work, without creating overlapping plan items:
 
 | Check | Latest local result | Evidence |
 | --- | --- | --- |
-| Electron main | 784 passing before final main activation; prior intermittent tray-focus failures retained above | `/tmp/sec009-native-dialog-full-main.log` |
+| Electron main | Latest: 785 passing / one recurring tray-focus timeout at `4b4bea28`; not green. Earlier pre-activation checkpoint: 784 passing | `/tmp/sec009-display-checkpoint-main.log`, `/tmp/sec009-native-dialog-full-main.log` |
 | Electron renderer | 4 passing | `/tmp/cap001-f721-renderer-coverage.log` |
 | React | 112 passing, 27 suites | `/tmp/cap001-f721-react-coverage.log` |
 | Changed-code coverage | Last CAP-001 aggregate: 739/915 statements **80.77%**, security branches 15/15 **100%**. SEC-009 aggregate gate pending; focused policy coverage is recorded above | `/tmp/cap001-f721-diff.log`, head `f721bf5c` |

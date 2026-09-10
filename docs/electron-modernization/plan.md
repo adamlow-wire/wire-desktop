@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.23
+revision: 1.5.24
 status: draft
 updated: 2026-09-10
 owners:
@@ -856,6 +856,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | RSK-011 | Knowledge is concentrated in too few Wire developers and is lost between implementation periods | high | high | Stable project IDs, baseline contracts, concise ADRs, current handoff, small PRs, and cross-review of security-sensitive work | TBD | open |
 | RSK-012 | Packaging code catches errors and CI can appear successful without producing an artifact | high | high | Assert artifact existence, make package errors fatal under PKG-001, and retain runner logs | Release Engineering | open |
 | RSK-013 | Solo development concentrates product, platform, and security decisions in one maintainer | high | high | PR-only integration, strict CI, explicit security-review passes, sensitive-test demonstrations, concise decision records, and external review before release when feasible | adamlow-wire | open |
+| RSK-014 | Electron 43.4.0 shares the permission gate for legacy capture and modern display selection, so allowing the latter can bypass source choice through the former | confirmed callback limitation | high | Keep empty media types denied; preserve real-runtime regression tests; resolve a native-enforced distinction or approved alternative under SEC-009 before enabling capture. Do not replace source authorization with a page override or silently change the pinned runtime | adamlow-wire | open |
 
 ## 15. Decision log
 
@@ -890,6 +891,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.24 | 2026-09-10 | Codex | Recorded sensitivity-proven legacy/modern capture callback limitation and its open risk; retained runtime pin, source-selection requirement and all M3 acceptance gates | SEC-009, DEC-009, RSK-014 |
 | 1.5.23 | 2026-09-10 | Codex | Activated native account notification/media consent in the local candidate after product baseline/allow/reload-denial evidence; retained all display, platform and final-head acceptance gates | SEC-009, DEC-009, CAP-003 |
 | 1.5.22 | 2026-09-10 | Codex | Reconciled SEC-009 implementation evidence for native policy/session composition, cancellation, fake media and notification routing/readiness; retained production denial and all platform/display acceptance gates | SEC-009, DEC-009, INV-006 |
 | 1.5.21 | 2026-09-10 | Codex | Recorded proposed main-owned consent/document-scoped grant ADR and sensitivity-tested unwired policy; production stays deny-all and permission integration/platform gates remain open | SEC-009, DEC-009, INV-006 |
