@@ -14,11 +14,13 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import {dialog} from 'electron';
 import type {Certificate, Request as CertificateRequest} from 'electron';
 import {createSandbox} from 'sinon';
+import type {SinonStub} from 'sinon';
 
 import {strict as assert} from 'node:assert';
 import {createRequire} from 'node:module';
@@ -42,6 +44,7 @@ describe('[CAP-005] certificate verification completion', () => {
     ...overrides,
   });
   let verify: typeof import('./CertificateVerifyProcManager').setCertificateVerifyProc;
+  let messageBox: SinonStub;
 
   beforeEach(() => {
     // The legacy manager has process-global dialog/exception state. Give each
@@ -49,7 +52,7 @@ describe('[CAP-005] certificate verification completion', () => {
     delete requireFixture.cache[requireFixture.resolve('./CertificateVerifyProcManager.ts')];
     ({setCertificateVerifyProc: verify} = requireFixture('./CertificateVerifyProcManager.ts'));
     sandbox.useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
-    sandbox.stub(dialog, 'showMessageBox').resolves({checkboxChecked: false, response: 0});
+    messageBox = sandbox.stub(dialog, 'showMessageBox').resolves({checkboxChecked: false, response: 0});
   });
 
   afterEach(() => sandbox.restore());
@@ -91,4 +94,36 @@ describe('[CAP-005] certificate verification completion', () => {
       assert.equal(shouldPin.callCount, 0);
     });
   }
+
+  for (const failure of ['pinning utility', 'pinning dialog', 'Chromium dialog'] as const) {
+    it(`[regression][INV-010] completes exactly once with denial when the ${failure} throws`, async () => {
+      sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+      const pin = sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+      if (failure === 'pinning utility') {
+        pin.throws(new Error('synthetic verifier error'));
+      } else {
+        messageBox.rejects(new Error('synthetic dialog error'));
+      }
+      const result = sandbox.spy();
+      let rejection: unknown;
+      try {
+        await verify(
+          request(failure === 'Chromium dialog' ? {errorCode: -202, verificationResult: 'net::ERR_CERT_INVALID'} : {}),
+          result,
+        );
+      } catch (error) {
+        rejection = error;
+      }
+      assert.deepEqual(result.args, [[-2]], 'Electron must receive an explicit denial even when verification throws');
+      assert.equal(rejection, undefined);
+    });
+  }
+
+  it('[regression] does not invoke an Electron callback twice if that callback throws', async () => {
+    sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(false);
+    const error = new Error('synthetic callback error');
+    const result = sandbox.stub().throws(error);
+    await assert.rejects(verify(request(), result), caught => caught === error);
+    assert.deepEqual(result.args, [[-3]]);
+  });
 });

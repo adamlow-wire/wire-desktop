@@ -193,10 +193,7 @@ export const attachTo = (main: BrowserWindow): void => {
   CertificateVerifyProcManager.mainWindow = main;
 };
 
-export const setCertificateVerifyProc = async (
-  request: CertificateVerifyRequest,
-  cb: (verificationResult: number) => void,
-): Promise<void> => {
+const verifyCertificate = async (request: CertificateVerifyRequest): Promise<CertificateVerificationResult> => {
   const {hostname, validatedCertificate, verificationResult, errorCode} = request;
   // Check browser results
   if (verificationResult !== 'net::OK') {
@@ -210,7 +207,7 @@ export const setCertificateVerifyProc = async (
       await CertificateVerifyProcManager.displayCertificateChromiumError(hostname, validatedCertificate);
     }
 
-    return cb(CertificateVerificationResult.FAILURE);
+    return CertificateVerificationResult.FAILURE;
   }
 
   // Check certificate pinning
@@ -222,9 +219,23 @@ export const setCertificateVerifyProc = async (
       logger.error(`Certificate verification failed for "${hostname}".`);
       logger.error(`Error: "${pinningResults.errorMessage}". Displaying certificate pinning error dialog.`);
       await CertificateVerifyProcManager.displayCertificateError(hostname, validatedCertificate);
-      return cb(CertificateVerificationResult.FAILURE);
+      return CertificateVerificationResult.FAILURE;
     }
   }
 
-  return cb(CertificateVerificationResult.USE_CHROMIUM_VALIDATION);
+  return CertificateVerificationResult.USE_CHROMIUM_VALIDATION;
+};
+
+export const setCertificateVerifyProc = async (
+  request: CertificateVerifyRequest,
+  cb: (verificationResult: number) => void,
+): Promise<void> => {
+  let result = CertificateVerificationResult.FAILURE;
+  try {
+    result = await verifyCertificate(request);
+  } catch {
+    logger.error('Certificate verification could not complete; denying the connection.');
+  }
+  // Keep Electron's callback outside the catch: it must never be retried.
+  cb(result);
 };
