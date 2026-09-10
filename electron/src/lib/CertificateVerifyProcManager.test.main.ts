@@ -17,13 +17,17 @@
  *
  */
 
-import {dialog} from 'electron';
+import {dialog, session} from 'electron';
 import type {Certificate, Request as CertificateRequest} from 'electron';
 import {createSandbox} from 'sinon';
-import type {SinonStub} from 'sinon';
+import type {SinonFakeTimers, SinonStub} from 'sinon';
 
 import {strict as assert} from 'node:assert';
+import {randomUUID} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
+import type {AddressInfo} from 'node:net';
 import * as path from 'node:path';
 
 const requireFixture = createRequire(
@@ -45,13 +49,14 @@ describe('[CAP-005] certificate verification completion', () => {
   });
   let verify: typeof import('./CertificateVerifyProcManager').setCertificateVerifyProc;
   let messageBox: SinonStub;
+  let clock: SinonFakeTimers;
 
   beforeEach(() => {
     // The legacy manager has process-global dialog/exception state. Give each
     // test its own module instance without exposing a production reset API.
     delete requireFixture.cache[requireFixture.resolve('./CertificateVerifyProcManager.ts')];
     ({setCertificateVerifyProc: verify} = requireFixture('./CertificateVerifyProcManager.ts'));
-    sandbox.useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
+    clock = sandbox.useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
     messageBox = sandbox.stub(dialog, 'showMessageBox').resolves({checkboxChecked: false, response: 0});
   });
 
@@ -126,4 +131,100 @@ describe('[CAP-005] certificate verification completion', () => {
     await assert.rejects(verify(request(), result), caught => caught === error);
     assert.deepEqual(result.args, [[-3]]);
   });
+
+  it('[characterization] suppresses duplicate warnings during the retry cooldown but keeps rejecting requests', async () => {
+    sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+    sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+    const result = sandbox.spy();
+    await verify(request(), result);
+    await verify(request(), result);
+    assert.equal(messageBox.callCount, 1);
+    assert.deepEqual(result.args, [[-2], [-2]]);
+    clock.tick(6000);
+    await verify(request(), result);
+    assert.equal(messageBox.callCount, 2);
+    assert.deepEqual(result.args, [[-2], [-2], [-2]]);
+  });
+
+  for (const errorCode of [0, -202]) {
+    it(`[regression] permits a later warning after a rejected dialog for error ${errorCode}`, async () => {
+      sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+      sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+      messageBox.onFirstCall().rejects(new Error('synthetic dialog failure'));
+      const result = sandbox.spy();
+      const input = request({errorCode, verificationResult: errorCode === 0 ? 'net::OK' : 'net::ERR_CERT_INVALID'});
+      await verify(input, result);
+      await verify(input, result);
+      assert.deepEqual(result.args, [[-2], [-2]]);
+      assert.equal(messageBox.callCount, 2, 'a rejected dialog must not permanently suppress later warnings');
+    });
+  }
+});
+
+describe('[CAP-005] native certificate verification', () => {
+  for (const dialogFails of [false, true]) {
+    it(`[security-target][INV-010] rejects untrusted loopback TLS before HTTP when dialog failure is ${dialogFails}`, async () => {
+      const sandbox = createSandbox();
+      const messageBox = sandbox.stub(dialog, 'showMessageBox');
+      if (dialogFails) {
+        messageBox.rejects(new Error('synthetic native-dialog failure'));
+      } else {
+        messageBox.resolves({checkboxChecked: false, response: 0});
+      }
+      delete requireFixture.cache[requireFixture.resolve('./CertificateVerifyProcManager.ts')];
+      const {setCertificateVerifyProc}: typeof import('./CertificateVerifyProcManager') = requireFixture(
+        './CertificateVerifyProcManager.ts',
+      );
+      const target = session.fromPartition(`certificate-verification-${randomUUID()}`);
+      const fixtureDirectory = path.join(process.cwd(), 'electron/test/fixtures/certificates');
+      let requests = 0;
+      const server = createServer(
+        {
+          cert: readFileSync(path.join(fixtureDirectory, 'untrusted-localhost-cert.pem')),
+          key: readFileSync(path.join(fixtureDirectory, 'untrusted-localhost-key.pem')),
+        },
+        (_request, response) => {
+          requests++;
+          response.end('must not reach HTTP');
+        },
+      );
+      const checks: {hostname: string; errorCode: number; verificationResult: string}[] = [];
+      const decisions: number[] = [];
+      target.setCertificateVerifyProc((request, callback) => {
+        checks.push({
+          hostname: request.hostname,
+          errorCode: request.errorCode,
+          verificationResult: request.verificationResult,
+        });
+        void setCertificateVerifyProc(request, result => {
+          decisions.push(result);
+          callback(result);
+        });
+      });
+      try {
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+        const address = server.address() as AddressInfo;
+        const error = await target
+          .fetch(`https://127.0.0.1:${address.port}/`, {signal: AbortSignal.timeout(1000)})
+          .then(
+            () => undefined,
+            (error: unknown) => error,
+          );
+        assert.deepEqual(decisions, [-2], 'native verification must complete, not wait until request abort');
+        assert.deepEqual(checks, [
+          {hostname: '127.0.0.1', errorCode: -202, verificationResult: 'net::ERR_CERT_AUTHORITY_INVALID'},
+        ]);
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /ERR_FAILED|ERR_CERT/);
+        assert.equal(requests, 0);
+        assert.equal(messageBox.callCount, 1);
+      } finally {
+        target.setCertificateVerifyProc(null);
+        await target.closeAllConnections();
+        server.closeAllConnections();
+        await new Promise<void>(resolve => server.close(() => resolve()));
+        sandbox.restore();
+      }
+    });
+  }
 });

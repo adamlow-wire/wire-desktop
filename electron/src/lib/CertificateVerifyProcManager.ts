@@ -153,38 +153,43 @@ class CertificateVerifyProcManager {
     }
     this.isDialogLocked = true;
 
-    const {checkboxChecked, response} = await dialog.showMessageBox(this.mainWindow, {
-      buttons: [this.LOCALE.RETRY, this.LOCALE.SHOW_DETAILS],
-      cancelId: RESPONSE.RETRY,
-      checkboxChecked: isChromiumError ? undefined : isCheckboxChecked,
-      checkboxLabel: isChromiumError ? undefined : this.LOCALE.WARNING_BYPASS,
-      defaultId: RESPONSE.RETRY,
-      detail: isChromiumError ? this.LOCALE.WARNING_TEXT_CHROMIUM : this.LOCALE.WARNING_TEXT_PINNING,
-      message: this.LOCALE.WARNING_TITLE,
-      type: 'warning',
-    });
-    switch (response) {
-      case RESPONSE.RETRY: {
-        if (!isChromiumError) {
-          this.bypassCertificatePinning = checkboxChecked;
-          if (this.bypassCertificatePinning) {
-            logger.log('User disabled certificate pinning');
+    try {
+      const {checkboxChecked, response} = await dialog.showMessageBox(this.mainWindow, {
+        buttons: [this.LOCALE.RETRY, this.LOCALE.SHOW_DETAILS],
+        cancelId: RESPONSE.RETRY,
+        checkboxChecked: isChromiumError ? undefined : isCheckboxChecked,
+        checkboxLabel: isChromiumError ? undefined : this.LOCALE.WARNING_BYPASS,
+        defaultId: RESPONSE.RETRY,
+        detail: isChromiumError ? this.LOCALE.WARNING_TEXT_CHROMIUM : this.LOCALE.WARNING_TEXT_PINNING,
+        message: this.LOCALE.WARNING_TITLE,
+        type: 'warning',
+      });
+      switch (response) {
+        case RESPONSE.RETRY: {
+          if (!isChromiumError) {
+            this.bypassCertificatePinning = checkboxChecked;
+            if (this.bypassCertificatePinning) {
+              logger.log('User disabled certificate pinning');
+            }
           }
+
+          // Postpone unlocking of the dialog so the user have time to leave the app
+          setTimeout(() => (this.isDialogLocked = false), this.dialogUnlockTimeout);
+          break;
         }
 
-        // Postpone unlocking of the dialog so the user have time to leave the app
-        setTimeout(() => (this.isDialogLocked = false), this.dialogUnlockTimeout);
-        break;
+        case RESPONSE.SHOW_DETAILS: {
+          await this.displayCertificateDetails(hostname, certificate, {
+            bypassDialogLock,
+            isCheckboxChecked: checkboxChecked,
+            isChromiumError,
+          });
+          break;
+        }
       }
-
-      case RESPONSE.SHOW_DETAILS: {
-        await this.displayCertificateDetails(hostname, certificate, {
-          bypassDialogLock,
-          isCheckboxChecked: checkboxChecked,
-          isChromiumError,
-        });
-        break;
-      }
+    } catch (error) {
+      this.isDialogLocked = false;
+      throw error;
     }
   }
 }
