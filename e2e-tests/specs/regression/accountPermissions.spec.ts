@@ -82,23 +82,26 @@ test(
           ),
         )
         .toBe(true);
-      await app.evaluate(({BrowserWindow}) => {
-        const owner = BrowserWindow.getAllWindows().find(window =>
-          new URL(window.webContents.getURL()).searchParams.has('env'),
-        )!;
-        owner.show();
-        owner.focus();
-      });
-      await expect
-        .poll(() =>
-          app!.evaluate(({BrowserWindow}) => {
-            const owner = BrowserWindow.getAllWindows().find(window =>
-              new URL(window.webContents.getURL()).searchParams.has('env'),
-            )!;
-            return owner.isFocused();
-          }),
-        )
-        .toBe(true);
+      const focusOwner = async () => {
+        await app!.evaluate(({BrowserWindow}) => {
+          const owner = BrowserWindow.getAllWindows().find(window =>
+            new URL(window.webContents.getURL()).searchParams.has('env'),
+          )!;
+          owner.show();
+          owner.focus();
+        });
+        await expect
+          .poll(() =>
+            app!.evaluate(({BrowserWindow}) => {
+              const owner = BrowserWindow.getAllWindows().find(window =>
+                new URL(window.webContents.getURL()).searchParams.has('env'),
+              )!;
+              return owner.isFocused();
+            }),
+          )
+          .toBe(true);
+      };
+      await focusOwner();
       const ready = () =>
         app!.evaluate(async ({webContents}, origin) => {
           const contents = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(origin))!;
@@ -111,7 +114,7 @@ test(
         }, origin);
       const capture = (kind: 'audio' | 'video') =>
         app!.evaluate(
-          async ({app, webContents}, {origin, kind}) => {
+          async ({app, BrowserWindow, webContents}, {origin, kind}) => {
             if (
               !app.commandLine.hasSwitch('use-fake-device-for-media-stream') ||
               app.commandLine.hasSwitch('use-fake-ui-for-media-stream')
@@ -119,7 +122,7 @@ test(
               throw new Error('Synthetic devices without a permission bypass are required.');
             }
             const contents = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(origin))!;
-            return contents.executeJavaScript(`(async () => {
+            const result = await contents.executeJavaScript(`(async () => {
           try {
             const stream = await navigator.mediaDevices.getUserMedia({${kind}: true});
             const tracks = stream.getTracks();
@@ -128,13 +131,27 @@ test(
             return {kinds};
           } catch (error) { return {error: error.name}; }
         })()`);
+            return {
+              result,
+              owners: BrowserWindow.getAllWindows().map(owner => ({
+                focused: owner.isFocused(),
+                visible: owner.isVisible(),
+              })),
+              fixture: (globalThis as unknown as {permissionFixture: unknown}).permissionFixture,
+            };
           },
           {origin, kind},
         );
+      const expectCapture = async (kind: 'audio' | 'video', expected: {kinds: string[]} | {error: string}) => {
+        // Each request models a foreground user flow; OS focus can change between requests.
+        await focusOwner();
+        const {result, ...context} = await capture(kind);
+        expect(result, JSON.stringify(context)).toEqual(expected);
+      };
       await ready();
       await expect.poll(results).toEqual(['granted']);
-      expect(await capture('audio')).toEqual({kinds: ['audio']});
-      expect(await capture('video')).toEqual({kinds: ['video']});
+      await expectCapture('audio', {kinds: ['audio']});
+      await expectCapture('video', {kinds: ['video']});
       expect(
         await app.evaluate(
           () => (globalThis as unknown as {permissionFixture: {requests: unknown[]}}).permissionFixture.requests,
@@ -153,7 +170,7 @@ test(
       }, origin);
       await ready();
       await expect.poll(results).toEqual(['denied']);
-      expect(await capture('audio')).toEqual({error: 'NotAllowedError'});
+      await expectCapture('audio', {error: 'NotAllowedError'});
       expect(
         await app.evaluate(
           () => (globalThis as unknown as {permissionFixture: {requests: unknown[]}}).permissionFixture.requests.length,
