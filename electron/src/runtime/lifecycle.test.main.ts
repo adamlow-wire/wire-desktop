@@ -23,9 +23,71 @@ import {fake, replace, restore} from 'sinon';
 import assert from 'node:assert';
 
 import * as EnvironmentUtil from './EnvironmentUtil';
-import {addRelaunchListeners, initSquirrelListener, relaunch} from './lifecycle';
+import {addRelaunchListeners, checkSingleInstance, initSquirrelListener, isFirstInstance, relaunch} from './lifecycle';
 
+import {settings} from '../settings/ConfigurationPersistence';
 import * as Squirrel from '../update/squirrel';
+import {WindowManager} from '../window/WindowManager';
+
+describe('[characterization][CAP-006] single-instance ownership', () => {
+  let originalListeners: ReturnType<typeof app.listeners>;
+  let originalArgv: string[];
+
+  beforeEach(() => {
+    originalListeners = app.listeners('second-instance');
+    originalArgv = process.argv;
+    replace(app, 'quit', fake());
+    replace(settings, 'persistToFile', fake());
+  });
+
+  afterEach(() => {
+    for (const listener of app.listeners('second-instance')) {
+      if (!originalListeners.includes(listener)) {
+        app.removeListener('second-instance', listener as () => void);
+      }
+    }
+    process.argv = originalArgv;
+    restore();
+  });
+
+  for (const windows of [false, true]) {
+    it(`lets the lock owner activate its primary window (Windows=${windows})`, async () => {
+      replace(EnvironmentUtil, 'platform', {IS_WINDOWS: windows, IS_MAC_OS: false, IS_LINUX: !windows});
+      replace(app, 'requestSingleInstanceLock', fake.returns(true));
+      const show = fake();
+      replace(WindowManager, 'showPrimaryWindow', show);
+
+      await checkSingleInstance();
+
+      assert.strictEqual(isFirstInstance, true);
+      const listeners = app.listeners('second-instance').filter(listener => !originalListeners.includes(listener));
+      assert.strictEqual(listeners.length, 1);
+      listeners[0]();
+      assert.strictEqual(show.callCount, 1);
+      assert.strictEqual((app.quit as ReturnType<typeof fake>).callCount, 0);
+      assert.strictEqual((settings.persistToFile as ReturnType<typeof fake>).callCount, 0);
+    });
+  }
+
+  for (const event of ['--squirrel-install', '--squirrel-updated', '--squirrel-uninstall', '--squirrel-obsolete']) {
+    it(`defers secondary-process exit for the installed Squirrel lifecycle event ${event}`, async () => {
+      replace(EnvironmentUtil, 'platform', {IS_WINDOWS: true, IS_MAC_OS: false, IS_LINUX: false});
+      replace(app, 'requestSingleInstanceLock', fake.returns(false));
+      replace(Squirrel, 'isSquirrelInstallation', fake.returns(true));
+      const handle = fake.resolves(undefined);
+      replace(Squirrel, 'handleSquirrelArgs', handle);
+      process.argv = ['Wire.exe', event];
+
+      await checkSingleInstance();
+      await initSquirrelListener();
+
+      assert.strictEqual(isFirstInstance, false);
+      assert.strictEqual(handle.callCount, 1);
+      assert.strictEqual((app.quit as ReturnType<typeof fake>).callCount, 0);
+      assert.strictEqual((settings.persistToFile as ReturnType<typeof fake>).callCount, 0);
+    });
+  }
+});
 
 describe('initSquirrelListener', () => {
   afterEach(() => {
