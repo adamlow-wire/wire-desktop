@@ -55,6 +55,8 @@ The [Electron 43.4.0 permission helper](https://github.com/electron/electron/blo
 
 The native regression confirms the relevant legacy behavior using only its own fixture window: current policy returns `NotAllowedError` after device consent; removing the empty-types guard returns video. The guard is restored. Preserve this deny test while investigating a native-enforced distinction or secure alternative; no screen-selection design is accepted yet.
 
+A second real-runtime target calls `getDisplayMedia` with a test-induced gesture and a handler that always returns no source. Current policy denies before that handler; removing the empty-types guard invokes it and changes the error to `AbortError`. Both assertions fail under the perturbation and pass after restoration. No desktop capture occurs. This confirms that simply installing the modern handler cannot resolve the shared permission gate. The sibling webapp currently prefers `window.desktopCapturer` over `getDisplayMedia`, so migration also requires an explicit compatibility decision rather than silently installing an unused chooser.
+
 ## Revisit conditions
 
 Revisit if real-runtime tests show a required flow cannot supply sufficient identity, if legacy display capture bypasses this boundary, or if consent renewal breaks required calling behavior.

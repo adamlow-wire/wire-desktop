@@ -123,6 +123,34 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
     );
   });
 
+  it('denies modern display capture before source selection despite device consent', async () => {
+    consent = true;
+    assert.deepEqual(await capture({audio: true, video: true}), {kinds: ['audio', 'video']});
+    let selections = 0;
+    contents.session.setDisplayMediaRequestHandler((_request, callback) => {
+      selections++;
+      // No source is ever supplied, including during a sensitivity perturbation.
+      callback({});
+    });
+    try {
+      const result = await contents.executeJavaScript(
+        `(async () => {
+        try {
+          const stream = await navigator.mediaDevices.getDisplayMedia({video: true});
+          stream.getTracks().forEach(track => track.stop());
+          return 'unexpected-stream';
+        } catch (error) {
+          return error.name;
+        }
+      })()`,
+        true,
+      );
+      assert.deepEqual({result, selections}, {result: 'NotAllowedError', selections: 0});
+    } finally {
+      contents.session.setDisplayMediaRequestHandler(null);
+    }
+  });
+
   it('grants fake microphone and camera separately and revokes grants after reload', async () => {
     consent = true;
     assert.deepEqual(await capture({audio: true}), {kinds: ['audio']});
