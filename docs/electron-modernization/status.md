@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-10
 milestone: M3
 active_work_item: SEC-010
-state: local-protocol-characterization
+state: local-protocol-cutover
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -17,7 +17,7 @@ blockers: []
 
 ## Milestone checkpoint
 
-M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 67%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
+M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 68%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
 
 | Area | Verified integration state | Remaining M3 acceptance |
 | --- | --- | --- |
@@ -33,11 +33,17 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 67%**
 
 ### SEC-010 local protocol
 
-The active branch starts from CAP-001 `a4ce662c`, independently of SEC-009. Production resource URLs are unchanged. `build:ts && bundle` succeeds for this branch; the shell/CSP, legacy-reader and auxiliary-window group passes 15/15 locally. New characterization tests inspect actually applied stylesheets and the decoded 256×256 About logo. About intentionally disables page scripts, so the tests use read-only debugger DOM inspection rather than enabling JavaScript. Removing the two stylesheet allowlist entries fails both targets; blocking the logo yields zero decoded dimensions and fails its assertion. All perturbations are restored. Application/Mocha types and changed-test lint/formatting pass. Commands: `test:types`, `build:ts:tests`, `test:main --grep 'SEC-010|legacy account profile reader|auxiliary window identity'`; logs: `/tmp/sec010-resources-final.log`, `/tmp/sec010-resources-sensitivity.log`, `/tmp/sec010-logo-sensitivity.log`.
+The active branch starts from CAP-001 `a4ce662c`, independently of SEC-009. **The local production shell now loads `wire-app://shell/renderer/index.html`; About and proxy prompt still use their old URLs.** The scheme is registered before readiness, and the shell handler is installed on the default session before startup. Rebuilt Linux lifecycle and metadata/restart fixtures pass **2/2 in 14.5 seconds** (`/tmp/sec010-shell-product.log`), preserving legacy imports and account/session assertions. The new scheme assertion failed on `file:` before cutover (`/tmp/sec010-product-before.log`). Electron is unchanged; no publication or merge is claimed.
 
-The proposed contract is now recorded in DEC-010. `LocalContentPolicy` maps seven fixed assets to their shell/About/proxy roles and MIME types, accepts GET/HEAD and bounded shell startup queries, and denies unknown paths, preloads, other origins, credentials, traversal/encoded paths and malformed methods. The deny-all scaffold passed two deny groups and failed eight allow targets. Removing role matching fails eight targets; restored. The combined policy/runtime baseline group passes 25/25, with types and changed-source lint green (`/tmp/sec010-policy-before.log`, `/tmp/sec010-policy-role-sensitivity.log`, `/tmp/sec010-policy-and-baselines.log`). This policy is **not yet wired** and does not establish transport/session enforcement.
+Resource baseline (`f943e66c`): the shell/CSP, legacy-reader and auxiliary-window group passes 15/15 locally. New characterization tests inspect actually applied stylesheets and the decoded 256×256 About logo. About intentionally disables page scripts, so the tests use read-only debugger DOM inspection rather than enabling JavaScript. Removing the two stylesheet allowlist entries fails both targets; blocking the logo yields zero decoded dimensions and fails its assertion. All perturbations are restored. Application/Mocha types and changed-test lint/formatting pass. Logs: `/tmp/sec010-resources-final.log`, `/tmp/sec010-resources-sensitivity.log`, `/tmp/sec010-logo-sensitivity.log`.
 
-Next: implement the actual per-session protocol handler with MIME/CSP/error handling, prove native resource loading and denial, then migrate the shell, About and proxy prompt on their exact sessions. Preserve current CSP, exact identities, relative assets and account sessions. The script-disabled file-origin reader remains necessary to import old account state; ordinary shell startup already uses `wireAccounts.read`. Qualify actual product restart/import and document the migration-only reader explicitly before SEC-010 closure.
+The proposed contract is recorded in DEC-010. `LocalContentPolicy` maps seven fixed assets to their shell/About/proxy roles and MIME types, accepts GET/HEAD and bounded shell startup queries, and denies unknown paths, preloads, other origins, credentials, traversal/encoded paths and malformed methods. The deny-all scaffold passed two deny groups and failed eight allow targets. Removing role matching fails eight targets; restored. The earlier combined policy/runtime baseline group passes 25/25 (`/tmp/sec010-policy-before.log`, `/tmp/sec010-policy-role-sensitivity.log`, `/tmp/sec010-policy-and-baselines.log`).
+
+`LocalContentProtocol` now serves fixed files with MIME, restrictive CSP, no-sniff and no-store headers, bodyless HEAD, and generic missing-file errors. Six real-Electron transport targets pass: actual HTML/CSS/PNG, relative stylesheet loading, role/method denial, exact-session registration/disposal and error responses (`/tmp/sec010-transport-standard.log`). The deny-all response scaffold failed four targets. Actual relative loading initially failed without standard-scheme registration; the main test commands now call the existing production registration function through a pre-ready helper. No CSP bypass is enabled. The platform workflow includes an explicit local-content gate. Application/Mocha types, build/bundle and changed-source lint pass; final aggregate/platform qualification remains open.
+
+Next: migrate About and proxy prompt on their exact sessions; update the ordinary-script CSP fixture to exercise the custom-scheme shell, audit minimal privileges and direct `file://` loads, then run final coverage/platform/product gates. Preserve exact identities, relative assets and account sessions. The script-disabled file-origin reader remains necessary to import old account state; ordinary shell startup uses `wireAccounts.read`. The Linux product restart/import result does not close cross-platform migration acceptance.
+
+Full native checkpoint after shell cutover: **758 pass / one recurring tray-focus timeout in 32 seconds**, not green (`/tmp/sec010-shell-full-main.log`). Protocol, shell and account targets pass. This branch deliberately excludes the separate SEC-009 tests, so its total is not comparable to that branch's 785-pass count. No retry, deadline extension or focus assertion change was made.
 
 ### Preserved SEC-009 work
 
@@ -68,13 +74,13 @@ Remaining CAP-001/dependent work, without creating overlapping plan items:
 
 | Check | Latest local result | Evidence |
 | --- | --- | --- |
-| Electron main | 741 passing after explicit tray focus setup; prior failures retained below | `/tmp/cap001-f721-main-coverage.log` |
+| Electron main | Latest SEC-010: 758 passing / one recurring tray-focus timeout; not green | `/tmp/sec010-shell-full-main.log` |
 | Electron renderer | 4 passing | `/tmp/cap001-f721-renderer-coverage.log` |
 | React | 112 passing, 27 suites | `/tmp/cap001-f721-react-coverage.log` |
 | Changed-code coverage | 739/915 statements **80.77%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-f721-diff.log`, head `f721bf5c` |
 | Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-background-*-types.log` |
 | Changed-source lint/builds | Pass | `/tmp/cap001-background-lint.log`, `/tmp/cap001-background-build.log` |
-| Rebuilt lifecycle and metadata/restart | **2/2 in 7.7 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-background-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
+| Rebuilt lifecycle and metadata/restart | **2/2 in 14.5 seconds**, Linux, after wire-app shell cutover | `/tmp/sec010-shell-product.log` |
 | Standalone Playwright types | Nine known unrelated errors, not green | Two `window.wire` declarations and seven generated-client body types; `/tmp/cap001-restart-readiness-types.log` |
 
 Coverage was regenerated from a clean directory after an interrupted process and its temporary logs disappeared. Partial output was discarded. Local `--project=macOS` is a Playwright label and remains **Linux evidence**. Temporary logs are diagnostic aids, not substitutes for durable final-head CI links.

@@ -104,6 +104,9 @@ test(
         app!.windows().find(page => !page.isClosed() && new URL(page.url()).searchParams.has('env'));
       await expect.poll(() => !!findShell()).toBe(true);
       const shell = findShell()!;
+      // SEC-010 migration target: ordinary application content is no longer file-backed.
+      expect(new URL(shell.url()).protocol).toBe('wire-app:');
+      expect(new URL(shell.url()).host).toBe('shell');
       await expect.poll(readAccounts).toEqual(ids.map(id => ({id, loading: false})));
       expect(await shell.locator('webview').count()).toBe(0);
       expect(

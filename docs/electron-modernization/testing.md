@@ -107,4 +107,6 @@ Only list platforms actually exercised. Unrun platforms are gaps, not implicit p
 
 ## Validation cadence during M3
 
+`test:main` and `test:main:coverage` register the existing local scheme privileges through `electron/test/register-local-scheme.cjs` before app readiness. This matches production startup and makes native relative-resource/CSP tests meaningful; it does not install a resource handler or enable CSP bypass. Direct `electron-mocha` invocations that test local protocol documents need the same `--require-main` helper. The platform baseline includes `test:main --grep 'local content'` separately from the auxiliary/product group.
+
 Every PR must pass its focused characterization/security tests and the protected branch's required build, lint, and analysis checks. Authenticated cross-platform E2E is required when a PR changes observable product behavior, activates a new production boundary, or closes an M3 execution checkpoint. A schema-only migration inside an already characterized boundary may defer authenticated E2E to the next checkpoint when the PR records that gap; this reduces duplicated staging runs without weakening the M3 exit gate.

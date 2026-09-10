@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.25
+revision: 1.5.26
 status: draft
 updated: 2026-09-10
 owners:
@@ -456,6 +456,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
 - Protocol cutover: [proposed DEC-010](./decisions/0003-local-content-protocol.md) uses fixed, role-specific assets on the existing `wire-app` scheme, GET/HEAD only, exact document identities and unchanged isolated account sessions. Shell/auxiliary resource and legacy-reader baselines precede wiring. The migration-only script-disabled file-origin reader preserves old state; ordinary application content moves to the new scheme. Production handler, startup, CSP and migration/platform qualification remain required.
+- Local checkpoint: the shell now uses the per-session finite-resource handler, with six native transport targets and 2/2 Linux product lifecycle/metadata restart fixtures passing. The new scheme assertion fails on the prior file-backed build. About/proxy cutover, custom-scheme ordinary-script CSP and final platform gates remain open; the latest full native run retains one known tray-focus timeout. No SEC-010 closure or merge is claimed.
 - Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
@@ -893,6 +894,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.26 | 2026-09-10 | Codex | Wired the production local shell to the finite-resource handler after native transport and product migration evidence; retained auxiliary, CSP and final-platform gates | SEC-010, DEC-010, CAP-001 |
 | 1.5.25 | 2026-09-10 | Codex | Started independent local-content protocol branch from CAP-001, recorded rendered-resource characterization and finite-asset policy proposal; reconciled separate SEC-009 branch without importing its runtime changes | SEC-010, DEC-010, SEC-009 |
 | 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |
 | 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
