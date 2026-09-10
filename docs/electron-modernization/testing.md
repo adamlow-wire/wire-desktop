@@ -107,4 +107,6 @@ Only list platforms actually exercised. Unrun platforms are gaps, not implicit p
 
 ## Validation cadence during M3
 
+Native media permission tests run in a separate process with `env -u ELECTRON_RUN_AS_NODE corepack yarn test:media` (use `xvfb-run` on headless Linux). This command supplies fake media devices but deliberately does not bypass permission UI. The suite asserts these launch conditions before accessing media and stops synthetic tracks immediately. Its `.test.media.ts` suffix prevents accidental capture in ordinary main-process runs; `yarn test` and the cross-platform baseline workflow explicitly include it. Synthetic-device results do not establish real OS permission prompts or packaged calling parity.
+
 Every PR must pass its focused characterization/security tests and the protected branch's required build, lint, and analysis checks. Authenticated cross-platform E2E is required when a PR changes observable product behavior, activates a new production boundary, or closes an M3 execution checkpoint. A schema-only migration inside an already characterized boundary may defer authenticated E2E to the next checkpoint when the PR records that gap; this reduces duplicated staging runs without weakening the M3 exit gate.

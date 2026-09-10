@@ -39,7 +39,9 @@ Two new account-view tests cover selected-account consent, background new-reques
 
 Notification bootstrap needs a design change: the new native probe passes with both browser permission interfaces reporting `denied`; the sibling webapp initializes its store from that state and returns without requesting permission. A callback-only consent dialog cannot support that path. The proposed ADR records this evidence and requires an explicit consent entry point plus webapp permission-state propagation/renewal proof before enabling grants. This is local source/runtime evidence, not staging acceptance (`/tmp/sec009-permission-bootstrap.log`).
 
-Next executable work: resolve notification bootstrap and characterize fake-device media/display requests. GitHub PR #47 readback still fails with a TLS handshake timeout (September 10, 10:33 Berlin); publication remains unverified. No production grant bypass is permitted. M3 remains approximately 65%.
+Fake-device media characterization now passes **2/2** through real `getUserMedia` calls on native account views: cancelled consent denies, audio/video prompt separately, cached grants avoid duplicate prompts, and document reload requires fresh consent. Ignoring the consent result produces synthetic audio/video tracks instead of `NotAllowedError` and fails the denial target; restored. No physical device is accessed. `test:media` requires the fake-device switch and rejects fake permission UI; regular tests and the platform baseline workflow now include that separate process. Logs: `/tmp/sec009-media-final.log`, `/tmp/sec009-media-sensitivity.log`. Windows/macOS execution and real OS/calling acceptance remain open.
+
+Next executable work: resolve notification bootstrap and characterize display requests. GitHub PR #47 readback still fails with a TLS handshake timeout (September 10, 10:33 Berlin); publication remains unverified. No production grant bypass is permitted. M3 remains approximately 65%.
 
 ### Committed checkpoint and remaining qualification
 

@@ -61,6 +61,14 @@ jobs:
           else
             yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
           fi
+      - name: Test account media permission policy with fake devices
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:media
+          else
+            yarn test:media
+          fi
       - name: Test sandboxed product boundaries
         shell: bash
         run: |
