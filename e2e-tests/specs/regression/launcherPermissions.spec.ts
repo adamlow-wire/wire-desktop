@@ -23,6 +23,7 @@ import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
 
 import {createApp} from '../../actions/createApp';
+import {watchActiveAccount} from '../../actions/watchActiveAccount';
 import {seedLegacyAccountProfile} from '../../utils/seedLegacyAccountProfile';
 
 for (const restored of [false, true]) {
@@ -61,6 +62,23 @@ for (const restored of [false, true]) {
       await expect(app.page).toHaveTitle('Launcher fixture');
       expect(new URL(app.page.url()).origin).toBe(origin);
       if (restored) {
+        expect(new URL(app.page.url()).searchParams.get('id')).toBe(ids[1]);
+        const changes: string[] = [];
+        await watchActiveAccount(app, page => {
+          changes.push(new URL(page.url()).searchParams.get('id')!);
+          app.page = page;
+        });
+        const select = (id: string) =>
+          app.wrapper.evaluate(
+            id => (window as unknown as {wireAccounts: {select(id: string): Promise<void>}}).wireAccounts.select(id),
+            id,
+          );
+        await select(ids[0]);
+        await expect.poll(() => changes).toEqual([ids[0]]);
+        expect(new URL(app.page.url()).searchParams.get('id')).toBe(ids[0]);
+        await select(ids[0]);
+        await select(ids[1]);
+        await expect.poll(() => changes).toEqual(ids);
         expect(new URL(app.page.url()).searchParams.get('id')).toBe(ids[1]);
         const reopened = await app.reopen();
         await expect(reopened.page).toHaveTitle('Launcher fixture');
