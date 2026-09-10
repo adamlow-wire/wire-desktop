@@ -19,13 +19,15 @@
 
 import {_electron as electron, expect, Page} from '@playwright/test';
 
+import path from 'node:path';
+
 export type App = Awaited<ReturnType<typeof createApp>>;
 
 export const createApp = async (options: {
   env?: string;
   lang?: string;
   dataDir: string;
-  bypassPermissions?: boolean;
+  mediaConsent?: 'allow' | 'deny';
 }) => {
   if (!options.env) {
     throw new Error(`Can't create app without environment, make sure the env var "WEBAPP_URL" is set`);
@@ -33,13 +35,14 @@ export const createApp = async (options: {
 
   const app = await electron.launch({
     chromiumSandbox: true,
+    env: {...process.env, WIRE_E2E_MEDIA_CONSENT: options.mediaConsent ?? 'allow'},
     args: [
+      '-r',
+      path.resolve(__dirname, '../utils/nativeConsent.cjs'),
       // Chromium launch args
       `--user-data-dir=${options.dataDir}`,
       '--mute-audio', // Mute all audio output from the test browser because e.g. the ringtone of a call can be annoying during testing
-      ...(options.bypassPermissions ?? true
-        ? ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
-        : []), // Provide fake devices for audio & video device input and bypasses the popup to grant permission and select video / audio input device by automatically selecting the default one
+      '--use-fake-device-for-media-stream', // Never expose real devices, including in permission-denial tests.
       '.',
       // Wire specific cli flags to set during launch
       `--env=${options.env}`,

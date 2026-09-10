@@ -26,8 +26,12 @@ import {createApp} from '../../actions/createApp';
 import {watchActiveAccount} from '../../actions/watchActiveAccount';
 import {seedLegacyAccountProfile} from '../../utils/seedLegacyAccountProfile';
 
-for (const restored of [false, true]) {
-  test(`[regression][CAP-001][SEC-009] E2E launcher exposes the selected account (restored=${restored})`, async ({}, testInfo) => {
+for (const {restored, allowMedia} of [
+  {restored: false, allowMedia: true},
+  {restored: false, allowMedia: false},
+  {restored: true, allowMedia: true},
+]) {
+  test(`[regression][CAP-001][SEC-009] E2E launcher exposes the selected account (restored=${restored}, allowMedia=${allowMedia})`, async ({}, testInfo) => {
     const server = createServer((_request, response) => {
       response.setHeader('Content-Type', 'text/html');
       // Deliberately do not signal webapp readiness or request any device permission.
@@ -51,7 +55,11 @@ for (const restored of [false, true]) {
           ids.map((id, index) => ({id, userID: id, visible: index === 1, sessionID: index ? id : undefined})),
         );
       }
-      pending = createApp({env: origin, dataDir: testInfo.outputPath('profile')});
+      pending = createApp({
+        env: origin,
+        dataDir: testInfo.outputPath('profile'),
+        mediaConsent: allowMedia ? 'allow' : 'deny',
+      });
       const app = await Promise.race([
         pending,
         new Promise<never>((_resolve, reject) => {
@@ -88,8 +96,50 @@ for (const restored of [false, true]) {
         await launched!.evaluate(({app}) => ({
           profile: app.getPath('userData'),
           fakeDevices: app.commandLine.hasSwitch('use-fake-device-for-media-stream'),
+          fakeUi: app.commandLine.hasSwitch('use-fake-ui-for-media-stream'),
+          consentInstalledBeforeReady:
+            (globalThis as unknown as {wireE2EConsent?: {installedBeforeReady: boolean}}).wireE2EConsent
+              ?.installedBeforeReady === true,
         })),
-      ).toEqual({profile: testInfo.outputPath('profile'), fakeDevices: true});
+      ).toEqual({
+        profile: testInfo.outputPath('profile'),
+        fakeDevices: true,
+        fakeUi: false,
+        consentInstalledBeforeReady: true,
+      });
+      if (!restored) {
+        await app.evaluate(({BrowserWindow}) => {
+          const owner = BrowserWindow.getAllWindows().find(owner =>
+            new URL(owner.webContents.getURL()).searchParams.has('env'),
+          )!;
+          owner.show();
+          owner.focus();
+        });
+        await expect
+          .poll(() => app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows().some(owner => owner.isFocused())))
+          .toBe(true);
+        const result = await app.page.evaluate(async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+            const kinds = stream
+              .getTracks()
+              .map(track => track.kind)
+              .sort();
+            stream.getTracks().forEach(track => track.stop());
+            return {kinds};
+          } catch (error) {
+            return {error: (error as Error).name};
+          }
+        });
+        expect(result).toEqual(allowMedia ? {kinds: ['audio', 'video']} : {error: 'NotAllowedError'});
+        expect(
+          await app.evaluate(
+            () => (globalThis as unknown as {wireE2EConsent: {requests: unknown[]}}).wireE2EConsent.requests,
+          ),
+        ).toEqual([
+          {detail: `${origin}\n\nMicrophone\nCamera`, defaultId: 0, cancelId: 0, response: allowMedia ? 1 : 0},
+        ]);
+      }
     } finally {
       clearTimeout(deadline);
       _electron.launch = originalLaunch;
