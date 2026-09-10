@@ -9,7 +9,7 @@ integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: sec/SEC-010-local-protocol-2026-09-10
-next_work_item: CAP-005
+next_work_item: TST-001
 blockers: []
 ---
 
@@ -32,6 +32,12 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 69%**
 ## Active work and next executable steps
 
 ### SEC-010 local protocol
+
+Final local qualification at `28e895c7`: the sensitivity-proven TST-003 focused-window consolidation is applied from `4cefc882` (fixture branch head `e273a5f5`). Both blank/account-content focus and count assertions remain, in one owned window. After rebuilding TypeScript and production bundles, clean coverage passes **763 native tests**, **112 React tests/27 suites**, and **four renderer tests**. Build-tool tests pass **38/38**; application/Mocha types and changed-source ESLint pass. Rebuilt Linux lifecycle and metadata/restart product fixtures pass **2/2 in 12 seconds**. Logs: `/tmp/sec010-final-{main-coverage,react-coverage,renderer-coverage,bin,product,app-types,test-types,changed-lint}.log`. The former focus timeout is absent on this head; final Windows/macOS/hosted gates remain open.
+
+Coverage checker blocker: the integration-to-head Git diff is **1,265,454 bytes**, exceeding Node's default subprocess buffer (`spawnSync git ENOBUFS`, `/tmp/sec010-final-diff-coverage.log`). A read-only in-memory 16 MiB buffer diagnostic gives **2813/3401 changed statements (82.71%)** and **748/760 security branches (98.42%)**, above unchanged 80%/90% thresholds (`/tmp/sec010-final-diff-coverage-diagnostic.log`). This is not a successful unmodified gate. Next executable work is a separately tested TST-001 checker repair, then reuse it here and rerun the real gate. The default sandbox also denies the checker's nested Git process (`EPERM`); escalated diagnostic succeeds. No coverage assertions were relaxed and no generated report is committed.
+
+Review checkpoint: finite role-specific asset selection precedes filesystem access; static response types/CSP and generic errors remain intact; only standard/secure scheme privileges are enabled; handlers bind the original exact sessions; auxiliary documents retain exact-URL authorization despite opaque Node origins. Main startup chooses proof or product handlers, and only the script-disabled legacy importer still loads a file-origin document. This is a local self-review, not independent review or cross-platform acceptance. DEC-010 remains proposed until the PR gates pass. Other local candidates are preserved separately: managed destinations `2fdf3aba`, CAP-006 shutdown `6902448a`, managed backends `78d09079`, certificates `ad1211cd`, SEC-009 `b8cc0906`. No publication or merge is claimed; Q-005/live IdP/display capture remain open.
 
 The active branch starts from CAP-001 `a4ce662c`, independently of SEC-009. **The local production shell, About and proxy prompt now load through `wire-app://shell`**, with handlers installed at startup on their original exact sessions. Both auxiliary URL targets fail on the previous file-backed implementation (`/tmp/sec010-aux-before.log`). Rebuilt Linux lifecycle and metadata/restart fixtures pass **2/2 in 12.3 seconds**, including auxiliary-session startup registration (`/tmp/sec010-aux-product-final.log`); the startup target fails with `ERR_UNKNOWN_URL_SCHEME` on the earlier shell-only build (`/tmp/sec010-aux-product-before.log`). Legacy imports and account/session assertions are retained. Electron is unchanged; no publication or merge is claimed.
 
