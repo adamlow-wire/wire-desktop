@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.24
+revision: 1.5.25
 status: draft
 updated: 2026-09-10
 owners:
@@ -660,13 +660,16 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: TST-002, SEC-008, CAP-001
-- Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation.
+- Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation. Include E2EI enrolment and renewal authentication compatibility explicitly; the webapp/core retain ownership of OIDC, ACME and certificate cryptography. This is distinct from CAP-005 transport certificate verification.
 - Acceptance:
   - TST-002 passes against the new implementation.
   - Every CAP-002 `security-target` quarantine in the SSO suite is removed and passes.
   - SSO windows use fixed secure preferences and ephemeral sessions.
   - Account targeting and cookie transfer cannot cross partitions.
   - The real backend verdict is delivered without a renderer opener, with success/error and backend error-label compatibility; synthetic direct finalization alone is insufficient.
+  - Desktop E2E covers E2EI-enabled account enrolment through OIDC authentication and ACME completion, with observable verified-device/certificate state retained after restart; ordinary login or SSO success is not equivalent evidence.
+  - Enrolment cancellation, provider failure, renewal/silent-auth fallback and invalid or foreign-account callback attempts preserve account isolation and fail closed. No arbitrary cross-origin account navigation or privileged bridge authority is added for IdP pages.
+  - Deterministic desktop boundary tests and a controlled live SSO/E2EI provider checkpoint run against the refactored application on supported platforms; missing provider configuration remains an explicit gap, not a skipped pass.
 - Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. A controlled live IdP checkpoint remains required before CAP-002 closure.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
@@ -876,6 +879,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Question ID | Question | Needed by | Owner | Resolution |
 | --- | --- | --- | --- | --- |
+| Q-011 | Which dedicated staging team/account, OIDC provider and ACME discovery endpoint support desktop E2EI enrolment and renewal validation? | CAP-002 / M3 | adamlow-wire | Pending fixture inventory; reuse approved staging provisioning where possible, never production test identities. Credentials stay outside source and chat. |
 | Q-001 | Which Windows, macOS, and Linux versions are release-blocking? | M0 | adamlow-wire | All three platforms remain in scope; minimum supported OS versions are fixed under PKG-001 before release qualification |
 | Q-002 | Which identity providers and federation variants form the mandatory SSO matrix? | TST-002 | adamlow-wire | Automate protocol behavior with deterministic fixtures; record real-provider evidence when available without making an undocumented vendor list an M0 dependency |
 | Q-003 | Can the Wire webapp accept a versioned `contextBridge` adapter, and where should that adapter live? | ARC-001 | adamlow-wire | Resolved by PR #35: desktop-owned preloads expose immutable named APIs; fixed main-world adapters preserve existing webapp globals/events. Authenticated Windows/macOS E2E passes without a webapp source change. |
@@ -891,6 +895,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.25 | 2026-09-10 | Codex; approved by maintainer in chat | Explicitly include E2EI enrolment/renewal and separate live SSO/E2EI acceptance in M3; retain webapp cryptography ownership and navigation/session invariants | CAP-002, SEC-008, DCP-022, Q-011 |
 | 1.5.24 | 2026-09-10 | Codex | Recorded sensitivity-proven legacy/modern capture callback limitation and its open risk; retained runtime pin, source-selection requirement and all M3 acceptance gates | SEC-009, DEC-009, RSK-014 |
 | 1.5.23 | 2026-09-10 | Codex | Activated native account notification/media consent in the local candidate after product baseline/allow/reload-denial evidence; retained all display, platform and final-head acceptance gates | SEC-009, DEC-009, CAP-003 |
 | 1.5.22 | 2026-09-10 | Codex | Reconciled SEC-009 implementation evidence for native policy/session composition, cancellation, fake media and notification routing/readiness; retained production denial and all platform/display acceptance gates | SEC-009, DEC-009, INV-006 |

@@ -21,7 +21,7 @@ blockers:
 
 M0–M2 exit gates are complete. **M3 remains approximately 70%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron stays **43.4.0**; 44 is deferred. No candidate below is merged or globally complete. M1 closure does not close the broader ELC-003 dependency audit.
 
-**Approved scope:** the maintainer explicitly added E2EI enrolment/renewal to M3. CAP-002 plan revision 1.5.25, DCP-022 and Q-011 are on the separate CAP-002 branch below. This SEC-009 branch's older plan snapshot does not waive those requirements; reconcile the scoped documentation changes before publication.
+**Approved scope:** the maintainer explicitly added E2EI enrolment/renewal to M3. CAP-002 plan revision 1.5.25, DCP-022 and Q-011 are now reconciled onto this branch from the approved scope commit `23cb717a`. The dedicated transport/SSO fixtures remain on the CAP-002 branch below. No enrolment or renewal success is claimed.
 
 ## Resume here
 
@@ -40,7 +40,7 @@ Heads were checked with Git on September 10. These are **local checkpoints**, no
 | Work | Branch | Head | Remaining qualification |
 | --- | --- | --- | --- |
 | Production accounts / SEC-007 | `cap/CAP-001-production-accounts-2026-09-09` | `a4ce662c` | Final product/platform gates and cutover review; draft PR #47 |
-| Permission policy and general E2E harness | `sec/SEC-009-account-permissions-2026-09-10` | `de6fd17f` | Authenticated calling, native OS consent, display decision and final gates |
+| Permission policy and general E2E harness | `sec/SEC-009-account-permissions-2026-09-10` | `ebed07a9` (latest test checkpoint; subsequent scope reconciliation is docs-only) | Authenticated calling, native OS consent, display decision and final gates |
 | E2EI acceptance and native SSO fixture | `cap/CAP-002-e2ei-acceptance-2026-09-10` | `44f8a9ed` | Scoped E2EI authentication implementation, real OIDC/ACME enrolment and live SSO |
 | Local-content protocol | `sec/SEC-010-local-protocol-2026-09-10` | `2ce86631` | ADR review, hosted/platform gates |
 | Managed account destinations | `cap/CAP-001-managed-destinations-2026-09-10` | `2fdf3aba` | Native managed-policy and final gates |
@@ -88,6 +88,8 @@ Native-sidebar regression: `env -u ELECTRON_RUN_AS_NODE corepack yarn test:e2e -
 
 CAP-001 implements main-owned account state/views, retained default/persistent sessions, exact-target cleanup, failed-removal retry, metadata identity, native routing and approved environment changes. Browser-visible storage deletion across restart is proven locally; residual-directory/forensic erasure is not. Do not delete live partitions or the default user-data root.
 
+SEC-007 source audit at `ebed07a9`: searching production `electron/src` and `electron/renderer/src` TypeScript/JavaScript/HTML finds no `<webview>` element, `allowpopups`, enabled `webviewTag`, or `createElement('webview')`. Explicit `webviewTag` settings are false. The still-named `Webview` React component renders loading/error/removal UI and requests native layout; its name does not mean DOM account rendering remains. This satisfies only the inspected source-removal condition, not resize/focus/crash/session/platform acceptance. Existing local native fixtures supply separate runtime evidence.
+
 [Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) last verified remote head is `23fb964b`, not local `a4ce662c`. Its [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34372128997) and [Windows/macOS/Linux package/account gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34372128865) pass; authenticated E2E/report were draft-skipped, **not waived**. Later local commits have no verified hosted gates.
 
 CAP-002's native navigation/SSO and E2EI transport fixtures pass 2/2 locally; disabling native SSO creation fails. E2EI's interactive OIDC redirect differs from SSO popup routing. The fixture proves unregistered-provider denial and same-origin `/oidc` return/session-storage retention—not tokens, ACME issuance, verified-device state, renewal or real-provider compatibility. Webapp reference commit: `a0fae7037367641bc48e97a19fa0312e7cbaff41`. Do not reuse the sibling shared SCIM/SSO user.
@@ -100,7 +102,7 @@ M3 still requires production account cutover; custom-backend/managed destination
 - E2EI Q-011: dedicated staging E2EI team/OIDC/ACME configuration versus newly provisioned isolated test team. Await response; no new team created.
 - Q-005: retain an exact-certificate/hostname/account-session restart-cleared override, or remove manual overrides. Chromium errors remain denied either way.
 - Display phase boundary: CAP-003 assigns sharing migration to M4, while later SEC-009 notes treated its chooser as an M3 blocker. Maintainer clarification remains pending; no silent scope reduction.
-- GitHub: recent authenticated HTTPS reads fail TLS negotiation. A bounded read through the configured SSH remote also timed out without returning refs. Remote state is unverified; no publication/merge is claimed.
+- GitHub: latest supported API read on September 10 at 15:31 CEST again failed TLS negotiation after ten seconds. The installed `gh pr view` does not support `headRefOid`; use `gh api repos/adamlow-wire/wire-desktop/pulls/47 --jq '{state,draft,head: .head.sha}'` for readback. A previous bounded read through the configured SSH remote also timed out without returning refs. Remote state is unverified; no publication/merge is claimed.
 
 ## Durable history and operating rules
 
