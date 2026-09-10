@@ -33,6 +33,7 @@ import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
 import {LOCAL_CONTENT_ORIGIN} from '../security/LocalContentPolicy';
 import {installLocalContentProtocol} from '../security/LocalContentProtocol';
 import {PROXY_PROMPT_LOCALE_READ_CHANNEL, PROXY_PROMPT_SUBMIT_CAPABILITY} from '../security/ProxyPromptContract';
+import {bindProxyPromptIpc, ProxyPromptCredentials} from '../security/ProxyPromptIpc';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import {SingleSignOn} from '../sso/SingleSignOn';
@@ -114,6 +115,51 @@ describe('auxiliary window identity', () => {
       acceptWebappVersions({webappVersion: ''});
     }
   });
+
+  for (const action of ['submit', 'cancel', 'escape'] as const) {
+    it(`[compatibility][SEC-010] preserves proxy ${action} through the bundled preload and authorized IPC`, async () => {
+      const registry = new ViewIdentityRegistry();
+      const submissions: {id: number; credentials: ProxyPromptCredentials}[] = [];
+      const cancellations: number[] = [];
+      const dispose = bindProxyPromptIpc(ipcMain, registry, {
+        cancel: id => void cancellations.push(id),
+        readLocaleValues: labels => Object.fromEntries(labels.map(label => [label, `Fixture ${label}`])),
+        submit: (id, credentials) => void submissions.push({id, credentials}),
+      });
+      try {
+        const window = await ProxyPromptWindow.showWindow(registry);
+        windows.push(window);
+        const id = window.webContents.id;
+        const readLabel = () => window.webContents.executeJavaScript('document.querySelector("#okButton").textContent');
+        const deadline = Date.now() + 1000;
+        let label = await readLabel();
+        while (label !== 'Fixture promptOK' && Date.now() < deadline) {
+          await new Promise(resolve => setTimeout(resolve, 20));
+          label = await readLabel();
+        }
+        assert.strictEqual(label, 'Fixture promptOK', 'the real isolated preload must initialize the form');
+        const destroyed = new Promise<void>(resolve => window.webContents.once('destroyed', resolve));
+        await window.webContents.executeJavaScript(
+          action === 'submit'
+            ? `document.querySelector('#usernameInput').value = 'fixture-user';
+               document.querySelector('#passwordInput').value = 'fixture-password';
+               document.querySelector('#okButton').click(); undefined;`
+            : action === 'cancel'
+            ? `document.querySelector('#cancelButton').click(); undefined;`
+            : `window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'})); undefined;`,
+        );
+        await destroyed;
+        assert.deepStrictEqual(
+          submissions,
+          action === 'submit' ? [{id, credentials: {username: 'fixture-user', password: 'fixture-password'}}] : [],
+        );
+        assert.deepStrictEqual(cancellations, action === 'submit' ? [] : [id]);
+        assert.strictEqual(registry.has(id), false);
+      } finally {
+        dispose();
+      }
+    });
+  }
 
   for (const kind of ['about', 'proxy-prompt'] as const) {
     it(`[characterization][SEC-010] renders ${kind} relative resources in its document`, async () => {
