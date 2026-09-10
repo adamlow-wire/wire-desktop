@@ -99,6 +99,24 @@ describe('[security-target][INV-006][INV-010][SEC-009] native permission session
     assert.equal(errors, 0);
   });
 
+  it('updates page permission queries after an isolated notification request despite a page override', async () => {
+    await contents.executeJavaScript(`(async () => {
+      const observer = await navigator.permissions.query({name: 'notifications'});
+      window.permissionProbe = {observer, before: observer.state};
+      Notification.requestPermission = () => Promise.resolve('page override');
+    })()`);
+    const requested = await contents.executeJavaScriptInIsolatedWorld(1001, [
+      {code: 'Notification.requestPermission()'},
+    ]);
+    assert.equal(requested, 'granted');
+    const result = await contents.executeJavaScript(`(async () => {
+      const fresh = await navigator.permissions.query({name: 'notifications'});
+      const {before, observer} = window.permissionProbe;
+      return {before, observed: observer.state, fresh: fresh.state};
+    })()`);
+    assert.deepEqual(result, {before: 'denied', observed: 'granted', fresh: 'granted'});
+  });
+
   it('preserves grants for hash navigation but revokes on a real document navigation', async () => {
     assert.equal(await request(), true);
     await contents.executeJavaScript('location.hash = "conversation"');
