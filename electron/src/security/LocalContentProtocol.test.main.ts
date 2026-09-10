@@ -127,6 +127,18 @@ describe('[security-target][SEC-010] native local content protocol', () => {
     await assert.rejects(target.fetch(url('html/about.html')));
   });
 
+  it('returns a bodyless denied HEAD without exposing an unknown local path', async () => {
+    const response = await createLocalContentResponse(directory, 'about', {
+      url: url('dist/preload/menu/preload-about.js'),
+      method: 'HEAD',
+    });
+    assert.equal(response.status, 404);
+    assert.equal(response.body, null);
+    assert.equal(await response.text(), '');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  });
+
   it('conceals filesystem errors and does not report a missing asset as successful HEAD', async () => {
     for (const method of ['GET', 'HEAD']) {
       const response = await createLocalContentResponse(path.join(directory, 'missing-sec010-fixture'), 'about', {
