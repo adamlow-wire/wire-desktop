@@ -17,7 +17,7 @@
  *
  */
 
-import {BrowserWindow, WebContents, WebContentsView} from 'electron';
+import {app, BrowserWindow, WebContents, WebContentsView} from 'electron';
 import {stub} from 'sinon';
 
 import {strict as assert} from 'assert';
@@ -26,8 +26,14 @@ import {createServer, Server} from 'http';
 import {AddressInfo} from 'net';
 import path from 'path';
 
+import {WebAppEvents} from '@wireapp/webapp-events';
+
 import {AccountViews} from './AccountViews';
 
+import {EVENT_TYPE} from '../lib/eventType';
+import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {snapshotRendererEnvironment} from '../runtime/rendererEnvironment';
+import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
 import {ACCOUNT_PERMISSION_CAPABILITY} from '../security/AccountPermissionPolicy';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
@@ -145,6 +151,52 @@ describe('main-owned native account views', () => {
     answer(true);
     await new Promise<void>(resolve => setImmediate(resolve));
     assert.equal(await contents.executeJavaScript('Notification.permission'), 'denied');
+  });
+
+  it('[security-target][SEC-009] publishes real permission results through the production isolated preload', async () => {
+    await views.dispose();
+    let accepted = true;
+    let prompts = 0;
+    views = new AccountViews({
+      ...options(),
+      preload: path.join(process.cwd(), 'electron/dist/preload/preload-account.js'),
+      additionalArguments: createRendererRuntimeArguments({
+        locale: 'en-US',
+        userDataPath: app.getPath('userData'),
+        environment: snapshotRendererEnvironment(EnvironmentUtil),
+        applockOverride: false,
+      }),
+      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {
+        canPrompt: () => true,
+        ask: async () => {
+          prompts++;
+          return accepted;
+        },
+      },
+    });
+    const account = record();
+    const contents = await views.create(account, origin);
+    views.select(account.id);
+    const request = async () => {
+      await contents.executeJavaScript(`
+        window.notificationResult = new Promise(resolve => {
+          window.amplify = {publish: (name, value) => {
+            if (name === ${JSON.stringify(WebAppEvents.NOTIFICATION.PERMISSION_STATE)}) resolve(value);
+          }};
+        });
+        Notification.requestPermission = () => Promise.resolve('page override');
+        void 0;
+      `);
+      contents.send(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+      return contents.executeJavaScript('window.notificationResult');
+    };
+    assert.equal(await request(), 'granted');
+    assert.equal(prompts, 1);
+    accepted = false;
+    await contents.loadURL(`${origin}/replacement`);
+    assert.equal(await request(), 'denied');
+    assert.equal(prompts, 2);
   });
 
   it('[security-target][SEC-009] defaults to denial without consent or without the permission capability', async () => {

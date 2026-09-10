@@ -78,6 +78,7 @@ export const installWebappPreload = (
       relaunch: () => void requestWrapperRelaunch(ipcRenderer, logger),
       reload: () => void requestWrapperReload(ipcRenderer, logger),
       reportVersions: reportWebappVersion,
+      requestNotificationPermission: () => Notification.requestPermission(),
       updateDownloadPath: downloadPath => void requestDownloadLocationUpdate(ipcRenderer, logger, downloadPath),
     },
     ipc: ipcRenderer,

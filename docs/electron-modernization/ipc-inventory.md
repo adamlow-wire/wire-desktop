@@ -33,3 +33,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 The final production search found no additional privileged renderer-to-main listener. The native About menu now calls its main-owned window boundary directly, and the unproduced `WRAPPER.UPDATE` listener was removed; normal Squirrel update initialization remains unchanged. These dispositions prevent internal or dormant event names from becoming undocumented renderer authority later.
 
 When a migration changes a row, update this file in the same PR. Search evidence must include all production `ipcMain.on`, `ipcMain.once`, and `ipcMain.handle` registrations plus contract binders so wrapper helpers cannot hide an endpoint.
+
+## SEC-009 main-to-preload notification request
+
+`EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION` is a fixed, argument-free **main-to-account-preload** command, not a renderer-to-main grant endpoint. The isolated preload invokes the browser's notification request, ignores malformed/duplicate pending commands, and publishes only `granted`, `denied` or `default` through the existing `WebAppEvents.NOTIFICATION.PERMISSION_STATE` adapter. Errors are contained with a generic diagnostic. Session permission policy still decides whether consent can grant access. Main-owned selected-account readiness/menu initiation remains to be connected; this receiver alone does not activate production grants.
