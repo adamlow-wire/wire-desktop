@@ -31,7 +31,7 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**
 
 ## Active work and next executable steps
 
-**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Last verified published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. Local `8a58de40` fixes native environment approval and `894df496` fixes failed-removal UI state. Publishing failed during TLS negotiation; a bounded retry and remote readback also timed out. Verify the remote before publishing again; no merge is authorized while these gates remain open.
+**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Last verified published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. Local runtime checkpoints: `8a58de40` native environment approval, `894df496` failed-removal UI and `496e636a` background destination handling. `f721bf5c` repairs the tray-test focus prerequisite; its clean local coverage gate passes. Publishing failed during TLS negotiation; bounded retries/readbacks also timed out. Verify the remote before publishing again; no merge is authorized while these gates remain open.
 
 Implemented on the draft branch:
 
@@ -45,7 +45,7 @@ Implemented on the draft branch:
 
 Next work, without creating overlapping plan items:
 
-1. Qualify the tray-focus prerequisite repair in the full suite: the fixture now starts hidden, then shows/focuses and awaits the actual focus event before the unchanged assertions. Nine focused tray tests pass. Continue main-owned destination/managed-policy and lifecycle audits, then publish and qualify the local follow-ups. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
+1. Continue main-owned destination/managed-policy and lifecycle audits, then publish and qualify the local follow-ups. The tray-focus repair now passes the clean full suite; retain native platform qualification rather than another unchanged local rerun. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
 2. Qualify PR #47 on its final head. All three expanded platform account gates passed at `23fb964b`; the earlier macOS timeout did not recur. Authenticated E2E is draft-skipped, not waived. Diagnose any recurring failure from its actual stage; do not increase deadlines without evidence.
 3. Finish SEC-009 permission user flows, SEC-010 local scheme, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 certificate/configuration/link acceptance. Permission default-denial alone is not calling parity.
 4. Obtain CAP-002 controlled live IdP evidence, then audit every M3 criterion and complete final package/authenticated E2E/review gates. Signed installer/update qualification remains M4/M5, not an additional M3 signing prerequisite.
@@ -54,10 +54,10 @@ Next work, without creating overlapping plan items:
 
 | Check | Latest local result | Evidence |
 | --- | --- | --- |
-| Electron main | Background destination follow-up: 740 passing / one recurring tray-focus failure; preceding committed coverage checkpoint: 739 passing | `/tmp/cap001-background-full-main.log`, `/tmp/cap001-894d-main-coverage.log` |
-| Electron renderer | 4 passing | `/tmp/cap001-894d-renderer-coverage.log` |
-| React | 112 passing, 27 suites | `/tmp/cap001-894d-react-coverage.log` |
-| Changed-code coverage | 737/913 statements **80.72%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-894d-diff.log`, runtime head `894df496` |
+| Electron main | 741 passing after explicit tray focus setup; prior failures retained below | `/tmp/cap001-f721-main-coverage.log` |
+| Electron renderer | 4 passing | `/tmp/cap001-f721-renderer-coverage.log` |
+| React | 112 passing, 27 suites | `/tmp/cap001-f721-react-coverage.log` |
+| Changed-code coverage | 739/915 statements **80.77%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-f721-diff.log`, head `f721bf5c` |
 | Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-background-*-types.log` |
 | Changed-source lint/builds | Pass | `/tmp/cap001-background-lint.log`, `/tmp/cap001-background-build.log` |
 | Rebuilt lifecycle and metadata/restart | **2/2 in 7.7 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-background-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
