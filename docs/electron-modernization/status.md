@@ -9,7 +9,7 @@ integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: sec/SEC-010-local-protocol-2026-09-10
-next_work_item: SEC-010
+next_work_item: CAP-005
 blockers: []
 ---
 
@@ -52,6 +52,12 @@ Latest qualification (`9894f3cc`): clean React coverage passes **112/112**, rend
 TST-003 prerequisite is isolated on `tst/TST-003-tray-fixture-cleanup-2026-09-10` (`a9b3aa90`, code `5b014a66`) and applied here as `9894f3cc`. A teardown assertion reproduces leaked fixture windows; explicit owned-window cleanup passes 9/9 focused tests and 741/741 full native tests on that CAP-001-based branch. SEC-010 coverage still times out awaiting focus, so cleanup repairs an objective leak but does **not** fully resolve the focus flake. Assertions and deadlines are unchanged. No additional unchanged retry is qualification evidence. GitHub readback at 12:33 Berlin again failed during TLS negotiation, preventing publication.
 
 Protocol review checked fixed path resolution before filesystem access, role/session isolation, exact document authorization despite opaque Node origins, mutually exclusive proof/production startup handlers, and unchanged migration-only file loading. A new direct-response denied-HEAD target checks null body and protective headers (rather than relying on Chromium stripping a response body). Seven transport tests pass; deliberately returning a body fails the target and is restored (`/tmp/sec010-head-baseline.log`, `/tmp/sec010-head-sensitivity.log`). The restored focused coverage run passes 7/7, bringing changed security branches to **46/46 (100%)**, with statements unchanged at **80.99%** (`/tmp/sec010-head-final.log`, `/tmp/sec010-head-diff.log`). Mocha types and changed-test lint/formatting pass. The focused addition does not turn the failed full suite green. Review has not established final auxiliary interaction/platform parity or M3 closure. Next: retain the native-focus failure, finish final-head qualification and publication when connectivity recovers, and continue the outstanding capability work listed below.
+
+### SEC-010 auxiliary interaction checkpoint
+
+Three real-Electron compatibility targets now exercise the actual proxy document, bundled isolated preload, localized form and authorized IPC: Submit sends only fixture credentials with the registered window ID; Cancel/Escape send only that ID; each successful operation closes the window and removes registry authority. The native boundary is a recorder, not a live proxy/backend. All three pass; omitting the window's initialization event fails all three locale-readiness assertions, then is restored. The combined auxiliary/protocol suite passes **19/19 in one second** (`/tmp/sec010-proxy-interaction-before.log`, `/tmp/sec010-proxy-interaction-sensitivity.log`, `/tmp/sec010-aux-interaction-final.log`). Mocha types, changed-test lint and formatting pass. This validates the new scheme's form interaction without claiming actual proxy authentication or platform parity. An unauthenticated GitHub connectivity probe also timed out after 12 seconds with no response; there is still no publication evidence.
+
+Next independent implementation work is **CAP-005 certificate characterization and fail-closed exception policy** on its own branch. Do not spend additional unchanged retries on the tray flake or GitHub outage. Preserve SEC-010 final-head native/platform/review gates and SEC-009's capture limitation; neither work item is complete. CAP-005 already owns this scope and its existing acceptance criteria remain authoritative.
 
 ### Preserved SEC-009 work
 
