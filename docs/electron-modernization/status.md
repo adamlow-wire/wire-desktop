@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-10
 milestone: M3
 active_work_item: SEC-010
-state: local-protocol-cutover
+state: local-protocol-qualification
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -17,7 +17,7 @@ blockers: []
 
 ## Milestone checkpoint
 
-M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 68%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
+M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 69%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
 
 | Area | Verified integration state | Remaining M3 acceptance |
 | --- | --- | --- |
@@ -33,7 +33,7 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 68%**
 
 ### SEC-010 local protocol
 
-The active branch starts from CAP-001 `a4ce662c`, independently of SEC-009. **The local production shell now loads `wire-app://shell/renderer/index.html`; About and proxy prompt still use their old URLs.** The scheme is registered before readiness, and the shell handler is installed on the default session before startup. Rebuilt Linux lifecycle and metadata/restart fixtures pass **2/2 in 14.5 seconds** (`/tmp/sec010-shell-product.log`), preserving legacy imports and account/session assertions. The new scheme assertion failed on `file:` before cutover (`/tmp/sec010-product-before.log`). Electron is unchanged; no publication or merge is claimed.
+The active branch starts from CAP-001 `a4ce662c`, independently of SEC-009. **The local production shell, About and proxy prompt now load through `wire-app://shell`**, with handlers installed at startup on their original exact sessions. Both auxiliary URL targets fail on the previous file-backed implementation (`/tmp/sec010-aux-before.log`). Rebuilt Linux lifecycle and metadata/restart fixtures pass **2/2 in 12.3 seconds**, including auxiliary-session startup registration (`/tmp/sec010-aux-product-final.log`); the startup target fails with `ERR_UNKNOWN_URL_SCHEME` on the earlier shell-only build (`/tmp/sec010-aux-product-before.log`). Legacy imports and account/session assertions are retained. Electron is unchanged; no publication or merge is claimed.
 
 Resource baseline (`f943e66c`): the shell/CSP, legacy-reader and auxiliary-window group passes 15/15 locally. New characterization tests inspect actually applied stylesheets and the decoded 256×256 About logo. About intentionally disables page scripts, so the tests use read-only debugger DOM inspection rather than enabling JavaScript. Removing the two stylesheet allowlist entries fails both targets; blocking the logo yields zero decoded dimensions and fails its assertion. All perturbations are restored. Application/Mocha types and changed-test lint/formatting pass. Logs: `/tmp/sec010-resources-final.log`, `/tmp/sec010-resources-sensitivity.log`, `/tmp/sec010-logo-sensitivity.log`.
 
@@ -41,13 +41,17 @@ The proposed contract is recorded in DEC-010. `LocalContentPolicy` maps seven fi
 
 `LocalContentProtocol` now serves fixed files with MIME, restrictive CSP, no-sniff and no-store headers, bodyless HEAD, and generic missing-file errors. Six real-Electron transport targets pass: actual HTML/CSS/PNG, relative stylesheet loading, role/method denial, exact-session registration/disposal and error responses (`/tmp/sec010-transport-standard.log`). The deny-all response scaffold failed four targets. Actual relative loading initially failed without standard-scheme registration; the main test commands now call the existing production registration function through a pre-ready helper. No CSP bypass is enabled. The platform workflow includes an explicit local-content gate. Application/Mocha types, build/bundle and changed-source lint pass; final aggregate/platform qualification remains open.
 
-Next: migrate About and proxy prompt on their exact sessions; update the ordinary-script CSP fixture to exercise the custom-scheme shell, audit minimal privileges and direct `file://` loads, then run final coverage/platform/product gates. Preserve exact identities, relative assets and account sessions. The script-disabled file-origin reader remains necessary to import old account state; ordinary shell startup uses `wireAccounts.read`. The Linux product restart/import result does not close cross-platform migration acceptance.
+Custom-scheme CSP now has ordinary-script evidence: the real shell bundle renders, and eval/Function throw `EvalError`. A test-response-only perturbation permits both and fails the same assertions; restored (`/tmp/sec010-scheme-csp-sensitivity.log`). Production and development bundles both pass these two targets (`/tmp/sec010-scheme-csp.log`, `/tmp/sec010-development-csp.log`); production bundles are restored afterward. The probe asset exists only in the fixture handler, never the production resource policy.
+
+Minimal-privilege registration now explicitly disables service workers, CSP bypass and media streaming; only `standard` and `secure` are enabled. The exact-options target fails before the change. The focused auxiliary/protocol/CSP group passes **28/28** (`/tmp/sec010-aux-csp-readiness.log`). Its first run retained 27 passes and one About-logo timeout: the script-disabled fixture waited on a page event. It now polls read-only debugger snapshots from main with the same overall deadline and exact image dimensions; no production preference changed. Types and changed-source lint pass.
+
+Source audit (`rg` for `loadFile`, `file://` and `pathToFileURL`, excluding tests) leaves only `readLegacyAccountState.ts` as a file-origin document loader. This script-disabled migration reader preserves old state and is bypassed once the main-owned profile exists; ordinary shell startup uses `wireAccounts.read`. Native icon/preload filesystem paths are not document URLs. Next: substantive review, clean aggregate coverage and final platform/product qualification. The Linux restart/import result does not close cross-platform migration acceptance. The known tray-focus failure still needs diagnosis; its fixture creates windows without closing them, an isolation concern found by source inspection, not yet a proven cause or implemented fix.
 
 Full native checkpoint after shell cutover: **758 pass / one recurring tray-focus timeout in 32 seconds**, not green (`/tmp/sec010-shell-full-main.log`). Protocol, shell and account targets pass. This branch deliberately excludes the separate SEC-009 tests, so its total is not comparable to that branch's 785-pass count. No retry, deadline extension or focus assertion change was made.
 
 ### Preserved SEC-009 work
 
-`sec/SEC-009-account-permissions-2026-09-10` at `b8cc0906` contains the local consent candidate and detailed decision/evidence records; those runtime changes are **not** on this independent branch. Four native media tests pass, including sensitivity-proven legacy and modern capture denial. Electron's shared empty-media-types callback currently prevents enabling modern screen selection without also opening legacy capture. Keep that guard; no source-selection design or runtime exception is approved. The maintainer was asked whether a newer 43.x patch may be investigated without adoption. Latest full SEC-009 native run: 785 pass / one recurring tray-focus timeout (`/tmp/sec009-display-checkpoint-main.log`), not green. GitHub readback last failed at 11:44 Berlin on September 10 with a TLS handshake timeout; neither branch has new publication/merge evidence. M3 remains active, with all capability and final-platform gates intact.
+`sec/SEC-009-account-permissions-2026-09-10` at `b8cc0906` contains the local consent candidate and detailed decision/evidence records; those runtime changes are **not** on this independent branch. Four native media tests pass, including sensitivity-proven legacy and modern capture denial. Electron's shared empty-media-types callback currently prevents enabling modern screen selection without also opening legacy capture. Keep that guard; no source-selection design or runtime exception is approved. The maintainer was asked whether a newer 43.x patch may be investigated without adoption. Latest full SEC-009 native run: 785 pass / one recurring tray-focus timeout (`/tmp/sec009-display-checkpoint-main.log`), not green. GitHub readback last failed at 12:18 Berlin on September 10 with a TLS handshake timeout; neither branch has new publication/merge evidence. M3 remains active, with all capability and final-platform gates intact.
 
 ### CAP-001 dependency
 
@@ -80,7 +84,7 @@ Remaining CAP-001/dependent work, without creating overlapping plan items:
 | Changed-code coverage | 739/915 statements **80.77%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-f721-diff.log`, head `f721bf5c` |
 | Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-background-*-types.log` |
 | Changed-source lint/builds | Pass | `/tmp/cap001-background-lint.log`, `/tmp/cap001-background-build.log` |
-| Rebuilt lifecycle and metadata/restart | **2/2 in 14.5 seconds**, Linux, after wire-app shell cutover | `/tmp/sec010-shell-product.log` |
+| Rebuilt lifecycle and metadata/restart | **2/2 in 12.3 seconds**, Linux, including auxiliary startup registration | `/tmp/sec010-aux-product-final.log` |
 | Standalone Playwright types | Nine known unrelated errors, not green | Two `window.wire` declarations and seven generated-client body types; `/tmp/cap001-restart-readiness-types.log` |
 
 Coverage was regenerated from a clean directory after an interrupted process and its temporary logs disappeared. Partial output was discarded. Local `--project=macOS` is a Playwright label and remains **Linux evidence**. Temporary logs are diagnostic aids, not substitutes for durable final-head CI links.

@@ -33,3 +33,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 The final production search found no additional privileged renderer-to-main listener. The native About menu now calls its main-owned window boundary directly, and the unproduced `WRAPPER.UPDATE` listener was removed; normal Squirrel update initialization remains unchanged. These dispositions prevent internal or dormant event names from becoming undocumented renderer authority later.
 
 When a migration changes a row, update this file in the same PR. Search evidence must include all production `ipcMain.on`, `ipcMain.once`, and `ipcMain.handle` registrations plus contract binders so wrapper helpers cannot hide an endpoint.
+
+## SEC-010 local document migration
+
+The local candidate moves the application shell, About and proxy prompt to fixed `wire-app://shell` document URLs in their original sessions. Existing channels, capabilities and payload schemas are unchanged. Their registrations retain exact `allowedUrl` checks alongside sender/frame/session identity; an opaque origin string alone is not authorization. Native auxiliary targets verify actual new URLs, intended capability access and wrong-capability rejection. This does not publish the branch or close final platform qualification.

@@ -50,11 +50,13 @@ export const registerSecureShellSchemePrivileges = (): void => {
     {
       scheme: SECURE_SHELL_SCHEME,
       privileges: {
+        allowServiceWorkers: false,
+        bypassCSP: false,
         codeCache: false,
         corsEnabled: false,
         secure: true,
         standard: true,
-        stream: true,
+        stream: false,
         supportFetchAPI: false,
       },
     },

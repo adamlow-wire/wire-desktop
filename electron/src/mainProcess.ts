@@ -643,6 +643,8 @@ const handleAppEvents = (): void => {
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {
     installLocalContentProtocol(session.defaultSession, APP_PATH, 'shell');
+    installLocalContentProtocol(session.fromPartition('about-window'), APP_PATH, 'about');
+    installLocalContentProtocol(session.fromPartition('proxy-prompt-window'), APP_PATH, 'proxy-prompt');
     const mainWindowState = initWindowStateKeeper();
     /* istanbul ignore next -- composition root */
     const appMenu = systemMenu.createMenu(isFullScreen, wallClock, () => {

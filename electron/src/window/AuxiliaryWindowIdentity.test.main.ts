@@ -24,13 +24,14 @@ import * as assert from 'assert';
 import {createServer} from 'http';
 import {AddressInfo} from 'net';
 import * as path from 'path';
-import {pathToFileURL} from 'url';
 
 import {WindowManager} from './WindowManager';
 
 import {getPictureInPictureCallWindowOptions} from '../calling/PictureInPictureCall';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
+import {LOCAL_CONTENT_ORIGIN} from '../security/LocalContentPolicy';
+import {installLocalContentProtocol} from '../security/LocalContentProtocol';
 import {PROXY_PROMPT_LOCALE_READ_CHANNEL, PROXY_PROMPT_SUBMIT_CAPABILITY} from '../security/ProxyPromptContract';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
@@ -54,6 +55,7 @@ const assertSandboxed = (window: BrowserWindow): void => {
 describe('auxiliary window identity', () => {
   const windows: BrowserWindow[] = [];
   const originalAppPath = app.getAppPath();
+  const disposeProtocols: (() => void)[] = [];
   let acceptWebappVersions: typeof import('./AboutWindow').acceptWebappVersions;
   let AboutWindow: typeof import('./AboutWindow').AboutWindow;
   let requestActiveWebappVersions: typeof import('./AboutWindow').requestActiveWebappVersions;
@@ -62,11 +64,21 @@ describe('auxiliary window identity', () => {
   before(async () => {
     await app.whenReady();
     mutableApp.setAppPath(process.cwd());
+    for (const role of ['about', 'proxy-prompt'] as const) {
+      disposeProtocols.push(
+        installLocalContentProtocol(
+          session.fromPartition(`${role}-window`),
+          path.join(app.getAppPath(), config.electronDirectory),
+          role,
+        ),
+      );
+    }
     ({AboutWindow, acceptWebappVersions, requestActiveWebappVersions} = await import('./AboutWindow'));
     ({ProxyPromptWindow} = await import('./ProxyPromptWindow'));
   });
 
   after(() => {
+    disposeProtocols.splice(0).forEach(dispose => dispose());
     mutableApp.setAppPath(originalAppPath);
   });
 
@@ -129,13 +141,20 @@ describe('auxiliary window identity', () => {
         assert.ok(styles[0].path.endsWith(`/css/${kind}.css`));
         assert.ok(styles[0].rules > 0, 'stylesheet must be applied, not merely present as a link');
         if (kind === 'about') {
-          const logo = await inspect(`new Promise((resolve, reject) => {
-          const image = document.querySelector('#logo');
-          const loaded = () => resolve({width: image.naturalWidth, height: image.naturalHeight});
-          if (image.complete && image.getAttribute('src')) { loaded(); return; }
-          image.addEventListener('load', loaded, {once: true});
-          image.addEventListener('error', () => reject(new Error('Relative logo failed to load')), {once: true});
-        })`);
+          // Page callbacks cannot provide readiness when About disables scripts.
+          // Poll read-only snapshots from main without relaxing the test deadline.
+          const readLogo = () =>
+            inspect(`(() => {
+            const image = document.querySelector('#logo');
+            return image.complete && image.getAttribute('src')
+              ? {width: image.naturalWidth, height: image.naturalHeight} : null;
+          })()`);
+          const deadline = Date.now() + 1000;
+          let logo = await readLogo();
+          while (logo === null && Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+            logo = await readLogo();
+          }
           assert.deepStrictEqual(logo, {width: 256, height: 256});
         }
       } finally {
@@ -166,7 +185,7 @@ describe('auxiliary window identity', () => {
         assert.strictEqual(await window.webContents.executeJavaScript("window.open('about:blank') === null"), true);
         assert.strictEqual(BrowserWindow.getAllWindows().length, windowCount);
       }
-      const stylesheet = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, `css/${kind}.css`)).href;
+      const stylesheet = `${LOCAL_CONTENT_ORIGIN}/css/${kind}.css`;
       const response = await window.webContents.session.fetch(stylesheet);
       assert.ok((await response.text()).includes('{'), 'expected the actual stylesheet, not an HTML redirect');
       assert.ok(response.headers.get('content-type')?.includes('text/css'));
@@ -228,7 +247,7 @@ describe('auxiliary window identity', () => {
     const window = await AboutWindow.showWindow(registry);
     windows.push(window);
 
-    const expectedUrl = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, 'html/about.html')).href;
+    const expectedUrl = `${LOCAL_CONTENT_ORIGIN}/html/about.html`;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('about-window'));
     assertSandboxed(window);
@@ -267,9 +286,7 @@ describe('auxiliary window identity', () => {
     });
     windows.push(window);
 
-    const expectedUrl = pathToFileURL(
-      path.join(app.getAppPath(), config.electronDirectory, 'html/proxy-prompt.html'),
-    ).href;
+    const expectedUrl = `${LOCAL_CONTENT_ORIGIN}/html/proxy-prompt.html`;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('proxy-prompt-window'));
     assertSandboxed(window);
