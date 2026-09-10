@@ -58,8 +58,8 @@ describe('[characterization][SEC-009] native account permission callbacks', () =
       lost: () => undefined,
     });
     contents = await views.create(account, origin);
-    const productionHandler = installed.firstCall.args[0]!;
-    const productionCheck = installedCheck.firstCall.args[0]!;
+    const productionHandler = installed.lastCall.args[0]!;
+    const productionCheck = installedCheck.lastCall.args[0]!;
     requests = [];
     checks = [];
     owned.setPermissionRequestHandler((sender, permission, callback, details) => {
@@ -111,5 +111,13 @@ describe('[characterization][SEC-009] native account permission callbacks', () =
     assert.ok(check);
     assert.equal(check.sender, contents);
     assert.equal(new URL(check.requestingOrigin).origin, origin);
+  });
+
+  it('reports the denied notification state through both browser permission interfaces', async () => {
+    const states = await contents.executeJavaScript(`(async () => ({
+      notification: Notification.permission,
+      query: (await navigator.permissions.query({name: 'notifications'})).state,
+    }))()`);
+    assert.deepEqual(states, {notification: 'denied', query: 'denied'});
   });
 });

@@ -44,3 +44,11 @@ Sensitive allow/deny tests must cover scope separation, sender/frame/session iso
 ## Revisit conditions
 
 Revisit if real-runtime tests show a required flow cannot supply sufficient identity, if legacy display capture bypasses this boundary, or if consent renewal breaks required calling behavior.
+
+## Notification bootstrap evidence
+
+On Linux/Electron 43.4.0, the default-denied account reports `denied` from both `Notification.permission` and `navigator.permissions.query({name: 'notifications'})`. The native baseline `reports the denied notification state through both browser permission interfaces` passes without displaying a notification.
+
+The sibling webapp's `permissionHandlers.ts` initializes its permission store from that browser query. `NotificationRepository.checkPermissionState()` returns false for denied state; `checkPermission()` returns immediately instead of requesting permission. Thus a dialog reachable only from Electron's permission-request callback is insufficient for this webapp flow. This is source/runtime evidence, not a staging E2E result.
+
+Before enabling production grants, resolve an explicit main-owned consent entry point and prove that permission state reaches the webapp after approval and revocation. Do not report `granted` before approval, prompt from permission checks, or weaken sender authorization to bypass the bootstrap problem. Notification renewal after document navigation remains part of this unresolved user-flow design.

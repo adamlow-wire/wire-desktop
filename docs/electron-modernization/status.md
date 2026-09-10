@@ -31,6 +31,18 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**
 
 ## Active work and next executable steps
 
+### Latest update: account permission composition
+
+The adapter is now composed into `AccountViews`. Production supplies neither consent nor the permission capability and remains deny-all. The earlier unwired checkpoint descriptions below are historical, not the current composition state. Native consent, media/display flows and platform qualification remain open.
+
+Two new account-view tests cover selected-account consent, background new-request denial, account-bound cached grants, recreation reset, and missing consent/capability denial. Removing the visibility guard makes the background request return `granted` and fails the target; restored (`/tmp/sec009-view-visibility-sensitivity.log`). Application/Mocha types, changed-file ESLint/Prettier and the full main suite pass: **768 tests in 33 seconds** (`/tmp/sec009-views-full-main.log`). After `build:ts && bundle`, lifecycle and metadata/restart product fixtures pass **2/2 in 12.1 seconds on Linux** (`/tmp/sec009-views-product.log`). These are local checks, not final-head hosted qualification.
+
+Notification bootstrap needs a design change: the new native probe passes with both browser permission interfaces reporting `denied`; the sibling webapp initializes its store from that state and returns without requesting permission. A callback-only consent dialog cannot support that path. The proposed ADR records this evidence and requires an explicit consent entry point plus webapp permission-state propagation/renewal proof before enabling grants. This is local source/runtime evidence, not staging acceptance (`/tmp/sec009-permission-bootstrap.log`).
+
+Next executable work: resolve notification bootstrap and characterize fake-device media/display requests. GitHub PR #47 readback still fails with a TLS handshake timeout (September 10, 10:33 Berlin); publication remains unverified. No production grant bypass is permitted. M3 remains approximately 65%.
+
+### Committed checkpoint and remaining qualification
+
 **SEC-009 is active on a separate dependent branch**, based on CAP-001 checkpoint `a4ce662c`. Native callback characterization, scoped policy and session-adapter tests are in place. Production account sessions still use the original deny-all handlers; no production grants have been enabled and calling parity is not complete. Open the dependent PR once GitHub access recovers; keep CAP-001's unfinished qualification distinct.
 
 The **native session adapter is tested but not production-wired**. Eleven native tests cover actual notification permission state, same-document retention versus document-navigation revocation, same-session impostor denial, null checks, disposal/destruction, stale answers and replacement bindings. A queued request originally reached consent after navigation cancelled its callback; the regression fails before the added completion guard. Skipping navigation revocation leaves permission granted and fails the real-navigation target; restored. No notification is displayed and no media/location device is accessed. Renderer-loss event delivery is simulated, while navigation and destruction are real. Clean focused results: 24 tests pass; adapter 61/61 statements and 26/27 branches (96.3%), policy 44/44 and 48/48. Logs: `/tmp/sec009-adapter-focused-coverage.log`, `/tmp/sec009-adapter-queued-before.log`, `/tmp/sec009-adapter-navigation-sensitivity.log`. This does not replace full product/platform qualification.

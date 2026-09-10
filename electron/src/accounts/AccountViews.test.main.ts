@@ -28,6 +28,7 @@ import path from 'path';
 
 import {AccountViews} from './AccountViews';
 
+import {ACCOUNT_PERMISSION_CAPABILITY} from '../security/AccountPermissionPolicy';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 describe('main-owned native account views', () => {
@@ -75,6 +76,66 @@ describe('main-owned native account views', () => {
       window.destroy();
     }
     await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+  });
+
+  it('[security-target][SEC-009] requires explicit consent and capability for the selected native account', async () => {
+    await views.dispose();
+    let prompts = 0;
+    views = new AccountViews({
+      ...options(),
+      capabilities: ['test:account', ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {
+        canPrompt: () => true,
+        ask: async () => {
+          prompts++;
+          return true;
+        },
+      },
+    });
+    const first = record();
+    const second = record();
+    const selected = await views.create(first, origin);
+    const background = await views.create(second, origin);
+    views.select(first.id);
+    assert.equal(await background.executeJavaScript('Notification.requestPermission()'), 'denied');
+    assert.equal(prompts, 0);
+    assert.equal(await selected.executeJavaScript('Notification.requestPermission()'), 'granted');
+    assert.equal(prompts, 1);
+    views.select(second.id);
+    assert.equal(await selected.executeJavaScript('Notification.permission'), 'granted');
+    assert.equal(await background.executeJavaScript('Notification.permission'), 'denied');
+    await views.close(first.id);
+    const recreated = await views.create(first, origin);
+    views.select(first.id);
+    assert.equal(await recreated.executeJavaScript('Notification.permission'), 'denied');
+    assert.equal(await recreated.executeJavaScript('Notification.requestPermission()'), 'granted');
+    assert.equal(prompts, 2);
+  });
+
+  it('[security-target][SEC-009] defaults to denial without consent or without the permission capability', async () => {
+    for (const missing of ['consent', 'capability'] as const) {
+      await views.dispose();
+      let prompts = 0;
+      views = new AccountViews({
+        ...options(),
+        capabilities: missing === 'capability' ? [] : [ACCOUNT_PERMISSION_CAPABILITY],
+        permissionConsent:
+          missing === 'consent'
+            ? undefined
+            : {
+                canPrompt: () => true,
+                ask: async () => {
+                  prompts++;
+                  return true;
+                },
+              },
+      });
+      const account = record();
+      const contents = await views.create(account, origin);
+      views.select(account.id);
+      assert.equal(await contents.executeJavaScript('Notification.requestPermission()'), 'denied');
+      assert.equal(prompts, 0);
+    }
   });
 
   it('[security-target][CAP-001] registers main-owned identity before navigation with effective secure preferences', async () => {

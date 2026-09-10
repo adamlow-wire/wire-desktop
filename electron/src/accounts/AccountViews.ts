@@ -22,6 +22,8 @@ import {BrowserWindow, session, WebContents, WebContentsView} from 'electron';
 import {ValidationUtil} from '@wireapp/commons';
 
 import type {Account} from '../../renderer/src/types/account';
+import {type AccountPermissionConsent, AccountPermissionPolicy} from '../security/AccountPermissionPolicy';
+import {bindAccountPermissionSession} from '../security/AccountPermissionSession';
 import {bindNavigationGuard} from '../security/NavigationGuard';
 import {isAllowedAccountNavigation, parseNetworkNavigation} from '../security/NavigationPolicy';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
@@ -41,6 +43,8 @@ export interface AccountViewsOptions {
   preload: string;
   additionalArguments: string[];
   capabilities: readonly string[];
+  permissionConsent?: AccountPermissionConsent;
+  permissionFailure?(): void;
   configure(contents: WebContents, account: AccountViewRecord, url: URL): Promise<void>;
   lost(accountId: string): void;
 }
@@ -103,7 +107,8 @@ export class AccountViews {
       viewType: 'account',
       webContents: contents,
     });
-    this.entries.set(account.id, {view, contents, partition, revoke: registration.revoke});
+    const entry: ViewEntry = {view, contents, partition, revoke: registration.revoke};
+    this.entries.set(account.id, entry);
     bindNavigationGuard(contents, target => isAllowedAccountNavigation(target, url.origin));
     contents.setWindowOpenHandler(() => ({action: 'deny'}));
     contents.once('render-process-gone', () => {
@@ -113,6 +118,21 @@ export class AccountViews {
       }
     });
     try {
+      const consent = this.options.permissionConsent;
+      const permissions = new AccountPermissionPolicy(this.options.registry, registration.identity, {
+        canPrompt: identity => view.getVisible() && consent?.canPrompt(identity) === true,
+        ask: (identity, scopes) => consent?.ask(identity, scopes) ?? Promise.resolve(false),
+      });
+      const disposePermissions = bindAccountPermissionSession(
+        accountSession,
+        contents,
+        permissions,
+        this.options.permissionFailure ?? (() => console.error('Account permission request failed.')),
+      );
+      entry.revoke = () => {
+        registration.revoke();
+        disposePermissions();
+      };
       await this.options.configure(contents, {...account}, new URL(url.href));
       if (this.disposed || this.entries.get(account.id)?.view !== view || contents.isDestroyed()) {
         throw new Error('Account view creation was cancelled.');
