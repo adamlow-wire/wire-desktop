@@ -166,10 +166,15 @@ describe('TrayHandler', () => {
         const tray = new TrayHandler();
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow();
+        const appWindow = new BrowserWindow({show: false});
         const flashFrameSpy = spy(appWindow, 'flashFrame');
 
         await appWindow.loadFile(path.join(fixturesDir, 'badge.html'));
+        // Loading content does not establish the native focus prerequisite.
+        const focused = new Promise<void>(resolve => appWindow.once('focus', () => resolve()));
+        appWindow.show();
+        appWindow.focus();
+        await focused;
         assert.strictEqual(appWindow.isFocused(), true);
         assert.ok(flashFrameSpy.notCalled);
         tray.showUnreadCount(appWindow, 10);
