@@ -130,14 +130,27 @@ describe('TrayHandler', () => {
 
         const appWindow = createWindow();
         const flashFrameSpy = spy(appWindow, 'flashFrame');
+        const focused = new Promise<void>(resolve => appWindow.once('focus', () => resolve()));
 
         await appWindow.loadURL('about:blank');
+        if (!appWindow.isFocused()) {
+          appWindow.focus();
+          await focused;
+        }
         assert.strictEqual(appWindow.isFocused(), true);
         assert.ok(flashFrameSpy.notCalled);
         tray.showUnreadCount(appWindow, 1);
 
         assert.ok(flashFrameSpy.firstCall.calledWith(false));
         assert.strictEqual(tray['lastUnreadCount'], 1);
+
+        // Exercise loaded account content on the same genuinely focused window.
+        await appWindow.loadFile(path.join(fixturesDir, 'badge.html'));
+        assert.strictEqual(appWindow.isFocused(), true);
+        flashFrameSpy.resetHistory();
+        tray.showUnreadCount(appWindow, 10);
+        assert.ok(flashFrameSpy.firstCall.calledWith(false));
+        assert.strictEqual(tray['lastUnreadCount'], 10);
 
         flashFrameSpy.restore();
       });
@@ -178,27 +191,6 @@ describe('TrayHandler', () => {
     });
 
     describe('with tray icon initialization', () => {
-      it('updates the badge counter and stops flashing the app frame when app is in focus while receiving new messages', async () => {
-        const tray = new TrayHandler();
-        tray.initTray(TrayMock);
-
-        const appWindow = createWindow({show: false});
-        const flashFrameSpy = spy(appWindow, 'flashFrame');
-
-        await appWindow.loadFile(path.join(fixturesDir, 'badge.html'));
-        // Loading content does not establish the native focus prerequisite.
-        const focused = new Promise<void>(resolve => appWindow.once('focus', () => resolve()));
-        appWindow.show();
-        appWindow.focus();
-        await focused;
-        assert.strictEqual(appWindow.isFocused(), true);
-        assert.ok(flashFrameSpy.notCalled);
-        tray.showUnreadCount(appWindow, 10);
-        assert.ok(flashFrameSpy.firstCall.calledWith(false));
-        assert.strictEqual(tray['lastUnreadCount'], 10);
-        flashFrameSpy.restore();
-      });
-
       it('flashes the app frame on non-macOS when an unfocused window receives more unread messages', async () => {
         const runtime = createRuntime({isMacOS: false});
         const tray = new TrayHandler(runtime);
