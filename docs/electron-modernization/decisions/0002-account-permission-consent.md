@@ -41,6 +41,8 @@ This proposal is not production-enabled. Finalize the dialog/grant lifecycle thr
 
 The implemented provider uses an owner-bound Electron message box with Cancel as both default and cancellation response. It accepts only canonical registered origins and distinct known scopes, limits itself to one outstanding dialog and forwards document revocation/owner closure to the dialog's abort signal. Labels use the locale catalogue, with English fallback for untranslated additions. Stubbed dialog tests establish options and result handling; real native UI behavior and production composition are not yet qualified.
 
+Linux now has an actual native-dialog cancellation test: the owner-bound API returns denial after automatic abort; omitting the signal causes the unchanged test deadline to expire. Focus eligibility is injected, and no user approval or device grant occurs. This verifies native cancellation, not complete UI/platform qualification. Production activation must also account for intentional consent dialogs in automated product tests rather than introducing a production permission bypass.
+
 ## Validation
 
 Sensitive allow/deny tests must cover scope separation, sender/frame/session isolation, cancellation, errors, concurrent requests and revocation during consent. Real fake-device media tests and notification/display checks must prove the API callbacks actually enforce the policy; Windows/macOS/Linux evidence remains required.

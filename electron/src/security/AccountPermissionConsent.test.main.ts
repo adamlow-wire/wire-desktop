@@ -143,4 +143,16 @@ describe('[security-target][SEC-009] native account permission consent', () => {
     });
     assert.equal(await consent.ask(identity, ['audio'], cancellation.signal), false);
   });
+
+  it('settles real native dialog cancellation without user input or a permission grant', async () => {
+    // Eligibility stays fixture-controlled; this exercises the actual native dialog API.
+    prompt.restore();
+    const cancel = setTimeout(() => cancellation.abort(), 100);
+    try {
+      assert.equal(await consent.ask(identity, ['notifications'], cancellation.signal), false);
+      assert.equal(cancellation.signal.aborted, true);
+    } finally {
+      clearTimeout(cancel);
+    }
+  });
 });
