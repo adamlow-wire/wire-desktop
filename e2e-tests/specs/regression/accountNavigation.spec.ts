@@ -53,14 +53,23 @@ test(
     try {
       const app = (application = await _electron.launch({
         chromiumSandbox: true,
-        args: ['.', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`],
+        args: ['.', '--lang=en', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`],
       }));
       await expect
         .poll(() =>
-          app.evaluate(({webContents}) => {
-            const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview');
-            return Boolean(account && !account.isLoading() && account.getURL().startsWith('http://127.0.0.1:'));
-          }),
+          app.evaluate(({BrowserWindow, WebContentsView}, origin) => {
+            const view = BrowserWindow.getAllWindows()
+              .flatMap(window => window.contentView.children)
+              .find(view => view instanceof WebContentsView && view.webContents.getURL().startsWith(`${origin}/`)) as
+              | Electron.WebContentsView
+              | undefined;
+            if (!view || view.webContents.isLoading()) {
+              return false;
+            }
+            (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId =
+              view.webContents.id;
+            return true;
+          }, origin),
         )
         .toBe(true);
       expect(
@@ -70,7 +79,9 @@ test(
       ).toBe(true);
 
       await app.evaluate(async ({webContents}) => {
-        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+        const account = webContents.fromId(
+          (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+        )!;
         const loaded = new Promise<void>(resolve => account.once('did-finish-load', () => resolve()));
         await account.executeJavaScript("location.href='/allowed'; undefined");
         await loaded;
@@ -81,7 +92,9 @@ test(
       ] as const) {
         const result = await app.evaluate(
           async ({webContents}, {url, event}) => {
-            const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+            const account = webContents.fromId(
+              (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+            )!;
             const canceled = new Promise<boolean>(resolve => {
               const listener = (event: Electron.Event) => resolve(event.defaultPrevented);
               if (event === 'will-navigate') {
@@ -101,7 +114,9 @@ test(
 
       // SEC-012: exercise the actual sandboxed page bridge and main fetch boundary, not an IPC mock.
       const previewResult = await app.evaluate(async ({webContents}, url) => {
-        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+        const account = webContents.fromId(
+          (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+        )!;
         return account.executeJavaScript(
           `window.openGraphAsync(${JSON.stringify(url)}).then(() => 'allowed', () => 'denied')`,
         );
@@ -110,7 +125,9 @@ test(
       expect(hostileRequests).toBe(0);
 
       const popup = await app.evaluate(async ({BrowserWindow, webContents}) => {
-        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+        const account = webContents.fromId(
+          (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+        )!;
         const opened = await account.executeJavaScript(`
           window.callWindow = window.open('', 'WIRE_PICTURE_IN_PICTURE_CALL');
           if (window.callWindow) window.callWindow.document.body.textContent = 'Detached call fixture';
@@ -124,9 +141,24 @@ test(
       expect(popup).toEqual({opened: true, text: 'Detached call fixture'});
 
       const profileRoute = '/user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f';
-      const deepLinkResult = await app.evaluate(async ({webContents, shell}, route) => {
-        const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+      const deepLinkResult = await app.evaluate(async ({webContents, shell, dialog}, route) => {
+        const account = webContents.fromId(
+          (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+        )!;
         const externalCalls: string[] = [];
+        // This fixture tests routing, not notification approval; cancel only the account consent dialog.
+        const showMessageBox = dialog.showMessageBox.bind(dialog);
+        dialog.showMessageBox = ((
+          ...args: [Electron.BaseWindow, Electron.MessageBoxOptions] | [Electron.MessageBoxOptions]
+        ) => {
+          const options = args.length === 2 ? args[1] : args[0];
+          return options.message === 'Allow account permissions?'
+            ? Promise.resolve({response: 0, checkboxChecked: false})
+            : args.length === 2
+            ? showMessageBox(args[0], args[1])
+            : showMessageBox(args[0]);
+        }) as typeof dialog.showMessageBox;
+        await account.executeJavaScript('window.wireDesktopBridge.events.loaded(); undefined');
         const openExternal = shell.openExternal;
         shell.openExternal = async url => {
           externalCalls.push(url);
@@ -152,7 +184,9 @@ test(
       for (let attempt = 0; attempt < 2; attempt++) {
         expect(
           await app.evaluate(async ({webContents}, origin) => {
-            const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+            const account = webContents.fromId(
+              (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+            )!;
             return account.executeJavaScript(
               `window.desktopEvents=[]; window.open(${JSON.stringify(`${origin}/sso`)}, 'WIRE_SSO') === null`,
             );
@@ -166,7 +200,9 @@ test(
                   window =>
                     !window.webContents.session.isPersistent() &&
                     window.webContents.session !==
-                      webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!.session &&
+                      webContents.fromId(
+                        (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+                      )!.session &&
                     window.webContents.getURL().startsWith(`${origin}/sso?`),
                 ).length,
               origin,
@@ -175,7 +211,9 @@ test(
           .toBe(1);
 
         await app.evaluate(async ({webContents}) => {
-          const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+          const account = webContents.fromId(
+            (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+          )!;
           await account.executeJavaScript(
             'window.wireDesktopBridge.events.focusSsoWindow(); window.wireDesktopBridge.events.closeSsoWindow(); undefined',
           );
@@ -183,7 +221,9 @@ test(
         await expect
           .poll(() =>
             app.evaluate(async ({webContents}, event) => {
-              const account = webContents.getAllWebContents().find(contents => contents.getType() === 'webview')!;
+              const account = webContents.fromId(
+                (globalThis as unknown as {navigationFixtureAccountId: number}).navigationFixtureAccountId,
+              )!;
               return account.executeJavaScript(`window.desktopEvents.includes(${JSON.stringify(event)})`);
             }, WebAppEvents.LIFECYCLE.SSO_WINDOW_CLOSED),
           )
