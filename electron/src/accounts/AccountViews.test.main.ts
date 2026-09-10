@@ -112,6 +112,41 @@ describe('main-owned native account views', () => {
     assert.equal(prompts, 2);
   });
 
+  it('[security-target][SEC-009] aborts account consent when the real document navigates', async () => {
+    await views.dispose();
+    let signal!: AbortSignal;
+    let started!: () => void;
+    let answer!: (value: boolean) => void;
+    const requested = new Promise<void>(resolve => {
+      started = resolve;
+    });
+    views = new AccountViews({
+      ...options(),
+      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {
+        canPrompt: () => true,
+        ask: async (_identity, _scopes, cancellation) => {
+          signal = cancellation;
+          started();
+          return new Promise(resolve => {
+            answer = resolve;
+          });
+        },
+      },
+    });
+    const account = record();
+    const contents = await views.create(account, origin);
+    views.select(account.id);
+    await contents.executeJavaScript('void Notification.requestPermission()');
+    await requested;
+    assert.equal(signal.aborted, false);
+    await contents.loadURL(`${origin}/replacement`);
+    assert.equal(signal.aborted, true);
+    answer(true);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(await contents.executeJavaScript('Notification.permission'), 'denied');
+  });
+
   it('[security-target][SEC-009] defaults to denial without consent or without the permission capability', async () => {
     for (const missing of ['consent', 'capability'] as const) {
       await views.dispose();

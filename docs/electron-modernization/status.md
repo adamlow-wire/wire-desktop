@@ -41,7 +41,9 @@ Notification bootstrap needs a design change: the new native probe passes with b
 
 Fake-device media characterization now passes **2/2** through real `getUserMedia` calls on native account views: cancelled consent denies, audio/video prompt separately, cached grants avoid duplicate prompts, and document reload requires fresh consent. Ignoring the consent result produces synthetic audio/video tracks instead of `NotAllowedError` and fails the denial target; restored. No physical device is accessed. `test:media` requires the fake-device switch and rejects fake permission UI; regular tests and the platform baseline workflow now include that separate process. Logs: `/tmp/sec009-media-final.log`, `/tmp/sec009-media-sensitivity.log`. Windows/macOS execution and real OS/calling acceptance remain open.
 
-Next executable work: resolve notification bootstrap and characterize display requests. GitHub PR #47 readback still fails with a TLS handshake timeout (September 10, 10:33 Berlin); publication remains unverified. No production grant bypass is permitted. M3 remains approximately 65%.
+Consent cancellation now propagates a per-request `AbortSignal` through account construction. Revocation aborts the provider and still rejects late approvals; the next completed request receives a fresh signal. The simulated regression fails before implementation, and removing abort propagation fails the real-navigation account target (`/tmp/sec009-consent-abort-before.log`, `/tmp/sec009-consent-navigation-sensitivity.log`). Restored; all **37 affected policy/session/account tests pass** (`/tmp/sec009-consent-lifecycle-final.log`), and application/Mocha types pass. This proves provider cancellation, not a displayed native dialog closing.
+
+Next executable work: integrate bounded native consent, resolve notification bootstrap and characterize display requests. GitHub PR #47 readback still fails with a TLS handshake timeout (September 10, 10:33 Berlin); publication remains unverified. No production grant bypass is permitted. M3 remains approximately 65%.
 
 ### Committed checkpoint and remaining qualification
 

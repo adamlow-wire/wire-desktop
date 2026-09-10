@@ -121,7 +121,7 @@ export class AccountViews {
       const consent = this.options.permissionConsent;
       const permissions = new AccountPermissionPolicy(this.options.registry, registration.identity, {
         canPrompt: identity => view.getVisible() && consent?.canPrompt(identity) === true,
-        ask: (identity, scopes) => consent?.ask(identity, scopes) ?? Promise.resolve(false),
+        ask: (identity, scopes, signal) => consent?.ask(identity, scopes, signal) ?? Promise.resolve(false),
       });
       const disposePermissions = bindAccountPermissionSession(
         accountSession,

@@ -31,13 +31,17 @@ export interface AccountPermissionDetails {
 }
 export interface AccountPermissionConsent {
   canPrompt(identity: AuthorizedViewIdentity): boolean;
-  ask(identity: AuthorizedViewIdentity, scopes: readonly AccountPermissionScope[]): Promise<boolean>;
+  ask(
+    identity: AuthorizedViewIdentity,
+    scopes: readonly AccountPermissionScope[],
+    signal: AbortSignal,
+  ): Promise<boolean>;
 }
 
 export class AccountPermissionPolicy {
   private readonly grants = new Set<AccountPermissionScope>();
   private generation = 0;
-  private pending = false;
+  private pending?: AbortController;
 
   constructor(
     private readonly registry: ViewIdentityRegistry,
@@ -65,9 +69,10 @@ export class AccountPermissionPolicy {
       return false;
     }
     const generation = this.generation;
-    this.pending = true;
+    const consent = new AbortController();
+    this.pending = consent;
     try {
-      const accepted = await this.consent.ask(this.owner, Object.freeze(missing));
+      const accepted = await this.consent.ask(this.owner, Object.freeze(missing), consent.signal);
       if (
         accepted !== true ||
         generation !== this.generation ||
@@ -79,7 +84,7 @@ export class AccountPermissionPolicy {
       missing.forEach(scope => this.grants.add(scope));
       return true;
     } finally {
-      this.pending = false;
+      this.pending = undefined;
     }
   }
 
@@ -99,6 +104,7 @@ export class AccountPermissionPolicy {
   revoke(): void {
     this.generation++;
     this.grants.clear();
+    this.pending?.abort();
   }
 
   private sameOrigin(value: string | undefined): boolean {

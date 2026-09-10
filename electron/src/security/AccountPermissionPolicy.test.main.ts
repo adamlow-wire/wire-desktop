@@ -44,7 +44,7 @@ const fixture = () => {
   const prompts: Array<readonly AccountPermissionScope[]> = [];
   const consent = {
     canPrompt: () => true,
-    ask: async (_owner: typeof owner, scopes: readonly AccountPermissionScope[]) => {
+    ask: async (_owner: typeof owner, scopes: readonly AccountPermissionScope[], _signal: AbortSignal) => {
       assert.equal(_owner, owner);
       prompts.push(scopes);
       return true;
@@ -193,6 +193,30 @@ describe('[security-target][INV-003][INV-004][INV-006][SEC-009] account permissi
     assert.equal(await policy.request(sender, 'notifications', details), true);
     policy.revoke();
     assert.equal(policy.check(sender, 'notifications', origin, details), false);
+  });
+
+  it('aborts pending consent on revocation and uses a fresh signal for the next request', async () => {
+    const {policy, sender, consent} = fixture();
+    const signals: AbortSignal[] = [];
+    let answer!: (value: boolean) => void;
+    consent.ask = async (_owner, _scopes, signal) => {
+      signals.push(signal);
+      return new Promise(resolve => {
+        answer = resolve;
+      });
+    };
+    const pending = policy.request(sender, 'notifications', details);
+    assert.ok(signals[0]);
+    assert.equal(signals[0].aborted, false);
+    policy.revoke();
+    assert.equal(signals[0].aborted, true);
+    answer(true);
+    assert.equal(await pending, false);
+    const next = policy.request(sender, 'notifications', details);
+    assert.notEqual(signals[1], signals[0]);
+    assert.equal(signals[1].aborted, false);
+    answer(true);
+    assert.equal(await next, true);
   });
 
   it('rechecks registration and eligibility after asynchronous consent', async () => {

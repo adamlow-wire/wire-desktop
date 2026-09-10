@@ -29,6 +29,8 @@ Grants are memory-only and bind to the exact registered account view, session, o
 
 Unknown senders, missing or ambiguous media types, wrong sessions/origins, auxiliary views and subframes fail closed. Checks never prompt. Missing consent integration remains deny-all. Raw device errors and renderer text must not reach consent dialogs or public snapshots.
 
+The policy supplies a per-request `AbortSignal` to the main-owned consent provider. Revocation aborts it synchronously as well as invalidating the grant generation; the native dialog must use that signal to close rather than merely ignoring its eventual answer. New consent stays bounded until the old provider settles. Tests prove signal propagation through a real account document navigation and rejection of a late positive answer. The native dialog itself remains to be integrated and qualified.
+
 Display capture is a separate source-selection flow, not a camera grant. Unrestricted desktop-source enumeration, legacy capture constraints and nullable notification checks require their own real-runtime evidence before production cutover. Do not infer completion of those paths from the first policy module.
 
 ## Consequences
