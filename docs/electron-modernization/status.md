@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-10
 milestone: M3
-active_work_item: SEC-009
-state: permission-qualification
+active_work_item: CAP-002
+state: e2ei-acceptance-investigation
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: sec/SEC-009-account-permissions-2026-09-10
-next_work_item: SEC-009
+active_branch: cap/CAP-002-e2ei-acceptance-2026-09-10
+next_work_item: CAP-002
 blockers: []
 ---
 
@@ -30,6 +30,14 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 70%**
 | Closure | Not started | Requirement-by-requirement M3 audit and final cross-platform evidence |
 
 ## Active work and next executable steps
+
+### Approved E2EI acceptance addition
+
+The maintainer explicitly approved E2EI enrolment in M3 on September 10. Plan revision 1.5.25 extends existing CAP-002 rather than creating an overlapping migration task; DCP-022 records its distinct acceptance. SSO already has deterministic Electron tests, but live IdP qualification remains open. No dedicated desktop E2EI enrolment test was found; generated `mlsE2EId` backend methods are not coverage. The approximate 70% estimate is not recalculated into a measured percentage by this scope addition.
+
+Read-only sibling source inspection at webapp commit `a0fae7037367641bc48e97a19fa0312e7cbaff41`: `apps/webapp/src/script/e2eIdentity/oidcService/oidcService.ts` uses `signinRedirect` for interactive authentication, `signinSilent` for renewal, and an account-origin `/oidc` callback. `e2eIdentityEnrollment.ts` falls back from failed silent authentication to redirect and resumes enrolment after return. This differs from the `WIRE_SSO` popup tested by desktop CAP-002. Cross-origin account navigation is currently denied; compatibility with the actual provider/proxy redirect chain is unproven, not a reason to allow arbitrary navigation.
+
+Next executable work: inventory the sibling webapp OIDC/proxy callback and existing enrolment fixtures, then reproduce the desktop boundary interaction with a deterministic test before choosing a scoped design. Follow with real enrolment/verified-device/restart E2E and separate live SSO/E2EI evidence. Q-011 tracks dedicated staging OIDC/ACME prerequisites; no secrets or provider mutations are needed for initial local investigation. This branch is based on SEC-009 `b1846446`; it is a dependent candidate, not an integration-ready standalone PR. SEC-009 is preserved unchanged at that commit, with general native-consent E2E harness work still next on that branch. No processes remain running and no publication or merge is claimed.
 
 ### Current SEC-009 candidate
 
