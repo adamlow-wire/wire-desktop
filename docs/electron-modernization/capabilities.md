@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+The actual E2E launcher now has fresh-profile and restored-selected-account regression fixtures. Returning the first account deliberately fails; correct selection initially passes including reopen. A subsequent run stalls during two-account shutdown, so this is not green final launcher or DCP-002/DCP-004 qualification. The legacy active-account watcher still depends on removed webview DOM. See the current status for the next diagnostic and retained failure evidence.
+
 SEC-009 now composes account-scoped policy and native consent in the local application candidate; integration is unchanged. Baseline denial, exact sender/session/origin checks, document revocation, scope separation, pending-dialog cancellation and background initiation have sensitivity-proven targets. Earlier focused policy/adapter branch coverage was 100%/96.3%, not final aggregate qualification. Renderer-loss delivery is simulated; native document navigation/destruction and Linux dialog cancellation are real.
 
 DCP-006/DCP-007 product evidence: `accountPermissions.spec.ts` passes on Linux against the activated application. It verifies real foreground eligibility, separate notification/microphone/camera approval, permission-state publication through Wire's existing event, and notification/microphone denial after reload. Synthetic devices are required and tracks stop immediately; native dialog responses are controlled by the test runner, without a production bypass. The pre-activation target fails. Existing lifecycle/restart fixtures pass 2/2 after activation. See [current evidence](./status.md).
