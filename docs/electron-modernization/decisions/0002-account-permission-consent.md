@@ -39,6 +39,8 @@ No persistent origin allowlist or generic permission IPC is introduced. OS permi
 
 This proposal is not production-enabled. Finalize the dialog/grant lifecycle through SEC-009 review and tests before changing the default handlers.
 
+The implemented provider uses an owner-bound Electron message box with Cancel as both default and cancellation response. It accepts only canonical registered origins and distinct known scopes, limits itself to one outstanding dialog and forwards document revocation/owner closure to the dialog's abort signal. Labels use the locale catalogue, with English fallback for untranslated additions. Stubbed dialog tests establish options and result handling; real native UI behavior and production composition are not yet qualified.
+
 ## Validation
 
 Sensitive allow/deny tests must cover scope separation, sender/frame/session isolation, cancellation, errors, concurrent requests and revocation during consent. Real fake-device media tests and notification/display checks must prove the API callbacks actually enforce the policy; Windows/macOS/Linux evidence remains required.
