@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.19
+revision: 1.5.25
 status: draft
-updated: 2026-09-09
+updated: 2026-09-10
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -436,10 +436,11 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-009 — Centralize permission policy
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002, SEC-003
 - Scope: Implement request and check handlers for camera, microphone, notifications, display media, and any device permissions.
+- Execution: separate branch `sec/SEC-009-account-permissions-2026-09-10` at `b8cc0906` preserves the consent candidate, DEC-009 and revisions 1.5.20–1.5.24. Those runtime changes are not on the independent SEC-010 branch. Device/notification consent has local evidence; display selection and final qualification remain open. See the current status for the native callback limitation and retained tray-focus failure.
 - Acceptance:
   - Permissions default to deny.
   - Grants bind permission type to authorized origin, view, account, and user flow.
@@ -454,6 +455,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
+- Protocol cutover: [proposed DEC-010](./decisions/0003-local-content-protocol.md) uses fixed, role-specific assets on the existing `wire-app` scheme, GET/HEAD only, exact document identities and unchanged isolated account sessions. Shell/auxiliary resource and legacy-reader baselines precede wiring. The migration-only script-disabled file-origin reader preserves old state; ordinary application content moves to the new scheme. Production handler, startup, CSP and migration/platform qualification remain required.
 - Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
@@ -861,6 +863,8 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
+| DEC-010 | 2026-09-10 | proposed | [Bounded production local content protocol](./decisions/0003-local-content-protocol.md) | Fixed role-specific assets avoid arbitrary filesystem serving while preserving migration and existing preloads | Asset, session, CSP or legacy-import incompatibility |
+| DEC-009 | 2026-09-10 | proposed | Main-owned permission consent; detailed ADR and candidate retained on branch `sec/SEC-009-account-permissions-2026-09-10` at `b8cc0906` | Separate user-flow authorization from registered origin identity; capture boundary unresolved | Native capture callback limitation or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
 | DEC-003 | 2026-08-18 | accepted | Supported Electron runtime and security-boundary work are P0 | The current runtime is EOL and the current boundary violates modern Electron security guidance | Never; only implementation ordering may change |
@@ -889,6 +893,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.25 | 2026-09-10 | Codex | Started independent local-content protocol branch from CAP-001, recorded rendered-resource characterization and finite-asset policy proposal; reconciled separate SEC-009 branch without importing its runtime changes | SEC-010, DEC-010, SEC-009 |
 | 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |
 | 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
 | 1.5.17 | 2026-09-09 | Codex | Reconciled merged SSO, navigation, metadata and parser evidence; restored concise M3 handoff and synchronized CSP validation without claiming remaining cutover or capability acceptance | SEC-008, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002 |
