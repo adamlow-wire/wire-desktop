@@ -14,6 +14,10 @@ This is characterization-driven development followed by test-driven implementati
 
 Existing behavior is not automatically correct. Security invariants describe the required target even when the corresponding target test initially fails.
 
+## Native-account E2E harness checkpoint (2026-09-10)
+
+`accountSidebar.spec.ts` is a CAP-001 regression for DCP-002/DCP-004. It uses isolated local profiles and real native views/menus to exercise switching, background/active/last-account removal, addition, and logout event delivery with an unrelated window present. It reproduced incorrect positional page selection and the obsolete DOM-menu timeout. The helper now resolves the main-selected account and invokes the actual enabled native menu item; no production IPC or permission bypass is added. The authenticated logout spec retains its menu labels/enabled-state and confirmation/cancellation assertions using that adapter. Local fixtures do not prove staging login, actual data-clearing confirmation, live SSO/E2EI, or macOS/Windows operation.
+
 ## Test classifications
 
 Every added modernization test MUST be classified in its name, enclosing suite, or PR evidence as one of:

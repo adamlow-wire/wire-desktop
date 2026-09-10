@@ -26,7 +26,7 @@ M0–M2 exit gates are complete. **M3 remains approximately 70%**, an engineerin
 ## Resume here
 
 1. Inspect the worktree and verify local/tracking integration refs against the explicit recorded SHA; a stale local integration ref previously produced a misleading coverage failure.
-2. Next independent local work: characterize and repair the remaining account-sidebar E2E helpers that select pages by window index or last-window position. Use the existing native-account fixtures and main-owned identities; do not create another account architecture task.
+2. The native sidebar helper repair below is locally qualified. Review remaining authenticated E2E helpers for obsolete webview/native-menu assumptions before their final staging run; keep this within CAP-001, not another architecture task.
 3. Once secure storage is available, run staging login, then calling allow/deny and multi-account tests using the general consent harness. Never count a Linux `--project=macOS` run as macOS evidence.
 4. Once GitHub is reachable, read back PR #47 and branch heads before publishing. Qualify CAP-001 first, then its dependent candidates through scoped PRs with final-head checks and substantive self-review. Do not merge an unqualified draft or bypass checks.
 5. Finish every remaining M3 gate below and perform criterion-by-criterion closure; narrow local passes are not milestone completion.
@@ -65,6 +65,7 @@ The general E2E launcher identifies the real shell and main-selected account, su
 | Permission/lifecycle/metadata product checkpoint | 3/3 pass on Linux | `/tmp/sec009-final-product.log` |
 | Foreground prerequisite repair plus earlier launcher cases | 5/5 pass | `/tmp/sec009-product-foreground-final.log` |
 | Latest general launcher, consent and native-storage selection | 3/3 pass, 13.4 seconds | `/tmp/sec009-native-storage-launcher-final.log` |
+| Native sidebar plus general launcher/consent, after restoring sensitivity mutation | 4/4 pass, 16.7 seconds on Linux | `/tmp/cap001-sidebar-launcher-final.log` |
 | Restored storage-selection sensitivity target | 1/1 pass, 2.6 seconds | `/tmp/sec009-native-storage-restored.log` |
 | Authenticated staging login | **Failed**: encryption unavailable, then authenticated-page timeout | `/tmp/sec009-staging-login.log` |
 | Changed-source ESLint/format | Pass at recorded checkpoints | Commits `db99cb87`, `de6fd17f` |
@@ -73,6 +74,8 @@ The general E2E launcher identifies the real shell and main-selected account, su
 The full coverage checkpoint predates the later test-harness commits; it is not final-head hosted qualification. Application and Mocha type commands are separate (`test:types`, `build:ts:tests`).
 
 Sensitivity retained: wrong account selection/watcher routing fails; approving a deny response returns synthetic tracks and fails; hiding the owner before media fails without a media dialog; forcing the basic store fails its exact flag assertion. Logs include `/tmp/sec009-{account-watcher-sensitivity,consent-deny-sensitivity,permission-focus-sensitivity,basic-store-sensitivity}.log`. All mutations and temporary diagnostics were restored.
+
+Native-sidebar regression: `env -u ELECTRON_RUN_AS_NODE corepack yarn test:e2e --project=macOS specs/regression/accountSidebar.spec.ts specs/regression/launcherPermissions.spec.ts`. The unchanged helper first selected account 1 when account 2 was requested (`/tmp/cap001-sidebar-before.log`); after identity repair, removal timed out on its obsolete DOM-menu locator (`/tmp/cap001-sidebar-native-menu-before.log`). Main-selected page lookup and real native-menu observation now cover switch/add/background/active/last-account removal, including an unrelated window, plus exact logout/remove labels and actual logout event delivery. Suppressing the native logout click fails the expected event assertion (`/tmp/cap001-sidebar-menu-sensitivity.log`); restored combined run passes. Changed-source ESLint and exact-file formatting pass. Playwright types retain only the nine existing errors (`/tmp/cap001-sidebar-types-final.log`), not a green type gate. Authenticated logout keeps its confirmation/cancellation assertions but has not been rerun because secure storage remains unavailable. No production files changed in this repair. The remaining `e2e-tests/utils/createApp.ts` positional launcher has no imports found in the E2E source scan; it was not silently substituted for the active action launcher.
 
 ### Known failures, not hidden passes
 
