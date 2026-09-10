@@ -41,10 +41,11 @@ Implemented on the draft branch:
 - Failed account addition hides old content instead of showing it under the new selection; retry and switching back preserve identities. Bootstrap and sidebar tests protect named selection and keyboard-menu focus.
 - Native environment approval reuses existing translations, shows the canonical origin without query/fragment, preserves the exact approved candidate and defaults to cancellation. Invalid destinations and closed owners are rejected; queued controller authority is still rechecked after approval.
 - Failed removal retains the account, stops the loading indicator and exposes a bounded boolean failure state, not raw cleanup errors. The localized shell error offers exact-account removal retry rather than reload. Native and React regression tests fail before the fix and pass after it.
+- Background environment changes preserve a selected account's missing-view error state instead of throwing after saving the approved destination. Cross-origin fixture tests verify replacement authority and exact-session retention; retaining the old origin deliberately fails the target and is restored.
 
 Next work, without creating overlapping plan items:
 
-1. Finish main-owned programmatic destination-policy and lifecycle/error UI audits. Localized approval passes locally; publish and qualify this follow-up. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
+1. Repair the recurring tray-focus test prerequisite before another full-suite rerun: `loadFile` completion is currently followed by an immediate `isFocused()` assertion without establishing focus. Preserve actual native focus and tray assertions. Continue main-owned destination/managed-policy and lifecycle audits, then publish and qualify the local follow-ups. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
 2. Qualify PR #47 on its final head. All three expanded platform account gates passed at `23fb964b`; the earlier macOS timeout did not recur. Authenticated E2E is draft-skipped, not waived. Diagnose any recurring failure from its actual stage; do not increase deadlines without evidence.
 3. Finish SEC-009 permission user flows, SEC-010 local scheme, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 certificate/configuration/link acceptance. Permission default-denial alone is not calling parity.
 4. Obtain CAP-002 controlled live IdP evidence, then audit every M3 criterion and complete final package/authenticated E2E/review gates. Signed installer/update qualification remains M4/M5, not an additional M3 signing prerequisite.
@@ -53,19 +54,20 @@ Next work, without creating overlapping plan items:
 
 | Check | Latest local result | Evidence |
 | --- | --- | --- |
-| Electron main | Clean coverage run 739 passing; preceding unchanged rerun also passes; prior tray-focus failure retained below | `/tmp/cap001-894d-main-coverage.log`, `/tmp/cap001-removal-full-main-repeat.log` |
+| Electron main | Background destination follow-up: 740 passing / one recurring tray-focus failure; preceding committed coverage checkpoint: 739 passing | `/tmp/cap001-background-full-main.log`, `/tmp/cap001-894d-main-coverage.log` |
 | Electron renderer | 4 passing | `/tmp/cap001-894d-renderer-coverage.log` |
 | React | 112 passing, 27 suites | `/tmp/cap001-894d-react-coverage.log` |
 | Changed-code coverage | 737/913 statements **80.72%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-894d-diff.log`, runtime head `894df496` |
-| Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-removal-*-types.log` |
-| Changed-source lint/builds | Pass | `/tmp/cap001-removal-lint.log`, `/tmp/cap001-removal-build.log` |
-| Rebuilt lifecycle and metadata/restart | **2/2 in 12.0 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-removal-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
+| Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-background-*-types.log` |
+| Changed-source lint/builds | Pass | `/tmp/cap001-background-lint.log`, `/tmp/cap001-background-build.log` |
+| Rebuilt lifecycle and metadata/restart | **2/2 in 7.7 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-background-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
 | Standalone Playwright types | Nine known unrelated errors, not green | Two `window.wire` declarations and seven generated-client body types; `/tmp/cap001-restart-readiness-types.log` |
 
 Coverage was regenerated from a clean directory after an interrupted process and its temporary logs disappeared. Partial output was discarded. Local `--project=macOS` is a Playwright label and remains **Linux evidence**. Temporary logs are diagnostic aids, not substitutes for durable final-head CI links.
 
 Recent sensitivity/diagnosis:
 
+- Background destination audit: the new target reproduces `Unknown account view` after an approved background change while the foreground view is unavailable. The fix leaves background content hidden and preserves the foreground error. Positive cross-origin approval tests also prove exact session retention, old registration removal and new-origin metadata policy; deliberately retaining the old destination fails the origin assertion. Controller suite: 37 passing; types/lint pass. Full suite: 740 passing / one recurring unchanged tray-focus prerequisite failure (`/tmp/cap001-background-full-main.log`), not green. No more unchanged reruns before addressing focus setup.
 - Removal failure previously published `isLoading: true` after the view was closed and cleanup rejected; the native regression fails there. The new shell error/retry test also fails before implementation. Focused native tests pass 46/46; React passes 112/112 and application/Mocha types plus changed-source lint pass. The first full main run fails only at the unchanged tray test's `isFocused()` prerequisite; isolated tray tests pass, followed by a full unchanged rerun at 739/739. The failure is retained, not waived; no focus assertion or deadline changed. Local logs can disappear on environment resumption; recorded results are not claims that temporary files remain available.
 - Environment approval: extracted baseline passed two characterization tests and failed three localization/validation targets. Seven final tests pass; switching the native dialog default from Cancel to Connect produces the intended assertion failure, then is restored. Dialogs are stubbed. This is not evidence that the existing controller accepted unsafe URLs. `/tmp/cap001-environment-before.log`, `/tmp/cap001-environment-sensitivity.log`.
 - Old cleanup retained HTTP credentials. Six native tests cover credentials, cookies, local storage, IndexedDB, Cache Storage, failures and retries; omitting storage clearing causes three failures.

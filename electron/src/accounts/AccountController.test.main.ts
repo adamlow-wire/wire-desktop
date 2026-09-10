@@ -670,6 +670,61 @@ describe('production account controller integration', () => {
     assert.equal(views.get(records[1].id), second);
   });
 
+  it('[characterization][CAP-001] approves a new origin only for its owning account and replaces its authority', async () => {
+    const targetServer = createServer((_request, response) => response.end('<!doctype html><title>New server</title>'));
+    await new Promise<void>(resolve => targetServer.listen(0, '127.0.0.1', resolve));
+    try {
+      const targetOrigin = `http://127.0.0.1:${(targetServer.address() as AddressInfo).port}`;
+      const first = views.get(records[0].id);
+      const owner = identity(first);
+      const firstSession = first.session;
+      const second = views.get(records[1].id);
+      options.approveEnvironment = async (account, candidate) => {
+        assert.equal(account.id, records[0].id);
+        assert.equal(candidate, `${targetOrigin}/auth?custom=true`);
+        return candidate;
+      };
+      await controller.receive(owner, {type: 'environment', url: `${targetOrigin}/auth?custom=true`});
+      const replacement = views.get(records[0].id);
+      assert.equal(identity(replacement).allowedOrigin, targetOrigin);
+      assert.equal(replacement.session, firstSession);
+      assert.equal(first.isDestroyed(), true);
+      assert.equal(registry.has(first.id), false);
+      assert.equal(views.get(records[1].id), second);
+      assert.equal(identity(second).allowedOrigin, origin);
+      await assert.rejects(send(replacement, 'metadata', {webappUrl: origin}), /Metadata cannot/);
+    } finally {
+      await new Promise<void>(resolve => targetServer.close(() => resolve()));
+    }
+  });
+
+  it('[regression][CAP-001] changes a background destination without selecting a missing foreground view', async () => {
+    const firstId = records[0].id;
+    const secondId = records[1].id;
+    const destination = options.destination;
+    options.destination = account => {
+      if (account.id === firstId) {
+        throw new Error('Selected account unavailable');
+      }
+      return destination(account);
+    };
+    await assert.rejects(controller.reload(firstId), /Selected account unavailable/);
+    const second = views.get(secondId);
+    const secondSession = second.session;
+    options.approveEnvironment = async (_account, candidate) => candidate;
+    await controller.receive(identity(second), {type: 'environment', url: `${origin}/approved`});
+    assert.equal(state.get(secondId).webappUrl, `${origin}/approved`);
+    assert.equal(views.get(secondId).session, secondSession);
+    assert.equal(second.isDestroyed(), true);
+    assert.equal(state.get(firstId).visible, true);
+    assert.equal(views.has(firstId), false);
+    assert.equal(controller.snapshots()[0].loadError, 'Account loading failed.');
+    assert.equal(
+      window.contentView.children.every(view => !view.getVisible()),
+      true,
+    );
+  });
+
   it('[security-target][CAP-001] preserves the account record when exact-session deletion fails', async () => {
     const first = views.get(records[0].id);
     const clearData = options.clearData;

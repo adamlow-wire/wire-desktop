@@ -414,7 +414,11 @@ export class AccountController {
     this.options.state.setEnvironment(id, approved);
     await this.ensureView(id);
     const selected = this.snapshots().find(record => record.visible)!;
-    this.options.views.select(selected.id);
+    if (this.options.views.has(selected.id)) {
+      this.options.views.select(selected.id);
+    } else {
+      this.options.views.hide();
+    }
   }
 
   private publishBadge(id: string): void {
