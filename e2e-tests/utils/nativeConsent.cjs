@@ -20,6 +20,11 @@
 // Test-only main-process require hook. Never imported by production code.
 const {app, dialog} = require('electron');
 
+// Playwright forces Chromium's basic store. Let authenticated Linux tests use the host keyring.
+if (process.platform === 'linux') {
+  app.commandLine.removeSwitch('password-store');
+}
+
 const mediaConsent = process.env.WIRE_E2E_MEDIA_CONSENT;
 if (
   !['allow', 'deny'].includes(mediaConsent) ||

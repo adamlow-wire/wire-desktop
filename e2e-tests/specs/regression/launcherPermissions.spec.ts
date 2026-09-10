@@ -94,6 +94,8 @@ for (const {restored, allowMedia} of [
       }
       expect(
         await launched!.evaluate(({app}) => ({
+          forcesBasicStorage:
+            process.platform === 'linux' && app.commandLine.getSwitchValue('password-store') === 'basic',
           profile: app.getPath('userData'),
           fakeDevices: app.commandLine.hasSwitch('use-fake-device-for-media-stream'),
           fakeUi: app.commandLine.hasSwitch('use-fake-ui-for-media-stream'),
@@ -103,6 +105,7 @@ for (const {restored, allowMedia} of [
         })),
       ).toEqual({
         profile: testInfo.outputPath('profile'),
+        forcesBasicStorage: false,
         fakeDevices: true,
         fakeUi: false,
         consentInstalledBeforeReady: true,
