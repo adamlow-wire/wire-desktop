@@ -1,6 +1,6 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-09
+updated: 2026-09-10
 milestone: M3
 active_work_item: CAP-001
 state: production-account-cutover
@@ -31,7 +31,7 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**
 
 ## Active work and next executable steps
 
-**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Latest runtime checkpoint: `f6604dd5`; subsequent changes add restart readiness checks and update this handoff.
+**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. The current follow-up localizes and validates native environment approval.
 
 Implemented on the draft branch:
 
@@ -39,11 +39,12 @@ Implemented on the draft branch:
 - Native metadata, menus, edit/account shortcuts, reload/About, SSO initiation and bounded startup/desktop queues preserve ordered login/join/location delivery and account readiness. Main-owned App-lock arguments avoid premature synchronous preload IPC without relaxing origin checks.
 - Removal revokes/closes the exact view before session and strict log cleanup; errors retain the profile record for retry. Browser data, HTTP credentials and connections are cleared on the target session only. The obsolete production deletion binder/capability is retired; a read-only handler check verifies absence.
 - Failed account addition hides old content instead of showing it under the new selection; retry and switching back preserve identities. Bootstrap and sidebar tests protect named selection and keyboard-menu focus.
+- Native environment approval reuses existing translations, shows the canonical origin without query/fragment, preserves the exact approved candidate and defaults to cancellation. Invalid destinations and closed owners are rejected; queued controller authority is still rechecked after approval.
 
 Next work, without creating overlapping plan items:
 
-1. Complete localized environment approval and main-owned programmatic destination policy; audit remaining lifecycle/error UI paths. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
-2. Qualify PR #47 on its final head. The expanded Windows/Linux account gates passed at `604908f4`; macOS failed an earlier secure-shell test before reaching them. Diagnose any recurring failure from its actual stage; do not waive assertions or increase deadlines without evidence.
+1. Finish main-owned programmatic destination-policy and lifecycle/error UI audits. Localized approval passes locally; publish and qualify this follow-up. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
+2. Qualify PR #47 on its final head. All three expanded platform account gates passed at `23fb964b`; the earlier macOS timeout did not recur. Authenticated E2E is draft-skipped, not waived. Diagnose any recurring failure from its actual stage; do not increase deadlines without evidence.
 3. Finish SEC-009 permission user flows, SEC-010 local scheme, SEC-008/SEC-013 follow-ups and CAP-005/CAP-006 certificate/configuration/link acceptance. Permission default-denial alone is not calling parity.
 4. Obtain CAP-002 controlled live IdP evidence, then audit every M3 criterion and complete final package/authenticated E2E/review gates. Signed installer/update qualification remains M4/M5, not an additional M3 signing prerequisite.
 
@@ -51,19 +52,20 @@ Next work, without creating overlapping plan items:
 
 | Check | Latest local result | Evidence |
 | --- | --- | --- |
-| Electron main | 732 passing, zero pending | `/tmp/cap001-final-main-coverage.log` |
+| Electron main | 739 passing, zero pending | `/tmp/cap001-environment-full-main.log` |
 | Electron renderer | 4 passing | `/tmp/cap001-final-renderer-coverage.log` |
 | React | 111 passing, 27 suites | `/tmp/cap001-final-react-coverage.log` |
 | Changed-code coverage | 718/897 statements **80.04%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-final-diff.log`, runtime head `f6604dd5` |
-| Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-final-*-types.log` |
-| Changed-source lint/builds | Pass | `/tmp/cap001-final-lint.log`, `/tmp/cap001-final-build.log` |
-| Rebuilt lifecycle and metadata/restart | **6/6 in 39.3 seconds**, three repetitions, Linux | `/tmp/cap001-restart-readiness-repeated.log` |
+| Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-environment-*-types.log` |
+| Changed-source lint/builds | Pass | `/tmp/cap001-environment-lint.log`, `/tmp/cap001-environment-build.log` |
+| Rebuilt lifecycle and metadata/restart | **2/2 in 9.2 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-environment-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
 | Standalone Playwright types | Nine known unrelated errors, not green | Two `window.wire` declarations and seven generated-client body types; `/tmp/cap001-restart-readiness-types.log` |
 
 Coverage was regenerated from a clean directory after an interrupted process and its temporary logs disappeared. Partial output was discarded. Local `--project=macOS` is a Playwright label and remains **Linux evidence**. Temporary logs are diagnostic aids, not substitutes for durable final-head CI links.
 
 Recent sensitivity/diagnosis:
 
+- Environment approval: extracted baseline passed two characterization tests and failed three localization/validation targets. Seven final tests pass; switching the native dialog default from Cancel to Connect produces the intended assertion failure, then is restored. Dialogs are stubbed. This is not evidence that the existing controller accepted unsafe URLs. `/tmp/cap001-environment-before.log`, `/tmp/cap001-environment-sensitivity.log`.
 - Old cleanup retained HTTP credentials. Six native tests cover credentials, cookies, local storage, IndexedDB, Cache Storage, failures and retries; omitting storage clearing causes three failures.
 - Product restart tests seed both sessions and verify removed/retained data after actual app exit/relaunch. A cookies/cache-only cleanup leaves target local storage/IndexedDB and fails the new assertions. Persistent cookies have explicit expiries; session cookies are not expected to survive exit.
 - Add-failure regression first observed the old view still visible. Wrong-account bootstrap routing and disabled sidebar focus restoration each fail their UI target. All mutations are restored.
@@ -72,6 +74,7 @@ Recent sensitivity/diagnosis:
 
 Hosted gates are not yet final-head qualification:
 
+- At `23fb964b`, [build/test](https://github.com/adamlow-wire/wire-desktop/actions/runs/34372128997) and [all three platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34372128865) pass. API job-step readback confirms **Test native account lifecycle and cleanup** succeeded on Windows, macOS and Linux. Lint/analysis pass; authenticated E2E/report remain skipped. GitHub API access was restored on September 10.
 - At `e6ffe767`, [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34366758797/job/102517347917) passed tests but failed statements at 77.90%; the new local tests raise this above the unchanged threshold.
 - At `604908f4`, [Windows and Linux packages/account gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34367710882) passed. The earlier Windows two-second controller setup/teardown timeout did not recur; no timeout change was made.
 - [macOS at that head](https://github.com/adamlow-wire/wire-desktop/actions/runs/34367710882/job/102520621936) timed out in the existing secure-shell popup/navigation/permission test **before** the expanded account step. This is not a macOS account-cleanup assertion failure. Lint/analysis passed; draft-skipped E2E is not a pass or waiver.

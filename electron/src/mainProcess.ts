@@ -44,6 +44,7 @@ import {URL, pathToFileURL} from 'url';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {AccountController} from './accounts/AccountController';
+import {approveAccountEnvironment} from './accounts/AccountEnvironmentApproval';
 import {deleteNativeAccountLogs} from './accounts/AccountLogCleanup';
 import {AccountProfile} from './accounts/AccountProfile';
 import {clearAccountSession} from './accounts/AccountSessionCleanup';
@@ -460,20 +461,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
       await clearAccountSession(targetSession);
       await deleteNativeAccountLogs(account.id, getLogDirectory());
     },
-    approveEnvironment: async (_account, candidate) => {
-      const result = await dialog.showMessageBox(main, {
-        type: 'question',
-        buttons: ['Cancel', 'Continue'],
-        defaultId: 0,
-        cancelId: 0,
-        message: 'Change this account’s server?',
-        detail: new URL(candidate).origin,
-      });
-      if (result.response !== 1) {
-        throw new Error('Account destination was not approved.');
-      }
-      return candidate;
-    },
+    approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate),
     changed: accounts => {
       if (!main.isDestroyed()) {
         main.webContents.send(ACCOUNT_SNAPSHOTS_CHANNEL, accounts);
