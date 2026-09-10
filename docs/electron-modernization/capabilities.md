@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+SEC-010 local-resource baseline: the native auxiliary tests verify applied relative CSS and the decoded About logo, without enabling scripts in About. Blocking CSS fails both window targets; blocking the logo fails its dimension assertion. The shell/CSP, auxiliary and legacy-reader group passes 15/15 on Linux. Production URLs remain unchanged; this is characterization, not custom-scheme acceptance. Separate SEC-009 consent/capture evidence is preserved on its branch and summarized in `status.md`; it is not integrated into this candidate.
+
 CAP-001 removal failure: native regression reproduces indefinite loading after cleanup rejects. The shell now receives only a boolean failure flag and offers exact-account removal retry, leaving the profile record intact and not presenting reload as cleanup retry. The React target fails before implementation and passes after it; schema tests accept the boolean and reject strings. This does not change the data-deletion scope or establish final platform qualification.
 
 CAP-001 environment approval: seven local native tests protect exact-candidate preservation, owner binding, localized canonical-origin display, cancellation and invalid/closed-owner rejection. Changing the dialog default to Connect fails the characterization test. Dialog presentation is stubbed; actual platform presentation and complete programmatic destination policy are not established by these tests.

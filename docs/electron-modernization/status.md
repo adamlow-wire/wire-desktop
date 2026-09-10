@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-10
 milestone: M3
-active_work_item: CAP-001
-state: production-account-cutover
+active_work_item: SEC-010
+state: local-protocol-characterization
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: cap/CAP-001-production-accounts-2026-09-09
-next_work_item: SEC-007
+active_branch: sec/SEC-010-local-protocol-2026-09-10
+next_work_item: SEC-010
 blockers: []
 ---
 
@@ -17,7 +17,7 @@ blockers: []
 
 ## Milestone checkpoint
 
-M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
+M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 67%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron remains **43.4.0** under DEC-007; Electron 44 is deferred. M1 completion does not close the broader ELC-003 dependency audit.
 
 | Area | Verified integration state | Remaining M3 acceptance |
 | --- | --- | --- |
@@ -31,6 +31,18 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**
 
 ## Active work and next executable steps
 
+### SEC-010 local protocol
+
+The active branch starts from CAP-001 `a4ce662c`, independently of SEC-009. Production resource URLs are unchanged. `build:ts && bundle` succeeds for this branch; the shell/CSP, legacy-reader and auxiliary-window group passes 15/15 locally. New characterization tests inspect actually applied stylesheets and the decoded 256×256 About logo. About intentionally disables page scripts, so the tests use read-only debugger DOM inspection rather than enabling JavaScript. Removing the two stylesheet allowlist entries fails both targets; blocking the logo yields zero decoded dimensions and fails its assertion. All perturbations are restored. Application/Mocha types and changed-test lint/formatting pass. Commands: `test:types`, `build:ts:tests`, `test:main --grep 'SEC-010|legacy account profile reader|auxiliary window identity'`; logs: `/tmp/sec010-resources-final.log`, `/tmp/sec010-resources-sensitivity.log`, `/tmp/sec010-logo-sensitivity.log`.
+
+Next: define the production `wire-app` resource contract, add allow/deny protocol tests, and migrate the shell, About and proxy prompt on their exact sessions. Use a fixed resource allowlist, not a renderer-controlled filesystem root. Preserve current CSP, exact identities, relative assets and account sessions. The script-disabled file-origin reader remains necessary to import old account state; ordinary shell startup already uses `wireAccounts.read`. Qualify actual product restart/import and document the migration-only reader explicitly before SEC-010 closure.
+
+### Preserved SEC-009 work
+
+`sec/SEC-009-account-permissions-2026-09-10` at `b8cc0906` contains the local consent candidate and detailed decision/evidence records; those runtime changes are **not** on this independent branch. Four native media tests pass, including sensitivity-proven legacy and modern capture denial. Electron's shared empty-media-types callback currently prevents enabling modern screen selection without also opening legacy capture. Keep that guard; no source-selection design or runtime exception is approved. The maintainer was asked whether a newer 43.x patch may be investigated without adoption. Latest full SEC-009 native run: 785 pass / one recurring tray-focus timeout (`/tmp/sec009-display-checkpoint-main.log`), not green. GitHub readback last failed at 11:44 Berlin on September 10 with a TLS handshake timeout; neither branch has new publication/merge evidence. M3 remains active, with all capability and final-platform gates intact.
+
+### CAP-001 dependency
+
 **[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Last verified published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. Local runtime checkpoints: `8a58de40` native environment approval, `894df496` failed-removal UI and `496e636a` background destination handling. `f721bf5c` repairs the tray-test focus prerequisite; its clean local coverage gate passes. Publishing failed during TLS negotiation; bounded retries/readbacks also timed out. Verify the remote before publishing again; no merge is authorized while these gates remain open.
 
 Implemented on the draft branch:
@@ -43,7 +55,7 @@ Implemented on the draft branch:
 - Failed removal retains the account, stops the loading indicator and exposes a bounded boolean failure state, not raw cleanup errors. The localized shell error offers exact-account removal retry rather than reload. Native and React regression tests fail before the fix and pass after it.
 - Background environment changes preserve a selected account's missing-view error state instead of throwing after saving the approved destination. Cross-origin fixture tests verify replacement authority and exact-session retention; retaining the old origin deliberately fails the target and is restored.
 
-Next work, without creating overlapping plan items:
+Remaining CAP-001/dependent work, without creating overlapping plan items:
 
 1. Continue main-owned destination/managed-policy and lifecycle audits, then publish and qualify the local follow-ups. The tray-focus repair now passes the clean full suite; retain native platform qualification rather than another unchanged local rerun. Resolve residual partition-directory disposition: browser-visible deletion across restart is proven locally, but raw Chromium directories remain. Do not blindly remove a live partition or the default user-data directory.
 2. Qualify PR #47 on its final head. All three expanded platform account gates passed at `23fb964b`; the earlier macOS timeout did not recur. Authenticated E2E is draft-skipped, not waived. Diagnose any recurring failure from its actual stage; do not increase deadlines without evidence.

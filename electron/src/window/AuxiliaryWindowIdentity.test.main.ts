@@ -104,6 +104,45 @@ describe('auxiliary window identity', () => {
   });
 
   for (const kind of ['about', 'proxy-prompt'] as const) {
+    it(`[characterization][SEC-010] renders ${kind} relative resources in its document`, async () => {
+      ipcMain.handle(PROXY_PROMPT_LOCALE_READ_CHANNEL, () => ({}));
+      const window = await (kind === 'about' ? AboutWindow : ProxyPromptWindow).showWindow(new ViewIdentityRegistry());
+      windows.push(window);
+      // About disables page JavaScript; inspect DOM through the test debugger.
+      const debuggerApi = window.webContents.debugger;
+      debuggerApi.attach('1.3');
+      const inspect = async (expression: string) => {
+        const {result, exceptionDetails} = await debuggerApi.sendCommand('Runtime.evaluate', {
+          expression,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        assert.strictEqual(exceptionDetails, undefined, JSON.stringify(exceptionDetails));
+        return result.value;
+      };
+      try {
+        const styles = await inspect(`Array.from(document.styleSheets, sheet => ({
+        path: new URL(sheet.href).pathname,
+        rules: sheet.cssRules.length
+      }))`);
+        assert.strictEqual(styles.length, 1);
+        assert.ok(styles[0].path.endsWith(`/css/${kind}.css`));
+        assert.ok(styles[0].rules > 0, 'stylesheet must be applied, not merely present as a link');
+        if (kind === 'about') {
+          const logo = await inspect(`new Promise((resolve, reject) => {
+          const image = document.querySelector('#logo');
+          const loaded = () => resolve({width: image.naturalWidth, height: image.naturalHeight});
+          if (image.complete && image.getAttribute('src')) { loaded(); return; }
+          image.addEventListener('load', loaded, {once: true});
+          image.addEventListener('error', () => reject(new Error('Relative logo failed to load')), {once: true});
+        })`);
+          assert.deepStrictEqual(logo, {width: 256, height: 256});
+        }
+      } finally {
+        debuggerApi.detach();
+      }
+    });
+
     it(`[security-target][SEC-008] explicitly cancels unknown ${kind} requests and serves its own stylesheet`, async function () {
       this.timeout(10_000);
       ipcMain.handle(PROXY_PROMPT_LOCALE_READ_CHANNEL, () => ({}));
