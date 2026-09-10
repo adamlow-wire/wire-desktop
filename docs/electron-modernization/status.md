@@ -96,6 +96,17 @@ CAP-002's native navigation/SSO and E2EI transport fixtures pass 2/2 locally; di
 
 M3 still requires production account cutover; custom-backend/managed destination policy; SEC-009 allow/deny user-flow/platform acceptance; SEC-010 local protocol; certificate exception behavior; deep-link/single-instance parity; separate live SSO and E2EI enrolment/renewal evidence; and final cross-platform package/authenticated E2E/review audit. Signed installer/update and external release review stay under their M4/M5 owners.
 
+## SEC-010 bounded source review (2026-09-10)
+
+Reviewed candidate `2ce86631` against its CAP-001 base `a4ce662c`: the seven-entry resource map, response/registration modules, normal/proof startup composition, shell/About/proxy identity and navigation bindings, new protocol/CSP/product tests, and CI registration. No blocking defect identified in this reviewed protocol boundary; this is a source review, not final-head PR approval or independent security review.
+
+- Renderer paths never become filesystem paths: only role-matched fixed assets are joined to the trusted application directory. Unknown/write requests fail closed; read errors produce generic 500 responses; HEAD has no body.
+- CSP, MIME/nosniff, no-store and pre-ready minimal scheme privileges are explicit. The CSP test loads an ordinary script, not a debugger-only eval probe. Its extra resource is test-only.
+- Session-specific handlers preserve narrower auxiliary roles. Exact registered document URL, native sender/frame and session checks remain essential: a shared custom scheme or JavaScript URL `origin` alone is not local-document authorization.
+- The migration reader remains script-disabled and conditional on a missing versioned profile. Normal application windows use the new scheme; proof startup has a separate mutually exclusive protocol path.
+- Packaging filters do not intentionally exclude the seven assets, but source inspection is not packaged execution. Existing retained logs show Linux product 2/2 and correct-base diff coverage 80.99% statements / 100% security branches; these were not rerun during this read-only review.
+- ADR 0003 remains proposed. Hosted/platform qualification, reconciliation with the permission candidate and final-head review are still required; do not repeatedly count this same source review as new progress.
+
 ## Maintainer decisions / external prerequisites
 
 - Secure storage: enable an unlocked Linux keyring, provide a Mac test environment, or use hosted runners once available. This is **not code signing**.
@@ -103,6 +114,8 @@ M3 still requires production account cutover; custom-backend/managed destination
 - Q-005: retain an exact-certificate/hostname/account-session restart-cleared override, or remove manual overrides. Chromium errors remain denied either way.
 - Display phase boundary: CAP-003 assigns sharing migration to M4, while later SEC-009 notes treated its chooser as an M3 blocker. Maintainer clarification remains pending; no silent scope reduction.
 - GitHub: latest supported API read on September 10 at 15:31 CEST again failed TLS negotiation after ten seconds. The installed `gh pr view` does not support `headRefOid`; use `gh api repos/adamlow-wire/wire-desktop/pulls/47 --jq '{state,draft,head: .head.sha}'` for readback. A previous bounded read through the configured SSH remote also timed out without returning refs. Remote state is unverified; no publication/merge is claimed.
+
+The subsequent unauthenticated `curl --head --connect-timeout 5 --max-time 10 https://api.github.com` also ended with SSL connection timeout (exit 28), so this is not demonstrated to be a `gh`-only or credential failure. A fresh D-Bus service-owner query again returned false for `org.freedesktop.secrets`. Both diagnostics are terminal; no hosted or local test run is currently being watched.
 
 ## Durable history and operating rules
 
