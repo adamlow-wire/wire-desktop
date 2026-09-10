@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.21
+revision: 1.5.22
 status: draft
 updated: 2026-09-10
 owners:
@@ -445,7 +445,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Grants bind permission type to authorized origin, view, account, and user flow.
   - Main-frame and subframe behavior is defined.
   - Allowed and denied cases are tested on supported platforms.
-- Evidence: Native account cutover currently installs deny-all request/check handlers. Separate dependent branch `sec/SEC-009-account-permissions-2026-09-10` starts from CAP-001 `a4ce662c` with real-runtime characterization; no grant implementation or platform acceptance is claimed. Exact-version request/check contracts are in [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
+- Evidence: The dependent branch `sec/SEC-009-account-permissions-2026-09-10` (based on CAP-001 `a4ce662c`) now composes account-scoped request/check policy, document revocation and consent cancellation. Fake-device media allow/deny, native notification query/result propagation and readiness/menu routing have local sensitivity-proven tests. A bounded native consent provider exists but is not production-activated; production remains deny-all. Real native prompt/platform acceptance, display capture and final-head qualification remain open. See [current validation and gaps](./status.md) and proposed DEC-009; acceptance is unchanged. Exact-version contracts: [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
 
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
@@ -890,6 +890,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.22 | 2026-09-10 | Codex | Reconciled SEC-009 implementation evidence for native policy/session composition, cancellation, fake media and notification routing/readiness; retained production denial and all platform/display acceptance gates | SEC-009, DEC-009, INV-006 |
 | 1.5.21 | 2026-09-10 | Codex | Recorded proposed main-owned consent/document-scoped grant ADR and sensitivity-tested unwired policy; production stays deny-all and permission integration/platform gates remain open | SEC-009, DEC-009, INV-006 |
 | 1.5.20 | 2026-09-10 | Codex | Started SEC-009 on a separate dependent branch with real native permission callback characterization; retained deny-all and all existing acceptance gates while consent/grant policy is designed | SEC-009, INV-006 |
 | 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |

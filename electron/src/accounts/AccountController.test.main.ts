@@ -161,6 +161,24 @@ describe('production account controller integration', () => {
     assert.equal(secondSend.callCount, 1);
   });
 
+  it('[security-target][SEC-009] binds readiness and notification retry to the owning selected account', async () => {
+    const ready = spy(views, 'markReady');
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const firstSend = spy(first, 'send');
+    const secondSend = spy(second, 'send');
+    await controller.receive(identity(first), {type: 'loaded'});
+    assert.deepEqual(ready.args, [[records[0].id]]);
+    await controller.menuAction(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    assert.deepEqual(firstSend.args, [[EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION]]);
+    assert.equal(secondSend.callCount, 0);
+    await controller.select(records[1].id);
+    await controller.receive(identity(second), {type: 'loaded'});
+    await controller.menuAction(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    assert.deepEqual(secondSend.args, [[EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION]]);
+    assert.equal(firstSend.callCount, 1);
+  });
+
   it('[regression][CAP-001] applies each native edit shortcut only to the selected account', async () => {
     const methods = ['copy', 'cut', 'paste', 'redo', 'selectAll', 'undo'] as const;
     const first = views.get(records[0].id);

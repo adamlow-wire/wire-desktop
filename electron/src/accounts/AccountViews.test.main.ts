@@ -18,7 +18,7 @@
  */
 
 import {app, BrowserWindow, WebContents, WebContentsView} from 'electron';
-import {stub} from 'sinon';
+import {spy, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 import {randomUUID} from 'crypto';
@@ -197,6 +197,45 @@ describe('main-owned native account views', () => {
     await contents.loadURL(`${origin}/replacement`);
     assert.equal(await request(), 'denied');
     assert.equal(prompts, 2);
+  });
+
+  it('[security-target][SEC-009] initiates notifications only for a ready selected eligible document', async () => {
+    await views.dispose();
+    let eligible = false;
+    views = new AccountViews({
+      ...options(),
+      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {canPrompt: () => eligible, ask: async () => false},
+    });
+    const first = record();
+    const second = record();
+    const foreground = await views.create(first, origin);
+    const background = await views.create(second, origin);
+    const firstSend = spy(foreground, 'send');
+    const secondSend = spy(background, 'send');
+    views.select(first.id);
+    assert.equal(firstSend.callCount, 0);
+    views.markReady(first.id);
+    views.markReady(second.id);
+    assert.equal(firstSend.callCount, 0);
+    eligible = true;
+    window.emit('focus');
+    assert.deepEqual(firstSend.firstCall.args, [EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION]);
+    assert.equal(secondSend.callCount, 0);
+    views.markReady(first.id);
+    views.select(first.id);
+    window.emit('focus');
+    assert.equal(firstSend.callCount, 1);
+    views.select(second.id);
+    assert.equal(secondSend.callCount, 1);
+    await foreground.loadURL(`${origin}/replacement`);
+    views.select(first.id);
+    assert.equal(firstSend.callCount, 1);
+    views.markReady(first.id);
+    assert.equal(firstSend.callCount, 2);
+    await views.close(first.id);
+    window.emit('focus');
+    assert.equal(secondSend.callCount, 1);
   });
 
   it('[security-target][SEC-009] defaults to denial without consent or without the permission capability', async () => {
