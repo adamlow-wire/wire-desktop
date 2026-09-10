@@ -683,6 +683,9 @@ describe('production account controller integration', () => {
     assert.equal(first.isDestroyed(), true);
     assert.equal(state.snapshots().length, 2);
     assert.equal(state.get(records[0].id).userID, 'first');
+    assert.equal(controller.snapshots()[0].isLoading, false);
+    assert.equal(controller.snapshots()[0].removalFailed, true);
+    assert.equal(controller.snapshots()[0].loadError, undefined);
     assert.equal(views.has(records[1].id), true);
     options.clearData = clearData;
     await controller.remove(records[0].id);

@@ -74,6 +74,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-001 removal failure: native regression reproduces indefinite loading after cleanup rejects. The shell now receives only a boolean failure flag and offers exact-account removal retry, leaving the profile record intact and not presenting reload as cleanup retry. The React target fails before implementation and passes after it; schema tests accept the boolean and reject strings. This does not change the data-deletion scope or establish final platform qualification.
+
 CAP-001 environment approval: seven local native tests protect exact-candidate preservation, owner binding, localized canonical-origin display, cancellation and invalid/closed-owner rejection. Changing the dialog default to Connect fails the characterization test. Dialog presentation is stubbed; actual platform presentation and complete programmatic destination policy are not established by these tests.
 
 CAP-001 add/retry and shell controls: a real native regression detects old-account content underneath a failed new selection; the fix hides it while retaining the old account and verifies retry/switch-back behavior. Renderer tests cover current-snapshot selection, fail-closed profile bootstrap and keyboard native-menu focus, including rejection and disconnected-target paths. Wrong-account/focus perturbations fail their targets. Clean aggregate diff coverage now passes locally; this does not establish final platform or broader CAP-001 acceptance.

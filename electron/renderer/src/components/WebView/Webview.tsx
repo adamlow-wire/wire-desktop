@@ -53,7 +53,25 @@ const Webview = ({account}: {account: Account}) => {
   return (
     <>
       <LoadingSpinner visible={account.visible} isLoading={!!account.isLoading} />
-      {webviewError && (
+      {account.removalFailed && (
+        <div className={`Webview${account.visible ? '' : ' hide'}`} data-accountid={account.id}>
+          <ContainerSM centerText verticalCenter data-uie-name="status-account-removal-error">
+            <H1 center>{getText('promptError')}</H1>
+            <Text block center>
+              {getText('wrapperRemoveAccount')}
+            </Text>
+            <TextLink
+              block
+              center
+              data-uie-name="do-retry-account-removal"
+              onClick={() => void window.wireAccounts.remove(account.id).catch(console.error)}
+            >
+              {getText('webviewErrorRetryAction')}
+            </TextLink>
+          </ContainerSM>
+        </div>
+      )}
+      {webviewError && !account.removalFailed && (
         <div
           className={`Webview${account.visible ? '' : ' hide'}`}
           data-accountid={account.id}

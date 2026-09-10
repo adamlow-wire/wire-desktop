@@ -110,6 +110,15 @@ describe('[regression][CAP-001] native account shell slot', () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it('retries failed removal without reloading the account or exposing raw cleanup errors', async () => {
+    render({removalFailed: true, isLoading: false});
+    expect(container.querySelector('[data-uie-name="status-account-removal-error"]')).not.toBeNull();
+    const retry = container.querySelector<HTMLElement>('[data-uie-name="do-retry-account-removal"]')!;
+    await act(async () => retry.click());
+    expect(remove).toHaveBeenCalledWith(account.id);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   it('shows the configuration screen without creating renderer-owned remote content', () => {
     history.replaceState({}, '', '/?noUrlConfigured=true');
     render();

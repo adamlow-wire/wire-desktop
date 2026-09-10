@@ -35,6 +35,7 @@ export type AccountSnapshot = Readonly<
     canCancel: boolean;
     isLoading?: boolean;
     loadError?: string;
+    removalFailed?: boolean;
   }
 >;
 

@@ -251,6 +251,7 @@ describe('account control IPC', () => {
   it('[security-target][CAP-001] rejects invalid or private snapshot responses', async () => {
     const {invoke, control, state} = fixture();
     const valid = state.snapshots()[0];
+    assert.equal(isAccountSnapshots([{...valid, removalFailed: true}]), true);
     for (const invalid of [
       null,
       [],
@@ -260,6 +261,7 @@ describe('account control IPC', () => {
       [{...valid, conversationJoinData: {code: 'secret', key: 'secret', domain: ''}}],
       [{...valid, canCancel: 'true'}],
       [{...valid, isLoading: 'true'}],
+      [{...valid, removalFailed: 'true'}],
       [{...valid, loadError: 'x'.repeat(257)}],
       [{...valid, id: 'invalid'}],
       [{...valid, name: 'x'.repeat(4097)}],

@@ -57,6 +57,7 @@ export class AccountController {
   private desktopPending: Promise<void> = Promise.resolve();
   private desktopCount = 0;
   private readonly failures = new Set<string>();
+  private readonly removalFailures = new Set<string>();
   private readonly menuQueue = new Map<string, {action: string; args: unknown[]}[]>();
   private readonly ready = new Set<string>();
 
@@ -68,8 +69,10 @@ export class AccountController {
         ...account,
         isLoading:
           !this.failures.has(account.id) &&
+          !this.removalFailures.has(account.id) &&
           (!this.options.views.has(account.id) || this.options.views.get(account.id).isLoading()),
         loadError: this.failures.has(account.id) ? 'Account loading failed.' : undefined,
+        removalFailed: this.removalFailures.has(account.id),
       }),
     );
 
@@ -366,6 +369,7 @@ export class AccountController {
     const account = this.options.state.get(id);
     if (!this.options.views.has(id)) {
       this.failures.delete(id);
+      this.removalFailures.delete(id);
       try {
         await this.options.views.create(account, this.options.destination(account));
       } catch (error) {
@@ -379,9 +383,15 @@ export class AccountController {
     const account = this.options.state.get(id);
     this.resetMenu(id);
     const session = this.options.views.has(id) ? this.options.views.get(id).session : this.options.session(account);
-    await this.options.views.close(id);
-    await this.options.clearData(account, session);
-    this.options.state.remove(id);
+    try {
+      await this.options.views.close(id);
+      await this.options.clearData(account, session);
+      this.options.state.remove(id);
+    } catch (error) {
+      this.removalFailures.add(id);
+      throw error;
+    }
+    this.removalFailures.delete(id);
     this.failures.delete(id);
     const selected = this.snapshots().find(record => record.visible)!;
     await this.ensureView(selected.id);

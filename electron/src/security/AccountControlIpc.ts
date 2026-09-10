@@ -74,6 +74,7 @@ const snapshotSchema = Joi.object({
   canCancel: Joi.boolean().required(),
   isLoading: Joi.boolean(),
   loadError: Joi.string().max(256),
+  removalFailed: Joi.boolean(),
   name: Joi.string().allow('').max(4096),
   picture: Joi.string()
     .allow('')

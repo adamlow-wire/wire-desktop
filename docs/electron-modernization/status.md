@@ -31,7 +31,7 @@ M0, M1 and M2 exit gates are complete. **M3 is not complete: approximately 65%**
 
 ## Active work and next executable steps
 
-**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. The current follow-up localizes and validates native environment approval.
+**[Draft PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), CAP-001**, targets integration directly. It is not ready to merge. Published checkpoint `23fb964b` passed build/test, lint, analysis and all three platform package/account gates. Local checkpoint `8a58de40` localizes and validates native environment approval; its push failed during TLS negotiation. The current follow-up fixes failed-removal UI state. Verify the remote before publishing; no merge is authorized while these gates remain open.
 
 Implemented on the draft branch:
 
@@ -40,6 +40,7 @@ Implemented on the draft branch:
 - Removal revokes/closes the exact view before session and strict log cleanup; errors retain the profile record for retry. Browser data, HTTP credentials and connections are cleared on the target session only. The obsolete production deletion binder/capability is retired; a read-only handler check verifies absence.
 - Failed account addition hides old content instead of showing it under the new selection; retry and switching back preserve identities. Bootstrap and sidebar tests protect named selection and keyboard-menu focus.
 - Native environment approval reuses existing translations, shows the canonical origin without query/fragment, preserves the exact approved candidate and defaults to cancellation. Invalid destinations and closed owners are rejected; queued controller authority is still rechecked after approval.
+- Failed removal retains the account, stops the loading indicator and exposes a bounded boolean failure state, not raw cleanup errors. The localized shell error offers exact-account removal retry rather than reload. Native and React regression tests fail before the fix and pass after it.
 
 Next work, without creating overlapping plan items:
 
@@ -52,19 +53,20 @@ Next work, without creating overlapping plan items:
 
 | Check | Latest local result | Evidence |
 | --- | --- | --- |
-| Electron main | 739 passing, zero pending | `/tmp/cap001-environment-full-main.log` |
+| Electron main | Removal follow-up rerun 739 passing; prior run 738 passing / one native tray-focus prerequisite failure; isolated unchanged tray tests 2 passing | `/tmp/cap001-removal-full-main-repeat.log`, `/tmp/cap001-removal-full-main.log`, `/tmp/cap001-removal-tray-check.log` |
 | Electron renderer | 4 passing | `/tmp/cap001-final-renderer-coverage.log` |
-| React | 111 passing, 27 suites | `/tmp/cap001-final-react-coverage.log` |
+| React | 112 passing, 27 suites | `/tmp/cap001-removal-full-react.log` |
 | Changed-code coverage | 718/897 statements **80.04%**, required 80%; security branches 15/15 **100%**, required 90% | `/tmp/cap001-final-diff.log`, runtime head `f6604dd5` |
-| Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-environment-*-types.log` |
-| Changed-source lint/builds | Pass | `/tmp/cap001-environment-lint.log`, `/tmp/cap001-environment-build.log` |
-| Rebuilt lifecycle and metadata/restart | **2/2 in 9.2 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-environment-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
+| Application and Mocha types | Both pass as separate commands | `test:types`, `build:ts:tests`; `/tmp/cap001-removal-*-types.log` |
+| Changed-source lint/builds | Pass | `/tmp/cap001-removal-lint.log`, `/tmp/cap001-removal-build.log` |
+| Rebuilt lifecycle and metadata/restart | **2/2 in 12.0 seconds**, Linux; earlier restart-readiness checkpoint 6/6 repetitions | `/tmp/cap001-removal-product.log`, `/tmp/cap001-restart-readiness-repeated.log` |
 | Standalone Playwright types | Nine known unrelated errors, not green | Two `window.wire` declarations and seven generated-client body types; `/tmp/cap001-restart-readiness-types.log` |
 
 Coverage was regenerated from a clean directory after an interrupted process and its temporary logs disappeared. Partial output was discarded. Local `--project=macOS` is a Playwright label and remains **Linux evidence**. Temporary logs are diagnostic aids, not substitutes for durable final-head CI links.
 
 Recent sensitivity/diagnosis:
 
+- Removal failure previously published `isLoading: true` after the view was closed and cleanup rejected; the native regression fails there. The new shell error/retry test also fails before implementation. Focused native tests pass 46/46; React passes 112/112 and application/Mocha types plus changed-source lint pass. The first full main run fails only at the unchanged tray test's `isFocused()` prerequisite; isolated tray tests pass, followed by a full unchanged rerun at 739/739. The failure is retained, not waived; no focus assertion or deadline changed. Local logs can disappear on environment resumption; recorded results are not claims that temporary files remain available.
 - Environment approval: extracted baseline passed two characterization tests and failed three localization/validation targets. Seven final tests pass; switching the native dialog default from Cancel to Connect produces the intended assertion failure, then is restored. Dialogs are stubbed. This is not evidence that the existing controller accepted unsafe URLs. `/tmp/cap001-environment-before.log`, `/tmp/cap001-environment-sensitivity.log`.
 - Old cleanup retained HTTP credentials. Six native tests cover credentials, cookies, local storage, IndexedDB, Cache Storage, failures and retries; omitting storage clearing causes three failures.
 - Product restart tests seed both sessions and verify removed/retained data after actual app exit/relaunch. A cookies/cache-only cleanup leaves target local storage/IndexedDB and fails the new assertions. Persistent cookies have explicit expiries; session cookies are not expected to survive exit.
