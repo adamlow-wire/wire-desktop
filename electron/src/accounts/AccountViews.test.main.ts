@@ -37,7 +37,10 @@ import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArgument
 import {ACCOUNT_PERMISSION_CAPABILITY} from '../security/AccountPermissionPolicy';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
-describe('main-owned native account views', () => {
+describe('main-owned native account views', function () {
+  // These integrate real renderer startup, native storage and teardown. They are
+  // not two-second unit benchmarks; retain a finite budget on every platform.
+  this.timeout(10000);
   let server: Server;
   let origin: string;
   let redirectUrl: string;
@@ -238,7 +241,9 @@ describe('main-owned native account views', () => {
     assert.equal(secondSend.callCount, 1);
   });
 
-  describe('pending consent transitions', () => {
+  describe('pending consent transitions', function () {
+    // Native setup has its own budget; consent/abort assertions keep two seconds.
+    this.timeout(2000);
     let cancellation: AbortSignal;
     let answer: (value: boolean) => void;
     let requested: Promise<void>;
