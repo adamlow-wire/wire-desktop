@@ -19,6 +19,10 @@ blockers:
 
 ## Current execution
 
+A compatibility/security-target fixture now launches the normal application executable from an external Node driver, using only an isolated loopback page and fresh profile. It checks main-owned account identity, the immutable configuration value and denied page Node globals without inspector access, injected preload, product test flags or relaxed fuses. The native/package workflow runs the packaged executable before and after a test-owned App-lock policy value is installed through the actual OS backend (Linux file, Windows per-user registry, macOS app defaults), then removes only that value. Existing policy is never overwritten. This covers backend delivery and restart, not MDM deployment or authenticated proxy behavior. Native platform/package results remain pending. Local driver qualification passes against the rebuilt development app; removing the actual configuration exposure fails the expected assertions and restoration passes. A false managed-value expectation also fails. Commands/logs are recorded in testing.md. Normal shutdown is covered separately by the account fixture; this external startup driver terminates only its own process tree during cleanup.
+
+PR #47 is now at `78231f74`, with explicit normal native-quit/exit assertions in the metadata fixture and metadata/restart added to its early platform gate after Windows worker-teardown failures at `b46b0858`. Reconcile those changes before publishing this candidate. No final-head gate is inherited.
+
 A fresh source review reproduced unsafe machine endpoint fallback after registry dependency/read failure: both new targets select the CLI URL instead of refusing it (`/tmp/m3-registry-fallback-before.log`). The separate failing baseline is `24cd61b4`. The implementation treats these failures as configured-invalid; thirteen focused reader/environment tests pass after restoring denial, and Mocha types/lint pass. Normal absence remains supported. The combined backend/central/IPC/reader group passes 47 cases. Temporarily restoring the old failure classification makes both new targets fail; restored denial passes both (`/tmp/m3-registry-fallback-sensitivity{,-restored}.log`). This is now a runtime security fix requiring full final-head platform and authenticated E2E gates, not a tests-only exception.
 
 This existing CAP-005 backend branch is reconciled with account head `b46b0858` while PR #47 qualifies. No new branch or PR is created. Its original backend tests and string-hive typing are preserved; a new native Windows registry test is prepared separately. It uses one random test-owned HKLM leaf, the real registry-js module and production configuration/destination functions; valid machine policy wins over user/CLI URLs, and foreign/invalid destinations reject before any dialog. Cleanup removes only that leaf. The Windows gate temporarily removes the actual builder guard, requires its specific assertion failure, restores the source, then requires the unchanged fixture to pass. Native Windows evidence is still pending. TypeScript/bundle, Mocha types, lint and 45 focused Linux native backend/configuration/IPC cases pass (`/tmp/m3-backends-{build,types,lint,native}.log`). Linux execution does not qualify the Windows-only case. Integration remains unchanged. Publish this scoped candidate only after the account dependency merges and its final base is reconciled.
@@ -27,7 +31,7 @@ M3 remains incomplete. Seven of sixteen work items are marked done; nine remain 
 
 [PR #48](https://github.com/adamlow-wire/wire-desktop/pull/48) merged into the existing CAP-001 branch as `8c64d2490b081df312ef1717d5551d82ecd37417` after substantive review and every applicable final-head check passed. Protected integration remains `d94253c9`; the production cutover is not merged there yet. Managed destination baseline `6d7b2aa2` is preserved as a separate cherry-pick, followed by the reviewed enforcement delta from `3b906fe7` with current documentation reconciled.
 
-Next: qualify the combined production-account cutover in existing [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), including the reconciled managed-destination policy, against protected integration. Require native/package checks on Windows/macOS/Linux and full authenticated Windows/macOS E2E/report on its final head. Then integrate the existing SEC-010 protocol candidate, followed by prepared lifecycle and CAP-005 work. Do not create more parallel branches or merge unqualified candidates.
+Next: qualify the combined production-account cutover in existing [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), including the reconciled managed-destination policy, against protected integration. Require native/package checks on Windows/macOS/Linux and full authenticated Windows/macOS E2E/report on its final head. Then integrate this CAP-005 fail-closed registry candidate, followed by SEC-010 protocol and lifecycle work. Do not create more parallel branches or merge unqualified candidates.
 
 ## Objective acceptance audit
 
@@ -58,7 +62,7 @@ Reviewed code head `f3d538cf0fa1999cb55b5f3e077ffc80aa53e835`, base `a4ce662c23e
 
 ## Prepared integration deltas
 
-No new branches were created for preparation. Temporary detached qualification worktrees were removed; the root and protected MSI worktree remain.
+No new branches were created for preparation. This existing backend branch uses `/tmp/m3-cap005-packaged`; preserve it and the protected MSI worktree.
 
 | Existing candidate | Reconciled local evidence and next use |
 | --- | --- |

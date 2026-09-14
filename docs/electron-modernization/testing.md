@@ -124,3 +124,18 @@ Every PR must pass its focused characterization/security tests and the protected
 ### CAP-005 native Windows machine destination
 
 The existing backend candidate adds `WindowsMachineDestination.test.main.ts`. On native Windows, run `yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox`. It requires rights to create its unique `HKLM\SOFTWARE\Wire\M3-destination-test-<uuid>` leaf, removes only that leaf in `finally`, and never changes an installed product value. It uses the real pinned registry dependency and production policy functions; no actual server connection or certificate trust change occurs. The platform workflow must first prove the test detects a temporary removal of `assertManagedAccountDestination(candidate, managed)`, verify the specific foreign-destination assertion fails, restore the source, then run the passing target. Hosted Windows evidence remains required; Linux does not register this Windows-only case.
+
+## CAP-005 packaged configuration fixture (September 14)
+
+`bin/test-tools/packaged-account-smoke.cjs` is a compatibility/security-target fixture for DCP-013 and page Node denial. CI passes the actual packaged executable with unchanged fuses. It uses normal account navigation to an isolated nonce-bearing loopback page; no debugging port, inspector, injected preload or production test mode is involved. It asserts an account ID, the compatibility bridge, immutable exact App-lock configuration, absent page Node globals and top-level account context. A second fresh launch reads a real test-owned OS policy value, proving the configuration changes on restart. Windows/macOS launches are restricted to disposable GitHub Actions runners; Linux profile/XDG state is isolated. Existing machine policy is not overwritten; workflow traps/finally remove only the created value. This is backend compatibility, not MDM enrollment/deployment or proxy qualification. Cleanup terminates only the fixture's child tree and does not claim graceful shutdown.
+
+Local fixture qualification (development binary, **not packaged or macOS/Windows evidence**):
+
+```sh
+yarn build:ts && yarn bundle
+env -u ELECTRON_RUN_AS_NODE node bin/test-tools/packaged-account-smoke.cjs /home/sysop/wire/wire-desktop/node_modules/electron/dist/electron .
+node --check bin/test-tools/packaged-account-smoke.cjs
+node_modules/.bin/eslint --no-ignore bin/test-tools/packaged-account-smoke.cjs
+```
+
+The unchanged production bridge passes. Temporarily renaming the real `desktopAppConfig` exposure, rebuilding and rerunning fails immutable/configuration/version assertions. Restore the preload, rebuild and the same fixture passes. Separately, `M3_EXPECT_APPLOCK_OVERRIDE=true` on the local unmanaged fixture fails the exact override assertion without modifying host policy. Logs: `/tmp/m3-packaged-driver-{local,sensitivity,restored,value-sensitivity,lint}.log`. Native Windows/macOS/Linux package runs remain required before merge. No temporary production mutation is committed.

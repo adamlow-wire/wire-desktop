@@ -103,9 +103,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration'
+            xvfb-run yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt'
           else
-            yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration'
+            yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt'
           fi
       - name: Test product account storage and restart
         shell: bash
@@ -145,6 +145,19 @@ jobs:
           test -n "$artifact"
           chmod +x "$artifact"
           xvfb-run "$artifact" --appimage-extract-and-run --no-sandbox --version
+          executable=$(find wrap/dist -maxdepth 2 -type f -name '*-desktop' -print -quit)
+          test -n "$executable"
+          helper="$(dirname "$executable")/chrome-sandbox"
+          test -f "$helper"
+          test ! -L "$helper"
+          sudo chown root:root "$helper"
+          sudo chmod 4755 "$helper"
+          xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          test ! -e /etc/wire/managed.json
+          sudo mkdir -p /etc/wire
+          trap 'sudo rm -f /etc/wire/managed.json' EXIT
+          printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
+          M3_EXPECT_APPLOCK_OVERRIDE=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Smoke-test Windows package
         if: runner.os == 'Windows'
         shell: pwsh
@@ -155,6 +168,21 @@ jobs:
           if (-not $app) { throw 'No packaged application executable found.' }
           & $app.FullName --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node bin/test-tools/packaged-account-smoke.cjs $app.FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $policy = 'HKCU:\SOFTWARE\Policies\Wire'
+          $existing = Get-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+          if ($null -ne $existing) { throw 'Refusing to replace existing App-lock policy.' }
+          New-Item -Path $policy -Force | Out-Null
+          try {
+            New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
+            $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
+            node bin/test-tools/packaged-account-smoke.cjs $app.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Managed package smoke failed.' }
+          } finally {
+            Remove-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+            Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
+          }
       - name: Smoke-test macOS package
         if: runner.os == 'macOS'
         shell: bash
@@ -162,6 +190,17 @@ jobs:
           executable=$(find wrap/build -maxdepth 6 -type f -path '*.app/Contents/MacOS/*' -perm -111 -print -quit)
           test -n "$executable"
           "$executable" --version
+          node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          bundle="${executable%/Contents/MacOS/*}"
+          domain=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$bundle/Contents/Info.plist")
+          test -n "$domain"
+          if defaults read "$domain" applockOverride >/dev/null 2>&1; then
+            echo 'Refusing to replace existing App-lock preference.' >&2
+            exit 1
+          fi
+          trap 'defaults delete "$domain" applockOverride >/dev/null 2>&1' EXIT
+          defaults write "$domain" applockOverride -bool true
+          M3_EXPECT_APPLOCK_OVERRIDE=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Upload development artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
