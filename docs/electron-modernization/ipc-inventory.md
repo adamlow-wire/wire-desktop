@@ -45,3 +45,5 @@ CAP-005 automatic proxy authentication has no renderer IPC entry point. Native c
 ## SEC-010 local document migration
 
 The existing candidate moves shell, About and proxy documents to fixed `wire-app://shell` URLs in their original sessions. Channels, capabilities and schemas are unchanged. Authorization requires exact document URL and native sender/frame/session identity; a shared scheme or origin alone is insufficient. Native auxiliary fixtures cover correct-capability access and wrong-capability denial. The current composition includes the CAP-005 host/port credential policy and tested native event-to-prompt binding. Final-head hosted qualification remains required.
+
+SEC-010 accepted through PR #50 (integration18235a5a): shell/About/proxy exact document identities now use the finite wire-app scheme. Existing capability names, sender/session authorization and main-selected preloads are unchanged. No new privileged IPC or renderer-selected filesystem path is exposed. Final native/package and authenticated E2E/report evidence is recorded in the plan and accepted DEC-010.

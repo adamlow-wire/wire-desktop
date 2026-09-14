@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-14
 milestone: M3
-active_work_item: SEC-010
-state: qualifying-local-protocol-dependencies
+active_work_item: CAP-006
+state: qualifying-lifecycle-final-integration
 integration_branch: integration/electron-modernization
-integration_head_commit: 4f04a8a0700d388a9b1199e5905df5f2bc70b72e
+integration_head_commit: 18235a5a646d24ee936d040d7a400980f912ee98
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: sec/SEC-010-local-protocol-2026-09-10
-next_work_item: CAP-006
+active_branch: cap/CAP-006-second-instance-2026-09-10
+next_work_item: CAP-005
 blockers:
   - live-sso-e2ei-provider-configuration-pending
   - certificate-exception-policy-pending
@@ -19,15 +19,15 @@ blockers:
 
 ## Current execution
 
-Protected integration is `4f04a8a0700d388a9b1199e5905df5f2bc70b72e`, after reviewed PR #49 passed every final-head gate. The exact head66f9d9db passes build/coverage, lint, analysis, Windows/macOS/Linux native/package qualification and authenticated Windows/macOS E2E/report:43 initial passes per platform, no retries, skips or worker errors. Native macOS arm64 packaging verifies architecture, preserved fuses and ad-hoc seal, then passes ordinary and managed/authenticated-proxy startup. Durable links and the substantive review are in [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49).
+Protected integration is `18235a5a646d24ee936d040d7a400980f912ee98`, after [protocol PR #50](https://github.com/adamlow-wire/wire-desktop/pull/50) merged with substantive review and all final-head gates. The merged tree equals reviewed4f867021. [Authenticated E2E/report34857460712](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857460712) completes43 cases/platform: macOS43 initial; Windows41 initial/two retry passes (registration and multi-account notifications), no skips or worker errors. Build/lint/analysis and all native/package platforms pass. One Windows native media-fixture setup timeout passes on an unchanged-head retry; original failure remains recorded.
 
-**Eleven of sixteen M3 work items are done; five remain open.** This is an item count, not a weighted percentage. SEC-008 now satisfies all four criteria through integrated navigation/popup/SSO/PiP/external policy and main-owned managed-destination approval, including unreadable registry denial. CAP-001, SEC-007 and SEC-009 retain their reviewed PR #47 closure. Electron remains **43.4.0**; no invariant or acceptance criterion is waived.
+**Twelve of sixteen M3 work items are done; four remain open.** SEC-010 and DEC-010 are now accepted; SEC-008 retains its PR #49 closure. Electron remains **43.4.0** and no security invariant or acceptance criterion is waived.
 
-Existing protocol [PR #50](https://github.com/adamlow-wire/wire-desktop/pull/50) is being qualified against this actual integration base. It preserves seven fixed role-specific local resources, minimal scheme privileges, exact document/session identity, no-eval CSP and conditional script-disabled legacy import. Its prior821d3e69 preflight passes all fast/native checks; skipped authenticated E2E is not acceptance. The current integration composition requires every final-head gate, including authenticated E2E/report, before merge and SEC-010 closure.
+Next qualify existing lifecycle [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51) against this actual integration head. Its ordinary lock-loser fix preserves exact installed Squirrel handling and selected-account dispatch. Windows preflight exposed a fixture wrapper error: launch the actual Electron process.execPath, not Playwright's cmd.exe spawnfile. The corrected real second-process test passes in current Windows preflight; final package completion and every current integration-head gate, including authenticated E2E/report, remain required. Native cleanup fixture timing repairs preserve exact assertions and have mutation evidence. CAP-006/SEC-013 remain open until final acceptance.
 
-Then integrate existing lifecycle [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51), qualifying real second-process delivery and ordinary lock-loser exit for CAP-006/SEC-013 against the actual merged protocol head. Its native preflight exposed test body timing failures; sensitivity-proven fixture repairs preserve exact assertions and product behavior. Certificate callback [draft #52](https://github.com/adamlow-wire/wire-desktop/pull/52) passes all fast/native preflight gates independently; it does not resolve Q-005 global pinning-override policy. CAP-002's existing transport candidate remains available but cannot substitute for dedicated live SSO/OIDC/ACME enrolment and renewal evidence. The Q-005 product decision and Q-011 dedicated provider/access questions are pending; no response or permission is inferred.
+Existing CAP-005 [draft #52](https://github.com/adamlow-wire/wire-desktop/pull/52) atcb495e9d passes all fast/native preflight checks for certificate callback safety and proxy state publication after session setup. It still needs actual integration-base final checks and Q-005 certificate-policy resolution. CAP-002's existing07c9d449 transport candidate cannot substitute for the required dedicated live SSO/OIDC/ACME enrolment, restart and renewal checkpoint. Q-005 and Q-011 questions remain pending; no answer or access is inferred.
 
-Use the existing branches, retarget each next PR to protected integration, merge the actual integration head and require all applicable final-head checks under strict base protection. No new parallel branches are needed.
+Use the existing branches and strict current-base PR gates. Next executable work is final lifecycle qualification, followed by the existing CAP-005 slice and live identity acceptance when the required inputs arrive.
 
 ## Completed account cutover
 
@@ -48,7 +48,7 @@ The permission review reproduced unconsented thumbnail enumeration with an inert
 | --- | --- | --- |
 | SEC-008 | Done: PRs #38/#47/#49 integrate navigation/popup/SSO/PiP/external policy and fail-closed managed destination approval. Final49 native/package and authenticated gates pass. | No remaining M3 acceptance; live provider flows remain CAP-002. |
 | CAP-005 | PRs #16/#25/#31/#45 integrate immutable config, proxy prompt identity and download containment. Current existing branch fixes registry fallback and proxy session targeting. | Native Windows restored guard, all-platform backend/configuration/proxy package evidence and final PR gates; resolve Q-005 and integrate qualified certificate behavior. |
-| SEC-010 | PR #42 integrates no-eval CSP. Existing protocol branch now includes current account/CAP-005 dependencies. | Final-base native/package/CSP/migration/E2E qualification and scoped merge; preserve seven fixed resources and minimal scheme privileges. |
+| SEC-010 | Done: PR #50 merged18235a5a after reviewed final-head native/package and authenticated E2E/report gates. DEC-010 accepted. | No remaining M3 protocol criterion. |
 | CAP-006 | Existing lifecycle branch preserves short-profile real second-process delivery and prevents ordinary Windows lock losers from persisting stale settings/scheduling updates. | Native Windows exact-target delivery/exit and final scoped PR gates after dependencies integrate. |
 | SEC-013 | PRs #39/#38 integrate bounded parsing and external dispatch; #47 supplies main-owned delivery. | Close with CAP-006 valid/hostile startup/running/second-instance exact-account delivery evidence. |
 | CAP-002 | PR #43 integrates isolated SSO, one-use callback, scoped cookie transfer and backend verdicts. Existing `44f8a9ed` adds transport fixtures only. | Dedicated live SSO and OIDC/ACME E2EI enrolment, verified certificate/device state, restart, renewal/fallback, cancellation/provider failure and cross-account denial. Transport fixtures are insufficient. |
@@ -146,3 +146,29 @@ PR #49 final head66f9d9db passed [build/coverage](https://github.com/adamlow-wir
 Protocol qualification adopts only the sensitivity-proven native fixture repairs found in lifecycle preflight: ten-second aggregate account-controller bodies for multiple real view operations, and four independent secure-shell denial cases with unchanged two-second bodies, exact assertions and navigation delays. No product timeout, policy or retry changes. Skipping real account removal/cleanup fails the respective controller assertions; allowing the test-owned popup fails the split denial target. Restored local controller40 and secure-shell11 cases pass on the lifecycle composition; renew native qualification on this protocol composition. Evidence `/tmp/m3-controller-budget-{selection-sensitivity,cleanup-sensitivity,restored}.log` and `/tmp/m3-native-denial-split-{sensitivity,final}.log`.
 
 Current integration composition passes completed app build/bundle, Mocha types, changed-source lint,81 focused native cases and five actual storage/metadata/proxy product cases (15.0 seconds). Evidence: `/tmp/m3-protocol-integration-{build,types,lint,native,product}.log`. These are local Linux checks; hosted native/package and authenticated final-head gates remain required.
+
+## Lifecycle qualification history
+
+Lifecycle PR #51 is reconciled with protocol candidate4f867021 while its final checks run. Preflightba38c1a7 passes build/lint/analysis and macOS/Linux native/package gates, but Windows consistently fails the actual second-process delivery assertion across all three attempts: the secondary exits0 while the selected account remains on devices instead of account preferences. This is a functional failure, not a timing-budget failure. Preserve exact delivery/exit/account-count assertions and diagnose the actual Windows event/argv before changing behavior. Evidence [34852932003](https://github.com/adamlow-wire/wire-desktop/actions/runs/34852932003), Windows job104005141428, artifact10352651247, `/tmp/m3-ba38-windows-native.log`.
+
+Protected integration is `4f04a8a0700d388a9b1199e5905df5f2bc70b72e`, after reviewed PR #49 passed every final-head gate. The exact head66f9d9db passes build/coverage, lint, analysis, Windows/macOS/Linux native/package qualification and authenticated Windows/macOS E2E/report:43 initial passes per platform, no retries, skips or worker errors. Native macOS arm64 packaging verifies architecture, preserved fuses and ad-hoc seal, then passes ordinary and managed/authenticated-proxy startup. Durable links and the substantive review are in [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49).
+
+The Windows handoff diagnostic records only the test-owned primary/secondary argv/profile, delivered second-instance events, exit/signal and the last16KiB of child output. Assertions and deadlines remain unchanged. The fixture does not change production dispatch or grant permission. Qualify the diagnostic on actual Windows; do not infer a parser or timing cause from a successful secondary exit alone.
+
+The rebuilt diagnostic composition passes changed-source lint and the actual Linux two-process/storage/restart case (6.8 seconds); the primary receives the exact synthetic deep-link argv, the selected account changes correctly and the secondary exits0. Standalone Playwright types retain only the same nine existing generated/mock declaration errors, none in this fixture. Logs `/tmp/m3-second-instance-diagnostic-{build,lint,types,product}.log`. Windows diagnosis remains required.
+
+### Actual Windows second-process launcher
+
+Diagnostic1c919c2f [34857916192](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857916192), Windows job104022164711, records three identical failures: primary argv names Electron, but secondary spawnargv begins `C:\Windows\system32\cmd.exe`, exits0 and delivers no second-instance event. Playwright's process handle identifies its Windows wrapper. The fixture now asks the running primary for `process.execPath` and launches that exact Electron executable with unchanged argv/profile. No production lifecycle or parser change is justified by this fixture failure. Preserve exact selected-account delivery, zero exit and account count checks. `/tmp/m3-1c91-windows-native.log` retains the diagnosis. Linux native/product tests pass but package download returns HTTP504; macOS native/package passes.
+
+Protocol final head4f867021 passes build/lint/analysis and all three native/package gates. Its first Windows attempt timed out in the fake-media fixture's beforeEach at2000ms before a permission assertion ran; one unchanged-head job rerun104022719435 passes completely. Both attempts remain in [34857405317](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405317). Authenticated E2E/report34857460712 remains running; do not merge until it completes successfully.
+
+The corrected executable fixture passes completed TypeScript/bundle, changed-source lint and the real Linux two-process/storage/restart case (6.3 seconds). Standalone Playwright types retain the same nine prior errors outside this fixture. Original Windows1c919 failure provides the baseline; actual Windows qualification is required for the repair. Logs `/tmp/m3-second-instance-executable-{build,lint,types,product}.log`.
+
+### Native cleanup aggregate budget and current preflight gaps
+
+Lifecycle97223344 [34859128832](https://github.com/adamlow-wire/wire-desktop/actions/runs/34859128832) passes Linux native/package qualification. macOS job104026394143 passes172 cases but the exact-target localStorage/IndexedDB/CacheStorage case exceeds its implicit two-second body limit. That case opens four actual documents, seeds/clears/reads storage and verifies the unrelated session survives; it now has a finite ten-second aggregate body budget. Omitting target.clearData still fails the exact storage readback assertion; restored source passes all six cleanup cases (811ms), Mocha types and lint. No action, assertion, production timeout or policy changes. Logs `/tmp/m3-cleanup-budget-{sensitivity,restored,types,lint}.log`.
+
+Windows job104026393883 passes430 boundary cases but a popup-fixture beforeEach fails with ERR_NO_BUFFER_SPACE loading its loopback page. It never reaches the corrected second-process fixture, so Windows actual-Electron delivery remains unqualified. Preserve `/tmp/m3-972-windows-native.log` and `/tmp/m3-972-macos-native.log`; do not infer another dispatch defect. Next: integrate protocol #50 once authenticated E2E/report passes, merge its actual integration head into this existing branch, and require every final-head check including native Windows delivery and full authenticated E2E/report.
+
+Current lifecycle preflight [34861051677](https://github.com/adamlow-wire/wire-desktop/actions/runs/34861051677) at7d15a032 passes all three native/package platforms, including Windows job104033043104. Its diagnostic records the actual Electron executable delivering the exact synthetic deep-link argv to the primary, exit0/no signal, and all five product cases pass initially (35.2 seconds). This proves the fixture launcher correction; no production dispatch change was required. `/tmp/m3-7d15-windows-native.log` retains the evidence. The actual integration mergea4fceebe includes18235a5a with no runtime diff from7d15; a completed TypeScript/bundle rebuild passes (`/tmp/m3-lifecycle-integration-build.log`). Final integration-head hosted gates remain required.

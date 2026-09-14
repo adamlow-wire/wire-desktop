@@ -19,6 +19,7 @@
 
 import {_electron, expect, test} from '@playwright/test';
 
+import {spawn} from 'node:child_process';
 import {access, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
@@ -218,6 +219,68 @@ test(
         app.emit('open-url', {preventDefault() {}}, 'wire://preferences/devices');
       });
       await expect.poll(readLocations).toEqual(['#/preferences/account', '#/preferences/devices']);
+      if (process.platform !== 'darwin') {
+        // Windows/Linux receive argv from another process; macOS uses open-url.
+        const environment = {...process.env};
+        delete environment.ELECTRON_RUN_AS_NODE;
+        await app.evaluate(({app}) => {
+          const events: {argv: string[]; workingDirectory: string}[] = [];
+          Reflect.set(globalThis, '__m3SecondInstanceEvents', events);
+          app.on('second-instance', (_event, argv, workingDirectory) => {
+            events.push({argv, workingDirectory});
+          });
+        });
+        // Playwright's Windows child is cmd.exe; launch the app's actual Electron executable.
+        const executable = await app.evaluate(() => process.execPath);
+        let secondInstanceOutput = '';
+        const secondInstance = spawn(
+          executable,
+          ['.', `--env=${origin}`, `--user-data-dir=${profileDirectory}`, 'wire://preferences/account'],
+          {env: environment, stdio: ['ignore', 'pipe', 'pipe']},
+        );
+        for (const stream of [secondInstance.stdout, secondInstance.stderr]) {
+          stream?.on('data', data => {
+            secondInstanceOutput = (secondInstanceOutput + data.toString()).slice(-16384);
+          });
+        }
+        let launchError: Error | undefined;
+        secondInstance.once('error', error => {
+          launchError = error;
+        });
+        const closed = new Promise<void>(resolve => secondInstance.once('close', () => resolve()));
+        try {
+          await expect
+            .poll(() => ({error: launchError?.message, exit: secondInstance.exitCode}))
+            .toEqual({
+              error: undefined,
+              exit: 0,
+            });
+          await expect.poll(readLocations).toEqual(['#/preferences/account', '#/preferences/account']);
+          await expect.poll(readAccounts).toEqual(ids.map(id => ({id, loading: false})));
+        } finally {
+          if (secondInstance.exitCode === null && secondInstance.signalCode === null) {
+            secondInstance.kill('SIGKILL');
+          }
+          await closed;
+          const handoff = await app.evaluate(({app}) => ({
+            events: Reflect.get(globalThis, '__m3SecondInstanceEvents'),
+            primaryArgv: process.argv,
+            primaryProfile: app.getPath('userData'),
+          }));
+          const diagnostic = JSON.stringify({
+            ...handoff,
+            secondaryArgv: secondInstance.spawnargs,
+            exit: secondInstance.exitCode,
+            signal: secondInstance.signalCode,
+            output: secondInstanceOutput,
+          });
+          console.info('[CAP-006 second-instance handoff]', diagnostic);
+          await testInfo.attach('second-instance-handoff', {
+            body: diagnostic,
+            contentType: 'application/json',
+          });
+        }
+      }
       await shell.evaluate(async ([first, second]) => {
         await window.sendConversationJoinToHost(first, 'code', 'key', 'example.com');
         await window.sendConversationJoinToHost(first, 'local-code', 'local-key');

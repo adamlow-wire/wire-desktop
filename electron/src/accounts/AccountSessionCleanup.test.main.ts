@@ -109,7 +109,9 @@ describe('native account session cleanup', () => {
     assert.equal(await request(retained), 0, 'retained account must keep its authentication cache');
   });
 
-  it('[security-target][INV-004][CAP-001] clears local storage, IndexedDB and Cache Storage only in the target', async () => {
+  it('[security-target][INV-004][CAP-001] clears local storage, IndexedDB and Cache Storage only in the target', async function () {
+    // Four real document loads plus storage seeding/clear/readback exceed the default native body budget.
+    this.timeout(10_000);
     const open = async (owned: Session) => {
       const window = new BrowserWindow({
         show: false,
