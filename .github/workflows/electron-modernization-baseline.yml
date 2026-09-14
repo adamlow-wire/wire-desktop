@@ -28,7 +28,7 @@ jobs:
             artifact: wrap/build/**/*.exe
           - platform: macOS
             os: macos-26
-            build: yarn build:macos:x64
+            build: yarn ts-node -P tsconfig.bin.json bin/test-tools/build-macos-smoke.ts
             artifact: wrap/build/**/*.app
     runs-on: ${{ matrix.os }}
     steps:
@@ -64,10 +64,10 @@ jobs:
           python - <<'PYTHON'
           from pathlib import Path
           target = Path('electron/src/accounts/AccountDestination.ts')
-          source = target.read_text()
+          source = target.read_text(encoding='utf-8')
           guard = '  assertManagedAccountDestination(candidate, managed);'
           assert source.count(guard) == 1
-          target.write_text(source.replace(guard, '  // Temporary native registry sensitivity perturbation.'))
+          target.write_text(source.replace(guard, '  // Temporary native registry sensitivity perturbation.'), encoding='utf-8')
           PYTHON
           set +e
           yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox > native-registry-sensitivity.log 2>&1
@@ -77,7 +77,7 @@ jobs:
           test "$result" -ne 0
           python - <<'PYTHON'
           from pathlib import Path
-          log = Path('native-registry-sensitivity.log').read_text()
+          log = Path('native-registry-sensitivity.log').read_text(encoding='utf-8')
           assert 'Missing expected exception' in log and 'foreign registry destination must be denied' in log
           PYTHON
           cp "$original" "$target"
@@ -211,6 +211,14 @@ jobs:
           trap 'defaults delete "$domain" applockOverride >/dev/null 2>&1' EXIT
           defaults write "$domain" applockOverride -bool true
           M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
+      - name: Retain native product test failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: modernization-native-test-failure-${{ matrix.platform }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload development artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
