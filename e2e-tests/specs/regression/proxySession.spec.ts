@@ -70,7 +70,9 @@ test('[CAP-005][security-target] proxy authentication changes only the challenge
         webappUrl: origin,
       })),
     );
-    const env = {...process.env};
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+    );
     for (const key of [
       'HTTP_PROXY',
       'HTTPS_PROXY',

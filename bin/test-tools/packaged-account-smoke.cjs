@@ -37,6 +37,10 @@ async function main() {
   assert.ok(['true', 'false'].includes(expectedOverride), 'Expected App-lock override must be true or false.');
   const directory = await mkdtemp(path.join(tmpdir(), 'wire-package-smoke-'));
   const token = randomUUID();
+  const authenticatedProxy = process.env.M3_AUTHENTICATED_PROXY === 'true';
+  const proxyAuthorization = `Basic ${Buffer.from('fixture-user:fixture-password').toString('base64')}`;
+  let proxyChallenges = 0;
+  let proxyAuthenticated = 0;
   let child;
   let closed;
   let deadline;
@@ -44,7 +48,16 @@ async function main() {
   let report;
   const reported = new Promise(resolve => (report = resolve));
   const server = createServer((request, response) => {
-    if (request.method === 'POST' && request.url === `/result/${token}`) {
+    if (authenticatedProxy) {
+      if (request.headers['proxy-authorization'] !== proxyAuthorization) {
+        proxyChallenges++;
+        response.writeHead(407, {'Proxy-Authenticate': 'Basic realm="m3-package-fixture"'}).end();
+        return;
+      }
+      proxyAuthenticated++;
+    }
+    const pathname = new URL(request.url, 'http://m3-package.invalid').pathname;
+    if (request.method === 'POST' && pathname === `/result/${token}`) {
       let body = '';
       request.on('data', data => {
         body += data;
@@ -84,9 +97,16 @@ async function main() {
   });
   try {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    const origin = `http://127.0.0.1:${server.address().port}`;
+    const localServer = `http://127.0.0.1:${server.address().port}`;
+    const origin = authenticatedProxy ? 'http://m3-package.invalid' : localServer;
     const env = {...process.env};
     delete env.ELECTRON_RUN_AS_NODE;
+    const proxyArgs = [];
+    if (authenticatedProxy) {
+      // Synthetic credentials exist only in this child environment, never CLI arguments.
+      env.HTTP_PROXY = env.HTTPS_PROXY = `http://fixture-user:fixture-password@127.0.0.1:${server.address().port}`;
+      proxyArgs.push(`--proxy-server=${localServer}`);
+    }
     // Keep Linux protocol/configuration side effects inside this fixture's XDG roots.
     if (process.platform === 'linux') {
       for (const name of ['XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_RUNTIME_DIR']) {
@@ -96,7 +116,7 @@ async function main() {
     }
     child = spawn(
       executable,
-      [...process.argv.slice(3), `--env=${origin}`, `--user-data-dir=${directory}/profile`, '--lang=en'],
+      [...process.argv.slice(3), ...proxyArgs, `--env=${origin}`, `--user-data-dir=${directory}/profile`, '--lang=en'],
       {
         env,
         detached: process.platform !== 'win32',
@@ -125,6 +145,11 @@ async function main() {
       node: ['undefined', 'undefined', 'undefined'],
       top: true,
     });
+    if (authenticatedProxy) {
+      assert.ok(proxyChallenges > 0, 'The packaged app must receive a real proxy authentication challenge.');
+      assert.ok(proxyAuthenticated > 0, 'The packaged app must authenticate through its native proxy path.');
+      process.stdout.write('Packaged authenticated HTTP proxy path passes.\n');
+    }
     process.stdout.write('Packaged account startup, immutable managed configuration and page Node denial pass.\n');
   } catch (error) {
     // Only this empty-profile/local-server process contributes these diagnostics.

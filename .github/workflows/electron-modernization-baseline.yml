@@ -157,7 +157,7 @@ jobs:
           sudo mkdir -p /etc/wire
           trap 'sudo rm -f /etc/wire/managed.json' EXIT
           printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
-          M3_EXPECT_APPLOCK_OVERRIDE=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Smoke-test Windows package
         if: runner.os == 'Windows'
         shell: pwsh
@@ -177,11 +177,13 @@ jobs:
           try {
             New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
             $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
+            $env:M3_AUTHENTICATED_PROXY = 'true'
             node bin/test-tools/packaged-account-smoke.cjs $app.FullName
             if ($LASTEXITCODE -ne 0) { throw 'Managed package smoke failed.' }
           } finally {
             Remove-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
             Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
+            Remove-Item Env:M3_AUTHENTICATED_PROXY -ErrorAction SilentlyContinue
           }
       - name: Smoke-test macOS package
         if: runner.os == 'macOS'
@@ -200,7 +202,7 @@ jobs:
           fi
           trap 'defaults delete "$domain" applockOverride >/dev/null 2>&1' EXIT
           defaults write "$domain" applockOverride -bool true
-          M3_EXPECT_APPLOCK_OVERRIDE=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Upload development artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
