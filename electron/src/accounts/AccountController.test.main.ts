@@ -51,7 +51,10 @@ import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {WRAPPER_RELOAD_CAPABILITY} from '../security/WrapperReloadContract';
 
-describe('production account controller integration', () => {
+describe('production account controller integration', function () {
+  // Each case can perform several real renderer/storage transitions. Keep a
+  // finite aggregate native-test budget; individual actions/assertions are unchanged.
+  this.timeout(10_000);
   let server: Server;
   let origin: string;
   let window: BrowserWindow;
