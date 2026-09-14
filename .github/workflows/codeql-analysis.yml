@@ -9,7 +9,7 @@ on:
   push:
     branches: [integration/electron-modernization]
   pull_request:
-    branches: [integration/electron-modernization]
+    branches: [integration/electron-modernization, cap/CAP-001-production-accounts-2026-09-09]
   schedule:
     - cron: '0 18 * * MON'
 
