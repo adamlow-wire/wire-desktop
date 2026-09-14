@@ -31,10 +31,13 @@ async function main(): Promise<void> {
     process.platform === 'darwin' && process.env.GITHUB_ACTIONS === 'true',
     'Use a disposable macOS CI runner.',
   );
+  const architecture = process.arch;
+  assert.ok(architecture === 'x64' || architecture === 'arm64', 'Use a supported native macOS architecture.');
+  console.info(`Qualifying the Darwin package on native ${architecture}.`);
   const wireJson = path.resolve('electron/wire.json');
   const envFile = path.resolve('.env.defaults');
   const packageJson = path.resolve('package.json');
-  const {packagerConfig, macOSConfig} = await buildMacOSConfig(wireJson, envFile, true, 'x64');
+  const {packagerConfig, macOSConfig} = await buildMacOSConfig(wireJson, envFile, true, architecture);
   // Functional M3 qualification uses the standard runtime; signed MAS qualification remains M4/M5.
   packagerConfig.platform = 'darwin';
   delete packagerConfig.osxSign;
@@ -44,8 +47,15 @@ async function main(): Promise<void> {
   await buildMacOSWrapper(packagerConfig, macOSConfig, packageJson, wireJson, envFile, true);
   assert.equal(typeof packagerConfig.out, 'string');
   assert.equal(typeof packagerConfig.name, 'string');
-  const app = path.resolve(packagerConfig.out!, `${packagerConfig.name}-darwin-x64`, `${packagerConfig.name}.app`);
+  const app = path.resolve(
+    packagerConfig.out!,
+    `${packagerConfig.name}-darwin-${architecture}`,
+    `${packagerConfig.name}.app`,
+  );
   assert.ok((await stat(app)).isDirectory(), 'The development app must actually exist.');
+  const executable = path.join(app, 'Contents', 'MacOS', packagerConfig.name!);
+  const actualArchitecture = execFileSync('/usr/bin/lipo', ['-archs', executable], {encoding: 'utf8'}).trim();
+  assert.equal(actualArchitecture, architecture === 'x64' ? 'x86_64' : 'arm64', 'Qualify the runner-native binary.');
   const fuses = await getCurrentFuseWire(app);
   for (const [option, state] of [
     [FuseV1Options.RunAsNode, '0'],

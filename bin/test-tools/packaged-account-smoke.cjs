@@ -21,7 +21,7 @@
 const assert = require('node:assert/strict');
 const {spawn, execFileSync} = require('node:child_process');
 const {randomUUID} = require('node:crypto');
-const {mkdtemp, mkdir, rm} = require('node:fs/promises');
+const {mkdtemp, mkdir, rm, writeFile} = require('node:fs/promises');
 const {createServer} = require('node:http');
 const {tmpdir} = require('node:os');
 const path = require('node:path');
@@ -41,6 +41,7 @@ async function main() {
   const proxyAuthorization = `Basic ${Buffer.from('fixture-user:fixture-password').toString('base64')}`;
   let proxyChallenges = 0;
   let proxyAuthenticated = 0;
+  const startedAt = Date.now();
   let child;
   let closed;
   let deadline;
@@ -123,6 +124,7 @@ async function main() {
         stdio: ['ignore', 'pipe', 'pipe'],
       },
     );
+    console.info('Packaged fixture launched.', {pid: child.pid, architecture: process.arch, authenticatedProxy});
     closed = new Promise(resolve => child.once('close', resolve));
     for (const stream of [child.stdout, child.stderr]) {
       stream.on('data', data => (output = (output + data.toString()).slice(-12000)));
@@ -154,6 +156,31 @@ async function main() {
   } catch (error) {
     // Only this empty-profile/local-server process contributes these diagnostics.
     console.error(output);
+    console.error('Packaged fixture failure.', {
+      elapsedMilliseconds: Date.now() - startedAt,
+      pid: child?.pid,
+      exitCode: child?.exitCode,
+      signalCode: child?.signalCode,
+      proxyChallenges,
+      proxyAuthenticated,
+    });
+    if (process.platform === 'darwin' && child?.pid && child.exitCode === null && child.signalCode === null) {
+      try {
+        const sample = execFileSync('/usr/bin/sample', [String(child.pid), '1'], {
+          timeout: 5000,
+          maxBuffer: 1024 * 1024,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+        const results = path.resolve('test-results');
+        await mkdir(results, {recursive: true});
+        const diagnostics = await mkdtemp(path.join(results, 'packaged-smoke-'));
+        await writeFile(path.join(diagnostics, 'native-startup-sample.txt'), sample);
+        console.error(`Native startup sample retained in ${path.relative(process.cwd(), diagnostics)}.`);
+      } catch (sampleError) {
+        console.error(`Native startup sampling failed: ${sampleError.message}`);
+      }
+    }
     throw error;
   } finally {
     clearTimeout(deadline);
