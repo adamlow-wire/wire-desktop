@@ -81,6 +81,36 @@ describe('proxy prompt actions', () => {
     assert.strictEqual(state.logs.length, 2);
   });
 
+  it('[security-target][INV-010][CAP-005] changes proxy state only after session setup succeeds', async () => {
+    const state = createOptions();
+    let complete!: () => void;
+    state.options.applyProxySettings = () => new Promise<void>(resolve => (complete = resolve));
+    const submitted = createProxyPromptActions(state.options).submit({password: 'fixture', username: 'fixture'});
+    try {
+      assert.deepStrictEqual(state.proxyUpdates, []);
+      assert.deepStrictEqual(state.authenticated, []);
+    } finally {
+      complete();
+      await submitted;
+    }
+    assert.strictEqual(state.proxyUpdates.length, 1);
+    assert.deepStrictEqual(state.authenticated, [['fixture', 'fixture']]);
+  });
+
+  it('[security-target][INV-010][CAP-005] retains prior proxy state and credentials when session setup fails', async () => {
+    const state = createOptions();
+    const failure = new Error('controlled proxy session setup failure');
+    state.options.applyProxySettings = async () => {
+      throw failure;
+    };
+    await assert.rejects(
+      async () => createProxyPromptActions(state.options).submit({password: 'fixture', username: 'fixture'}),
+      error => error === failure,
+    );
+    assert.deepStrictEqual(state.proxyUpdates, []);
+    assert.deepStrictEqual(state.authenticated, []);
+  });
+
   it('[characterization][CAP-005] clears proxy state and reloads after cancellation', async () => {
     const state = createOptions();
 

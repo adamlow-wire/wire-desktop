@@ -22,7 +22,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:open-graph:fetch:v1` | account | Main-process network fetch | authorization merged in PR #24; public-only pinned-DNS, redirect and bounded parsing policy merged in PR #44 | SEC-003, SEC-012 |
 | `wire-desktop:download-location:update:v1` | account | Directory creation and persistent settings write | authorization merged in PR #25; normalized home-relative path and linked-directory denial merged in PR #45 | SEC-003, CAP-005 |
 | `wire-desktop:desktop-sources:enumerate:v1` | none in production native accounts | Enumerates display/window sources including thumbnails | Contract merged in PR #26; SEC-009 removes production account capability after reproducing unconsented enumeration. Main-owned source-consent policy remains open | SEC-003, SEC-009, CAP-003 |
-| `wire-desktop:deep-link:submit:v1` | application shell | Protocol/action dispatch | merged in PR #27; parser and lifecycle policy remain open | SEC-003, SEC-013, CAP-006 |
+| `wire-desktop:deep-link:submit:v1` | application shell | Protocol/action dispatch | merged in PR #27; strict parser/external policy and authorized lifecycle routing accepted through PRs #39/#38/#51 | SEC-003, SEC-013, CAP-006 |
 | `wire-desktop:sso-window:close:v1` / `wire-desktop:sso-window:focus:v1` | owning account | Controls the account-owned SSO window | merged in PR #29 | SEC-003, CAP-002 |
 | `wire-desktop:webapp-versions:report:v1` | account | Supplies combined About-window version state | merged in PR #30 | SEC-003 |
 | `wire-desktop:about:locale-read:v1` | About window | Bounded localized resource lookup | merged in PR #30 | SEC-003 |
