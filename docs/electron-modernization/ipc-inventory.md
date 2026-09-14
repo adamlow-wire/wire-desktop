@@ -41,3 +41,9 @@ When a migration changes a row, update this file in the same PR. Search evidence
 CAP-005 September 14 candidate retains the exact-active-prompt channels and payload contracts. Their coordinator actions now capture the native challenge's web contents: submission applies proxy settings there, and cancellation clears its session/reloads that view. The main shell and unrelated sessions are not targets. A real two-account challenge reproduced the old cross-account mutation before the fix; final platform qualification remains pending.
 
 CAP-005 automatic proxy authentication has no renderer IPC entry point. Native challenge host/port must match configured system credentials before automatic use; absent, unreadable or foreign settings require the registered prompt. The real negative target forbids transmitting foreign credentials. This strengthens the existing prompt/session contract without adding a capability.
+
+## SEC-010 local document migration
+
+The existing candidate moves shell, About and proxy documents to fixed `wire-app://shell` URLs in their original sessions. Channels, capabilities and schemas are unchanged. Authorization requires exact document URL and native sender/frame/session identity; a shared scheme or origin alone is insufficient. Native auxiliary fixtures cover correct-capability access and wrong-capability denial. The current composition includes the CAP-005 host/port credential policy and tested native event-to-prompt binding. Final-head hosted qualification remains required.
+
+SEC-010 accepted through PR #50 (integration18235a5a): shell/About/proxy exact document identities now use the finite wire-app scheme. Existing capability names, sender/session authorization and main-selected preloads are unchanged. No new privileged IPC or renderer-selected filesystem path is exposed. Final native/package and authenticated E2E/report evidence is recorded in the plan and accepted DEC-010.

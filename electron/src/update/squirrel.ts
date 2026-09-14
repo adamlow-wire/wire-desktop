@@ -53,6 +53,10 @@ enum SQUIRREL_EVENT {
   UPDATED = '--squirrel-updated',
 }
 
+export function isSquirrelLifecycleEvent(argument: string | undefined = process.argv[1]): boolean {
+  return Object.values(SQUIRREL_EVENT).some(event => event === argument);
+}
+
 export function isSquirrelInstallation(updaterPath: string = updateDotExe): boolean {
   return updaterExists(updaterPath);
 }

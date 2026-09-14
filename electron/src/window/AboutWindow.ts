@@ -20,11 +20,11 @@
 import {app, BrowserWindow, session} from 'electron';
 
 import * as path from 'path';
-import {pathToFileURL} from 'url';
 
 import {EVENT_TYPE} from '../lib/eventType';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {ABOUT_LOCALE_READ_CAPABILITY, WebappVersions} from '../security/AboutWindowContract';
+import {LOCAL_CONTENT_ORIGIN} from '../security/LocalContentPolicy';
 import {bindNavigationGuard} from '../security/NavigationGuard';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
@@ -44,11 +44,11 @@ const iconFileName = `logo.${EnvironmentUtil.platform.IS_WINDOWS ? 'ico' : 'png'
 const iconPath = path.join(APP_PATH, 'img', iconFileName);
 
 // Local files
-const ABOUT_HTML = pathToFileURL(path.join(APP_PATH, 'html/about.html')).href;
+const ABOUT_HTML = `${LOCAL_CONTENT_ORIGIN}/html/about.html`;
 const ABOUT_WINDOW_ALLOWLIST = [
   ABOUT_HTML,
-  pathToFileURL(path.join(APP_PATH, 'img/logo.256.png')).href,
-  pathToFileURL(path.join(APP_PATH, 'css/about.css')).href,
+  `${LOCAL_CONTENT_ORIGIN}/img/logo.256.png`,
+  `${LOCAL_CONTENT_ORIGIN}/css/about.css`,
 ];
 const PRELOAD_JS = path.join(APP_PATH, 'dist/preload/menu/preload-about.js');
 
