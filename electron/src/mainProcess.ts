@@ -101,7 +101,7 @@ import {ACCOUNT_PERMISSION_CAPABILITY} from './security/AccountPermissionPolicy'
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
-import {bindDesktopSourcesIpc} from './security/DesktopSourcesIpc';
+import {bindDesktopSourcesIpc, DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {ACCOUNT_CAPABILITIES} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
@@ -438,7 +438,12 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     registry: viewIdentityRegistry,
     preload: PRELOAD_RENDERER_JS,
     additionalArguments: getRendererRuntimeArguments(),
-    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY, ACCOUNT_PERMISSION_CAPABILITY],
+    capabilities: [
+      // Enumeration returns desktop thumbnails too. Keep it denied until source consent is enforced.
+      ...ACCOUNT_CAPABILITIES.filter(capability => capability !== DESKTOP_SOURCES_ENUMERATE_CAPABILITY),
+      ACCOUNT_EVENT_CAPABILITY,
+      ACCOUNT_PERMISSION_CAPABILITY,
+    ],
     permissionConsent: createAccountPermissionConsent(main),
     configure: (contents, account, url) => wrapperInit.configureAccountContents(contents, account, url),
     lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),

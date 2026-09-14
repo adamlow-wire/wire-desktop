@@ -56,9 +56,18 @@ test(
       await expect
         .poll(() => app!.windows().some(page => !page.isClosed() && new URL(page.url()).searchParams.has('env')))
         .toBe(true);
-      await app.evaluate(({dialog}) => {
-        const fixture = {response: 1, requests: [] as Array<{defaultId?: number; cancelId?: number; detail?: string}>};
+      await app.evaluate(({desktopCapturer, dialog}) => {
+        const fixture = {
+          response: 1,
+          enumerations: 0,
+          requests: [] as Array<{defaultId?: number; cancelId?: number; detail?: string}>,
+        };
         (globalThis as unknown as {permissionFixture: typeof fixture}).permissionFixture = fixture;
+        // Never capture the host desktop. Count attempts at the real IPC boundary instead.
+        desktopCapturer.getSources = async () => {
+          fixture.enumerations++;
+          return [];
+        };
         const original = dialog.showMessageBox.bind(dialog);
         dialog.showMessageBox = ((
           ...args: [Electron.BaseWindow, Electron.MessageBoxOptions] | [Electron.MessageBoxOptions]
@@ -148,10 +157,32 @@ test(
         const {result, ...context} = await capture(kind);
         expect(result, JSON.stringify(context)).toEqual(expected);
       };
+      const expectNoDesktopEnumeration = async () => {
+        const result = await app!.evaluate(async ({webContents}, origin) => {
+          const contents = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(origin))!;
+          const denied = await contents.executeJavaScript(`(async () => {
+            try {
+              await window.desktopCapturer.getDesktopSources({types: ['screen', 'window']});
+              return false;
+            } catch { return true; }
+          })()`);
+          return {
+            denied,
+            enumerations: (globalThis as unknown as {permissionFixture: {enumerations: number}}).permissionFixture
+              .enumerations,
+          };
+        }, origin);
+        expect(result, 'Desktop thumbnails require an authorized source-selection flow').toEqual({
+          denied: true,
+          enumerations: 0,
+        });
+      };
+      await expectNoDesktopEnumeration();
       await ready();
       await expect.poll(results).toEqual(['granted']);
       await expectCapture('audio', {kinds: ['audio']});
       await expectCapture('video', {kinds: ['video']});
+      await expectNoDesktopEnumeration();
       expect(
         await app.evaluate(
           () => (globalThis as unknown as {permissionFixture: {requests: unknown[]}}).permissionFixture.requests,

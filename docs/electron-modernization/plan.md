@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.29
+revision: 1.5.30
 status: draft
 updated: 2026-09-14
 owners:
@@ -440,6 +440,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: SEC-002, SEC-003
 - Scope: Implement request and check handlers for camera, microphone, notifications, display media, and any device permissions.
+- Desktop-source contract: Enumeration returns screen/window thumbnails and is itself privileged capture. Production accounts must not receive the enumeration capability until main-owned source consent is enforced; camera/microphone consent never authorizes it. The September 14 product regression intercepts native enumeration without capturing the host and reproduces one unapproved call before the capability is removed. Display milestone selection remains pending; no acceptance criterion is waived.
 - Acceptance:
   - Permissions default to deny.
   - Grants bind permission type to authorized origin, view, account, and user flow.
@@ -896,6 +897,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.30 | 2026-09-14 | Codex | Reproduced unconsented desktop-thumbnail enumeration and removed its production account capability pending authorized source selection; preserve device consent and all milestone gates | SEC-009, DCP-008, INV-006 |
 | 1.5.29 | 2026-09-14 | Codex | Revalidated remote state, restored an executable closeout handoff and corrected CAP-006 to in progress; no gate closed or scope changed. Revision follows parallel candidate revisions 1.5.26–1.5.28, whose branch-specific changes still require reconciliation | CAP-006, CAP-001, CAP-002, SEC-009, SEC-010 |
 | 1.5.25 | 2026-09-10 | Codex; approved by maintainer in chat | Explicitly include E2EI enrolment/renewal and separate live SSO/E2EI acceptance in M3; retain webapp cryptography ownership and navigation/session invariants | CAP-002, SEC-008, DCP-022, Q-011 |
 | 1.5.24 | 2026-09-10 | Codex | Recorded sensitivity-proven legacy/modern capture callback limitation and its open risk; retained runtime pin, source-selection requirement and all M3 acceptance gates | SEC-009, DEC-009, RSK-014 |
