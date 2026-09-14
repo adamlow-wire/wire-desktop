@@ -9,21 +9,25 @@ integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: cap/CAP-001-production-accounts-2026-09-09
-next_work_item: SEC-010
+next_work_item: CAP-005
 blockers:
   - live-sso-e2ei-provider-configuration-pending
-  - certificate-exception-and-display-phase-decisions-pending
+  - certificate-exception-decision-pending
 ---
 
 # Current project status
 
 ## Current execution
 
+PR #47 at `b46b0858` passes build/coverage, lint, analysis and all three native/package gates. The build records 798 native and 112 React tests, 83.95% changed statements and 99.07% changed security branches. [Full E2E run 34828619874](https://github.com/adamlow-wire/wire-desktop/actions/runs/34828619874) gives macOS 35 passes/five retry passes; Windows 37 passes/three retry passes but **fails with two worker-teardown errors**. The Windows metadata fixture stalls in its first product context-close after all pre-restart metadata assertions; its third attempt passes. This is not a green Windows gate and no integration merge occurred.
+
+The metadata fixture now invokes normal native `app.quit()` on the next main-loop turn, requires process exit code zero/no signal, then disposes its Playwright context. It retains all identity, partition, cookie, metadata and cold-restart assertions and never calls `app.exit` or kills the product. The added native-exit poll uses the existing ten-second expectation budget; the test's ninety-second budget remains unchanged. This distinguishes native shutdown failure from diagnostic/context cleanup, without claiming the Windows cause is proven. Five consecutive Linux runs pass (17.3s). A one-time native quit veto fails the explicit exit assertion; the perturbation is restored and the fixture passes (2.8s). Logs: `/tmp/m3-metadata-native-quit{,-sensitivity,-restored}.log`. The existing early product gate now includes metadata/restart on all platforms. The E2E label is temporarily removed; restore it and require full final-head E2E/report after fast native qualification. Skipped E2E is not a pass.
+
 M3 remains incomplete. Seven of sixteen work items are marked done; nine remain open. This is an item count, not a weighted completion percentage. Electron is pinned to **43.4.0**. No acceptance requirement or invariant is waived. The maintainer authorizes scoped publication and self-merge after substantive review and all applicable final-head checks pass.
 
 [PR #48](https://github.com/adamlow-wire/wire-desktop/pull/48) merged into the existing CAP-001 branch as `8c64d2490b081df312ef1717d5551d82ecd37417` after substantive review and every applicable final-head check passed. Protected integration remains `d94253c9`; the production cutover is not merged there yet. Managed destination baseline `6d7b2aa2` is preserved as a separate cherry-pick, followed by the reviewed enforcement delta from `3b906fe7` with current documentation reconciled.
 
-Next: qualify the combined production-account cutover in existing [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), including the reconciled managed-destination policy, against protected integration. Require native/package checks on Windows/macOS/Linux and full authenticated Windows/macOS E2E/report on its final head. Then integrate the existing SEC-010 protocol candidate, followed by prepared lifecycle and CAP-005 work. Do not create more parallel branches or merge unqualified candidates.
+Next: qualify the combined production-account cutover in existing [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47), including the reconciled managed-destination policy, against protected integration. Require native/package checks on Windows/macOS/Linux and full authenticated Windows/macOS E2E/report on its final head. Then integrate the existing CAP-005 registry fail-closed candidate, followed by SEC-010 protocol and lifecycle work. Do not create more parallel branches or merge unqualified candidates.
 
 ## Objective acceptance audit
 
@@ -33,7 +37,7 @@ September 14 restart independently verified integration `d94253c9`, PR #47 then 
 | --- | --- | --- |
 | CAP-001 | PRs #8/#10/#41 integrate account selection/cleanup/metadata foundations. PR #47 activates main-owned views, exact-target removal/retry, preserved partitions, routing and approved backend changes. | Final cutover critical/regression multi-account, cross-account IPC/session isolation and exact-target cleanup/restart qualification, then merge. No forensic-erasure requirement is inferred. |
 | SEC-007 | PR #47 removes production webview elements/popups and disables webview tags; native lifecycle fixtures cover selection/layout/recovery. | Final cutover source audit and supported-platform resize/focus/hide/show/crash/reload/add/remove/switch/storage evidence. |
-| SEC-009 | PR #48 supplies separate document-scoped notification/audio/video native consent, abort/revocation and desktop-thumbnail denial. | Integration through #47 and explicit display M3/M4 decision; preserve display and empty-media-type denial meanwhile. Native allow/deny and authenticated calling evidence is recorded below. |
+| SEC-009 | PR #48 supplies separate document-scoped notification/audio/video native consent, abort/revocation and desktop-thumbnail denial. | Integration through #47; preserve display, thumbnail and empty-media-type denial. Enabling sharing belongs to CAP-003/M4 under the authoritative register. Native allow/deny and authenticated calling evidence is recorded below. |
 | SEC-008 | PR #38 integrates navigation/popup/SSO/PiP/external boundaries. Prepared managed-destination policy is reconciled into #47. | Final programmatic destination/approval qualification; configured foreign/invalid origins must fail before navigation, prompt or profile replacement. |
 | SEC-010 | PR #42 integrates no-eval CSP. Existing `2ce86631` supplies seven-resource custom protocol and conditional legacy-state migration. | Reconcile current composition/docs, qualify scheme privileges/CSP/migration and native/package startup, review and merge. |
 | CAP-005 | PRs #16/#25/#31/#45 integrate immutable config, proxy identity and download containment. Existing backend/certificate candidates remain available. | Resolve Q-005 global pin override; qualify chosen fail-closed certificate behavior, native backend/proxy/config paths and Windows machine-policy-to-product behavior. |
@@ -54,7 +58,7 @@ Reviewed code head `f3d538cf0fa1999cb55b5f3e077ffc80aa53e835`, base `a4ce662c23e
 
 ## Prepared integration deltas
 
-No new branches were created for preparation. Temporary detached qualification worktrees were removed; the root and protected MSI worktree remain.
+No new branches were created for preparation. The existing CAP-005 branch has a temporary worktree at `/tmp/m3-cap005-packaged` for packaged startup/configuration qualification. Preserve its pending work and the protected MSI worktree.
 
 | Existing candidate | Reconciled local evidence and next use |
 | --- | --- |
