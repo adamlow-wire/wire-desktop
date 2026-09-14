@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.41
+revision: 1.5.42
 status: draft
 updated: 2026-09-14
 owners:
@@ -501,7 +501,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-013 — Harden deep-link and external-link handling
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-003; SEC-008 for final popup/external closure (incoming parsing is independently executable)
 - Scope: Parse custom-protocol and external-link inputs with strict schemas and explicit action routing.
@@ -511,7 +511,9 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - External links cannot invoke dangerous local protocols.
 - Boundary contract: Only bounded recognized user/conversation (including federated and file-list), preferences, meetings, SSO, login and join actions are accepted. Malformed paths, traversal, encoded path delimiters, credentials, ports, fragments, unknown routes, duplicate/unknown parameters and invalid backend domains fail closed. Absent join domain stays null at the existing dispatch boundary. Desktop has no existing access/config route; adding remote backend configuration remains CAP-005 scope.
 - Execution split: Publish incoming parsing independently on `sec/SEC-013-incoming-links-2026-09-08`, then reuse it in SEC-008 for safe internal popup routing. Do not close SEC-013 until external-link and lifecycle acceptance is evidenced.
-- Evidence: Existing parser work was reconciled without restoring raw IPC. Thirteen baseline dispatch tests pass; destination mutation fails all seven added route tests. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks initially pass 36/36; final full Electron-main run passes 366 with 3 owned CAP-002 targets pending, Jest passes 64/64. PR #39 merged as `75b22ded` after applicable final-head coverage, package and E2E gates; PR #38 supplies validated internal/external popup routing. Account-targeted lifecycle acceptance remains open. Route contracts were checked against sibling webapp page/appMain.tsx and router/routeGenerator.ts; domains against sibling server libs/types-common/src/Data/Domain.hs.
+- Evidence: Existing parser work was reconciled without restoring raw IPC. Thirteen baseline dispatch tests pass; destination mutation fails all seven added route tests. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks initially pass 36/36; final full Electron-main run passes 366 with 3 owned CAP-002 targets pending, Jest passes 64/64. PR #39 merged as `75b22ded` after applicable final-head coverage, package and E2E gates; PR #38 supplies validated internal/external popup routing. Account-targeted lifecycle acceptance is now supplied by final PR #51 below. Route contracts were checked against sibling webapp page/appMain.tsx and router/routeGenerator.ts; domains against sibling server libs/types-common/src/Data/Domain.hs.
+
+- Final acceptance: [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51) merged as `c74d116e` after substantive review of exact head1eaf7fba and successful build/coverage, lint, analysis, all three native/package platforms and authenticated Windows/macOS E2E/report. Existing strict parser/external-link denials and authorized selected-account startup/running dispatch remain intact; actual second-Electron delivery verifies exact routing, zero secondary exit and unchanged account count. [Native34862334704](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334704) and [E2E/report34862337125](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862337125) provide final platform evidence. macOS43 initial passes; Windows41 initial/two retry passes, no skips or worker errors. No acceptance criterion or security invariant is waived.
 
 ### 10.3 Electron and dependency currency
 
@@ -729,17 +731,19 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-006 — Migrate deep links and single-instance behavior
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-013, CAP-001
 - Scope: Preserve conversation, user, login, and SSO links while safely routing them to the intended account/window.
-- Current second-instance composition: existing lifecycle PR #51 includes merged protocol18235a5a. Ordinary Windows/Linux lock losers exit without stale settings writes or updater scheduling; exact installed Squirrel lifecycle events retain handling. Preflight7d15a032 passes all three native/package platforms, including real Windows Electron-to-Electron delivery, zero secondary exit, exact selected-account routing and unchanged account count. Final current integration-head gates including authenticated E2E/report remain required.
-- Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` contains implementation and local lifecycle tests; native Windows and final-head qualification remain open. See `status.md` for candidate dependencies. This corrects stale tracking, not acceptance scope.
+- Current second-instance composition: existing lifecycle PR #51 includes merged protocol18235a5a. Ordinary Windows/Linux lock losers exit without stale settings writes or updater scheduling; exact installed Squirrel lifecycle events retain handling. Preflight7d15a032 passes all three native/package platforms, including real Windows Electron-to-Electron delivery, zero secondary exit, exact selected-account routing and unchanged account count. Final current integration-head gates including authenticated E2E/report pass in PR #51 (see final acceptance below).
+- Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` supplied implementation and local lifecycle tests; native Windows and final-head qualification subsequently pass in PR #51. See final acceptance below.
 - Acceptance:
   - Valid links work before and after application readiness.
   - Invalid and hostile links fail closed.
   - Second-instance delivery cannot target an unauthorized view or invoke arbitrary actions.
-- Evidence: TBD
+- Evidence: final acceptance below; separate baselinesca1961e3/4a3859dc precede6902448a, with dispatch/activation/installer-deferral mutation failures and restored native/product passes recorded in testing.md.
+
+- Final acceptance: [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51) merged as `c74d116e` after substantive review of exact head1eaf7fba and successful build/coverage, lint, analysis, all three native/package platforms and authenticated Windows/macOS E2E/report. Existing strict parser/external-link denials and authorized selected-account startup/running dispatch remain intact; actual second-Electron delivery verifies exact routing, zero secondary exit and unchanged account count. [Native34862334704](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334704) and [E2E/report34862337125](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862337125) provide final platform evidence. macOS43 initial passes; Windows41 initial/two retry passes, no skips or worker errors. No acceptance criterion or security invariant is waived.
 
 ### 10.6 Packaging, update, and rollout
 
@@ -909,6 +913,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.42 | 2026-09-14 | Codex | Close CAP-006 and SEC-013 after reviewed lifecycle PR #51 and all final-head checks; qualify existing certificate slice against actual integration | CAP-006, SEC-013, CAP-005 |
 | 1.5.41 | 2026-09-14 | Codex | Close SEC-010 and accept DEC-010 after reviewed protocol PR #50 and all final-head gates; qualify existing lifecycle candidate against actual integration | SEC-010, DEC-010, CAP-006, SEC-013 |
 | 1.5.40 | 2026-09-14 | Codex | Reconcile preserved lifecycle candidate with current protocol and final CAP-005 credential/native-test qualification; require current composition and final-head gates | CAP-006, SEC-013 |
 | 1.5.39 | 2026-09-14 | Codex | Reconcile preserved protocol candidate with merged account cutover and final CAP-005 credential/session/native qualification; retain all security contracts and require current-head gates | SEC-010, CAP-005 |
