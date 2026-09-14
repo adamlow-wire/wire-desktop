@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.38
+revision: 1.5.39
 status: draft
 updated: 2026-09-14
 owners:
@@ -418,7 +418,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-008 — Centralize navigation and window-open policy
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Enforce allowed origins, navigation types, external destinations, SSO windows, PiP windows, and denial behavior.
@@ -431,7 +431,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - External URLs use protocol and origin policy with adversarial tests.
 - Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. PR #38 merged as `67dfb5db` after final-head build, analysis, all-platform packages and authenticated Windows/macOS E2E/report passed; the custom-backend cutover gate below remains open.
 - SSO lifecycle refinement: reserve the single active flow before asynchronous initialization and retain it until cleanup completes. Repeated requests from its owner focus it; requests from another account cannot replace or control it. Close and native closed events share one captured-session cleanup operation; a new target reproduced a duplicate-cleanup `undefined.protocol` error. Failed cleanup does not mark the session reusable. CAP-002 still owns one-time callback validation, cookie scope, and full IdP acceptance.
-- Remaining cutover gate: the legacy environment-change bridge can initiate programmatic `loadURL`, which is not governed by cancellable renderer navigation events. CAP-001/CAP-005 must preserve approved custom backend switching through a main-owned destination policy before SEC-008 is globally complete.
+- Cutover acceptance: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) integrates main-owned destination approval with exact owning-view replacement, preserved partitions, saved-destination denial and invalid approval-result rejection. [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49) integrates unreadable machine-policy denial as4f04a8a0. Final head66f9d9db passes [all-platform native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889664), including real Windows registry guard-removal failure/restoration and combined account/navigation/popup/SSO/PiP/external policy targets, plus build/lint/analysis and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889715),43 initial passes per platform without skips or retries. Programmatic navigation cannot bypass main-owned policy; all four SEC-008 acceptance criteria are satisfied. Live identity-provider acceptance remains CAP-002, not a waiver of navigation enforcement.
 
 #### SEC-009 — Centralize permission policy
 
@@ -455,6 +455,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
+- Protocol cutover: [proposed DEC-010](./decisions/0003-local-content-protocol.md) serves seven fixed role-specific assets on `wire-app`, GET/HEAD only, with exact document identities and unchanged account sessions. Only standard/secure scheme privileges are enabled. The conditional migration-only file-origin reader stays script-disabled; ordinary content uses the scheme. Existing baselines protect relative resources, legacy import and production/development CSP denial.
+- Current reconciliation: the preserved protocol candidate `bbda8530` now includes reviewed CAP-005 candidate `2fd2f5d1` and merged account integration `683ac9af`. No new branch is created. Renew local composition tests, then final integration-base native/package/CSP/migration/E2E qualification before acceptance.
 - Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
@@ -872,6 +874,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
+| DEC-010 | 2026-09-10 | proposed | [Bounded production local content protocol](./decisions/0003-local-content-protocol.md) | Fixed role-specific assets avoid arbitrary filesystem serving while preserving migration and preloads | Asset, session, CSP or legacy-import incompatibility |
 | DEC-009 | 2026-09-14 | accepted | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Explicit main-owned document-scoped consent is integrated and qualified; display and thumbnail capture stay denied under CAP-003/M4 | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
@@ -902,9 +905,12 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.39 | 2026-09-14 | Codex | Reconcile preserved protocol candidate with merged account cutover and final CAP-005 credential/session/native qualification; retain all security contracts and require current-head gates | SEC-010, CAP-005 |
 | 1.5.38 | 2026-09-14 | Codex | Close CAP-001/SEC-007/SEC-009 after reviewed PR #47 final-head gates and integration merge; accept the qualified notification/media policy, retain display denial and remaining M3 gates | CAP-001, SEC-007, SEC-009, DEC-009 |
+| 1.5.36 | 2026-09-14 | Codex | Reconcile existing local-protocol candidate with current metadata/native-quit and CAP-005 registry/proxy fixes | SEC-010, CAP-005, CAP-001 |
 | 1.5.35 | 2026-09-14 | Codex | Reproduce unrelated-session proxy mutation with a real native prompt; bind proxy application and cancellation reload to the challenged view without changing credential/IPC authorization | CAP-005, DCP-011, RSK-015 |
 | 1.5.34 | 2026-09-14 | Codex | Reproduce and close machine endpoint fallback after unavailable/failed registry reads; preserve genuinely absent policy and prepare real Windows reader/destination sensitivity proof | CAP-005, INV-010 |
+| 1.5.32 | 2026-09-14 | Codex | Reconcile finite local-protocol candidate with reviewed account/permission/managed-destination code; preserve CSP, minimal privileges, legacy import and hosted gates | SEC-010, DEC-010, CAP-001 |
 | 1.5.31 | 2026-09-14 | Codex | Integrate reviewed permission dependency through PR #48 and reconcile existing managed destination baseline/enforcement into PR #47; retain final cutover gates and CAP-005 native registry qualification | CAP-001, SEC-007, SEC-008, SEC-009 |
 | 1.5.30 | 2026-09-14 | Codex | Reproduced unconsented desktop-thumbnail enumeration and removed its production account capability pending authorized source selection; preserve device consent and all milestone gates | SEC-009, DCP-008, INV-006 |
 | 1.5.29 | 2026-09-14 | Codex | Revalidated remote state, restored an executable closeout handoff and corrected CAP-006 to in progress; no gate closed or scope changed. Revision follows parallel candidate revisions 1.5.26–1.5.28, whose branch-specific changes still require reconciliation | CAP-006, CAP-001, CAP-002, SEC-009, SEC-010 |

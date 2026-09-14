@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-14
 milestone: M3
-active_work_item: CAP-005
-state: qualifying-enterprise-account-boundaries
+active_work_item: SEC-010
+state: qualifying-local-protocol-dependencies
 integration_branch: integration/electron-modernization
-integration_head_commit: 683ac9af672168d48c9154c47f3dc99a2bdd5d66
+integration_head_commit: 4f04a8a0700d388a9b1199e5905df5f2bc70b72e
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: cap/CAP-005-managed-backends-2026-09-10
-next_work_item: SEC-010
+active_branch: sec/SEC-010-local-protocol-2026-09-10
+next_work_item: CAP-006
 blockers:
   - live-sso-e2ei-provider-configuration-pending
   - certificate-exception-policy-pending
@@ -19,9 +19,15 @@ blockers:
 
 ## Current execution
 
-[PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) is merged into protected integration as `683ac9af672168d48c9154c47f3dc99a2bdd5d66`. CAP-001, SEC-007 and SEC-009 satisfy their acceptance criteria and are recorded done; DEC-009 is accepted for notification/media consent with display/thumbnail denial retained. **Ten of sixteen M3 work items are done; six remain open.** This is an item count, not a weighted percentage. Electron remains **43.4.0**. No invariant or acceptance criterion is waived.
+Protected integration is `4f04a8a0700d388a9b1199e5905df5f2bc70b72e`, after reviewed PR #49 passed every final-head gate. The exact head66f9d9db passes build/coverage, lint, analysis, Windows/macOS/Linux native/package qualification and authenticated Windows/macOS E2E/report:43 initial passes per platform, no retries, skips or worker errors. Native macOS arm64 packaging verifies architecture, preserved fuses and ad-hoc seal, then passes ordinary and managed/authenticated-proxy startup. Durable links and the substantive review are in [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49).
 
-Current [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49) targets this integration head. The proxy fixes pass build/coverage; complete native timing qualification, then require final-head build/lint/analysis, all native/package platforms and full authenticated E2E/report. It contains separate registry-failure and proxy-isolation baselines/fixes plus representative native/backend/package qualification. Certificate policy remains open even after those changes merge. Then integrate the existing SEC-010 and CAP-006 candidates; no new parallel branches are needed.
+**Eleven of sixteen M3 work items are done; five remain open.** This is an item count, not a weighted percentage. SEC-008 now satisfies all four criteria through integrated navigation/popup/SSO/PiP/external policy and main-owned managed-destination approval, including unreadable registry denial. CAP-001, SEC-007 and SEC-009 retain their reviewed PR #47 closure. Electron remains **43.4.0**; no invariant or acceptance criterion is waived.
+
+Existing protocol [PR #50](https://github.com/adamlow-wire/wire-desktop/pull/50) is being qualified against this actual integration base. It preserves seven fixed role-specific local resources, minimal scheme privileges, exact document/session identity, no-eval CSP and conditional script-disabled legacy import. Its prior821d3e69 preflight passes all fast/native checks; skipped authenticated E2E is not acceptance. The current integration composition requires every final-head gate, including authenticated E2E/report, before merge and SEC-010 closure.
+
+Then integrate existing lifecycle [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51), qualifying real second-process delivery and ordinary lock-loser exit for CAP-006/SEC-013 against the actual merged protocol head. Its native preflight exposed test body timing failures; sensitivity-proven fixture repairs preserve exact assertions and product behavior. Certificate callback [draft #52](https://github.com/adamlow-wire/wire-desktop/pull/52) passes all fast/native preflight gates independently; it does not resolve Q-005 global pinning-override policy. CAP-002's existing transport candidate remains available but cannot substitute for dedicated live SSO/OIDC/ACME enrolment and renewal evidence. The Q-005 product decision and Q-011 dedicated provider/access questions are pending; no response or permission is inferred.
+
+Use the existing branches, retarget each next PR to protected integration, merge the actual integration head and require all applicable final-head checks under strict base protection. No new parallel branches are needed.
 
 ## Completed account cutover
 
@@ -40,7 +46,7 @@ The permission review reproduced unconsented thumbnail enumeration with an inert
 
 | Open item | Integrated/prepared work | Next acceptance evidence |
 | --- | --- | --- |
-| SEC-008 | PR #38 integrates navigation/popup/SSO/PiP/external policy; #47 integrates managed destination/approval enforcement. | Integrate CAP-005 registry failure denial so unreadable machine policy cannot permit endpoint fallback; final combined programmatic navigation/approval qualification. |
+| SEC-008 | Done: PRs #38/#47/#49 integrate navigation/popup/SSO/PiP/external policy and fail-closed managed destination approval. Final49 native/package and authenticated gates pass. | No remaining M3 acceptance; live provider flows remain CAP-002. |
 | CAP-005 | PRs #16/#25/#31/#45 integrate immutable config, proxy prompt identity and download containment. Current existing branch fixes registry fallback and proxy session targeting. | Native Windows restored guard, all-platform backend/configuration/proxy package evidence and final PR gates; resolve Q-005 and integrate qualified certificate behavior. |
 | SEC-010 | PR #42 integrates no-eval CSP. Existing protocol branch now includes current account/CAP-005 dependencies. | Final-base native/package/CSP/migration/E2E qualification and scoped merge; preserve seven fixed resources and minimal scheme privileges. |
 | CAP-006 | Existing lifecycle branch preserves short-profile real second-process delivery and prevents ordinary Windows lock losers from persisting stale settings/scheduling updates. | Native Windows exact-target delivery/exit and final scoped PR gates after dependencies integrate. |
@@ -132,3 +138,11 @@ The remaining macOS failure at [34847474271](https://github.com/adamlow-wire/wir
 Existing downstream candidates preserve the reviewed shutdown fix and local qualification: protocol `2c0801b4` passes56 focused native and five product cases (16.8 seconds); lifecycle `604c33d5` passes63 native and one actual two-process case (5.4 seconds). Certificate `38421619` retains five22-case focused passes and856 full-native passes; Q-005 remains open. Update these existing candidates with the final package-fixture dependency after #49 qualifies; do not recreate them.
 
 The updated external driver passes fresh local development-binary startup and actual authenticated-proxy traffic, with unchanged immutable-policy/bridge/Node and challenge assertions (`/tmp/m3-native-architecture-driver.log`). This is Linux driver validation; the native arm64 package itself still requires its hosted final-head gate. Publishing this necessary package-fixture change starts new final-head checks, and the prior729 E2E run is not reused as qualification.
+
+### Final protocol integration qualification
+
+PR #49 final head66f9d9db passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889665), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889722), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889654), [all native/package platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889664), and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889715). Both authenticated platforms pass43 cases initially, without retries/skips/worker errors. Substantive review, no unresolved review threads and strict current-base checks preceded merge4f04a8a0. Native macOS arm64 ordinary/managed/authenticated-proxy startup verifies architecture, fuses and ad-hoc seal. SEC-008's programmatic managed-destination cutover requirement now has integrated positive/negative and real-registry evidence; CAP-005 remains open for Q-005 and its separate certificate candidate.
+
+Protocol qualification adopts only the sensitivity-proven native fixture repairs found in lifecycle preflight: ten-second aggregate account-controller bodies for multiple real view operations, and four independent secure-shell denial cases with unchanged two-second bodies, exact assertions and navigation delays. No product timeout, policy or retry changes. Skipping real account removal/cleanup fails the respective controller assertions; allowing the test-owned popup fails the split denial target. Restored local controller40 and secure-shell11 cases pass on the lifecycle composition; renew native qualification on this protocol composition. Evidence `/tmp/m3-controller-budget-{selection-sensitivity,cleanup-sensitivity,restored}.log` and `/tmp/m3-native-denial-split-{sensitivity,final}.log`.
+
+Current integration composition passes completed app build/bundle, Mocha types, changed-source lint,81 focused native cases and five actual storage/metadata/proxy product cases (15.0 seconds). Evidence: `/tmp/m3-protocol-integration-{build,types,lint,native,product}.log`. These are local Linux checks; hosted native/package and authenticated final-head gates remain required.

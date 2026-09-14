@@ -4,7 +4,13 @@ on:
   push:
     branches: [integration/electron-modernization]
   pull_request:
-    branches: [integration/electron-modernization, cap/CAP-001-production-accounts-2026-09-09]
+    branches:
+      [
+        integration/electron-modernization,
+        cap/CAP-001-production-accounts-2026-09-09,
+        cap/CAP-005-managed-backends-2026-09-10,
+        sec/SEC-010-local-protocol-2026-09-10,
+      ]
   workflow_dispatch:
     inputs:
       product_repeats:
@@ -104,6 +110,14 @@ jobs:
             xvfb-run yarn test:media
           else
             yarn test:media
+          fi
+      - name: Test local content protocol boundary
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'local content'
+          else
+            yarn test:main --grep 'local content'
           fi
       - name: Test sandboxed product boundaries
         shell: bash

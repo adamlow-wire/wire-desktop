@@ -103,6 +103,24 @@ test(
         app!.windows().find(page => !page.isClosed() && new URL(page.url()).searchParams.has('env'));
       await expect.poll(() => !!findShell()).toBe(true);
       const shell = findShell()!;
+      // SEC-010 migration target: ordinary application content is no longer file-backed.
+      expect(new URL(shell.url()).protocol).toBe('wire-app:');
+      expect(new URL(shell.url()).host).toBe('shell');
+      expect(
+        await app.evaluate(async ({session}) => {
+          return Promise.all(
+            ['about', 'proxy-prompt'].map(async role => {
+              const response = await session
+                .fromPartition(`${role}-window`)
+                .fetch(`wire-app://shell/html/${role}.html`);
+              return {role, status: response.status, contentType: response.headers.get('content-type')};
+            }),
+          );
+        }),
+      ).toEqual([
+        {role: 'about', status: 200, contentType: 'text/html; charset=utf-8'},
+        {role: 'proxy-prompt', status: 200, contentType: 'text/html; charset=utf-8'},
+      ]);
       await expect.poll(readAccounts).toEqual(ids.map(id => ({id, loading: false})));
       expect(await shell.locator('webview').count()).toBe(0);
       expect(

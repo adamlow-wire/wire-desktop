@@ -20,9 +20,9 @@
 import {app, BrowserWindow, session} from 'electron';
 
 import * as path from 'path';
-import {pathToFileURL} from 'url';
 
 import {EVENT_TYPE} from '../lib/eventType';
+import {LOCAL_CONTENT_ORIGIN} from '../security/LocalContentPolicy';
 import {bindNavigationGuard} from '../security/NavigationGuard';
 import {
   PROXY_PROMPT_CANCEL_CAPABILITY,
@@ -34,8 +34,8 @@ import {config} from '../settings/config';
 
 const appPath = path.join(app.getAppPath(), config.electronDirectory);
 
-const promptHtmlPath = pathToFileURL(path.join(appPath, 'html/proxy-prompt.html')).href;
-const proxyPromptWindowAllowList = [promptHtmlPath, pathToFileURL(path.join(appPath, 'css/proxy-prompt.css')).href];
+const promptHtmlPath = `${LOCAL_CONTENT_ORIGIN}/html/proxy-prompt.html`;
+const proxyPromptWindowAllowList = [promptHtmlPath, `${LOCAL_CONTENT_ORIGIN}/css/proxy-prompt.css`];
 const preloadPath = path.join(appPath, 'dist/preload/menu/preload-proxy-prompt.js');
 
 const windowSize = {

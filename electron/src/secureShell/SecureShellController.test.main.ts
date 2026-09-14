@@ -288,18 +288,22 @@ describe('SecureShellController', () => {
       webContents = contents;
     });
 
-    it('[security-target][INV-005][INV-006][INV-010][ARC-002] denies popup, navigation, and permissions', async () => {
-      const originalOrigin = new URL(webContents.getURL()).origin;
-
+    it('[security-target][INV-005][INV-010][ARC-002] denies native popups', async () => {
       assert.strictEqual(await webContents.executeJavaScript("window.open('/popup')"), null);
-      assert.strictEqual(await webContents.executeJavaScript('Notification.requestPermission()'), 'denied');
-      await webContents.executeJavaScript("location.href = 'https://example.com/escape'");
-      await new Promise(resolve => setTimeout(resolve, 100));
-      assert.strictEqual(new URL(webContents.getURL()).origin, originalOrigin);
-      await webContents.executeJavaScript("location.href = '/redirect'");
-      await new Promise(resolve => setTimeout(resolve, 100));
-      assert.strictEqual(new URL(webContents.getURL()).origin, originalOrigin);
     });
+
+    it('[security-target][INV-006][INV-010][ARC-002] denies native notification permission', async () => {
+      assert.strictEqual(await webContents.executeJavaScript('Notification.requestPermission()'), 'denied');
+    });
+
+    for (const destination of ['https://example.com/escape', '/redirect']) {
+      it(`[security-target][INV-005][INV-010][ARC-002] denies native navigation to ${destination}`, async () => {
+        const originalOrigin = new URL(webContents.getURL()).origin;
+        await webContents.executeJavaScript(`location.href = ${JSON.stringify(destination)}`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        assert.strictEqual(new URL(webContents.getURL()).origin, originalOrigin);
+      });
+    }
   });
 
   it('[security-target][INV-003][INV-010][ARC-002] revokes authority before crash recovery', async function () {
