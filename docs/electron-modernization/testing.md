@@ -121,6 +121,27 @@ The isolated product fixture `accountPermissions.spec.ts` exercises activated ma
 
 Every PR must pass its focused characterization/security tests and the protected branch's required build, lint, and analysis checks. Authenticated cross-platform E2E is required when a PR changes observable product behavior, activates a new production boundary, or closes an M3 execution checkpoint. A schema-only migration inside an already characterized boundary may defer authenticated E2E to the next checkpoint when the PR records that gap; this reduces duplicated staging runs without weakening the M3 exit gate.
 
+### CAP-005 native Windows machine destination
+
+The existing backend candidate adds `WindowsMachineDestination.test.main.ts`. On native Windows, run `yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox`. It requires rights to create its unique `HKLM\SOFTWARE\Wire\M3-destination-test-<uuid>` leaf, removes only that leaf in `finally`, and never changes an installed product value. It uses the real pinned registry dependency and production policy functions; no actual server connection or certificate trust change occurs. The platform workflow must first prove the test detects a temporary removal of `assertManagedAccountDestination(candidate, managed)`, verify the specific foreign-destination assertion fails, restore the source, then run the passing target. Hosted Windows evidence remains required; Linux does not register this Windows-only case.
+
+## CAP-005 packaged configuration fixture (September 14)
+
+`bin/test-tools/packaged-account-smoke.cjs` is a compatibility/security-target fixture for DCP-013 and page Node denial. CI passes the actual packaged executable with unchanged fuses. It uses normal account navigation to an isolated nonce-bearing loopback page; no debugging port, inspector, injected preload or production test mode is involved. It asserts an account ID, the compatibility bridge, immutable exact App-lock configuration, absent page Node globals and top-level account context. A second fresh launch reads a real test-owned OS policy value, proving the configuration changes on restart. Windows/macOS launches are restricted to disposable GitHub Actions runners; Linux profile/XDG state is isolated. Existing machine policy is not overwritten; workflow traps/finally remove only the created value. This is backend compatibility, not MDM enrollment/deployment. The managed launch also exercises an authenticated HTTP proxy as described below. Cleanup terminates only the fixture's child tree and does not claim graceful shutdown.
+
+Local fixture qualification (development binary, **not packaged or macOS/Windows evidence**):
+
+```sh
+yarn build:ts && yarn bundle
+env -u ELECTRON_RUN_AS_NODE node bin/test-tools/packaged-account-smoke.cjs /home/sysop/wire/wire-desktop/node_modules/electron/dist/electron .
+node --check bin/test-tools/packaged-account-smoke.cjs
+node_modules/.bin/eslint --no-ignore bin/test-tools/packaged-account-smoke.cjs
+```
+
+The unchanged production bridge passes. Temporarily renaming the real `desktopAppConfig` exposure, rebuilding and rerunning fails immutable/configuration/version assertions. Restore the preload, rebuild and the same fixture passes. Separately, `M3_EXPECT_APPLOCK_OVERRIDE=true` on the local unmanaged fixture fails the exact override assertion without modifying host policy. Logs: `/tmp/m3-packaged-driver-{local,sensitivity,restored,value-sensitivity,lint}.log`. Native Windows/macOS/Linux package runs remain required before merge. No temporary production mutation is committed.
+
+The second packaged launch sets `M3_AUTHENTICATED_PROXY=true`. The external driver serves its fixed fixture through a local HTTP proxy responder, requires an actual 407 challenge and authenticated request, and gives only the child process synthetic environment credentials. The app uses its normal system-proxy credential handler. There is no external forwarding, trust-store change, debugging hook or production flag. Both the real native prompt/session regression and this packaged environment-credential path are required; neither stands in for the other. Local qualification uses the development executable above with that environment flag. Canceling the actual native authentication callback prevents account startup and fails the 45-second fixture deadline; restore/rebuild and it passes. Logs: `/tmp/m3-packaged-proxy-{local,sensitivity,restored}.log`. Hosted package results remain pending; this does not claim every enterprise proxy variant.
+
 ### SEC-010 protocol registration
 
 `test:main` and `test:main:coverage` register the local scheme through `electron/test/register-local-scheme.cjs` before readiness, matching production minimal privileges. This helper installs no resource handler or CSP bypass. Direct electron-mocha tests of local protocol documents require `--require-main electron/test/register-local-scheme.cjs`; the existing direct secure-shell group also passes unchanged without it. The platform baseline includes `test:main --grep "local content"`. Reconciled source passes full native 821/821 and eight product fixtures locally; final hosted gates remain required.

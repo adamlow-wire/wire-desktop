@@ -22,7 +22,7 @@ import {URL} from 'url';
 import * as ProxyAuth from './ProxyAuth';
 import {ProxyPromptActions} from './ProxyPromptCoordinator';
 
-interface MainWindowBoundary<WebContents> {
+interface ChallengedViewBoundary<WebContents> {
   readonly webContents: WebContents;
   reload(): void;
 }
@@ -43,7 +43,7 @@ export interface CreateProxyPromptActionsOptions<WebContents = unknown> {
   challengedSession: ProxySessionBoundary;
   getProxyInfo(): URL | undefined;
   logger: ProxyPromptLogger;
-  mainWindow: MainWindowBoundary<WebContents>;
+  challengedView: ChallengedViewBoundary<WebContents>;
   setProxyInfo(proxy: URL): void;
   showErrorDialog(message: string): void;
 }
@@ -58,8 +58,8 @@ export const createProxyPromptActions = <WebContents>(
     const proxy = ProxyAuth.generateProxyURL(options.authInfo, {...promptData, protocol});
     options.setProxyInfo(proxy);
 
-    options.logger.log('Proxy prompt was submitted, applying proxy settings on the main window...');
-    await options.applyProxySettings(proxy, options.mainWindow.webContents);
+    options.logger.log('Proxy prompt was submitted, applying proxy settings on the challenged view...');
+    await options.applyProxySettings(proxy, options.challengedView.webContents);
     options.authenticate(username, password);
   },
   async cancel() {
@@ -68,7 +68,7 @@ export const createProxyPromptActions = <WebContents>(
     await options.challengedSession.setProxy({});
 
     try {
-      options.mainWindow.reload();
+      options.challengedView.reload();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       options.showErrorDialog(`Could not reload the window: ${message}`);
