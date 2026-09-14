@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-14
 milestone: M3
 active_work_item: CAP-005
-state: qualifying-certificate-callback-candidate
+state: qualifying-retained-certificate-policy
 integration_branch: integration/electron-modernization
 integration_head_commit: c74d116e3d8bb52b7c8234100290b54a3eb91f4a
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -208,3 +208,9 @@ Head1f776851 passes [native/package qualification](https://github.com/adamlow-wi
 The evidence checkpoint triggers a fresh synchronize event while the current lifecycle base is stable; require a successful hosted current-base comparison. No workflow threshold, source behavior or assertion changes. Lifecycle final Windows E2E passes; macOS/report remain pending at this checkpoint. After #51 merges, reconcile #52 with actual integration and require every final-head gate including authenticated E2E/report. Q-005 and Q-011 remain unresolved.
 
 Lifecycle final closure: PR #51 mergedc74d116e after every final-head gate passed. Earlier pending lifecycle notes below are historical. Final test logs `/tmp/m3-1eaf-{macos,windows}-e2e.log`; all durable links and review are in PR #51. The certificate candidate merges actual integration without runtime changes and renews its own final qualification.
+
+## Retained pinning policy closeout
+
+The maintainer resolves Q-005 by preserving existing product decisions, not removing the warning checkbox or adding MDM configuration. Built-in pinning starts enabled; native selection bypasses only extra pin checks process-wide until restart. Chromium validation remains mandatory and the original failed request is denied. Added tests characterize default/unselected behavior, explicit selection and broad scope, Chromium failure after selection, ignored checkbox results on Chromium errors, and fresh-module initialization. Initial27 certificate cases, Mocha types and lint pass. Deliberately allowing the selected override to skip Chromium validation fails the new security target with -3 instead of -2; source is restored. Logs `/tmp/m3-pinning-policy-{build,types,lint,native,sensitivity}.log`. Restored qualification and final integrated-head gates remain required. Broad override scope is retained for independent security review, not hidden as a new security guarantee.
+
+CAP-002 is qualifying in PR #53 under the approved automated/live-QA split. Next finish these existing CAP-005 tests, reconcile after #53, qualify both M3 items and run the aggregate acceptance/security audit before M4 functional work. The user authorizes CAP-003/CAP-004 functional completion after M3, stopping before PKG-001 packaging.
