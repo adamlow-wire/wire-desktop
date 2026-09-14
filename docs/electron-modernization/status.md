@@ -122,3 +122,7 @@ At `2fd2f5d1`, [build/coverage](https://github.com/adamlow-wire/wire-desktop/act
 The existing protocol candidate is preserved at `5fca2fba`, reconciled with `2fd2f5d1`. It passes builds/types/lint, 58 focused native cases and five real account/proxy product cases (15.0s). Renew its base with subsequent CAP-005 changes after #49 qualifies; no new branch was created.
 
 The native-budget change passes all 19 account-view cases in 2 seconds after a completed TypeScript/bundle build; Mocha types and changed-test lint pass. An earlier local invocation overlapped preload generation and timed out in the production-preload notification target; it is not accepted as qualification. The serial post-build run is `/tmp/m3-native-account-budget-after-build.log`. No production source changes in this follow-up.
+
+### Certificate fixture request diagnosis
+
+Adding request metadata to the unchanged exact callback assertion captures the failure on the fourth bounded serial run: the expected untrusted `127.0.0.1` request returns `-2`, but a background Chromium request to `redirector.gvt1.com` also passes through this session verifier and returns Chromium delegation (`-3`, `net::OK`). This is a fixture network-isolation defect, not a second completion of the loopback verification. Evidence: `/tmp/m3-certificate-request-repeats.log`. Next: limit the test session's requests to its exact loopback origin, retain the exact one-denial/no-HTTP assertions, and qualify again. No production trust policy changes.

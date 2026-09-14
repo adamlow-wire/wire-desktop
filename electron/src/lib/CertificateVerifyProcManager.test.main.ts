@@ -289,7 +289,11 @@ describe('[CAP-005] native certificate verification', () => {
             () => undefined,
             (error: unknown) => error,
           );
-        assert.deepEqual(decisions, [-2], 'native verification must complete, not wait until request abort');
+        assert.deepEqual(
+          decisions,
+          [-2],
+          `native verification must complete, not wait until request abort: ${JSON.stringify(checks)}`,
+        );
         assert.deepEqual(checks, [
           {hostname: '127.0.0.1', errorCode: -202, verificationResult: 'net::ERR_CERT_AUTHORITY_INVALID'},
         ]);
