@@ -54,11 +54,14 @@ test(
       visible: index === 0,
       webappUrl: origin,
     }));
-    const launch = () =>
-      _electron.launch({
+    const phase = (name: string) => console.info(`[CAP-001 metadata] ${name}`);
+    const launch = () => {
+      phase('launching native application');
+      return _electron.launch({
         chromiumSandbox: true,
         args: ['.', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`],
       });
+    };
     let app: Awaited<ReturnType<typeof launch>> | undefined;
     const quit = async () => {
       const target = app;
@@ -67,17 +70,24 @@ test(
       }
       const applicationProcess = target.process();
       if (applicationProcess.exitCode === null && applicationProcess.signalCode === null) {
-        // Return from the inspector call before normal native quit starts.
-        await target.evaluate(({app}) => {
-          setImmediate(() => app.quit());
-        });
+        phase('requesting normal native quit');
+        // Native quit can close the inspector before its reply arrives. The
+        // process exit assertion below is the authoritative completion signal.
+        void target
+          .evaluate(({app}) => {
+            setImmediate(() => app.quit());
+          })
+          .catch(() => undefined);
       }
+      phase('waiting for native exit');
       await expect
         .poll(() => ({code: applicationProcess.exitCode, signal: applicationProcess.signalCode}), {
           message: 'Native application quit must exit successfully before test-context cleanup',
         })
         .toEqual({code: 0, signal: null});
+      phase('closing Playwright context after native exit');
       await target.close();
+      phase('native application and context closed');
       app = undefined;
     };
     const readSavedAccounts = async () =>
@@ -106,6 +116,7 @@ test(
         )
         .toEqual(ids.map(id => ({loading: false, url: expect.stringContaining(id)})));
 
+      phase('saving cookies and submitting metadata');
       await app.evaluate(
         async ({webContents}, {ids, origin, partitionId}) => {
           for (const id of ids) {
@@ -154,6 +165,7 @@ test(
       expect(saved[0].picture).toBeUndefined();
       expect(saved[1]).toMatchObject(accounts[1]);
 
+      phase('metadata assertions passed; restarting');
       await quit();
       app = await launch();
       await expect.poll(() => !!findShell()).toBe(true);
@@ -178,6 +190,7 @@ test(
         )
         .toEqual(ids.map(id => ({id, marker: id})));
       expect(await readSavedAccounts()).toEqual(saved);
+      phase('restart persistence assertions passed');
     } finally {
       await quit();
       await new Promise<void>(resolve => server.close(() => resolve()));

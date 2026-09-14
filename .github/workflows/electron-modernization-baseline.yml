@@ -203,6 +203,14 @@ jobs:
           trap 'defaults delete "$domain" applockOverride >/dev/null 2>&1' EXIT
           defaults write "$domain" applockOverride -bool true
           M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
+      - name: Retain native product test failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: modernization-native-test-failure-${{ matrix.platform }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload development artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

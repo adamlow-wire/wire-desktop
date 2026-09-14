@@ -162,9 +162,13 @@ for (const systemProxy of ['absent', 'without credentials', 'different proxy cre
     } finally {
       if (app) {
         const process = app.process();
-        await app.evaluate(({app}) => {
-          setImmediate(() => app.quit());
-        });
+        // Native quit can close the inspector before its reply arrives. The
+        // process exit assertion below is the authoritative completion signal.
+        void app
+          .evaluate(({app}) => {
+            setImmediate(() => app.quit());
+          })
+          .catch(() => undefined);
         await expect.poll(() => process.exitCode).toBe(0);
         await app.close();
       }
