@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-14
 milestone: M3
 active_work_item: SEC-009
-state: restart-ready-qualification-and-provider-gates-open
+state: qualifying-prepared-account-cutover
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -11,7 +11,6 @@ fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: sec/SEC-009-account-permissions-2026-09-10
 next_work_item: CAP-001
 blockers:
-  - authenticated-local-linux-needs-secure-storage
   - live-sso-e2ei-provider-configuration-pending
   - certificate-exception-and-display-phase-decisions-pending
 ---
@@ -100,6 +99,10 @@ Candidate heads were rechecked with Git on September 14. These are **local check
 SEC-009, SEC-010, managed destinations and CAP-006 depend on local CAP-001. The E2EI branch starts from SEC-009 `b1846446`, before the latest general consent/storage harness changes. Certificates and managed backends start from integration. Do not blindly combine these branches: their status/plan snapshots overlap.
 
 ## Current SEC-009 behavior and evidence
+
+September 14 qualification now has a usable **isolated Linux native keyring**. Ubuntu distro GNOME Keyring/libsecret binaries were downloaded/extracted under `/tmp/m3-native-keyring`, without package installation or host-keyring changes. A private `dbus-run-session`, dedicated mode-0700 XDG directories and a random stdin-only keyring password give Electron `gnome_libsecret`, encryption available and a successful synthetic round trip. Plaintext storage remains disabled. `python3 /tmp/m3-native-keyring/run.py corepack yarn test:e2e --project=macOS specs/criticalFlow/login.spec.ts` passes (17s). This is Linux evidence despite the project name. The same wrapper running critical multi-account/logout plus regression multi-account/calling gives **9 passing / 1 failing in 8.1 minutes**: active-removal's initial login times out before removal, despite successful backend login/client creation. Its isolated unchanged rerun is pending; no full-pass claim. Logs: `/tmp/m3-linux-auth-{login,parity,removal-retry}.log`. Real host D-Bus remains absent, but it no longer blocks this isolated qualification path.
+
+Final-head gates at `1bd28aaf`: build/coverage, lint, analysis and macOS/Linux packages passed in [package run 34818532398](https://github.com/adamlow-wire/wire-desktop/actions/runs/34818532398). Windows failed its controller before/after hooks at the existing two-second deadline before the test body. The attempted single-job rerun was rejected because macOS packaging was still running; no check was bypassed and no test deadline changed. The existing CAP-002 native navigation/SSO fixture repair from `44f8a9ed` is now reconciled as a cutover harness prerequisite; it passes locally in 2.5 seconds with all navigation/SSRF/PiP/deep-link/SSO assertions retained. No other candidate code or overlapping docs were copied. This next head requires new CI; standalone Playwright types still have the same nine pre-existing errors, none in the repaired fixture.
 
 The explicit platform account gate now also includes `electron/src/security/AccountPermission*.test.main.ts`, so actual native dialog cancellation and permission-session integration run on Windows/macOS as well as Linux. The exact expanded command passes locally; hosted results remain required.
 
