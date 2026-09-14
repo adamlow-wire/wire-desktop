@@ -63,4 +63,36 @@ describe('[characterization][CAP-001] account destination construction', () => {
       getAccountDestination({isAdding: false, webappUrl: 'not a URL'}, 'https://default.example.test', 'en'),
     );
   });
+
+  it('[security-target][INV-005] rejects a saved account outside the enforced machine origin', () => {
+    assert.throws(() =>
+      getAccountDestination(
+        {isAdding: false, webappUrl: 'https://other.example.test/client'},
+        'https://managed.example.test/client',
+        'en',
+        {isConfigured: true, url: 'https://managed.example.test/client'},
+      ),
+    );
+  });
+
+  it('[security-target][INV-010] does not let a saved account bypass invalid managed configuration', () => {
+    assert.throws(() =>
+      getAccountDestination({isAdding: false, webappUrl: 'https://saved.example.test'}, '', 'en', {
+        isConfigured: true,
+        issue: 'invalid-url',
+      }),
+    );
+  });
+
+  it('[compatibility] retains same-origin account paths, query and SSO under machine policy', () => {
+    assert.strictEqual(
+      getAccountDestination(
+        {isAdding: true, webappUrl: 'https://MANAGED.example.test:443/client?mode=desktop', ssoCode: 'fixture-code'},
+        'https://managed.example.test/client',
+        'en',
+        {isConfigured: true, url: 'https://managed.example.test/client'},
+      ),
+      'https://managed.example.test/auth?mode=desktop&hl=en#sso/fixture-code',
+    );
+  });
 });

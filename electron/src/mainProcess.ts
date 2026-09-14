@@ -450,20 +450,26 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),
   });
   accountViews = nativeViews;
+  const managedDestination = EnvironmentUtil.getManagedWebappConfiguration();
   const controller = new AccountController({
     accountLimit: showAccountLimitWarning,
     state: accountState,
     views: nativeViews,
     registry: viewIdentityRegistry,
     destination: account =>
-      getAccountDestination(account, decodeURIComponent(mainURL.searchParams.get('env') || ''), currentLocale),
+      getAccountDestination(
+        account,
+        decodeURIComponent(mainURL.searchParams.get('env') || ''),
+        currentLocale,
+        managedDestination,
+      ),
     session: account =>
       account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
     clearData: async (account, targetSession) => {
       await clearAccountSession(targetSession);
       await deleteNativeAccountLogs(account.id, getLogDirectory());
     },
-    approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate),
+    approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate, managedDestination),
     changed: accounts => {
       if (!main.isDestroyed()) {
         main.webContents.send(ACCOUNT_SNAPSHOTS_CHANNEL, accounts);

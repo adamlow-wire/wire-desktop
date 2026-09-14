@@ -18,13 +18,34 @@
  */
 
 import type {Account} from '../../renderer/src/types/account';
+import {parseNetworkNavigation} from '../security/NavigationPolicy';
+import type {WindowsMsiWebAppConfiguration} from '../settings/WindowsMsiConfiguration';
+
+export function assertManagedAccountDestination(
+  candidate: string,
+  managed: Readonly<WindowsMsiWebAppConfiguration>,
+): void {
+  if (!managed.isConfigured) {
+    return;
+  }
+  const enforced = parseNetworkNavigation(managed.url ?? '');
+  if (!enforced || enforced.protocol !== 'https:') {
+    throw new Error('Invalid managed account destination.');
+  }
+  if (parseNetworkNavigation(candidate)?.origin !== enforced.origin) {
+    throw new Error('Account destination conflicts with machine policy.');
+  }
+}
 
 export function getAccountDestination(
   account: Pick<Account, 'webappUrl' | 'ssoCode' | 'isAdding'>,
   defaultUrl: string,
   locale: string,
+  managed: Readonly<WindowsMsiWebAppConfiguration> = {isConfigured: false},
 ): string {
-  const url = new URL(account.webappUrl || defaultUrl);
+  const candidate = account.webappUrl || defaultUrl;
+  assertManagedAccountDestination(candidate, managed);
+  const url = new URL(candidate);
   url.searchParams.set('hl', locale);
   if (account.ssoCode && account.isAdding) {
     url.pathname = '/auth';

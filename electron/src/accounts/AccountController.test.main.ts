@@ -17,7 +17,7 @@
  *
  */
 
-import {app, BrowserWindow, ipcMain, session, WebContents, WebContentsView} from 'electron';
+import {app, BrowserWindow, dialog, ipcMain, session, WebContents, WebContentsView} from 'electron';
 import {spy, restore, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
@@ -31,6 +31,8 @@ import path from 'path';
 import {Availability} from '@wireapp/protocol-messaging';
 
 import {AccountController, AccountControllerOptions} from './AccountController';
+import {getAccountDestination} from './AccountDestination';
+import {approveAccountEnvironment} from './AccountEnvironmentApproval';
 import {deleteNativeAccountLogs} from './AccountLogCleanup';
 import {parseLegacyAccounts} from './AccountProfile';
 import {clearAccountSession} from './AccountSessionCleanup';
@@ -675,6 +677,40 @@ describe('production account controller integration', () => {
     await assert.rejects(controller.receive(owner, {type: 'environment', url: `${origin}/candidate`}), /authorized/);
     assert.equal(state.get(records[0].id).webappUrl, undefined);
     assert.equal(views.get(records[0].id), first);
+  });
+
+  it('[security-target][CAP-001][INV-005] preserves views and profile when machine policy rejects an environment event', async () => {
+    const prompt = stub(dialog, 'showMessageBox').resolves({response: 0, checkboxChecked: false});
+    const first = views.get(records[0].id);
+    const before = state.snapshots();
+    options.approveEnvironment = (_account, candidate) =>
+      approveAccountEnvironment(window, candidate, {isConfigured: true, url: 'https://managed.example.test/'});
+
+    await assert.rejects(send(first, 'environment', 'https://other.example.test/'), /machine policy/);
+
+    assert.deepEqual(state.snapshots(), before);
+    assert.equal(views.get(records[0].id), first);
+    assert.equal(identity(first).webContents, first);
+    assert.equal(prompt.callCount, 0);
+  });
+
+  it('[security-target][CAP-001][INV-005] blocks a saved foreign destination without deleting its account record', async () => {
+    const id = records[0].id;
+    state.setEnvironment(id, `${origin}/saved`);
+    const before = state.get(id);
+    const create = spy(views, 'create');
+    options.destination = account =>
+      getAccountDestination(account, 'https://managed.example.test/', 'en', {
+        isConfigured: true,
+        url: 'https://managed.example.test/',
+      });
+
+    await assert.rejects(controller.reload(id), /machine policy/);
+
+    assert.deepEqual(state.get(id), before);
+    assert.equal(create.callCount, 0);
+    assert.equal(views.has(id), false);
+    assert.ok(controller.snapshots().find(account => account.id === id)?.loadError);
   });
 
   it('[migration][CAP-001] approved environment changes replace only the owning view and preserve its partition', async () => {
