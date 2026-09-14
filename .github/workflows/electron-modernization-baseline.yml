@@ -64,10 +64,10 @@ jobs:
           python - <<'PYTHON'
           from pathlib import Path
           target = Path('electron/src/accounts/AccountDestination.ts')
-          source = target.read_text()
+          source = target.read_text(encoding='utf-8')
           guard = '  assertManagedAccountDestination(candidate, managed);'
           assert source.count(guard) == 1
-          target.write_text(source.replace(guard, '  // Temporary native registry sensitivity perturbation.'))
+          target.write_text(source.replace(guard, '  // Temporary native registry sensitivity perturbation.'), encoding='utf-8')
           PYTHON
           set +e
           yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox > native-registry-sensitivity.log 2>&1
@@ -77,7 +77,7 @@ jobs:
           test "$result" -ne 0
           python - <<'PYTHON'
           from pathlib import Path
-          log = Path('native-registry-sensitivity.log').read_text()
+          log = Path('native-registry-sensitivity.log').read_text(encoding='utf-8')
           assert 'Missing expected exception' in log and 'foreign registry destination must be denied' in log
           PYTHON
           cp "$original" "$target"
