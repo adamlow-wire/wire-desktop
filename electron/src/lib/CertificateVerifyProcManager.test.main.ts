@@ -283,12 +283,16 @@ describe('[CAP-005] native certificate verification', () => {
       try {
         await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
         const address = server.address() as AddressInfo;
-        const error = await target
-          .fetch(`https://127.0.0.1:${address.port}/`, {signal: AbortSignal.timeout(1000)})
-          .then(
-            () => undefined,
-            (error: unknown) => error,
-          );
+        const origin = `https://127.0.0.1:${address.port}`;
+        // Chromium background traffic can otherwise invoke this session's
+        // verifier. Keep the native denial fixture confined to its own server.
+        target.webRequest.onBeforeRequest((details, callback) => {
+          callback({cancel: new URL(details.url).origin !== origin});
+        });
+        const error = await target.fetch(`${origin}/`, {signal: AbortSignal.timeout(1000)}).then(
+          () => undefined,
+          (error: unknown) => error,
+        );
         assert.deepEqual(
           decisions,
           [-2],
@@ -304,6 +308,7 @@ describe('[CAP-005] native certificate verification', () => {
       } finally {
         target.setCertificateVerifyProc(null);
         await target.closeAllConnections();
+        target.webRequest.onBeforeRequest(null);
         server.closeAllConnections();
         await new Promise<void>(resolve => server.close(() => resolve()));
         sandbox.restore();

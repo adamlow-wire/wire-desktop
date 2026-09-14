@@ -78,6 +78,8 @@ The matrix is complete as an engineering acceptance specification. Q-008 maps it
 
 ## Coverage interpretation
 
+CAP-005 September 14 reconciliation: exact-origin native fixture isolation removes independently observed Chromium background TLS traffic without relaxing denial assertions. Five focused runs pass 22/22 each and the full current native suite passes 856/856 on Linux. Q-005 and final hosted certificate qualification remain open.
+
 CAP-005 certificate completion: seven synthetic decision baselines and four error/callback targets pass locally. Verifier and dialog exceptions previously left Electron's callback unanswered; the repair denies once, without changing pinning exception scope or retrying a throwing callback. Replacing Chromium delegation with unconditional success fails the positive targets. These stubbed-boundary tests do not establish native TLS, trust-store, exception-scope or packaged DCP-012 acceptance.
 
 CAP-005 native denial/recovery: two regressions detect permanently suppressed warnings after dialog rejection; the repair preserves the sensitivity-proven normal cooldown. Two real Electron TLS tests reject an untrusted loopback certificate, including on dialog failure, before any HTTP request. Omitting the callback fails the target rather than passing on timeout. The combined suite passes 16/16 on Linux. Trusted-chain acceptance, pinning exceptions, OS trust UI and other-platform evidence remain open.
