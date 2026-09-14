@@ -79,6 +79,12 @@ const signOutTemplate: MenuItemConstructorOptions = {
   label: locale.getText('menuSignOut'),
 };
 
+const notificationPermissionTemplate: MenuItemConstructorOptions = {
+  label: locale.getText('menuNotificationSettings'),
+  click: (_menuItem, baseWindow) =>
+    sendToWebContents(baseWindow, EVENT_TYPE.UI.SYSTEM_MENU, EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION),
+};
+
 const spellingTemplate: MenuItemConstructorOptions = {
   checked: settings.restore(SettingsType.ENABLE_SPELL_CHECKING, true),
   click: () => toggleSpellChecking(),
@@ -325,6 +331,7 @@ const darwinTemplate: MenuItemConstructorOptions = {
     spellingTemplate,
     separatorTemplate,
     signOutTemplate,
+    notificationPermissionTemplate,
     {
       accelerator: 'Command+Q',
       click: () => lifecycle.quit(),
@@ -348,6 +355,7 @@ const win32Template: MenuItemConstructorOptions = {
     spellingTemplate,
     separatorTemplate,
     signOutTemplate,
+    notificationPermissionTemplate,
     {
       accelerator: 'Alt+F4',
       click: () => lifecycle.quit(),
@@ -366,6 +374,7 @@ const linuxTemplate: MenuItemConstructorOptions = {
     spellingTemplate,
     separatorTemplate,
     signOutTemplate,
+    notificationPermissionTemplate,
     {
       accelerator: 'Ctrl+Q',
       click: () => lifecycle.quit(),

@@ -18,6 +18,7 @@
  */
 
 import {app, BrowserWindow, ipcMain, session, WebPreferences} from 'electron';
+import {replace, restore, spy} from 'sinon';
 
 import * as assert from 'assert';
 import {createServer} from 'http';
@@ -28,6 +29,7 @@ import {pathToFileURL} from 'url';
 import {WindowManager} from './WindowManager';
 
 import {getPictureInPictureCallWindowOptions} from '../calling/PictureInPictureCall';
+import {EVENT_TYPE} from '../lib/eventType';
 import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
 import {PROXY_PROMPT_LOCALE_READ_CHANNEL, PROXY_PROMPT_SUBMIT_CAPABILITY} from '../security/ProxyPromptContract';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
@@ -75,6 +77,29 @@ describe('auxiliary window identity', () => {
       if (window && !window.isDestroyed()) {
         window.destroy();
       }
+    }
+  });
+
+  it('[regression][CAP-001] requests About versions through the native account binding, not the shell', async () => {
+    const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+    windows.push(window);
+    replace(WindowManager, 'getPrimaryWindow', () => window);
+    const shell = spy(window.webContents, 'send');
+    const dispose = WindowManager.bindNativeActions(window.id, (channel, args) => {
+      assert.strictEqual(channel, EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION);
+      assert.deepStrictEqual(args, []);
+      acceptWebappVersions({webappVersion: 'native-account-version'});
+    });
+    try {
+      assert.deepStrictEqual(await requestActiveWebappVersions(20), {
+        webappVersion: 'native-account-version',
+        webappAVSVersion: undefined,
+      });
+      assert.strictEqual(shell.callCount, 0);
+    } finally {
+      dispose();
+      restore();
+      acceptWebappVersions({webappVersion: ''});
     }
   });
 

@@ -19,6 +19,7 @@
 
 import {_electron, expect, test} from '@playwright/test';
 
+import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
 
@@ -59,19 +60,28 @@ test(
         args: ['.', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`],
       });
     let app: Awaited<ReturnType<typeof launch>> | undefined;
+    const readSavedAccounts = async () =>
+      JSON.parse(await readFile(testInfo.outputPath('profile/accounts.v1.json'), 'utf8')).accounts;
     try {
       await seedLegacyAccountProfile(testInfo.outputPath('profile'), accounts);
       app = await launch();
-      const shell = await app.firstWindow();
-      await expect(shell.locator('webview')).toHaveCount(2);
+      const findShell = () =>
+        app!.windows().find(page => !page.isClosed() && new URL(page.url()).searchParams.has('env'));
+      await expect.poll(() => !!findShell()).toBe(true);
+      const shell = findShell()!;
+      await expect(shell.locator('webview')).toHaveCount(0);
       await expect
         .poll(() =>
-          app!.evaluate(({webContents}) =>
-            webContents
-              .getAllWebContents()
-              .filter(contents => contents.getType() === 'webview')
-              .map(contents => ({loading: contents.isLoading(), url: contents.getURL()}))
-              .sort((left, right) => left.url.localeCompare(right.url)),
+          app!.evaluate(
+            ({webContents}, origin) =>
+              webContents
+                .getAllWebContents()
+                .filter(
+                  contents => contents.getURL().startsWith(origin) && new URL(contents.getURL()).searchParams.has('id'),
+                )
+                .map(contents => ({loading: contents.isLoading(), url: contents.getURL()}))
+                .sort((left, right) => left.url.localeCompare(right.url)),
+            origin,
           ),
         )
         .toEqual(ids.map(id => ({loading: false, url: expect.stringContaining(id)})));
@@ -83,7 +93,7 @@ test(
               .getAllWebContents()
               .find(
                 candidate =>
-                  candidate.getType() === 'webview' && new URL(candidate.getURL()).searchParams.get('id') === id,
+                  candidate.getURL().startsWith(origin) && new URL(candidate.getURL()).searchParams.get('id') === id,
               )!;
             await contents.session.cookies.set({
               url: origin,
@@ -108,10 +118,11 @@ test(
         },
         {ids, origin, partitionId},
       );
-      await expect
-        .poll(() => shell.evaluate(() => JSON.parse(localStorage.getItem('state')!).accounts[0].name))
-        .toBe('Updated team');
-      const saved = await shell.evaluate(() => JSON.parse(localStorage.getItem('state')!).accounts);
+      await expect.poll(async () => (await readSavedAccounts())[0].name).toBe('Updated team');
+      const saved = await readSavedAccounts();
+      const displayed = await shell.evaluate(() => window.wireAccounts.read());
+      expect(displayed.map(account => account.id)).toEqual(ids);
+      expect(displayed.every(account => !Object.hasOwn(account, 'sessionID'))).toBe(true);
       expect(saved[0]).toMatchObject({
         id: ids[0],
         name: 'Updated team',
@@ -125,23 +136,28 @@ test(
 
       await app.close();
       app = await launch();
+      await expect.poll(() => !!findShell()).toBe(true);
       await expect
         .poll(() =>
-          app!.evaluate(async ({webContents}) => {
+          app!.evaluate(async ({webContents}, origin) => {
             const accounts = webContents
               .getAllWebContents()
-              .filter(contents => contents.getType() === 'webview' && !contents.isLoading());
+              .filter(
+                contents =>
+                  contents.getURL().startsWith(origin) &&
+                  new URL(contents.getURL()).searchParams.has('id') &&
+                  !contents.isLoading(),
+              );
             return Promise.all(
               accounts.map(async contents => ({
                 id: new URL(contents.getURL()).searchParams.get('id'),
                 marker: (await contents.session.cookies.get({name: 'account-marker'}))[0]?.value,
               })),
             ).then(values => values.sort((left, right) => String(left.id).localeCompare(String(right.id))));
-          }),
+          }, origin),
         )
         .toEqual(ids.map(id => ({id, marker: id})));
-      const restartedShell = await app.firstWindow();
-      expect(await restartedShell.evaluate(() => JSON.parse(localStorage.getItem('state')!).accounts)).toEqual(saved);
+      expect(await readSavedAccounts()).toEqual(saved);
     } finally {
       await app?.close();
       await new Promise<void>(resolve => server.close(() => resolve()));

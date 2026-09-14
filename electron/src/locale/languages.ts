@@ -47,7 +47,7 @@ export type i18nStrings = Record<i18nLanguageIdentifier, string>;
 export type SupportedI18nLanguage = keyof typeof SUPPORTED_LANGUAGES;
 export type SupportedI18nLanguageObject = Record<SupportedI18nLanguage, i18nStrings>;
 
-export const LANGUAGES: SupportedI18nLanguageObject = {
+const translations = {
   cs,
   da,
   de,
@@ -73,6 +73,11 @@ export const LANGUAGES: SupportedI18nLanguageObject = {
   uk,
   zh,
 };
+
+// Keep untranslated additions consistent with getText's existing English fallback.
+export const LANGUAGES = Object.fromEntries(
+  Object.entries(translations).map(([language, strings]) => [language, {...en, ...strings}]),
+) as SupportedI18nLanguageObject;
 
 export const SUPPORTED_LANGUAGES = {
   en: 'English',

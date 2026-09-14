@@ -20,10 +20,14 @@
 export type ConversationJoinData = {
   code: string;
   key: string;
-  domain: string;
+  domain?: string | null;
 };
 
 export type Account = {
+  canCancel?: boolean;
+  isLoading?: boolean;
+  loadError?: string;
+  removalFailed?: boolean;
   availability?: number;
   accentID?: number;
   badgeCount: number;

@@ -30,7 +30,7 @@ interface ManagedSsoWindow {
 export class SsoWindowCoordinator {
   private active: ManagedSsoWindow | null = null;
 
-  constructor(private readonly onClosed: () => void) {}
+  constructor(private readonly onClosed: (accountId: string) => void) {}
 
   async open(accountId: string | undefined, create: () => ManagedSsoWindow): Promise<void> {
     if (!accountId) {
@@ -45,7 +45,7 @@ export class SsoWindowCoordinator {
     sso.onClose = () => {
       if (this.active === sso) {
         this.active = null;
-        this.onClosed();
+        this.onClosed(accountId);
       }
     };
     try {
