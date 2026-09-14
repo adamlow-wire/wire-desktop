@@ -1,9 +1,9 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-10
+updated: 2026-09-14
 milestone: M3
 active_work_item: SEC-009
-state: blocked-on-external-prerequisites-and-maintainer-decisions
+state: restart-ready-qualification-and-provider-gates-open
 integration_branch: integration/electron-modernization
 integration_head_commit: d94253c9937c6e0bac256fc49e4980af00dd6e91
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -12,7 +12,6 @@ active_branch: sec/SEC-009-account-permissions-2026-09-10
 next_work_item: CAP-001
 blockers:
   - authenticated-local-linux-needs-secure-storage
-  - remote-pr-state-unverified-network-timeouts
   - live-sso-e2ei-provider-configuration-pending
   - certificate-exception-and-display-phase-decisions-pending
 ---
@@ -21,25 +20,49 @@ blockers:
 
 ## Milestone checkpoint
 
-M0–M2 exit gates are complete. **M3 remains approximately 70%**, an engineering estimate, not a measured acceptance percentage or time forecast. Electron stays **43.4.0**; 44 is deferred. No candidate below is merged or globally complete. M1 closure does not close the broader ELC-003 dependency audit.
+M0–M2 exit gates are recorded complete. **M3 is not complete: 7 of 16 M3 work items are marked done and 9 remain open.** These vary in size and overlap; this count is not a weighted completion percentage. Retire the previous uncalibrated ~70% estimate. Report accepted criteria and remaining gates rather than inventing a replacement percentage. Electron stays **43.4.0**; 44 is deferred. No candidate below is merged or globally complete. M1 closure does not close the broader ELC-003 dependency audit.
 
 **Approved scope:** the maintainer explicitly added E2EI enrolment/renewal to M3. CAP-002 plan revision 1.5.25, DCP-022 and Q-011 are now reconciled onto this branch from the approved scope commit `23cb717a`. The dedicated transport/SSO fixtures remain on the CAP-002 branch below. No enrolment or renewal success is claimed.
 
 ## Resume here
 
-Autonomous goal execution is blocked, not complete. The same GitHub/secure-storage/provider/policy prerequisites persisted across at least three consecutive goal turns. Independent local work completed in that interval (sidebar regression, scope reconciliation and bounded protocol review), but it cannot substitute for the remaining qualification or authorize an unspecified provider/policy implementation. No process is currently live to monitor. Resume when an access condition changes or the maintainer supplies a pending decision; do not manufacture further progress through repeated checks or documentation-only restatements.
+The previous thread goal was marked blocked on September 10. **That is historical: GitHub access works again on September 14.** A fresh session can review/publish/qualify existing candidates. Linux storage and provider/policy questions block particular acceptance paths, not all useful work. This handoff session did not restart implementation, publish, merge or rerun application tests. Follow [the fresh-session prompt](./resume-m3.md).
 
 1. Inspect the worktree and verify local/tracking integration refs against the explicit recorded SHA; a stale local integration ref previously produced a misleading coverage failure.
 2. The native sidebar helper repair below is locally qualified. The latest helper scan found an unreferenced legacy launcher but no further confirmed failure warranting another fix. Qualify the existing authenticated tests when their runner prerequisite is met, and diagnose any actual failures within CAP-001.
 3. Once secure storage is available, run staging login, then calling allow/deny and multi-account tests using the general consent harness. Never count a Linux `--project=macOS` run as macOS evidence.
-4. Once GitHub is reachable, read back PR #47 and branch heads before publishing. Qualify CAP-001 first, then its dependent candidates through scoped PRs with final-head checks and substantive self-review. Do not merge an unqualified draft or bypass checks.
+4. Review PR #47's unpublished CAP-001 commits and dependent permission/harness requirements before publishing. Resolve cutover dependency ordering first: a head denying required calling flows cannot pass full acceptance. Use coherent, reviewable PRs, not blind branch combination or unqualified draft merges.
 5. Finish every remaining M3 gate below and perform criterion-by-criterion closure; narrow local passes are not milestone completion.
 
 All processes from the latest checkpoint are terminal. No authenticated tests should be restarted solely to repeat the known unavailable-keyring failure.
 
 ## Verified local candidates
 
-Heads were checked with Git on September 10. These are **local checkpoints**, not claims of remote publication or final-head CI success. Read each branch's status and diff before switching or transferring commits.
+### September 14 revalidation
+
+- Live API: integration remains `d94253c9937c6e0bac256fc49e4980af00dd6e91`. PR #47 is the only open fork PR, still draft at `23fb964b2f536a01d8e60fab8f284879338d3604`. Build/lint/analysis and all three package checks succeeded; authenticated E2E/report were skipped. None qualifies the newer local heads.
+- Local CAP-001 has six unpublished commits: `8a58de40`, `894df496`, `94cd2a36`, `496e636a`, `f721bf5c`, `a4ce662c`. The current permission branch also contains launcher/consent/sidebar fixes and later docs. Distinguish tested code checkpoints from documentation-only descendants.
+- The native storage recheck cannot connect to `/run/user/1000/bus` because the session bus socket is absent. This differs from September 10's missing service owner. No fresh Electron encryption probe or login was run. A provisioned hosted Windows/macOS runner can provide authenticated qualification without fixing this Linux host.
+- Live SSO/E2EI configuration is still unestablished. E2EI has boundary fixtures, **not a completed enrolment implementation or passing enrolment/renewal flow**. This is remaining implementation and acceptance work, not just a missing password.
+- Test results below are September 10 checkpoints, not fresh runs. Temporary logs may disappear; rerun relevant tests after reconciliation and retain final-head CI evidence.
+
+### Closeout sequence
+
+| Work items | Next outcome and missing closure proof |
+| --- | --- |
+| CAP-001, SEC-007 | Review unpublished cutover and reconcile minimum permission/harness prerequisites; prove multi-account/login/logout/calling, isolation/lifecycle and final-head platform checks |
+| SEC-009 | Qualify native consent allow/deny and resolve display phase ambiguity; no blanket grant or replacement permission handler |
+| SEC-010 | Reconcile prepared protocol candidate after its base is stable; prove scheme/CSP/migration and packaged/platform behavior |
+| SEC-008, CAP-005 | Finish backend/managed destination and chosen certificate exception policy; qualify native backend/proxy/certificate paths |
+| SEC-013, CAP-006 | Reconcile lifecycle candidate; prove exact-account startup/running/second-instance delivery, especially native Windows |
+| CAP-002 | Preserve live SSO and implement/qualify E2EI authentication compatibility: enrolment/ACME/verified identity/restart/renewal, cancellation/failure and cross-account denial |
+| All nine open items | Audit every acceptance criterion on the final integration head with reviewed merged PRs and applicable complete CI; old-head/skipped/mock results cannot stand in for full acceptance |
+
+Keep signed installer/updater, rollout and independent review under their M4–M6 owners. Resolve ambiguous scope from the plan and maintainer decisions; do not silently waive M3 criteria. Avoid accumulating more parallel branches or isolated tests when a critical-path candidate can be integrated and qualified.
+
+### Candidate inventory
+
+Candidate heads were rechecked with Git on September 14. These are **local checkpoints**, not claims of remote publication or final-head CI success. Read each branch's status and diff before switching or transferring commits.
 
 | Work | Branch | Head | Remaining qualification |
 | --- | --- | --- | --- |
@@ -117,9 +140,9 @@ Reviewed candidate `2ce86631` against its CAP-001 base `a4ce662c`: the seven-ent
 - E2EI Q-011: dedicated staging E2EI team/OIDC/ACME configuration versus newly provisioned isolated test team. Await response; no new team created.
 - Q-005: retain an exact-certificate/hostname/account-session restart-cleared override, or remove manual overrides. Chromium errors remain denied either way.
 - Display phase boundary: CAP-003 assigns sharing migration to M4, while later SEC-009 notes treated its chooser as an M3 blocker. Maintainer clarification remains pending; no silent scope reduction.
-- GitHub: latest supported API read on September 10 at 15:31 CEST again failed TLS negotiation after ten seconds. The installed `gh pr view` does not support `headRefOid`; use `gh api repos/adamlow-wire/wire-desktop/pulls/47 --jq '{state,draft,head: .head.sha}'` for readback. A previous bounded read through the configured SSH remote also timed out without returning refs. Remote state is unverified; no publication/merge is claimed.
+- GitHub: **resolved for restart on September 14**. Authenticated API reads of PR #47, integration, open PRs and check runs succeeded. No publication/merge was performed. The installed CLI lacks `gh pr view --json headRefOid`; read `.head.sha` through `gh api` instead.
 
-The subsequent unauthenticated `curl --head --connect-timeout 5 --max-time 10 https://api.github.com` also ended with SSL connection timeout (exit 28), so this is not demonstrated to be a `gh`-only or credential failure. A fresh D-Bus service-owner query again returned false for `org.freedesktop.secrets`. Both diagnostics are terminal; no hosted or local test run is currently being watched.
+Historical September 10 diagnostics: both authenticated API and unauthenticated curl failed TLS negotiation; D-Bus then reported no secret-service owner. September 14 supersedes those connectivity observations as described above. No application tests were run in this handoff session; the retained evidence must not be presented as fresh validation.
 
 ## Durable history and operating rules
 
@@ -132,4 +155,4 @@ Detailed checkpoint chronology is retained in Git, not as competing next-step in
 - Use explicit integration SHA for coverage base after verifying refs. Coverage examines committed HEAD; regenerate clean reports for the active candidate.
 - Preserve `wrap/worktrees/wpb-5221-deployment-audit` and MSI artifacts. Never run `clear:wrap`, broad cleanup or local `build:prepare`. Format exact files.
 - Never capture real devices/screens, display notifications, modify trust stores, expose credentials, or weaken an invariant to get a pass.
-- The full M3 objective is retained with goal status blocked. No current narrow pass or estimate proves M3 closure; no acceptance gate has been waived.
+- The old thread goal remains blocked historically; the fresh session must assess execution from the September 14 facts, not inherit that verdict. No acceptance gate has been waived.
