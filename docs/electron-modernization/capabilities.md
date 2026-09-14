@@ -21,7 +21,7 @@ September 14 reconciliation: preparation/checkpoint paragraphs below are histori
 Confidence values are `none`, `low`, `medium`, or `high`. `High` requires representative automated behavior and packaged/platform evidence where applicable.
 
 | Capability ID | Capability | Platforms | Current evidence | Current confidence | Characterization owner/work | Migration work | Target evidence |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | DCP-022 | E2EI enrolment and renewal | Windows, macOS, Linux | CAP-002 branch has a local navigation/return transport fixture, not enrolment or renewal evidence; generated backend feature APIs are not tests | none | TST-004, CAP-002 | CAP-002, SEC-008 | Desktop enrolment/verified identity/restart, cancellation/failure, renewal, callback and cross-account denial, controlled live OIDC/ACME evidence |
 | DCP-001 | Normal login and registration | Windows, macOS, Linux | Playwright critical flows on Windows/macOS | medium | BASE-002 | CAP-001 | Development E2E plus packaged login smoke on supported platforms |
 | DCP-002 | Multi-account add/switch/remove | Windows, macOS, Linux | PR #47 merged after final-head Windows/macOS critical/regression E2E and all-platform native/package gates; main-owned add/switch/remove, original-account action queues, IPC/session/cookie isolation and exact-target cleanup/retry are sensitivity-proven | medium | BASE-002, TST-004 | CAP-001 | Account-targeted product action routing, lifecycle E2E, and packaged three-account switch/remove smoke |
@@ -50,7 +50,7 @@ Confidence values are `none`, `low`, `medium`, or `high`. `High` requires repres
 `Automated`, `packaged`, and `manual` are separate obligations. `N/A` requires an approved scope decision; an empty result never implies a pass.
 
 | ID | Required behavior | Automated validation | Packaged validation | Manual/provider validation | Acceptance authority |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 | DCP-022 | E2EI-enabled accounts enrol and renew through authenticated OIDC/ACME flows without escaping account boundaries | M3: deterministic desktop redirect/callback isolation, cancellation/error transport and SSO lifecycle; actual enrolment, verified state and renewal belong to downstream live QA | Enrolment and retained identity smoke on each OS | Downstream QA environment under Q-011 and qa-sso-e2ei.md; distinct from SSO login | Product and Security |
 | DCP-001 | Login/registration opens the intended account in its isolated session | Critical login/register E2E and partition assertion | Fresh-profile login on each supported OS | Mandatory backend/federation variants | Product; Security for session boundary |
 | DCP-002 | Add/switch/remove affects only the selected account and routes activation correctly | Lifecycle E2E plus cross-account IPC/storage deny tests | PR #47 merged after final-head Windows/macOS critical/regression E2E and all-platform native/package gates; main-owned add/switch/remove, original-account action queues, IPC/session/cookie isolation and exact-target cleanup/retry are sensitivity-proven | Keyboard/accessibility review | Product and Security |
