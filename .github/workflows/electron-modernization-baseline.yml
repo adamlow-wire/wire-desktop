@@ -61,6 +61,36 @@ jobs:
           else
             yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
           fi
+      - name: Test native Windows machine destination and guard sensitivity
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          target=electron/src/accounts/AccountDestination.ts
+          original=$(mktemp)
+          cp "$target" "$original"
+          trap 'cp "$original" "$target"; rm -f "$original"' EXIT
+          python - <<'PYTHON'
+          from pathlib import Path
+          target = Path('electron/src/accounts/AccountDestination.ts')
+          source = target.read_text()
+          guard = '  assertManagedAccountDestination(candidate, managed);'
+          assert source.count(guard) == 1
+          target.write_text(source.replace(guard, '  // Temporary native registry sensitivity perturbation.'))
+          PYTHON
+          set +e
+          yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox > native-registry-sensitivity.log 2>&1
+          result=$?
+          set -e
+          cat native-registry-sensitivity.log
+          test "$result" -ne 0
+          python - <<'PYTHON'
+          from pathlib import Path
+          log = Path('native-registry-sensitivity.log').read_text()
+          assert 'Missing expected exception' in log and 'foreign registry destination must be denied' in log
+          PYTHON
+          cp "$original" "$target"
+          yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox
+
       - name: Test account media permission policy with fake devices
         shell: bash
         run: |
@@ -81,9 +111,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup'
+            xvfb-run yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt'
           else
-            yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup'
+            yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt'
           fi
       - name: Test product account storage and restart
         shell: bash
@@ -91,11 +121,11 @@ jobs:
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
             sudo chown root:root node_modules/electron/dist/chrome-sandbox
             sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
-            xvfb-run yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts --reporter=line
+            xvfb-run yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts --reporter=line
           elif [[ "$RUNNER_OS" == 'Windows' ]]; then
-            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts --reporter=line
+            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts --reporter=line
           else
-            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts --reporter=line
+            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts --reporter=line
           fi
       - name: Build development package
         shell: bash
@@ -123,6 +153,19 @@ jobs:
           test -n "$artifact"
           chmod +x "$artifact"
           xvfb-run "$artifact" --appimage-extract-and-run --no-sandbox --version
+          executable=$(find wrap/dist -maxdepth 2 -type f -name '*-desktop' -print -quit)
+          test -n "$executable"
+          helper="$(dirname "$executable")/chrome-sandbox"
+          test -f "$helper"
+          test ! -L "$helper"
+          sudo chown root:root "$helper"
+          sudo chmod 4755 "$helper"
+          xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          test ! -e /etc/wire/managed.json
+          sudo mkdir -p /etc/wire
+          trap 'sudo rm -f /etc/wire/managed.json' EXIT
+          printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
+          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Smoke-test Windows package
         if: runner.os == 'Windows'
         shell: pwsh
@@ -133,6 +176,23 @@ jobs:
           if (-not $app) { throw 'No packaged application executable found.' }
           & $app.FullName --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node bin/test-tools/packaged-account-smoke.cjs $app.FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $policy = 'HKCU:\SOFTWARE\Policies\Wire'
+          $existing = Get-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+          if ($null -ne $existing) { throw 'Refusing to replace existing App-lock policy.' }
+          New-Item -Path $policy -Force | Out-Null
+          try {
+            New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
+            $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
+            $env:M3_AUTHENTICATED_PROXY = 'true'
+            node bin/test-tools/packaged-account-smoke.cjs $app.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Managed package smoke failed.' }
+          } finally {
+            Remove-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+            Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
+            Remove-Item Env:M3_AUTHENTICATED_PROXY -ErrorAction SilentlyContinue
+          }
       - name: Smoke-test macOS package
         if: runner.os == 'macOS'
         shell: bash
@@ -140,6 +200,17 @@ jobs:
           executable=$(find wrap/build -maxdepth 6 -type f -path '*.app/Contents/MacOS/*' -perm -111 -print -quit)
           test -n "$executable"
           "$executable" --version
+          node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          bundle="${executable%/Contents/MacOS/*}"
+          domain=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$bundle/Contents/Info.plist")
+          test -n "$domain"
+          if defaults read "$domain" applockOverride >/dev/null 2>&1; then
+            echo 'Refusing to replace existing App-lock preference.' >&2
+            exit 1
+          fi
+          trap 'defaults delete "$domain" applockOverride >/dev/null 2>&1' EXIT
+          defaults write "$domain" applockOverride -bool true
+          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Upload development artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
