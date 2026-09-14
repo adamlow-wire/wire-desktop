@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.34
+revision: 1.5.35
 status: draft
 updated: 2026-09-14
 owners:
@@ -712,6 +712,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Backend characterization checkpoint (2026-09-10): 23 fixture-adapter tests cover all three unchanged backend contracts and error fallbacks; Linux opt-out, macOS preference-key and Windows per-user-policy mutations fail seven targets. The combined central/backend/authorized-IPC suite passes 35/35 locally. Actual OS policy deployment/readback and final-platform gates remain open; the certificate candidate is preserved separately at `ad1211cd` with scoped-exception acceptance still pending.
 - Download-path contract (2026-09-09): retain ordinary home-relative nested folders, Unicode/spaces and clearing the setting; normalize separators before persistence. Reject traversal, rooted/drive/UNC/device/stream paths, ambiguous names and linked directory components. Validate saved configuration at startup and revalidate at download start; invalid enforced configuration blocks downloads until corrected and restarted rather than silently bypassing enterprise policy. The main-selected home base is trusted; defending against a same-user filesystem race after validation is not claimed. Native Windows junction evidence is required in addition to platform-independent policy tests.
 - Path-policy reference: [Microsoft file/path naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file), including device aliases, superscript port numbers and trailing-dot/space ambiguity; use explicit Windows path semantics on every test host.
+- Session contract (September 14): system-proxy credentials and native prompt submission apply settings to the web contents that raised the challenge. Cancellation clears that session and reloads that view; the main shell and unrelated accounts retain their routing. A real two-account proxy regression reproduces the old unrelated default-session mutation.
 - Acceptance:
   - Proxy credentials are handled only by the intended prompt and session.
   - Certificate verification and exception behavior are characterized and fail closed.
@@ -865,6 +866,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | RSK-012 | Packaging code catches errors and CI can appear successful without producing an artifact | high | high | Assert artifact existence, make package errors fatal under PKG-001, and retain runner logs | Release Engineering | open |
 | RSK-013 | Solo development concentrates product, platform, and security decisions in one maintainer | high | high | PR-only integration, strict CI, explicit security-review passes, sensitive-test demonstrations, concise decision records, and external review before release when feasible | adamlow-wire | open |
 | RSK-014 | Electron 43.4.0 shares the permission gate for legacy capture and modern display selection, so allowing the latter can bypass source choice through the former | confirmed callback limitation | high | Keep empty media types denied; preserve real-runtime regression tests; resolve a native-enforced distinction or approved alternative under SEC-009 before enabling capture. Do not replace source authorization with a page override or silently change the pinned runtime | adamlow-wire | open |
+| RSK-015 | Proxy challenge handling applies settings to the main/default session instead of the challenged account | reproduced | high | CAP-005 binds submission/system credentials/cancel reload to challenged web contents; retain real two-account proxy regression and final native platform gates | adamlow-wire | open pending integration |
 
 ## 15. Decision log
 
@@ -900,6 +902,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.35 | 2026-09-14 | Codex | Reproduce unrelated-session proxy mutation with a real native prompt; bind proxy application and cancellation reload to the challenged view without changing credential/IPC authorization | CAP-005, DCP-011, RSK-015 |
 | 1.5.34 | 2026-09-14 | Codex | Reproduce and close machine endpoint fallback after unavailable/failed registry reads; preserve genuinely absent policy and prepare real Windows reader/destination sensitivity proof | CAP-005, INV-010 |
 | 1.5.31 | 2026-09-14 | Codex | Integrate reviewed permission dependency through PR #48 and reconcile existing managed destination baseline/enforcement into PR #47; retain final cutover gates and CAP-005 native registry qualification | CAP-001, SEC-007, SEC-008, SEC-009 |
 | 1.5.30 | 2026-09-14 | Codex | Reproduced unconsented desktop-thumbnail enumeration and removed its production account capability pending authorized source selection; preserve device consent and all milestone gates | SEC-009, DCP-008, INV-006 |

@@ -620,9 +620,9 @@ const handleAppEvents = (): void => {
           protocol,
         } = systemProxySettings;
         proxyInfoArg = ProxyAuth.generateProxyURL({host, port}, {password, protocol, username});
-        logger.log('Found system proxy settings, applying settings on the main window...');
+        logger.log('Found system proxy settings, applying settings on the challenged view...');
 
-        await applyProxySettings(proxyInfoArg, main.webContents);
+        await applyProxySettings(proxyInfoArg, webContents);
 
         return callback(username, password);
       }
@@ -636,7 +636,7 @@ const handleAppEvents = (): void => {
             challengedSession: webContents.session,
             getProxyInfo: () => proxyInfoArg,
             logger,
-            mainWindow: main,
+            challengedView: {webContents, reload: () => webContents.reload()},
             setProxyInfo: proxy => (proxyInfoArg = proxy),
             showErrorDialog,
           }),
