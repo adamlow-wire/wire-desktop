@@ -113,11 +113,11 @@ jobs:
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
             sudo chown root:root node_modules/electron/dist/chrome-sandbox
             sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
-            xvfb-run yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/proxySession.spec.ts --reporter=line
+            xvfb-run yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts --reporter=line
           elif [[ "$RUNNER_OS" == 'Windows' ]]; then
-            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/proxySession.spec.ts --reporter=line
+            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts --reporter=line
           else
-            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/proxySession.spec.ts --reporter=line
+            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts --reporter=line
           fi
       - name: Build development package
         shell: bash

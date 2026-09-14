@@ -60,6 +60,26 @@ test(
         args: ['.', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`],
       });
     let app: Awaited<ReturnType<typeof launch>> | undefined;
+    const quit = async () => {
+      const target = app;
+      if (!target) {
+        return;
+      }
+      const applicationProcess = target.process();
+      if (applicationProcess.exitCode === null && applicationProcess.signalCode === null) {
+        // Return from the inspector call before normal native quit starts.
+        await target.evaluate(({app}) => {
+          setImmediate(() => app.quit());
+        });
+      }
+      await expect
+        .poll(() => ({code: applicationProcess.exitCode, signal: applicationProcess.signalCode}), {
+          message: 'Native application quit must exit successfully before test-context cleanup',
+        })
+        .toEqual({code: 0, signal: null});
+      await target.close();
+      app = undefined;
+    };
     const readSavedAccounts = async () =>
       JSON.parse(await readFile(testInfo.outputPath('profile/accounts.v1.json'), 'utf8')).accounts;
     try {
@@ -134,7 +154,7 @@ test(
       expect(saved[0].picture).toBeUndefined();
       expect(saved[1]).toMatchObject(accounts[1]);
 
-      await app.close();
+      await quit();
       app = await launch();
       await expect.poll(() => !!findShell()).toBe(true);
       await expect
@@ -159,7 +179,7 @@ test(
         .toEqual(ids.map(id => ({id, marker: id})));
       expect(await readSavedAccounts()).toEqual(saved);
     } finally {
-      await app?.close();
+      await quit();
       await new Promise<void>(resolve => server.close(() => resolve()));
     }
   },
