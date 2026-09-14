@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.44
+revision: 1.5.45
 status: draft
 updated: 2026-09-14
 owners:
@@ -665,7 +665,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-002 — Migrate enterprise and automated SSO
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: TST-002, SEC-008, CAP-001
 - Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation. Include E2EI enrolment and renewal authentication compatibility explicitly; the webapp/core retain ownership of OIDC, ACME and certificate cryptography. This is distinct from CAP-005 transport certificate verification.
@@ -679,6 +679,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Deterministic desktop tests cover cancellation, provider/backend failure and invalid or foreign-account callbacks where desktop owns the behavior. No arbitrary cross-origin account navigation or privileged bridge authority is added for IdP pages. Real enrolment, renewal/silent-auth fallback and retained verified-device state remain mandatory downstream QA checks.
   - Deterministic desktop boundary tests run against the refactored application with final supported-platform CI evidence. The live Keycloak/SSO/E2EI checkpoint is handed to QA using `qa-sso-e2ei.md`; it is not an M3 completion gate after the maintainer-approved September 14 scope revision. Customer E2EI compatibility remains unqualified until QA records those results; a missing live environment is never a skipped pass.
 - Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. The live IdP checkpoint remains required for customer compatibility qualification, separately from M3 automated acceptance under the September 14 maintainer-approved revision.
+
+- Final automated acceptance: [PR #53](https://github.com/adamlow-wire/wire-desktop/pull/53) merged as `3c734cde363f1fcb783762997d247c4995ce6600`, with tree equal to reviewed `43961f6c`. [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989433), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989529), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989484), [all native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989430) and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989437) pass. Both authenticated platforms pass46 cases: Windows43 initial/three login-readiness retries; macOS42 initial/four login or account-action screen-readiness retries. No skips or worker errors. Windows native passed on its third unchanged-head attempt after two fixture-timeout failures; all attempts are retained and no assertion/deadline was changed. Native SSO controls, account limits, one-use/backend verdict/cookie isolation and three sensitivity-proven E2EI transport outcomes are qualified. The approved downstream QA obligation and lack of live customer-compatibility evidence remain explicit.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
@@ -914,6 +916,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.45 | 2026-09-14 | Codex | Close CAP-002 automated acceptance after reviewed PR #53 and final native/authenticated/report gates; reconcile retained pinning candidate with actual integration and preserve downstream live QA | CAP-002, CAP-005, Q-011 |
 | 1.5.44 | 2026-09-14 | Maintainer in chat; Codex | Resolve Q-005 by preserving existing pinning product behavior with explicit default/consent/Chromium-denial/reset characterization; retain broad-override concern for independent review | CAP-005, Q-005 |
 | 1.5.43 | 2026-09-14 | Maintainer in chat; Codex | Separate M3 automated desktop-boundary acceptance from downstream live Keycloak/SSO/E2EI QA; retain every security invariant and explicitly withhold live compatibility claims | CAP-002, DCP-003, DCP-022, Q-011 |
 | 1.5.42 | 2026-09-14 | Codex | Close CAP-006 and SEC-013 after reviewed lifecycle PR #51 and all final-head checks; qualify existing certificate slice against actual integration | CAP-006, SEC-013, CAP-005 |

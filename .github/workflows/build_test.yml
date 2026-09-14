@@ -14,7 +14,6 @@ on:
         cap/CAP-005-managed-backends-2026-09-10,
         sec/SEC-010-local-protocol-2026-09-10,
         cap/CAP-006-second-instance-2026-09-10,
-        cap/CAP-002-e2ei-acceptance-2026-09-10,
       ]
   merge_group:
     branches: [main, staging, dev]
