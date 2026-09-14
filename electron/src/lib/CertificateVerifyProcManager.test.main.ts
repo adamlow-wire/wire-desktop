@@ -270,6 +270,12 @@ describe('[CAP-005] native certificate verification', () => {
       const checks: {hostname: string; errorCode: number; verificationResult: string}[] = [];
       const decisions: number[] = [];
       target.setCertificateVerifyProc((request, callback) => {
+        // TLS preconnect may reach verification before onBeforeRequest can cancel it.
+        // Deny background hosts at this fixture boundary; count only its loopback request.
+        if (request.hostname !== '127.0.0.1') {
+          callback(-2);
+          return;
+        }
         checks.push({
           hostname: request.hostname,
           errorCode: request.errorCode,
