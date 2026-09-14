@@ -87,12 +87,26 @@ test(
         // Native quit can close the inspector before its reply arrives. The
         // process exit assertion below is the authoritative completion signal.
         void target
-          .evaluate(({app, BrowserWindow, webContents}) => {
+          .evaluate(({app, BrowserWindow, dialog, webContents}) => {
             console.info(
               '[native quit] requested',
               BrowserWindow.getAllWindows().length,
               webContents.getAllWebContents().length,
             );
+            // Observe without handling or suppressing Electron's default error alert.
+            process.once('uncaughtExceptionMonitor', (error, origin) => {
+              console.error('[native quit] uncaught exception', origin, error.stack ?? error.message);
+            });
+            const showErrorBox = dialog.showErrorBox.bind(dialog);
+            dialog.showErrorBox = (title, content) => {
+              console.error('[native quit] error box', title, content);
+              return showErrorBox(title, content);
+            };
+            const showMessageBoxSync = dialog.showMessageBoxSync.bind(dialog);
+            dialog.showMessageBoxSync = ((...args: Parameters<typeof dialog.showMessageBoxSync>) => {
+              console.error('[native quit] synchronous message box', args.at(-1));
+              return showMessageBoxSync(...args);
+            }) as typeof dialog.showMessageBoxSync;
             app.once('before-quit', () => console.info('[native quit] before-quit'));
             app.once('will-quit', () => console.info('[native quit] will-quit'));
             for (const contents of webContents.getAllWebContents()) {
