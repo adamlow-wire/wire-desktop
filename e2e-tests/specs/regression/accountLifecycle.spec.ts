@@ -230,9 +230,11 @@ test(
             events.push({argv, workingDirectory});
           });
         });
+        // Playwright's Windows child is cmd.exe; launch the app's actual Electron executable.
+        const executable = await app.evaluate(() => process.execPath);
         let secondInstanceOutput = '';
         const secondInstance = spawn(
-          app.process().spawnfile,
+          executable,
           ['.', `--env=${origin}`, `--user-data-dir=${profileDirectory}`, 'wire://preferences/account'],
           {env: environment, stdio: ['ignore', 'pipe', 'pipe']},
         );
