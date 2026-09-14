@@ -53,14 +53,6 @@ jobs:
           else
             yarn electron-mocha --require .babel-register.js "electron/src/secureShell/**/*.test.main.ts" --no-sandbox
           fi
-      - name: Test native account lifecycle and cleanup
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
-          else
-            yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
-          fi
       - name: Test native Windows machine destination and guard sensitivity
         if: runner.os == 'Windows'
         shell: bash
@@ -91,6 +83,14 @@ jobs:
           cp "$original" "$target"
           yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox
 
+      - name: Test native account lifecycle and cleanup
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+          else
+            yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+          fi
       - name: Test account media permission policy with fake devices
         shell: bash
         run: |

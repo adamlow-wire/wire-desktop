@@ -39,7 +39,9 @@ describe('[characterization][SEC-009] native account permission callbacks', () =
   let requests: Array<{permission: string; sender: WebContents; isMainFrame: boolean; requestingUrl: string}>;
   let checks: Array<{permission: string; sender: WebContents | null; requestingOrigin: string}>;
 
-  beforeEach(async () => {
+  beforeEach(async function () {
+    // Native view creation has a separate budget; permission assertions retain two seconds.
+    this.timeout(10_000);
     server = createServer((_request, response) => response.end('<!doctype html><title>Permission fixture</title>'));
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
