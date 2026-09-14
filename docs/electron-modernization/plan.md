@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.42
+revision: 1.5.43
 status: draft
 updated: 2026-09-14
 owners:
@@ -675,10 +675,10 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - SSO windows use fixed secure preferences and ephemeral sessions.
   - Account targeting and cookie transfer cannot cross partitions.
   - The real backend verdict is delivered without a renderer opener, with success/error and backend error-label compatibility; synthetic direct finalization alone is insufficient.
-  - Desktop E2E covers E2EI-enabled account enrolment through OIDC authentication and ACME completion, with observable verified-device/certificate state retained after restart; ordinary login or SSO success is not equivalent evidence.
-  - Enrolment cancellation, provider failure, renewal/silent-auth fallback and invalid or foreign-account callback attempts preserve account isolation and fail closed. No arbitrary cross-origin account navigation or privileged bridge authority is added for IdP pages.
-  - Deterministic desktop boundary tests and a controlled live SSO/E2EI provider checkpoint run against the refactored application on supported platforms; missing provider configuration remains an explicit gap, not a skipped pass.
-- Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. A controlled live IdP checkpoint remains required before CAP-002 closure.
+  - M3 automated acceptance covers desktop-owned E2EI transport and account/session boundaries using deterministic fixtures. It must include allowed same-origin callback transport and rejected foreign navigation, and reuse sensitive SSO callback/replay/cancellation/account-isolation tests. It does not claim OIDC authentication, ACME issuance or verified-device state.
+  - Deterministic desktop tests cover cancellation, provider/backend failure and invalid or foreign-account callbacks where desktop owns the behavior. No arbitrary cross-origin account navigation or privileged bridge authority is added for IdP pages. Real enrolment, renewal/silent-auth fallback and retained verified-device state remain mandatory downstream QA checks.
+  - Deterministic desktop boundary tests run against the refactored application with final supported-platform CI evidence. The live Keycloak/SSO/E2EI checkpoint is handed to QA using `qa-sso-e2ei.md`; it is not an M3 completion gate after the maintainer-approved September 14 scope revision. Customer E2EI compatibility remains unqualified until QA records those results; a missing live environment is never a skipped pass.
+- Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. The live IdP checkpoint remains required for customer compatibility qualification, separately from M3 automated acceptance under the September 14 maintainer-approved revision.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
@@ -897,7 +897,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Question ID | Question | Needed by | Owner | Resolution |
 | --- | --- | --- | --- | --- |
-| Q-011 | Which dedicated staging team/account, OIDC provider and ACME discovery endpoint support desktop E2EI enrolment and renewal validation? | CAP-002 / M3 | adamlow-wire | Pending fixture inventory; reuse approved staging provisioning where possible, never production test identities. Credentials stay outside source and chat. |
+| Q-011 | Which QA environment supports live SSO and Keycloak/OIDC/ACME enrolment and renewal validation? | Downstream QA / DCP-003 / DCP-022 | QA owner to be assigned | Deferred from M3 environment provisioning by maintainer on September 14. Execute qa-sso-e2ei.md before claiming customer compatibility. Credentials stay outside source and chat. |
 | Q-001 | Which Windows, macOS, and Linux versions are release-blocking? | M0 | adamlow-wire | All three platforms remain in scope; minimum supported OS versions are fixed under PKG-001 before release qualification |
 | Q-002 | Which identity providers and federation variants form the mandatory SSO matrix? | TST-002 | adamlow-wire | Automate protocol behavior with deterministic fixtures; record real-provider evidence when available without making an undocumented vendor list an M0 dependency |
 | Q-003 | Can the Wire webapp accept a versioned `contextBridge` adapter, and where should that adapter live? | ARC-001 | adamlow-wire | Resolved by PR #35: desktop-owned preloads expose immutable named APIs; fixed main-world adapters preserve existing webapp globals/events. Authenticated Windows/macOS E2E passes without a webapp source change. |
@@ -913,6 +913,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.43 | 2026-09-14 | Maintainer in chat; Codex | Separate M3 automated desktop-boundary acceptance from downstream live Keycloak/SSO/E2EI QA; retain every security invariant and explicitly withhold live compatibility claims | CAP-002, DCP-003, DCP-022, Q-011 |
 | 1.5.42 | 2026-09-14 | Codex | Close CAP-006 and SEC-013 after reviewed lifecycle PR #51 and all final-head checks; qualify existing certificate slice against actual integration | CAP-006, SEC-013, CAP-005 |
 | 1.5.41 | 2026-09-14 | Codex | Close SEC-010 and accept DEC-010 after reviewed protocol PR #50 and all final-head gates; qualify existing lifecycle candidate against actual integration | SEC-010, DEC-010, CAP-006, SEC-013 |
 | 1.5.40 | 2026-09-14 | Codex | Reconcile preserved lifecycle candidate with current protocol and final CAP-005 credential/native-test qualification; require current composition and final-head gates | CAP-006, SEC-013 |

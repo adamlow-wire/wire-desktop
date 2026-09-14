@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-14
 milestone: M3
 active_work_item: CAP-002
-state: awaiting-required-certificate-policy-and-live-identity-inputs
+state: qualifying-automated-identity-boundaries-for-qa-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 784ffabe46a48d5bbcba7bbeee49735a754070eb
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -25,9 +25,9 @@ Protected integration is `784ffabe46a48d5bbcba7bbeee49735a754070eb`, after revie
 
 The existing CAP-002 branch now merges actual integration in97f6f1ac. Its only test delta is the prior80-line E2EI transport fixture; current production source equals integration. Completed TypeScript then bundling and two real local transport tests pass (8.2 seconds). Logs `/tmp/m3-e2ei-final-integration-{build,product,lint}.log`. This Linux run uses the project named macOS; it does not claim native macOS qualification. The fixture denies an unregistered loopback provider with zero requests and preserves account storage across an inert same-origin OIDC-shaped redirect. It does not authenticate, enrol, issue a certificate, verify a device or renew anything.
 
-Required inputs, already requested and still unanswered: Q-005 chooses removal of the manual pinning override or exact certificate/hostname/account-session exceptions cleared on restart; Chromium validation errors must remain denied. Q-011 supplies a dedicated staging SSO/E2EI team, OIDC/ACME nonsecret configuration and approved credential location, or authorization to provision an isolated team. Credentials remain outside source/chat. The approved live enrolment/restart/renewal and cancellation/provider-failure/cross-account criteria remain required.
+Maintainer-approved September 14 scope change: live environment discovery/provisioning is outside current M3 work. Build and qualify automated desktop-boundary tests, then hand live SSO and Keycloak E2EI enrolment/restart/renewal acceptance to QA under [qa-sso-e2ei.md](qa-sso-e2ei.md). Q-011 is a downstream QA prerequisite, not an M3 blocker. Live customer compatibility remains explicitly unqualified. No security invariant is weakened.
 
-Next executable work depends on those inputs: implement and sensitively test the chosen Q-005 policy on the existing CAP-005 branch, and run the live CAP-002 acceptance checkpoint using the reconciled existing candidate. No pending integration PR or active qualification job remains from the completed #52 queue. Do not manufacture a provider success, infer product approval or mark M3 complete.
+Next executable work: audit existing deterministic SSO and E2EI transport assertions against revised CAP-002 acceptance, strengthen any missing desktop-owned denial/cancellation/account-isolation cases with sensitivity evidence, and qualify the existing branch through all applicable final-head checks. CAP-002 remains open until that evidence is integrated. Q-005 remains a separate product decision; recommend removing the process-global server-certificate pinning override, preserving Chromium validation, diagnostics and export. The maintainer requested an explanation, not yet a final policy choice.
 
 ## Completed account cutover
 
