@@ -69,7 +69,9 @@ describe('production account controller integration', () => {
   const identity = (contents: WebContents) =>
     registry.authorize({sender: contents, senderFrame: contents.mainFrame}, ACCOUNT_EVENT_CAPABILITY);
 
-  beforeEach(async () => {
+  beforeEach(async function () {
+    // Starting three real sandboxed renderers exceeds Mocha's 2s default on hosted Windows.
+    this.timeout(10_000);
     server = createServer((_request, response) =>
       response.end('<!doctype html><title>Account controller fixture</title>'),
     );
@@ -127,7 +129,9 @@ describe('production account controller integration', () => {
     await controller.start();
   });
 
-  afterEach(async () => {
+  afterEach(async function () {
+    // Native renderer/session teardown has the same bounded fixture budget as startup.
+    this.timeout(10_000);
     restore();
     disposeControl?.();
     disposeEvents?.();
@@ -159,6 +163,24 @@ describe('production account controller integration', () => {
     assert.deepEqual(secondSend.args, [[EVENT_TYPE.PREFERENCES.SHOW]]);
     await assert.rejects(controller.menuAction('arbitrary-channel'), /Unknown desktop menu/);
     assert.equal(secondSend.callCount, 1);
+  });
+
+  it('[security-target][SEC-009] binds readiness and notification retry to the owning selected account', async () => {
+    const ready = spy(views, 'markReady');
+    const first = views.get(records[0].id);
+    const second = views.get(records[1].id);
+    const firstSend = spy(first, 'send');
+    const secondSend = spy(second, 'send');
+    await controller.receive(identity(first), {type: 'loaded'});
+    assert.deepEqual(ready.args, [[records[0].id]]);
+    await controller.menuAction(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    assert.deepEqual(firstSend.args, [[EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION]]);
+    assert.equal(secondSend.callCount, 0);
+    await controller.select(records[1].id);
+    await controller.receive(identity(second), {type: 'loaded'});
+    await controller.menuAction(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    assert.deepEqual(secondSend.args, [[EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION]]);
+    assert.equal(firstSend.callCount, 1);
   });
 
   it('[regression][CAP-001] applies each native edit shortcut only to the selected account', async () => {

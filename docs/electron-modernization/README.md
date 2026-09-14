@@ -49,6 +49,8 @@ Do not duplicate status across documents. The plan describes intended work; `sta
 
 ## Resume protocol
 
+For a fresh AI session, use [the M3 restart prompt](./resume-m3.md). It requires revalidation of the current handoff and acceptance gates rather than inheriting an old completion estimate or blocked verdict.
+
 When resuming after a gap:
 
 1. Confirm the current branch, commit, remotes, and worktree state.

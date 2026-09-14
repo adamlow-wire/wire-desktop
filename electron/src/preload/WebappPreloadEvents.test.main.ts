@@ -46,6 +46,7 @@ describe('webapp preload event routing', () => {
       relaunch: record('relaunch'),
       reload: record('reload'),
       reportVersions: record('versions'),
+      requestNotificationPermission: async () => 'denied',
       updateDownloadPath: record('download'),
     };
     const preloadEvents = createWebappPreloadEvents({
@@ -70,8 +71,71 @@ describe('webapp preload event routing', () => {
       assert.ok(listener, `missing listener for ${channel}`);
       listener({}, ...args);
     };
-    return {calls, emit, preloadEvents, setVersions: (value: typeof versions) => (versions = value)};
+    return {calls, emit, preloadEvents, actions, setVersions: (value: typeof versions) => (versions = value)};
   };
+
+  it('[security-target][SEC-009] publishes only the real notification result and bounds pending requests', async () => {
+    const {actions, calls, emit, preloadEvents} = createHarness();
+    let answer!: (value: NotificationPermission) => void;
+    let requests = 0;
+    Object.assign(actions, {
+      requestNotificationPermission: () => {
+        requests++;
+        return new Promise<NotificationPermission>(resolve => {
+          answer = resolve;
+        });
+      },
+    });
+    preloadEvents.subscribeToMainProcessEvents();
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION, 'granted');
+    assert.equal(requests, 0);
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await Promise.resolve();
+    assert.equal(requests, 1);
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    assert.equal(requests, 1);
+    assert.equal(
+      calls.some(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`),
+      false,
+    );
+    answer('granted');
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.deepEqual(
+      calls.filter(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`),
+      [{name: `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`, args: ['granted']}],
+    );
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await Promise.resolve();
+    assert.equal(requests, 2);
+    answer('denied');
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.deepEqual(
+      calls
+        .filter(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`)
+        .map(call => call.args),
+      [['granted'], ['denied']],
+    );
+  });
+
+  it('[security-target][SEC-009] contains notification request failures and rejects malformed results', async () => {
+    const {actions, calls, emit, preloadEvents} = createHarness();
+    Object.assign(actions, {
+      requestNotificationPermission: async () => {
+        throw new Error('private failure');
+      },
+    });
+    preloadEvents.subscribeToMainProcessEvents();
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    Object.assign(actions, {requestNotificationPermission: async () => 'forged'});
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(
+      calls.some(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`),
+      false,
+    );
+    assert.equal(JSON.stringify(calls).includes('private failure'), false);
+  });
 
   it('[compatibility][CAP-001] routes named native-account events without depending on a webview host', () => {
     const events: unknown[] = [];

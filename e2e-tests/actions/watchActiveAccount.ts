@@ -21,6 +21,8 @@ import {Page} from '@playwright/test';
 
 import {App} from './createApp';
 
+import type {AccountShellBridge} from '../../electron/src/preload/AccountShellBridge';
+
 // eslint-disable-next-line valid-jsdoc
 /**
  * Action to observe the list of accounts inside the apps sidebar.
@@ -34,11 +36,10 @@ import {App} from './createApp';
  * await expect(accountsSidebar(app).getAccount(userA2).activeBorder).toBeVisible();
  */
 export const watchActiveAccount = async (app: App, onChange: (newPage: Page) => void) => {
-  /* Make a callback function available on the wrappers window object so it can notify the paywright process */
+  /* Notify Playwright of main-owned account selection changes. */
   const onActiveAccountChange = (newAccountId: string) => {
     const newActivePage = app.windows().find(page => {
-      // Compare the id of the window to the one which became active (removing the hash based routing)
-      return newAccountId === new URLSearchParams(page.url().split('#')[0]).get('id');
+      return !page.isClosed() && newAccountId === new URL(page.url()).searchParams.get('id');
     });
 
     // If there's a new active account, update the page property of app with its page
@@ -48,13 +49,17 @@ export const watchActiveAccount = async (app: App, onChange: (newPage: Page) => 
   };
   await app.wrapper.exposeFunction('onActiveAccountChange', onActiveAccountChange);
 
-  /* Observe the list of webviews for changes, if the currently visible webview changes inform the playwright process about the new accountId */
-  await app.wrapper.locator('ul.WebviewList').evaluate(list => {
-    new window.MutationObserver(() => {
-      const activeAccountId = list.querySelector('webview[visible="true"]')?.getAttribute('data-accountid');
-      if (activeAccountId != undefined) {
-        onActiveAccountChange(activeAccountId);
+  await app.wrapper.evaluate(async () => {
+    const shell = window as unknown as {
+      wireAccounts: AccountShellBridge;
+      onActiveAccountChange(id: string): Promise<void>;
+    };
+    shell.wireAccounts.subscribe(accounts => {
+      const activeAccountId = accounts.find(account => account.visible)?.id;
+      if (activeAccountId !== undefined) {
+        void shell.onActiveAccountChange(activeAccountId);
       }
-    }).observe(list, {attributeFilter: ['visible'], childList: true, subtree: true});
+    });
+    await shell.wireAccounts.read();
   });
 };
