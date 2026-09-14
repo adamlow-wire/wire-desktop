@@ -46,7 +46,11 @@ export const pointInRectangle = (point: [number, number], rectangle: Rectangle):
 };
 
 export const showAfterStartupDelay = (window: BrowserWindow): void => {
-  setTimeout(() => window.show(), 800);
+  setTimeout(() => {
+    if (!window.isDestroyed()) {
+      window.show();
+    }
+  }, 800);
 };
 
 export const isInView = (win: BrowserWindow): boolean => {
