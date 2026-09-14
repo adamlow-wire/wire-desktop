@@ -92,6 +92,41 @@ describe('native account environment approval', () => {
     assert.equal(prompt.callCount, 0);
   });
 
+  it('[security-target][INV-005][CAP-001] refuses a foreign managed endpoint before asking the user', async () => {
+    for (const candidate of [
+      'https://other.wire.test/',
+      'http://managed.wire.test/client',
+      'https://managed.wire.test:444/client',
+      'https://managed.wire.test.other.test/client',
+    ]) {
+      await assert.rejects(
+        approveAccountEnvironment(owner, candidate, {
+          isConfigured: true,
+          url: 'https://managed.wire.test/client',
+        }),
+      );
+    }
+    assert.equal(prompt.callCount, 0);
+  });
+
+  it('[compatibility][CAP-001] still requires explicit confirmation for a same-origin managed route', async () => {
+    const candidate = 'https://MANAGED.wire.test:443/auth?mode=desktop#login';
+    assert.equal(
+      await approveAccountEnvironment(owner, candidate, {isConfigured: true, url: 'https://managed.wire.test/client'}),
+      candidate,
+    );
+    assert.equal(prompt.callCount, 1);
+    assert.equal(prompt.firstCall.args[0], owner);
+    assert.equal(prompt.firstCall.args[1].defaultId, 0);
+  });
+
+  it('[security-target][INV-010][CAP-001] refuses invalid managed configuration before asking the user', async () => {
+    await assert.rejects(
+      approveAccountEnvironment(owner, 'https://custom.wire.test/', {isConfigured: true, issue: 'invalid-url'}),
+    );
+    assert.equal(prompt.callCount, 0);
+  });
+
   it('[security-target][INV-010][CAP-001] rejects approval if the owning window closes while awaiting the dialog', async () => {
     prompt.callsFake(async () => {
       owner.destroy();

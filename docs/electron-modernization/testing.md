@@ -14,6 +14,10 @@ This is characterization-driven development followed by test-driven implementati
 
 Existing behavior is not automatically correct. Security invariants describe the required target even when the corresponding target test initially fails.
 
+## Native-account E2E harness checkpoint (2026-09-10)
+
+`accountSidebar.spec.ts` is a CAP-001 regression for DCP-002/DCP-004. It uses isolated local profiles and real native views/menus to exercise switching, background/active/last-account removal, addition, and logout event delivery with an unrelated window present. It reproduced incorrect positional page selection and the obsolete DOM-menu timeout. The helper now resolves the main-selected account and invokes the actual enabled native menu item; no production IPC or permission bypass is added. The authenticated logout spec retains its menu labels/enabled-state and confirmation/cancellation assertions using that adapter. Local fixtures do not prove staging login, actual data-clearing confirmation, live SSO/E2EI, or macOS/Windows operation.
+
 ## Test classifications
 
 Every added modernization test MUST be classified in its name, enclosing suite, or PR evidence as one of:
@@ -107,6 +111,16 @@ Only list platforms actually exercised. Unrun platforms are gaps, not implicit p
 
 ## Validation cadence during M3
 
-`test:main` and `test:main:coverage` register the existing local scheme privileges through `electron/test/register-local-scheme.cjs` before app readiness. This matches production startup and makes native relative-resource/CSP tests meaningful; it does not install a resource handler or enable CSP bypass. Direct `electron-mocha` invocations that test local protocol documents need the same `--require-main` helper. The platform baseline includes `test:main --grep 'local content'` separately from the auxiliary/product group.
+Authenticated Linux E2E needs an available native secure-storage backend. Playwright's Electron loader forces `--password-store=basic`; the general test bootstrap removes this override before readiness so Electron can discover the host keyring. This does not supply or unlock a keyring. If `safeStorage.isEncryptionAvailable()` remains false, record the host prerequisite and use an appropriately provisioned Linux/macOS/Windows runner; never enable plaintext encryption to qualify authentication. Pure local boundary fixtures do not prove credential-storage availability.
+
+The general E2E launcher uses `e2e-tests/utils/nativeConsent.cjs` as a **test-only main-process require hook**, installed before app readiness. It controls responses to the account-consent dialog, not session permission decisions. `mediaConsent` selects allow/deny; notifications remain separately scoped. Always supply synthetic devices and never `--use-fake-ui-for-media-stream` for this Electron launcher. Tests verify effective flags, pre-ready installation, actual audio/video allow/deny and selected-account restart. The negative calling test must not replace the production session permission handler. These fixtures do not establish real user/OS consent, authenticated calling or platform qualification.
+
+Native media permission tests run in a separate process with `env -u ELECTRON_RUN_AS_NODE corepack yarn test:media` (use `xvfb-run` on headless Linux). This command supplies fake media devices but deliberately does not bypass permission UI. The suite asserts these launch conditions before accessing media and stops synthetic tracks immediately. Its `.test.media.ts` suffix prevents accidental capture in ordinary main-process runs; `yarn test` and the cross-platform baseline workflow explicitly include it. Synthetic-device results do not establish real OS permission prompts or packaged calling parity.
+
+The isolated product fixture `accountPermissions.spec.ts` exercises activated main/preload consent. It controls native dialog responses through the test runner only, requires real foreground eligibility and fake devices without fake permission UI, and stops tracks immediately. The page reports readiness only after test setup. Its approval and reload-denial checks do not waive authenticated calling, real user approval or OS permission qualification. Never add a production flag that automatically approves permission requests to make these tests pass.
 
 Every PR must pass its focused characterization/security tests and the protected branch's required build, lint, and analysis checks. Authenticated cross-platform E2E is required when a PR changes observable product behavior, activates a new production boundary, or closes an M3 execution checkpoint. A schema-only migration inside an already characterized boundary may defer authenticated E2E to the next checkpoint when the PR records that gap; this reduces duplicated staging runs without weakening the M3 exit gate.
+
+### SEC-010 protocol registration
+
+`test:main` and `test:main:coverage` register the local scheme through `electron/test/register-local-scheme.cjs` before readiness, matching production minimal privileges. This helper installs no resource handler or CSP bypass. Direct electron-mocha tests of local protocol documents require `--require-main electron/test/register-local-scheme.cjs`; the existing direct secure-shell group also passes unchanged without it. The platform baseline includes `test:main --grep "local content"`. Reconciled source passes full native 821/821 and eight product fixtures locally; final hosted gates remain required.

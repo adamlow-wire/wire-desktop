@@ -80,7 +80,7 @@ test.describe('Calling - Negative Scenarios / Permissions', () => {
     appOptions: async ({appOptions}, use) => {
       await use({
         ...appOptions,
-        bypassPermissions: false,
+        mediaConsent: 'deny',
       });
     },
   });
@@ -89,14 +89,6 @@ test.describe('Calling - Negative Scenarios / Permissions', () => {
     'Verify call establishment fails without required permissions',
     {tag: ['@TC-11297', '@regression']},
     async ({app, createUser, createTeam, createPage}) => {
-      await app.evaluate(({session}) => {
-        session.defaultSession.setPermissionRequestHandler((_, permission, callback) => {
-          if (permission === 'media') {
-            return callback(false);
-          }
-          callback(true);
-        });
-      });
       const userB = await createUser();
       const {owner: userA} = await createTeam('Test Team', {
         users: [userB],

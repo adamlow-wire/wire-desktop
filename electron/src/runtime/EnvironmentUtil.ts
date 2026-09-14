@@ -34,6 +34,9 @@ const argv = minimist(process.argv.slice(1));
 const webappUrlSetting = settings.restore<string | undefined>(SettingsType.CUSTOM_WEBAPP_URL);
 const windowsMsiWebAppConfiguration =
   process.platform === 'win32' ? getWindowsMsiWebAppConfiguration(config.name) : {isConfigured: false};
+export function getManagedWebappConfiguration(): Readonly<WindowsMsiWebAppConfiguration> {
+  return Object.freeze({...windowsMsiWebAppConfiguration});
+}
 export const reportWindowsMsiConfigurationIssue = (
   configuration: WindowsMsiWebAppConfiguration,
   issueLogger: Pick<typeof logger, 'error' | 'warn'> = logger,

@@ -4,7 +4,7 @@ on:
   push:
     branches: [integration/electron-modernization]
   pull_request:
-    branches: [integration/electron-modernization]
+    branches: [integration/electron-modernization, cap/CAP-001-production-accounts-2026-09-09]
   workflow_dispatch:
 
 concurrency:
@@ -57,9 +57,17 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
           else
-            yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+            yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+          fi
+      - name: Test account media permission policy with fake devices
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:media
+          else
+            yarn test:media
           fi
       - name: Test local content protocol boundary
         shell: bash
@@ -76,6 +84,18 @@ jobs:
             xvfb-run yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup'
           else
             yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup'
+          fi
+      - name: Test product account storage and restart
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            sudo chown root:root node_modules/electron/dist/chrome-sandbox
+            sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+            xvfb-run yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts --reporter=line
+          elif [[ "$RUNNER_OS" == 'Windows' ]]; then
+            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts --reporter=line
+          else
+            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts --reporter=line
           fi
       - name: Build development package
         shell: bash

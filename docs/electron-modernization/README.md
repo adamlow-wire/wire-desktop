@@ -49,10 +49,12 @@ Do not duplicate status across documents. The plan describes intended work; `sta
 
 ## Resume protocol
 
+For a fresh AI session, use [the M3 restart prompt](./resume-m3.md). It requires revalidation of the current handoff and acceptance gates rather than inheriting an old completion estimate or blocked verdict.
+
 When resuming after a gap:
 
 1. Confirm the current branch, commit, remotes, and worktree state.
-2. Read `status.md` and verify its recorded commit against both the local integration branch and remote-tracking ref. Use the verified explicit base SHA for coverage/PR comparisons; a stale local branch name is not current integration evidence.
+2. Read `status.md` and verify its recorded commit still matches history.
 3. Refresh the latest stable Electron version if runtime work is involved.
 4. Select the first unblocked work item whose dependencies are complete.
 5. Re-run the narrow baseline relevant to that item before editing.

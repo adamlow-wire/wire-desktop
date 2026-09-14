@@ -218,6 +218,7 @@ export class AccountController {
       ...Object.values(EVENT_TYPE.CONVERSATION),
       EVENT_TYPE.PREFERENCES.SHOW,
       EVENT_TYPE.ACTION.SIGN_OUT,
+      EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION,
     ];
     if (!allowed.includes(action)) {
       return Promise.reject(new Error('Unknown desktop menu action.'));
@@ -346,6 +347,7 @@ export class AccountController {
         }
         if (message.type === 'loaded') {
           this.ready.add(id);
+          views.markReady(id);
         }
         if (message.type === 'join' || message.type === 'loaded') {
           this.deliverJoin(id);

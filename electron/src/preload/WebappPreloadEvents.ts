@@ -42,6 +42,7 @@ export interface WebappPreloadEventActions {
   relaunch(): void;
   reload(): void;
   reportVersions(versions: WebappVersions): void;
+  requestNotificationPermission(): Promise<NotificationPermission>;
   updateDownloadPath(downloadPath: string | undefined): void;
 }
 
@@ -118,6 +119,23 @@ export const createWebappPreloadEvents = ({
   };
 
   const subscribeToMainProcessEvents = (): void => {
+    let notificationPending = false;
+    ipc.on(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION, async (_event, ...args) => {
+      if (notificationPending || args.length !== 0) {
+        return;
+      }
+      notificationPending = true;
+      try {
+        const result = await actions.requestNotificationPermission();
+        if (result === 'granted' || result === 'denied' || result === 'default') {
+          mainWorld.publish(WebAppEvents.NOTIFICATION.PERMISSION_STATE, result);
+        }
+      } catch {
+        logger.info('Notification permission request failed.');
+      } finally {
+        notificationPending = false;
+      }
+    });
     publish(EVENT_TYPE.CONVERSATION.ADD_PEOPLE, WebAppEvents.SHORTCUT.ADD_PEOPLE);
     publish(EVENT_TYPE.CONVERSATION.ARCHIVE, WebAppEvents.SHORTCUT.ARCHIVE);
     publish(EVENT_TYPE.CONVERSATION.CALL, WebAppEvents.CALL.STATE.TOGGLE, false);

@@ -17,8 +17,8 @@
  *
  */
 
-import {BrowserWindow, WebContents, WebContentsView} from 'electron';
-import {stub} from 'sinon';
+import {app, BrowserWindow, WebContents, WebContentsView} from 'electron';
+import {spy, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 import {randomUUID} from 'crypto';
@@ -26,8 +26,15 @@ import {createServer, Server} from 'http';
 import {AddressInfo} from 'net';
 import path from 'path';
 
+import {WebAppEvents} from '@wireapp/webapp-events';
+
 import {AccountViews} from './AccountViews';
 
+import {EVENT_TYPE} from '../lib/eventType';
+import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {snapshotRendererEnvironment} from '../runtime/rendererEnvironment';
+import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
+import {ACCOUNT_PERMISSION_CAPABILITY} from '../security/AccountPermissionPolicy';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 describe('main-owned native account views', () => {
@@ -75,6 +82,229 @@ describe('main-owned native account views', () => {
       window.destroy();
     }
     await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+  });
+
+  it('[security-target][SEC-009] requires explicit consent and capability for the selected native account', async () => {
+    await views.dispose();
+    let prompts = 0;
+    views = new AccountViews({
+      ...options(),
+      capabilities: ['test:account', ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {
+        canPrompt: () => true,
+        ask: async () => {
+          prompts++;
+          return true;
+        },
+      },
+    });
+    const first = record();
+    const second = record();
+    const selected = await views.create(first, origin);
+    const background = await views.create(second, origin);
+    views.select(first.id);
+    assert.equal(await background.executeJavaScript('Notification.requestPermission()'), 'denied');
+    assert.equal(prompts, 0);
+    assert.equal(await selected.executeJavaScript('Notification.requestPermission()'), 'granted');
+    assert.equal(prompts, 1);
+    views.select(second.id);
+    assert.equal(await selected.executeJavaScript('Notification.permission'), 'granted');
+    assert.equal(await background.executeJavaScript('Notification.permission'), 'denied');
+    await views.close(first.id);
+    const recreated = await views.create(first, origin);
+    views.select(first.id);
+    assert.equal(await recreated.executeJavaScript('Notification.permission'), 'denied');
+    assert.equal(await recreated.executeJavaScript('Notification.requestPermission()'), 'granted');
+    assert.equal(prompts, 2);
+  });
+
+  it('[security-target][SEC-009] aborts account consent when the real document navigates', async () => {
+    await views.dispose();
+    let signal!: AbortSignal;
+    let started!: () => void;
+    let answer!: (value: boolean) => void;
+    const requested = new Promise<void>(resolve => {
+      started = resolve;
+    });
+    views = new AccountViews({
+      ...options(),
+      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {
+        canPrompt: () => true,
+        ask: async (_identity, _scopes, cancellation) => {
+          signal = cancellation;
+          started();
+          return new Promise(resolve => {
+            answer = resolve;
+          });
+        },
+      },
+    });
+    const account = record();
+    const contents = await views.create(account, origin);
+    views.select(account.id);
+    await contents.executeJavaScript('void Notification.requestPermission()');
+    await requested;
+    assert.equal(signal.aborted, false);
+    await contents.loadURL(`${origin}/replacement`);
+    assert.equal(signal.aborted, true);
+    answer(true);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(await contents.executeJavaScript('Notification.permission'), 'denied');
+  });
+
+  it('[security-target][SEC-009] publishes real permission results through the production isolated preload', async () => {
+    await views.dispose();
+    let accepted = true;
+    let prompts = 0;
+    views = new AccountViews({
+      ...options(),
+      preload: path.join(process.cwd(), 'electron/dist/preload/preload-account.js'),
+      additionalArguments: createRendererRuntimeArguments({
+        locale: 'en-US',
+        userDataPath: app.getPath('userData'),
+        environment: snapshotRendererEnvironment(EnvironmentUtil),
+        applockOverride: false,
+      }),
+      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {
+        canPrompt: () => true,
+        ask: async () => {
+          prompts++;
+          return accepted;
+        },
+      },
+    });
+    const account = record();
+    const contents = await views.create(account, origin);
+    views.select(account.id);
+    const request = async () => {
+      await contents.executeJavaScript(`
+        window.notificationResult = new Promise(resolve => {
+          window.amplify = {publish: (name, value) => {
+            if (name === ${JSON.stringify(WebAppEvents.NOTIFICATION.PERMISSION_STATE)}) resolve(value);
+          }};
+        });
+        Notification.requestPermission = () => Promise.resolve('page override');
+        void 0;
+      `);
+      contents.send(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+      return contents.executeJavaScript('window.notificationResult');
+    };
+    assert.equal(await request(), 'granted');
+    assert.equal(prompts, 1);
+    accepted = false;
+    await contents.loadURL(`${origin}/replacement`);
+    assert.equal(await request(), 'denied');
+    assert.equal(prompts, 2);
+  });
+
+  it('[security-target][SEC-009] initiates notifications only for a ready selected eligible document', async () => {
+    await views.dispose();
+    let eligible = false;
+    views = new AccountViews({
+      ...options(),
+      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+      permissionConsent: {canPrompt: () => eligible, ask: async () => false},
+    });
+    const first = record();
+    const second = record();
+    const foreground = await views.create(first, origin);
+    const background = await views.create(second, origin);
+    const firstSend = spy(foreground, 'send');
+    const secondSend = spy(background, 'send');
+    views.select(first.id);
+    assert.equal(firstSend.callCount, 0);
+    views.markReady(first.id);
+    views.markReady(second.id);
+    assert.equal(firstSend.callCount, 0);
+    eligible = true;
+    window.emit('focus');
+    assert.deepEqual(firstSend.firstCall.args, [EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION]);
+    assert.equal(secondSend.callCount, 0);
+    views.markReady(first.id);
+    views.select(first.id);
+    window.emit('focus');
+    assert.equal(firstSend.callCount, 1);
+    views.select(second.id);
+    assert.equal(secondSend.callCount, 1);
+    await foreground.loadURL(`${origin}/replacement`);
+    views.select(first.id);
+    assert.equal(firstSend.callCount, 1);
+    views.markReady(first.id);
+    assert.equal(firstSend.callCount, 2);
+    await views.close(first.id);
+    window.emit('focus');
+    assert.equal(secondSend.callCount, 1);
+  });
+
+  for (const transition of ['switch', 'hide'] as const) {
+    it(`[security-target][SEC-009] cancels pending consent on ${transition} even if the account is selected again`, async () => {
+      await views.dispose();
+      let cancellation!: AbortSignal;
+      let answer!: (value: boolean) => void;
+      let started!: () => void;
+      const requested = new Promise<void>(resolve => {
+        started = resolve;
+      });
+      views = new AccountViews({
+        ...options(),
+        capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+        permissionConsent: {
+          canPrompt: () => true,
+          ask: async (_identity, _scopes, signal) => {
+            cancellation = signal;
+            started();
+            return new Promise(resolve => {
+              answer = resolve;
+            });
+          },
+        },
+      });
+      const first = record();
+      const second = record();
+      const contents = await views.create(first, origin);
+      await views.create(second, origin);
+      views.select(first.id);
+      const result = contents.executeJavaScript('Notification.requestPermission()');
+      await requested;
+      if (transition === 'switch') {
+        views.select(second.id);
+      } else {
+        views.hide();
+      }
+      views.select(first.id);
+      assert.equal(cancellation.aborted, true);
+      answer(true);
+      assert.equal(await result, 'denied');
+      assert.equal(await contents.executeJavaScript('Notification.permission'), 'denied');
+    });
+  }
+
+  it('[security-target][SEC-009] defaults to denial without consent or without the permission capability', async () => {
+    for (const missing of ['consent', 'capability'] as const) {
+      await views.dispose();
+      let prompts = 0;
+      views = new AccountViews({
+        ...options(),
+        capabilities: missing === 'capability' ? [] : [ACCOUNT_PERMISSION_CAPABILITY],
+        permissionConsent:
+          missing === 'consent'
+            ? undefined
+            : {
+                canPrompt: () => true,
+                ask: async () => {
+                  prompts++;
+                  return true;
+                },
+              },
+      });
+      const account = record();
+      const contents = await views.create(account, origin);
+      views.select(account.id);
+      assert.equal(await contents.executeJavaScript('Notification.requestPermission()'), 'denied');
+      assert.equal(prompts, 0);
+    }
   });
 
   it('[security-target][CAP-001] registers main-owned identity before navigation with effective secure preferences', async () => {
