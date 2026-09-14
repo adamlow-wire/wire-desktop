@@ -37,7 +37,10 @@ import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArgument
 import {ACCOUNT_PERMISSION_CAPABILITY} from '../security/AccountPermissionPolicy';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
-describe('main-owned native account views', () => {
+describe('main-owned native account views', function () {
+  // These integrate real renderer startup, native storage and teardown. They are
+  // not two-second unit benchmarks; retain a finite budget on every platform.
+  this.timeout(10000);
   let server: Server;
   let origin: string;
   let redirectUrl: string;
@@ -238,13 +241,20 @@ describe('main-owned native account views', () => {
     assert.equal(secondSend.callCount, 1);
   });
 
-  for (const transition of ['switch', 'hide'] as const) {
-    it(`[security-target][SEC-009] cancels pending consent on ${transition} even if the account is selected again`, async () => {
+  describe('pending consent transitions', function () {
+    // Native setup has its own budget; consent/abort assertions keep two seconds.
+    this.timeout(2000);
+    let cancellation: AbortSignal;
+    let answer: (value: boolean) => void;
+    let requested: Promise<void>;
+    let first: ReturnType<typeof record>;
+    let second: ReturnType<typeof record>;
+    let contents: WebContents;
+    beforeEach(async function () {
+      this.timeout(10000);
       await views.dispose();
-      let cancellation!: AbortSignal;
-      let answer!: (value: boolean) => void;
       let started!: () => void;
-      const requested = new Promise<void>(resolve => {
+      requested = new Promise<void>(resolve => {
         started = resolve;
       });
       views = new AccountViews({
@@ -261,25 +271,29 @@ describe('main-owned native account views', () => {
           },
         },
       });
-      const first = record();
-      const second = record();
-      const contents = await views.create(first, origin);
+      first = record();
+      second = record();
+      contents = await views.create(first, origin);
       await views.create(second, origin);
       views.select(first.id);
-      const result = contents.executeJavaScript('Notification.requestPermission()');
-      await requested;
-      if (transition === 'switch') {
-        views.select(second.id);
-      } else {
-        views.hide();
-      }
-      views.select(first.id);
-      assert.equal(cancellation.aborted, true);
-      answer(true);
-      assert.equal(await result, 'denied');
-      assert.equal(await contents.executeJavaScript('Notification.permission'), 'denied');
     });
-  }
+    for (const transition of ['switch', 'hide'] as const) {
+      it(`[security-target][SEC-009] cancels pending consent on ${transition} even if the account is selected again`, async () => {
+        const result = contents.executeJavaScript('Notification.requestPermission()');
+        await requested;
+        if (transition === 'switch') {
+          views.select(second.id);
+        } else {
+          views.hide();
+        }
+        views.select(first.id);
+        assert.equal(cancellation.aborted, true);
+        answer(true);
+        assert.equal(await result, 'denied');
+        assert.equal(await contents.executeJavaScript('Notification.permission'), 'denied');
+      });
+    }
+  });
 
   it('[security-target][SEC-009] defaults to denial without consent or without the permission capability', async () => {
     for (const missing of ['consent', 'capability'] as const) {

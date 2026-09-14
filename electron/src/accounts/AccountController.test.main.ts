@@ -64,6 +64,9 @@ describe('production account controller integration', () => {
   let disposeEvents: () => void;
   let records: ReturnType<typeof parseLegacyAccounts>;
   const preload = path.join(process.cwd(), 'electron/test/fixtures/account-controller-preload.js');
+  const accountSession = (account: {sessionID?: string}) =>
+    account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession;
+  let initializationPhase: string;
   const send = (contents: WebContents, method: string, argument?: unknown) =>
     contents.executeJavaScript(
       `window.accountFixture.${method}(${argument === undefined ? '' : JSON.stringify(argument)})`,
@@ -74,6 +77,7 @@ describe('production account controller integration', () => {
   beforeEach(async function () {
     // Starting three real sandboxed renderers exceeds Mocha's 2s default on hosted Windows.
     this.timeout(10_000);
+    initializationPhase = 'starting loopback server';
     server = createServer((_request, response) =>
       response.end('<!doctype html><title>Account controller fixture</title>'),
     );
@@ -95,6 +99,7 @@ describe('production account controller integration', () => {
       webPreferences: {preload, sandbox: true, contextIsolation: true, nodeIntegration: false, webviewTag: false},
     });
     registerApplicationShellIdentity(registry, window.webContents, `${origin}/`, [ACCOUNT_CONTROL_CAPABILITY]);
+    initializationPhase = 'loading native shell fixture';
     await window.loadURL(origin);
     views = new AccountViews({
       window,
@@ -110,8 +115,7 @@ describe('production account controller integration', () => {
       views,
       registry,
       destination: account => account.webappUrl ?? origin,
-      session: account =>
-        account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
+      session: accountSession,
       clearData: async (account, targetSession) => {
         assert.equal(views.has(account.id), false);
         await clearAccountSession(targetSession);
@@ -128,12 +132,17 @@ describe('production account controller integration', () => {
     controller = new AccountController(options);
     disposeControl = bindAccountControlIpc(ipcMain, registry, controller);
     disposeEvents = bindAccountEventIpc(ipcMain, registry, controller.receive);
+    initializationPhase = 'starting account views';
     await controller.start();
+    initializationPhase = 'ready';
   });
 
   afterEach(async function () {
     // Native renderer/session teardown has the same bounded fixture budget as startup.
     this.timeout(10_000);
+    if (initializationPhase !== 'ready') {
+      console.error(`Account fixture initialization stopped during: ${initializationPhase}`);
+    }
     restore();
     disposeControl?.();
     disposeEvents?.();
@@ -142,7 +151,7 @@ describe('production account controller integration', () => {
       window.destroy();
     }
     for (const account of records ?? []) {
-      await options.session(account).clearStorageData();
+      await accountSession(account).clearStorageData();
     }
     await new Promise<void>(resolve => server.close(() => resolve()));
   });

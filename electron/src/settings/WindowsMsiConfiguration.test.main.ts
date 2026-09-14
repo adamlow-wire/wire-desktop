@@ -26,6 +26,8 @@ import {
   WindowsRegistry,
 } from './WindowsMsiConfiguration';
 
+import {getAccountDestination} from '../accounts/AccountDestination';
+
 function registryWith(values: Array<{name: string; data: unknown}>): WindowsRegistry {
   return {
     HKEY: {HKEY_LOCAL_MACHINE: 'HKLM'},
@@ -88,11 +90,11 @@ describe('WindowsMsiConfiguration', () => {
       };
 
       assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', null), {
-        isConfigured: false,
+        isConfigured: true,
         issue: 'registry-unavailable',
       });
       assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', unreadableRegistry), {
-        isConfigured: false,
+        isConfigured: true,
         issue: 'registry-read-failed',
       });
       assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', registryWith([{name: 'WebAppUrl', data: 42}])), {
@@ -100,6 +102,35 @@ describe('WindowsMsiConfiguration', () => {
         issue: 'invalid-registry-type',
       });
     });
+  });
+
+  describe('[security-target][CAP-005] unreadable machine policy', () => {
+    for (const failure of ['unavailable', 'access failure'] as const) {
+      it(`does not substitute an unmanaged endpoint after ${failure}`, () => {
+        const registry = failure === 'unavailable' ? null : registryWith([]);
+        if (registry) {
+          registry.enumerateValues = () => {
+            throw new Error('synthetic machine policy access failure');
+          };
+        }
+        const policy = getWindowsMsiWebAppConfiguration('Wire', registry);
+        assert.strictEqual(
+          selectWebAppUrlOverride(policy, 'https://command.example.test', 'https://user.example.test'),
+          undefined,
+          'unreadable machine policy must block endpoint fallback',
+        );
+        assert.throws(
+          () =>
+            getAccountDestination(
+              {isAdding: false, webappUrl: 'https://saved.example.test'},
+              'https://default.example.test',
+              'en',
+              policy,
+            ),
+          /Invalid managed account destination/,
+        );
+      });
+    }
   });
 
   describe('selectWebAppUrlOverride', () => {
