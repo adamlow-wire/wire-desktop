@@ -19,7 +19,7 @@
 
 import {_electron, expect, test} from '@playwright/test';
 
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
 import {tmpdir} from 'node:os';
@@ -182,3 +182,42 @@ for (const systemProxy of ['absent', 'without credentials', 'different proxy cre
     }
   });
 }
+
+test('[CAP-005][INV-010][security-target] stored proxy credentials stay out of startup diagnostics', async () => {
+  const profile = await mkdtemp(path.join(tmpdir(), 'wire-proxy-diagnostics-'));
+  const secret = 'synthetic-startup-proxy-password';
+  const proxy = `http://fixture-user:${secret}@127.0.0.1:9`;
+  const server = createServer((_request, response) => {
+    response.setHeader('Content-Type', 'text/html');
+    response.end('<!doctype html><title>Diagnostic fixture</title>');
+  });
+  let app: Awaited<ReturnType<typeof _electron.launch>> | undefined;
+  try {
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    await mkdir(path.join(profile, 'config'));
+    await writeFile(path.join(profile, 'config/init.json'), JSON.stringify({configVersion: 1, proxyServerURL: proxy}));
+    app = await _electron.launch({
+      chromiumSandbox: true,
+      args: [
+        '.',
+        `--env=http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+        `--user-data-dir=${profile}`,
+        '--enable-logging',
+      ],
+    });
+    expect(await app.evaluate(({app}) => app.commandLine.getSwitchValue('proxy-server'))).toBe(proxy);
+    const readDiagnostics = async () => {
+      const directory = path.join(profile, 'logs');
+      const days = await readdir(directory).catch(() => []);
+      return (
+        await Promise.all(days.map(day => readFile(path.join(directory, day, 'electron.log'), 'utf8').catch(() => '')))
+      ).join('\n');
+    };
+    await expect.poll(readDiagnostics).toContain('Using proxy server URL from "init.json"');
+    expect(await readDiagnostics(), 'Startup diagnostics must omit stored credentials').not.toContain(secret);
+  } finally {
+    await app?.close();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    await rm(profile, {recursive: true, force: true});
+  }
+});
