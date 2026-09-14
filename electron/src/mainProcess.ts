@@ -52,10 +52,8 @@ import {clearAccountSession} from './accounts/AccountSessionCleanup';
 import {AccountState} from './accounts/AccountState';
 import {AccountViews} from './accounts/AccountViews';
 import {readLegacyAccountState} from './accounts/readLegacyAccountState';
-import {handleProxyLogin} from './auth/ProxyLogin';
-import {createProxyPromptActions} from './auth/ProxyPromptActions';
+import {createProxyLoginHandler} from './auth/ProxyLogin';
 import {ProxyPromptCoordinator} from './auth/ProxyPromptCoordinator';
-import {showRegisteredProxyPrompt} from './auth/ProxyPromptRegistration';
 import {bindPictureInPictureCallIdentity, isPictureInPictureCallWindow} from './calling/PictureInPictureCall';
 import {initializeFirstInstance} from './lib/applicationBootstrap';
 import {
@@ -607,40 +605,20 @@ const handleAppEvents = (): void => {
     isQuitting = true;
   });
 
-  app.on('login', (event, webContents, _responseDetails, authInfo, callback) => {
-    if (authInfo.isProxy) {
-      event.preventDefault();
-      const {host, port} = authInfo;
-
-      mainProcessFireAndForgetInvoker.fireAndForget(() =>
-        handleProxyLogin({
-          authInfo: {host, port},
-          webContents,
-          getProxySettings,
-          applyProxySettings,
-          setProxyInfo: proxy => (proxyInfoArg = proxy),
-          authenticate: callback,
-          showPrompt: () =>
-            showRegisteredProxyPrompt({
-              actions: createProxyPromptActions({
-                applyProxySettings,
-                authenticate: callback,
-                authInfo: {host, port},
-                challengedSession: webContents.session,
-                getProxyInfo: () => proxyInfoArg,
-                logger,
-                challengedView: {webContents, reload: () => webContents.reload()},
-                setProxyInfo: proxy => (proxyInfoArg = proxy),
-                showErrorDialog,
-              }),
-              coordinator: proxyPromptCoordinator,
-              fireAndForget: mainProcessFireAndForgetInvoker.fireAndForget,
-              showWindow: onCreated => ProxyPromptWindow.showWindow(viewIdentityRegistry, onCreated),
-            }),
-        }),
-      );
-    }
-  });
+  app.on(
+    'login',
+    createProxyLoginHandler({
+      getProxySettings,
+      applyProxySettings,
+      getProxyInfo: () => proxyInfoArg,
+      setProxyInfo: proxy => (proxyInfoArg = proxy),
+      logger,
+      showErrorDialog,
+      coordinator: proxyPromptCoordinator,
+      fireAndForget: mainProcessFireAndForgetInvoker.fireAndForget,
+      showWindow: onCreated => ProxyPromptWindow.showWindow(viewIdentityRegistry, onCreated),
+    }),
+  );
 
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {

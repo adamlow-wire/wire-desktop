@@ -22,6 +22,8 @@ import type {ProxySettings} from 'get-proxy-settings';
 import {URL} from 'url';
 
 import {generateProxyURL} from './ProxyAuth';
+import {createProxyPromptActions, CreateProxyPromptActionsOptions} from './ProxyPromptActions';
+import {RegisterProxyPromptOptions, showRegisteredProxyPrompt} from './ProxyPromptRegistration';
 
 export interface ProxyLoginOptions<WebContents> {
   authInfo: Readonly<{host: string; port: number}>;
@@ -61,3 +63,57 @@ export const handleProxyLogin = async <WebContents>(options: ProxyLoginOptions<W
   }
   await options.showPrompt();
 };
+
+interface ProxyLoginView {
+  session: {setProxy(config: object): Promise<void>};
+  reload(): void;
+}
+
+type ProxyLoginHandlerOptions<WebContents> = Pick<
+  CreateProxyPromptActionsOptions<WebContents>,
+  'applyProxySettings' | 'getProxyInfo' | 'setProxyInfo' | 'logger' | 'showErrorDialog'
+> &
+  Pick<RegisterProxyPromptOptions, 'coordinator' | 'fireAndForget' | 'showWindow'> &
+  Pick<ProxyLoginOptions<WebContents>, 'getProxySettings'>;
+
+export const createProxyLoginHandler =
+  <WebContents extends ProxyLoginView>(options: ProxyLoginHandlerOptions<WebContents>) =>
+  (
+    event: {preventDefault(): void},
+    webContents: WebContents,
+    _responseDetails: unknown,
+    authInfo: Readonly<{isProxy: boolean; host: string; port: number}>,
+    authenticate: (username?: string, password?: string) => void,
+  ): void => {
+    if (!authInfo.isProxy) {
+      return;
+    }
+    event.preventDefault();
+    options.fireAndForget(() =>
+      handleProxyLogin({
+        authInfo,
+        webContents,
+        getProxySettings: options.getProxySettings,
+        applyProxySettings: options.applyProxySettings,
+        setProxyInfo: options.setProxyInfo,
+        authenticate,
+        showPrompt: () =>
+          showRegisteredProxyPrompt({
+            actions: createProxyPromptActions({
+              applyProxySettings: options.applyProxySettings,
+              authenticate,
+              authInfo,
+              challengedSession: webContents.session,
+              getProxyInfo: options.getProxyInfo,
+              logger: options.logger,
+              challengedView: {webContents, reload: () => webContents.reload()},
+              setProxyInfo: options.setProxyInfo,
+              showErrorDialog: options.showErrorDialog,
+            }),
+            coordinator: options.coordinator,
+            fireAndForget: options.fireAndForget,
+            showWindow: options.showWindow,
+          }),
+      }),
+    );
+  };

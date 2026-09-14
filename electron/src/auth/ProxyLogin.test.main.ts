@@ -22,7 +22,10 @@ import {ProxySetting, ProxySettings} from 'get-proxy-settings';
 import {strict as assert} from 'assert';
 import {URL} from 'url';
 
-import {handleProxyLogin, ProxyLoginOptions} from './ProxyLogin';
+import {createProxyLoginHandler, handleProxyLogin, ProxyLoginOptions} from './ProxyLogin';
+import {ProxyPromptCoordinator} from './ProxyPromptCoordinator';
+
+import {createFireAndForgetInvoker} from '../lib/fireAndForgetInvoker';
 
 const createFixture = (settings?: ProxySettings) => {
   const authenticated: Array<Array<string | undefined>> = [];
@@ -96,5 +99,89 @@ describe('proxy prompt automatic authentication', () => {
     assert.deepEqual(state.authenticated, [[]]);
     assert.deepEqual(state.saved, []);
     assert.equal(state.prompted(), 0);
+  });
+});
+
+describe('proxy prompt login event binding', () => {
+  const fixture = () => {
+    const state = createFixture();
+    const coordinator = new ProxyPromptCoordinator();
+    const errors: unknown[] = [];
+    const invoker = createFireAndForgetInvoker({reportFailure: error => errors.push(error)});
+    const proxyChanges: object[] = [];
+    let reloads = 0;
+    let prevented = 0;
+    let closed: (() => void) | undefined;
+    const target = {
+      session: {setProxy: async (config: object) => void proxyChanges.push(config)},
+      reload: () => void reloads++,
+    };
+    const handler = createProxyLoginHandler({
+      ...state.options,
+      getProxyInfo: () => new URL('http://proxy.example.test:8080'),
+      logger: {log() {}, error() {}},
+      showErrorDialog: message => errors.push(message),
+      coordinator,
+      fireAndForget: invoker.fireAndForget,
+      showWindow: async onCreated => {
+        closed = onCreated(99);
+      },
+    });
+    const invoke = (isProxy: boolean) =>
+      handler(
+        {preventDefault: () => void prevented++},
+        target,
+        {},
+        {...state.options.authInfo, isProxy},
+        state.options.authenticate,
+      );
+    return {
+      state,
+      coordinator,
+      errors,
+      invoker,
+      proxyChanges,
+      target,
+      invoke,
+      close: () => closed?.(),
+      reloads: () => reloads,
+      prevented: () => prevented,
+    };
+  };
+
+  it('[CAP-005] leaves ordinary server authentication untouched', async () => {
+    const state = fixture();
+    state.invoke(false);
+    await state.invoker.waitUntilAllSettled();
+    assert.equal(state.prevented(), 0);
+    assert.equal(state.coordinator.has(99), false);
+    assert.deepEqual(state.state.authenticated, []);
+  });
+
+  it('[security-target][CAP-005] binds registered prompt submission to the challenged view', async () => {
+    const state = fixture();
+    state.invoke(true);
+    await state.invoker.waitUntilAllSettled();
+    assert.equal(state.prevented(), 1);
+    assert.equal(state.coordinator.has(99), true);
+    await state.coordinator.submit(99, {username: 'fixture-user', password: 'fixture-password'});
+    assert.equal(state.state.applied[0].target, state.target);
+    assert.deepEqual(state.state.authenticated, [['fixture-user', 'fixture-password']]);
+    state.close();
+    await state.invoker.waitUntilAllSettled();
+    assert.deepEqual(state.proxyChanges, []);
+    assert.deepEqual(state.errors, []);
+  });
+
+  it('[security-target][CAP-005] binds native prompt close to the challenged session and reload', async () => {
+    const state = fixture();
+    state.invoke(true);
+    await state.invoker.waitUntilAllSettled();
+    state.close();
+    await state.invoker.waitUntilAllSettled();
+    assert.deepEqual(state.proxyChanges, [{}]);
+    assert.equal(state.reloads(), 1);
+    assert.deepEqual(state.state.authenticated, []);
+    assert.deepEqual(state.errors, []);
   });
 });
