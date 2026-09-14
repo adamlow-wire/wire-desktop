@@ -129,6 +129,77 @@ describe('[CAP-005] certificate verification completion', () => {
     });
   }
 
+  it('[characterization][CAP-005] retains pinning when the native override is not selected', async () => {
+    sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+    const pin = sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+    const result = sandbox.spy();
+    await verify(request(), result);
+    clock.tick(6000);
+    await verify(request(), result);
+    assert.deepEqual(result.args, [[-2], [-2]]);
+    assert.equal(pin.callCount, 2);
+    assert.equal(messageBox.firstCall.args[1].checkboxChecked, false);
+    assert.equal(typeof messageBox.firstCall.args[1].checkboxLabel, 'string');
+  });
+
+  it('[characterization][CAP-005] preserves the existing process-wide native pinning override', async () => {
+    sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+    const pin = sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+    messageBox.resolves({checkboxChecked: true, response: 0});
+    const result = sandbox.spy();
+    await verify(request(), result);
+    await verify(request(), result);
+    await verify(request({hostname: 'another-pinned.fixture.example'}), result);
+    // The current failure remains denied; later requests retain Chromium validation.
+    assert.deepEqual(result.args, [[-2], [-3], [-3]]);
+    assert.equal(pin.callCount, 1);
+    assert.equal(messageBox.callCount, 1);
+  });
+
+  it('[security-target][CAP-005] cannot bypass Chromium errors after selecting the pinning override', async () => {
+    sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+    const pin = sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+    messageBox.resolves({checkboxChecked: true, response: 0});
+    const result = sandbox.spy();
+    await verify(request(), result);
+    clock.tick(6000);
+    for (const errorCode of [-200, -202, -206]) {
+      await verify(request({errorCode, verificationResult: 'net::ERR_CERT_INVALID'}), result);
+    }
+    assert.deepEqual(result.args, [[-2], [-2], [-2], [-2]]);
+    assert.equal(pin.callCount, 1);
+    assert.equal(messageBox.getCall(1).args[1].checkboxLabel, undefined);
+    assert.equal(messageBox.getCall(1).args[1].checkboxChecked, undefined);
+  });
+
+  it('[security-target][CAP-005] ignores an override checkbox result on a Chromium-error warning', async () => {
+    sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+    const pin = sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+    messageBox.resolves({checkboxChecked: true, response: 0});
+    const result = sandbox.spy();
+    await verify(request({errorCode: -202, verificationResult: 'net::ERR_CERT_AUTHORITY_INVALID'}), result);
+    clock.tick(6000);
+    messageBox.resolves({checkboxChecked: false, response: 0});
+    await verify(request(), result);
+    assert.deepEqual(result.args, [[-2], [-2]]);
+    assert.equal(pin.callCount, 1);
+  });
+
+  it('[characterization][CAP-005] initializes a fresh verifier with pinning enabled after an earlier override', async () => {
+    sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(true);
+    const pin = sandbox.stub(certificateUtils, 'verifyPinning').returns({fingerprintCheck: false});
+    messageBox.resolves({checkboxChecked: true, response: 0});
+    const result = sandbox.spy();
+    await verify(request(), result);
+    await verify(request(), result);
+    delete requireFixture.cache[requireFixture.resolve('./CertificateVerifyProcManager.ts')];
+    const freshVerify: typeof verify = requireFixture('./CertificateVerifyProcManager.ts').setCertificateVerifyProc;
+    messageBox.resolves({checkboxChecked: false, response: 0});
+    await freshVerify(request(), result);
+    assert.deepEqual(result.args, [[-2], [-3], [-2]]);
+    assert.equal(pin.callCount, 2);
+  });
+
   it('[regression] does not invoke an Electron callback twice if that callback throws', async () => {
     sandbox.stub(certificateUtils, 'hostnameShouldBePinned').returns(false);
     const error = new Error('synthetic callback error');
