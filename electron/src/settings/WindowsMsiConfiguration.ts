@@ -55,7 +55,9 @@ export function getWindowsMsiWebAppConfiguration(
   registry: WindowsRegistry | null | undefined = loadWindowsRegistry(),
 ): WindowsMsiWebAppConfiguration {
   if (!registry) {
-    return {isConfigured: false, issue: 'registry-unavailable'};
+    // An unreadable policy is not evidence that machine policy is absent.
+    // Treat it as configured-invalid so every endpoint path remains blocked.
+    return {isConfigured: true, issue: 'registry-unavailable'};
   }
 
   let value: RegistryValue | undefined;
@@ -64,7 +66,7 @@ export function getWindowsMsiWebAppConfiguration(
       .enumerateValues(registry.HKEY.HKEY_LOCAL_MACHINE, registryKey(productName))
       .find(entry => entry.name.toLowerCase() === WEBAPP_URL_VALUE.toLowerCase());
   } catch {
-    return {isConfigured: false, issue: 'registry-read-failed'};
+    return {isConfigured: true, issue: 'registry-read-failed'};
   }
 
   if (!value || (typeof value.data === 'string' && value.data.trim() === '')) {

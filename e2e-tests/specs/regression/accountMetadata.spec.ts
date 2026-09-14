@@ -19,11 +19,16 @@
 
 import {_electron, expect, test} from '@playwright/test';
 
+import {execFile} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
+import {promisify} from 'node:util';
 
 import {seedLegacyAccountProfile} from '../../utils/seedLegacyAccountProfile';
+
+// A later retry must not turn a failed native quit/persistence assertion green.
+test.describe.configure({retries: 0});
 
 test(
   '[CAP-001] metadata cannot replace account identity or partition across restart',
@@ -54,12 +59,101 @@ test(
       visible: index === 0,
       webappUrl: origin,
     }));
-    const launch = () =>
-      _electron.launch({
+    const phase = (name: string) => console.info(`[CAP-001 metadata] ${name}`);
+    let nativeLog = '';
+    const launch = async () => {
+      phase('launching native application');
+      const launched = await _electron.launch({
         chromiumSandbox: true,
         args: ['.', `--env=${origin}`, `--user-data-dir=${testInfo.outputPath('profile')}`],
       });
+      nativeLog = '';
+      const record = (chunk: Buffer) => {
+        nativeLog = (nativeLog + chunk.toString()).slice(-65536);
+      };
+      launched.process().stdout?.on('data', record);
+      launched.process().stderr?.on('data', record);
+      return launched;
+    };
     let app: Awaited<ReturnType<typeof launch>> | undefined;
+    const quit = async () => {
+      const target = app;
+      if (!target) {
+        return;
+      }
+      const applicationProcess = target.process();
+      if (applicationProcess.exitCode === null && applicationProcess.signalCode === null) {
+        phase('requesting normal native quit');
+        // Native quit can close the inspector before its reply arrives. The
+        // process exit assertion below is the authoritative completion signal.
+        void target
+          .evaluate(({app, BrowserWindow, dialog, webContents}) => {
+            console.info(
+              '[native quit] requested',
+              BrowserWindow.getAllWindows().length,
+              webContents.getAllWebContents().length,
+            );
+            // Observe without handling or suppressing Electron's default error alert.
+            process.once('uncaughtExceptionMonitor', (error, origin) => {
+              console.error('[native quit] uncaught exception', origin, error.stack ?? error.message);
+            });
+            const showErrorBox = dialog.showErrorBox.bind(dialog);
+            dialog.showErrorBox = (title, content) => {
+              console.error('[native quit] error box', title, content);
+              return showErrorBox(title, content);
+            };
+            const showMessageBoxSync = dialog.showMessageBoxSync.bind(dialog);
+            dialog.showMessageBoxSync = ((...args: Parameters<typeof dialog.showMessageBoxSync>) => {
+              console.error('[native quit] synchronous message box', args.at(-1));
+              return showMessageBoxSync(...args);
+            }) as typeof dialog.showMessageBoxSync;
+            app.once('before-quit', () => console.info('[native quit] before-quit'));
+            app.once('will-quit', () => console.info('[native quit] will-quit'));
+            for (const contents of webContents.getAllWebContents()) {
+              const id = contents.id;
+              contents.once('destroyed', () => console.info('[native quit] contents destroyed', id));
+              contents.once('will-prevent-unload', () => console.info('[native quit] unload veto', id));
+            }
+            setImmediate(() => {
+              console.info('[native quit] calling app.quit');
+              app.quit();
+              console.info('[native quit] app.quit returned');
+            });
+          })
+          .catch(() => undefined);
+      }
+      phase('waiting for native exit');
+      try {
+        await expect
+          .poll(() => ({code: applicationProcess.exitCode, signal: applicationProcess.signalCode}), {
+            message: 'Native application quit must exit successfully before test-context cleanup',
+          })
+          .toEqual({code: 0, signal: null});
+      } catch (error) {
+        console.info(nativeLog);
+        await testInfo.attach('native-quit-log', {body: Buffer.from(nativeLog), contentType: 'text/plain'});
+        if (process.platform === 'darwin' && applicationProcess.pid && applicationProcess.exitCode === null) {
+          const sample = await promisify(execFile)('/usr/bin/sample', [String(applicationProcess.pid), '1'], {
+            timeout: 5000,
+            maxBuffer: 1024 * 1024,
+          }).then(
+            ({stdout, stderr}) => stdout + stderr,
+            failure => String(failure),
+          );
+          await testInfo.attach('native-quit-sample', {body: Buffer.from(sample), contentType: 'text/plain'});
+        }
+        // The exit assertion has already failed. Terminate only this fixture's
+        // child so an original failure cannot strand the test worker.
+        applicationProcess.kill('SIGKILL');
+        await target.close();
+        app = undefined;
+        throw error;
+      }
+      phase('closing Playwright context after native exit');
+      await target.close();
+      phase('native application and context closed');
+      app = undefined;
+    };
     const readSavedAccounts = async () =>
       JSON.parse(await readFile(testInfo.outputPath('profile/accounts.v1.json'), 'utf8')).accounts;
     try {
@@ -86,6 +180,7 @@ test(
         )
         .toEqual(ids.map(id => ({loading: false, url: expect.stringContaining(id)})));
 
+      phase('saving cookies and submitting metadata');
       await app.evaluate(
         async ({webContents}, {ids, origin, partitionId}) => {
           for (const id of ids) {
@@ -134,7 +229,8 @@ test(
       expect(saved[0].picture).toBeUndefined();
       expect(saved[1]).toMatchObject(accounts[1]);
 
-      await app.close();
+      phase('metadata assertions passed; restarting');
+      await quit();
       app = await launch();
       await expect.poll(() => !!findShell()).toBe(true);
       await expect
@@ -158,8 +254,9 @@ test(
         )
         .toEqual(ids.map(id => ({id, marker: id})));
       expect(await readSavedAccounts()).toEqual(saved);
+      phase('restart persistence assertions passed');
     } finally {
-      await app?.close();
+      await quit();
       await new Promise<void>(resolve => server.close(() => resolve()));
     }
   },

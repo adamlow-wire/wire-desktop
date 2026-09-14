@@ -19,14 +19,22 @@
 
 import {BrowserWindow, dialog} from 'electron';
 
+import {assertManagedAccountDestination} from './AccountDestination';
+
 import * as locale from '../locale';
 import {parseNetworkNavigation} from '../security/NavigationPolicy';
+import type {WindowsMsiWebAppConfiguration} from '../settings/WindowsMsiConfiguration';
 
-export async function approveAccountEnvironment(owner: BrowserWindow, candidate: string): Promise<string> {
+export async function approveAccountEnvironment(
+  owner: BrowserWindow,
+  candidate: string,
+  managed: Readonly<WindowsMsiWebAppConfiguration> = {isConfigured: false},
+): Promise<string> {
   const destination = parseNetworkNavigation(candidate);
   if (!destination) {
     throw new Error('Invalid account destination.');
   }
+  assertManagedAccountDestination(candidate, managed);
   if (owner.isDestroyed()) {
     throw new Error('Account window is not available.');
   }

@@ -44,6 +44,7 @@ import {URL, pathToFileURL} from 'url';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {AccountController} from './accounts/AccountController';
+import {getAccountDestination} from './accounts/AccountDestination';
 import {approveAccountEnvironment} from './accounts/AccountEnvironmentApproval';
 import {deleteNativeAccountLogs} from './accounts/AccountLogCleanup';
 import {AccountProfile} from './accounts/AccountProfile';
@@ -51,10 +52,8 @@ import {clearAccountSession} from './accounts/AccountSessionCleanup';
 import {AccountState} from './accounts/AccountState';
 import {AccountViews} from './accounts/AccountViews';
 import {readLegacyAccountState} from './accounts/readLegacyAccountState';
-import * as ProxyAuth from './auth/ProxyAuth';
-import {createProxyPromptActions} from './auth/ProxyPromptActions';
+import {createProxyLoginHandler} from './auth/ProxyLogin';
 import {ProxyPromptCoordinator} from './auth/ProxyPromptCoordinator';
-import {showRegisteredProxyPrompt} from './auth/ProxyPromptRegistration';
 import {bindPictureInPictureCallIdentity, isPictureInPictureCallWindow} from './calling/PictureInPictureCall';
 import {initializeFirstInstance} from './lib/applicationBootstrap';
 import {
@@ -101,7 +100,7 @@ import {ACCOUNT_PERMISSION_CAPABILITY} from './security/AccountPermissionPolicy'
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
-import {bindDesktopSourcesIpc} from './security/DesktopSourcesIpc';
+import {bindDesktopSourcesIpc, DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {ACCOUNT_CAPABILITIES} from './security/LegacyAccountViewIdentity';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
@@ -438,33 +437,37 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     registry: viewIdentityRegistry,
     preload: PRELOAD_RENDERER_JS,
     additionalArguments: getRendererRuntimeArguments(),
-    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY, ACCOUNT_PERMISSION_CAPABILITY],
+    capabilities: [
+      // Enumeration returns desktop thumbnails too. Keep it denied until source consent is enforced.
+      ...ACCOUNT_CAPABILITIES.filter(capability => capability !== DESKTOP_SOURCES_ENUMERATE_CAPABILITY),
+      ACCOUNT_EVENT_CAPABILITY,
+      ACCOUNT_PERMISSION_CAPABILITY,
+    ],
     permissionConsent: createAccountPermissionConsent(main),
     configure: (contents, account, url) => wrapperInit.configureAccountContents(contents, account, url),
     lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),
   });
   accountViews = nativeViews;
+  const managedDestination = EnvironmentUtil.getManagedWebappConfiguration();
   const controller = new AccountController({
     accountLimit: showAccountLimitWarning,
     state: accountState,
     views: nativeViews,
     registry: viewIdentityRegistry,
-    destination: account => {
-      const url = new URL(account.webappUrl || decodeURIComponent(mainURL.searchParams.get('env') || ''));
-      url.searchParams.set('hl', currentLocale);
-      if (account.ssoCode && account.isAdding) {
-        url.pathname = '/auth';
-        url.hash = `#sso/${account.ssoCode}`;
-      }
-      return url.href;
-    },
+    destination: account =>
+      getAccountDestination(
+        account,
+        decodeURIComponent(mainURL.searchParams.get('env') || ''),
+        currentLocale,
+        managedDestination,
+      ),
     session: account =>
       account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
     clearData: async (account, targetSession) => {
       await clearAccountSession(targetSession);
       await deleteNativeAccountLogs(account.id, getLogDirectory());
     },
-    approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate),
+    approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate, managedDestination),
     changed: accounts => {
       if (!main.isDestroyed()) {
         main.webContents.send(ACCOUNT_SNAPSHOTS_CHANNEL, accounts);
@@ -523,7 +526,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     }
 
     WindowManager.setPrimaryWindowId(main.id);
-    setTimeout(() => main.show(), 800);
+    WindowUtil.showAfterStartupDelay(main);
   }
 
   bindNavigationGuard(main.webContents, () => false);
@@ -602,46 +605,20 @@ const handleAppEvents = (): void => {
     isQuitting = true;
   });
 
-  app.on('login', async (event, webContents, _responseDetails, authInfo, callback) => {
-    if (authInfo.isProxy) {
-      event.preventDefault();
-      const {host, port} = authInfo;
-
-      const systemProxy = await getProxySettings();
-      const systemProxySettings = systemProxy && (systemProxy.http || systemProxy.https);
-      if (systemProxySettings) {
-        const {
-          credentials: {username, password},
-          protocol,
-        } = systemProxySettings;
-        proxyInfoArg = ProxyAuth.generateProxyURL({host, port}, {password, protocol, username});
-        logger.log('Found system proxy settings, applying settings on the main window...');
-
-        await applyProxySettings(proxyInfoArg, main.webContents);
-
-        return callback(username, password);
-      }
-
-      if (proxyInfoArg) {
-        await showRegisteredProxyPrompt({
-          actions: createProxyPromptActions({
-            applyProxySettings,
-            authenticate: callback,
-            authInfo: {host, port},
-            challengedSession: webContents.session,
-            getProxyInfo: () => proxyInfoArg,
-            logger,
-            mainWindow: main,
-            setProxyInfo: proxy => (proxyInfoArg = proxy),
-            showErrorDialog,
-          }),
-          coordinator: proxyPromptCoordinator,
-          fireAndForget: mainProcessFireAndForgetInvoker.fireAndForget,
-          showWindow: onCreated => ProxyPromptWindow.showWindow(viewIdentityRegistry, onCreated),
-        });
-      }
-    }
-  });
+  app.on(
+    'login',
+    createProxyLoginHandler({
+      getProxySettings,
+      applyProxySettings,
+      getProxyInfo: () => proxyInfoArg,
+      setProxyInfo: proxy => (proxyInfoArg = proxy),
+      logger,
+      showErrorDialog,
+      coordinator: proxyPromptCoordinator,
+      fireAndForget: mainProcessFireAndForgetInvoker.fireAndForget,
+      showWindow: onCreated => ProxyPromptWindow.showWindow(viewIdentityRegistry, onCreated),
+    }),
+  );
 
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {

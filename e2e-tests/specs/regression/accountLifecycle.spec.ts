@@ -19,9 +19,10 @@
 
 import {_electron, expect, test} from '@playwright/test';
 
-import {access, mkdir, readFile, writeFile} from 'node:fs/promises';
+import {access, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
+import {tmpdir} from 'node:os';
 import path from 'node:path';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
@@ -32,6 +33,8 @@ test(
   '[characterization][CAP-001] account controls preserve routing, cancellation and session isolation',
   {tag: ['@regression']},
   async ({}, testInfo) => {
+    // Chromium adds long CacheStorage paths; keep the profile outside nested report directories.
+    const profileDirectory = await mkdtemp(path.join(tmpdir(), 'wire-cap001-'));
     const server = createServer((request, response) => {
       response.setHeader('Content-Type', 'text/html');
       if (request.url === '/storage-probe') {
@@ -61,14 +64,10 @@ test(
     const launch = () =>
       _electron.launch({
         chromiumSandbox: true,
-        args: [
-          '.',
-          `--env=${origin}`,
-          `--user-data-dir=${testInfo.outputPath('profile')}`,
-          'wire://preferences/account',
-        ],
+        args: ['.', `--env=${origin}`, `--user-data-dir=${profileDirectory}`, 'wire://preferences/account'],
       });
     let app: Awaited<ReturnType<typeof launch>> | undefined;
+    let assertionsPassed = false;
     const readAccounts = () =>
       app!.evaluate(
         ({webContents}, origin) =>
@@ -83,7 +82,7 @@ test(
       );
     try {
       await seedLegacyAccountProfile(
-        testInfo.outputPath('profile'),
+        profileDirectory,
         ids.map((id, index) => ({
           id,
           userID: id,
@@ -170,13 +169,22 @@ test(
               return url.origin === origin && url.searchParams.get('id') === id;
             })!;
             await contents.executeJavaScript(`(async () => {
-              localStorage.setItem('cap001-cleanup', ${JSON.stringify(id)});
-              await (await caches.open('cap001-cleanup')).put('/marker', new Response(${JSON.stringify(id)}));
-              await new Promise((resolve, reject) => {
-                const request = indexedDB.open('cap001-cleanup', 1);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => { request.result.close(); resolve(); };
-              });
+              let operation = 'localStorage';
+              try {
+                localStorage.setItem('cap001-cleanup', ${JSON.stringify(id)});
+                operation = 'CacheStorage.open';
+                const cache = await caches.open('cap001-cleanup');
+                operation = 'CacheStorage.put';
+                await cache.put('/marker', new Response(${JSON.stringify(id)}));
+                operation = 'indexedDB.open';
+                await new Promise((resolve, reject) => {
+                  const request = indexedDB.open('cap001-cleanup', 1);
+                  request.onerror = () => reject(request.error);
+                  request.onsuccess = () => { request.result.close(); resolve(); };
+                });
+              } catch (error) {
+                throw new Error(operation + ': ' + error.name + ': ' + error.message);
+              }
             })()`);
             result.push(await contents.executeJavaScript(readStorage));
           }
@@ -235,7 +243,7 @@ test(
       await shell.locator('[data-uie-name="do-close-webview"]').click();
       await expect.poll(readAccounts).toHaveLength(2);
       const logMarkers = ids.map(id =>
-        path.join(testInfo.outputPath('profile'), 'logs', '2099-01-01', 'accounts', id, 'deletion-marker.log'),
+        path.join(profileDirectory, 'logs', '2099-01-01', 'accounts', id, 'deletion-marker.log'),
       );
       for (const file of logMarkers) {
         await mkdir(path.dirname(file), {recursive: true});
@@ -357,11 +365,17 @@ test(
         {storage: {local: ids[0], cached: ids[0], databases: ['cap001-cleanup']}, cookies: ['first']},
         {storage: {local: null, cached: null, databases: []}, cookies: []},
       ]);
+      assertionsPassed = true;
     } finally {
       if (app) {
         await app.close();
       }
       await new Promise<void>(resolve => server.close(() => resolve()));
+      if (assertionsPassed) {
+        await rm(profileDirectory, {recursive: true, force: true, maxRetries: 3, retryDelay: 1_000});
+      } else {
+        await testInfo.attach('fixture-profile-location', {body: profileDirectory, contentType: 'text/plain'});
+      }
     }
   },
 );

@@ -41,7 +41,7 @@ const createOptions = () => {
       error: (...args: unknown[]) => void errors.push(args),
       log: message => void logs.push(message),
     },
-    mainWindow: {
+    challengedView: {
       reload: () => void (reloads += 1),
       webContents: {id: 99},
     },
@@ -75,7 +75,7 @@ describe('proxy prompt actions', () => {
     assert.strictEqual(state.proxyUpdates[0].username, 'proxy-user');
     assert.strictEqual(state.proxyUpdates[0].password, 'p%2Fa%3Ass');
     assert.deepStrictEqual(state.applied, [
-      {proxy: state.proxyUpdates[0], webContents: state.options.mainWindow.webContents},
+      {proxy: state.proxyUpdates[0], webContents: state.options.challengedView.webContents},
     ]);
     assert.deepStrictEqual(state.authenticated, [['proxy-user', 'p/a:ss']]);
     assert.strictEqual(state.logs.length, 2);
@@ -95,7 +95,7 @@ describe('proxy prompt actions', () => {
   it('[characterization][INV-010][CAP-005] contains and reports a reload failure', async () => {
     const state = createOptions();
     const controlledFailure = new Error('controlled reload failure');
-    state.options.mainWindow.reload = () => {
+    state.options.challengedView.reload = () => {
       throw controlledFailure;
     };
 

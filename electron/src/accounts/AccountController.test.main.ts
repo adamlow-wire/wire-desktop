@@ -17,7 +17,7 @@
  *
  */
 
-import {app, BrowserWindow, ipcMain, session, WebContents, WebContentsView} from 'electron';
+import {app, BrowserWindow, dialog, ipcMain, session, WebContents, WebContentsView} from 'electron';
 import {spy, restore, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
@@ -31,6 +31,8 @@ import path from 'path';
 import {Availability} from '@wireapp/protocol-messaging';
 
 import {AccountController, AccountControllerOptions} from './AccountController';
+import {getAccountDestination} from './AccountDestination';
+import {approveAccountEnvironment} from './AccountEnvironmentApproval';
 import {deleteNativeAccountLogs} from './AccountLogCleanup';
 import {parseLegacyAccounts} from './AccountProfile';
 import {clearAccountSession} from './AccountSessionCleanup';
@@ -62,6 +64,9 @@ describe('production account controller integration', () => {
   let disposeEvents: () => void;
   let records: ReturnType<typeof parseLegacyAccounts>;
   const preload = path.join(process.cwd(), 'electron/test/fixtures/account-controller-preload.js');
+  const accountSession = (account: {sessionID?: string}) =>
+    account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession;
+  let initializationPhase: string;
   const send = (contents: WebContents, method: string, argument?: unknown) =>
     contents.executeJavaScript(
       `window.accountFixture.${method}(${argument === undefined ? '' : JSON.stringify(argument)})`,
@@ -69,7 +74,10 @@ describe('production account controller integration', () => {
   const identity = (contents: WebContents) =>
     registry.authorize({sender: contents, senderFrame: contents.mainFrame}, ACCOUNT_EVENT_CAPABILITY);
 
-  beforeEach(async () => {
+  beforeEach(async function () {
+    // Starting three real sandboxed renderers exceeds Mocha's 2s default on hosted Windows.
+    this.timeout(10_000);
+    initializationPhase = 'starting loopback server';
     server = createServer((_request, response) =>
       response.end('<!doctype html><title>Account controller fixture</title>'),
     );
@@ -91,6 +99,7 @@ describe('production account controller integration', () => {
       webPreferences: {preload, sandbox: true, contextIsolation: true, nodeIntegration: false, webviewTag: false},
     });
     registerApplicationShellIdentity(registry, window.webContents, `${origin}/`, [ACCOUNT_CONTROL_CAPABILITY]);
+    initializationPhase = 'loading native shell fixture';
     await window.loadURL(origin);
     views = new AccountViews({
       window,
@@ -106,8 +115,7 @@ describe('production account controller integration', () => {
       views,
       registry,
       destination: account => account.webappUrl ?? origin,
-      session: account =>
-        account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
+      session: accountSession,
       clearData: async (account, targetSession) => {
         assert.equal(views.has(account.id), false);
         await clearAccountSession(targetSession);
@@ -124,10 +132,17 @@ describe('production account controller integration', () => {
     controller = new AccountController(options);
     disposeControl = bindAccountControlIpc(ipcMain, registry, controller);
     disposeEvents = bindAccountEventIpc(ipcMain, registry, controller.receive);
+    initializationPhase = 'starting account views';
     await controller.start();
+    initializationPhase = 'ready';
   });
 
-  afterEach(async () => {
+  afterEach(async function () {
+    // Native renderer/session teardown has the same bounded fixture budget as startup.
+    this.timeout(10_000);
+    if (initializationPhase !== 'ready') {
+      console.error(`Account fixture initialization stopped during: ${initializationPhase}`);
+    }
     restore();
     disposeControl?.();
     disposeEvents?.();
@@ -136,7 +151,7 @@ describe('production account controller integration', () => {
       window.destroy();
     }
     for (const account of records ?? []) {
-      await options.session(account).clearStorageData();
+      await accountSession(account).clearStorageData();
     }
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
@@ -671,6 +686,40 @@ describe('production account controller integration', () => {
     await assert.rejects(controller.receive(owner, {type: 'environment', url: `${origin}/candidate`}), /authorized/);
     assert.equal(state.get(records[0].id).webappUrl, undefined);
     assert.equal(views.get(records[0].id), first);
+  });
+
+  it('[security-target][CAP-001][INV-005] preserves views and profile when machine policy rejects an environment event', async () => {
+    const prompt = stub(dialog, 'showMessageBox').resolves({response: 0, checkboxChecked: false});
+    const first = views.get(records[0].id);
+    const before = state.snapshots();
+    options.approveEnvironment = (_account, candidate) =>
+      approveAccountEnvironment(window, candidate, {isConfigured: true, url: 'https://managed.example.test/'});
+
+    await assert.rejects(send(first, 'environment', 'https://other.example.test/'), /machine policy/);
+
+    assert.deepEqual(state.snapshots(), before);
+    assert.equal(views.get(records[0].id), first);
+    assert.equal(identity(first).webContents, first);
+    assert.equal(prompt.callCount, 0);
+  });
+
+  it('[security-target][CAP-001][INV-005] blocks a saved foreign destination without deleting its account record', async () => {
+    const id = records[0].id;
+    state.setEnvironment(id, `${origin}/saved`);
+    const before = state.get(id);
+    const create = spy(views, 'create');
+    options.destination = account =>
+      getAccountDestination(account, 'https://managed.example.test/', 'en', {
+        isConfigured: true,
+        url: 'https://managed.example.test/',
+      });
+
+    await assert.rejects(controller.reload(id), /machine policy/);
+
+    assert.deepEqual(state.get(id), before);
+    assert.equal(create.callCount, 0);
+    assert.equal(views.has(id), false);
+    assert.ok(controller.snapshots().find(account => account.id === id)?.loadError);
   });
 
   it('[migration][CAP-001] approved environment changes replace only the owning view and preserve its partition', async () => {
