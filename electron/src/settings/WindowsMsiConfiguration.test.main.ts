@@ -19,6 +19,8 @@
 
 import assert from 'node:assert';
 
+import {getAccountDestination} from '../accounts/AccountDestination';
+
 import {
   getWindowsMsiWebAppConfiguration,
   loadWindowsRegistry,
@@ -100,6 +102,35 @@ describe('WindowsMsiConfiguration', () => {
         issue: 'invalid-registry-type',
       });
     });
+  });
+
+  describe('[security-target][CAP-005] unreadable machine policy', () => {
+    for (const failure of ['unavailable', 'access failure'] as const) {
+      it(`does not substitute an unmanaged endpoint after ${failure}`, () => {
+        const registry = failure === 'unavailable' ? null : registryWith([]);
+        if (registry) {
+          registry.enumerateValues = () => {
+            throw new Error('synthetic machine policy access failure');
+          };
+        }
+        const policy = getWindowsMsiWebAppConfiguration('Wire', registry);
+        assert.strictEqual(
+          selectWebAppUrlOverride(policy, 'https://command.example.test', 'https://user.example.test'),
+          undefined,
+          'unreadable machine policy must block endpoint fallback',
+        );
+        assert.throws(
+          () =>
+            getAccountDestination(
+              {isAdding: false, webappUrl: 'https://saved.example.test'},
+              'https://default.example.test',
+              'en',
+              policy,
+            ),
+          /Invalid managed account destination/,
+        );
+      });
+    }
   });
 
   describe('selectWebAppUrlOverride', () => {
