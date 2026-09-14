@@ -28,7 +28,7 @@ jobs:
             artifact: wrap/build/**/*.exe
           - platform: macOS
             os: macos-26
-            build: yarn build:macos:x64
+            build: yarn ts-node -P tsconfig.bin.json bin/test-tools/build-macos-smoke.ts
             artifact: wrap/build/**/*.app
     runs-on: ${{ matrix.os }}
     steps:

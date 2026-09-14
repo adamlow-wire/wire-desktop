@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.35
+revision: 1.5.38
 status: draft
 updated: 2026-09-14
 owners:
@@ -404,7 +404,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-007 — Replace `<webview>` account rendering
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: ARC-001, SEC-005, SEC-006
 - Scope: Implement account content with main-process-owned `WebContentsView` instances and preserve isolated persistent sessions.
@@ -413,7 +413,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - No `allowpopups` behavior remains.
   - Account views resize, focus, hide/show, crash, reload, add, remove, and switch correctly.
   - Session-isolation tests prove accounts cannot observe each other's storage/cookies.
-- Evidence: CAP-001 draft PR #47 contains sensitivity-proven product lifecycle baselines, validated legacy profiles, main-owned state/native views and real-Electron controller/IPC/preload integration. The bundled webapp bridge works without a webview host, with exact-account metadata/join and session-deletion tests. The working copy switches default startup/UI; full product qualification, action routing and lifecycle acceptance remain open. Focused integration tests do not close SEC-007 acceptance.
+- Evidence: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) merged as `683ac9af672168d48c9154c47f3dc99a2bdd5d66` after reviewed head `78231f74` passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701006), lint/analysis, [Windows/macOS/Linux native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701114), and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34834177940). Both platforms complete all forty cases with 39 initial passes and one login retry; no skips or worker-teardown errors. No unresolved review threads or security exception. Source audit confirms no production `<webview>`, `allowpopups` or enabled webview tag. Native lifecycle tests cover resize/focus/hide/show/recovery/reload/add/remove/switch and cross-account cookie/storage isolation on supported platforms.
 
 #### SEC-008 — Centralize navigation and window-open policy
 
@@ -436,7 +436,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-009 — Centralize permission policy
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-002, SEC-003
 - Scope: Implement request and check handlers for camera, microphone, notifications, display media, and any device permissions.
@@ -446,7 +446,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Grants bind permission type to authorized origin, view, account, and user flow.
   - Main-frame and subframe behavior is defined.
   - Allowed and denied cases are tested on supported platforms.
-- Evidence: The dependent branch `sec/SEC-009-account-permissions-2026-09-10` (based on CAP-001 `a4ce662c`) activates account-scoped request/check policy and native notification/media consent in the local application candidate. A product target fails before activation and passes after it for separate notification/microphone/camera approval and reload denial, using real foreground eligibility, synthetic devices and test-controlled dialog responses. Defaults remain denied without consent. Integration has not changed. Final integrated-head qualification remains open. Native policy/dialog cancellation and synthetic-media allow/deny are the M3 platform gate; enabling display capture remains CAP-003/M4. See [current validation and gaps](./status.md) and proposed DEC-009; acceptance is unchanged. Exact-version contracts: [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
+- Evidence: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) merged as `683ac9af672168d48c9154c47f3dc99a2bdd5d66` after reviewed head `78231f74` passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701006), lint/analysis, [Windows/macOS/Linux native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701114), and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34834177940). Both platforms complete all forty cases with 39 initial passes and one login retry; no skips or worker-teardown errors. No unresolved review threads or security exception. Reviewed dependency #48 supplies separately scoped notification/audio/video consent, foreground/document revalidation, cancellation/revocation and subframe/unknown denial. Native dialog cancellation and synthetic-device allow/deny pass on all three platforms; real product permission and authenticated calling flows pass. Device grants do not authorize capture or thumbnails. DEC-009 is accepted for this M3 policy; enabling display remains CAP-003/M4.
 
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
@@ -643,7 +643,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
@@ -654,7 +654,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
-- Evidence: [PR #8](https://github.com/adamlow-wire/wire-desktop/pull/8) merged on 2026-08-21 with legacy selection characterization plus an opt-in main-owned collection with exact targeting, per-account partitions, cross-account storage/IPC isolation, fail-closed unknown targets, and sensitivity-proven tests. [PR #10](https://github.com/adamlow-wire/wire-desktop/pull/10) merged on 2026-09-02 with exact-session local-storage/cookie clearing while another account remains intact; all required hosted checks passed. PR #41 additionally preserves metadata identity and cross-account state through sensitivity-proven cold-restart tests and green hosted gates. Production action routing remains open.
+- Evidence: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) merged as `683ac9af672168d48c9154c47f3dc99a2bdd5d66` after reviewed head `78231f74` passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701006), lint/analysis, [Windows/macOS/Linux native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701114), and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34834177940). Both platforms complete all forty cases with 39 initial passes and one login retry; no skips or worker-teardown errors. No unresolved review threads or security exception. Existing multi-account critical/regression flows, native account/session/IPC isolation, targeted cleanup/retry and cold-restart retention pass. Metadata cannot replace identity or partition. The normal native quit assertion is sensitive to a veto and preserves every storage/restart assertion. Prior #8/#10/#41 baselines remain in history. CAP-005 retains the pre-existing registry/proxy/certificate issues and final enterprise qualification.
 
 #### CAP-002 — Migrate enterprise and automated SSO
 
@@ -872,7 +872,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
-| DEC-009 | 2026-09-10 | proposed | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Origin identity alone does not prove user consent; production remains deny-all while policy and runtime evidence are developed | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
+| DEC-009 | 2026-09-14 | accepted | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Explicit main-owned document-scoped consent is integrated and qualified; display and thumbnail capture stay denied under CAP-003/M4 | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
 | DEC-003 | 2026-08-18 | accepted | Supported Electron runtime and security-boundary work are P0 | The current runtime is EOL and the current boundary violates modern Electron security guidance | Never; only implementation ordering may change |
@@ -902,6 +902,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.38 | 2026-09-14 | Codex | Close CAP-001/SEC-007/SEC-009 after reviewed PR #47 final-head gates and integration merge; accept the qualified notification/media policy, retain display denial and remaining M3 gates | CAP-001, SEC-007, SEC-009, DEC-009 |
 | 1.5.35 | 2026-09-14 | Codex | Reproduce unrelated-session proxy mutation with a real native prompt; bind proxy application and cancellation reload to the challenged view without changing credential/IPC authorization | CAP-005, DCP-011, RSK-015 |
 | 1.5.34 | 2026-09-14 | Codex | Reproduce and close machine endpoint fallback after unavailable/failed registry reads; preserve genuinely absent policy and prepare real Windows reader/destination sensitivity proof | CAP-005, INV-010 |
 | 1.5.31 | 2026-09-14 | Codex | Integrate reviewed permission dependency through PR #48 and reconcile existing managed destination baseline/enforcement into PR #47; retain final cutover gates and CAP-005 native registry qualification | CAP-001, SEC-007, SEC-008, SEC-009 |
