@@ -25,6 +25,8 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 const JOIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const SSO_CODE_PATTERN = /^wire-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export const isSsoCode = (value: unknown): value is string => typeof value === 'string' && SSO_CODE_PATTERN.test(value);
+
 export type DeepLinkAction =
   | Readonly<{kind: 'location'; location: string}>
   | Readonly<{kind: 'sso-login'; code: string}>
@@ -162,7 +164,7 @@ export const parseDeepLink = (value: unknown): DeepLinkAction | undefined => {
 
   if (url.hostname === 'start-sso') {
     const segments = url.pathname.slice(1).split('/');
-    if (segments.length === 1 && SSO_CODE_PATTERN.test(segments[0]) && url.search === '') {
+    if (segments.length === 1 && isSsoCode(segments[0]) && url.search === '') {
       return {kind: 'sso-login', code: segments[0]};
     }
     return undefined;

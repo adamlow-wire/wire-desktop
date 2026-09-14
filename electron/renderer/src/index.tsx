@@ -21,7 +21,7 @@ import {createRoot} from 'react-dom/client';
 import {Provider} from 'react-redux';
 import {Action} from 'redux';
 
-import actionRoot, {addAccountWithSession} from './actions';
+import actionRoot from './actions';
 import App from './components/App/App';
 import {configureStore} from './configureStore';
 import './Index.css';
@@ -39,53 +39,25 @@ export interface AppAction extends Action {
   type: string;
 }
 
-interface EventDetail extends Event {
-  detail: {
-    accountIndex: number;
-    code: string;
-  };
-}
+export type AppDispatch = Awaited<ReturnType<typeof configureStore>>['dispatch'];
 
-const store = configureStore({actions: actionRoot});
-
-export type AppDispatch = typeof store.dispatch;
-
-window.addEventListener(
-  EVENT_TYPE.ACTION.SWITCH_ACCOUNT,
-  event => {
-    // @ts-ignore
-    store.dispatch(actionRoot.accountAction.switchWebview((event as EventDetail).detail.accountIndex));
-  },
-  false,
-);
-window.addEventListener(
-  EVENT_TYPE.ACTION.CREATE_SSO_ACCOUNT,
-  event => {
-    // @ts-ignore
-    store.dispatch(actionRoot.accountAction.startSSO((event as EventDetail).detail.code));
-  },
-  false,
-);
-
-window.addEventListener(
-  EVENT_TYPE.ACTION.START_LOGIN,
-  event => {
-    // @ts-ignore
-    store.dispatch(addAccountWithSession());
-  },
-  false,
-);
-
-const container = document.getElementById('root');
-
-if (!container) {
-  throw new Error('container not found.');
-}
-
-const root = createRoot(container);
-
-root.render(
-  <Provider store={store}>
-    <App />
-  </Provider>,
-);
+const initialize = async (): Promise<void> => {
+  const store = await configureStore({actions: actionRoot});
+  window.addEventListener(EVENT_TYPE.ACTION.SWITCH_ACCOUNT, event => {
+    const index = (event as CustomEvent<{accountIndex: number}>).detail.accountIndex;
+    const account = store.getState().accounts[Math.max(index, 0)];
+    if (account) {
+      void window.wireAccounts.select(account.id).catch(console.error);
+    }
+  });
+  const container = document.getElementById('root');
+  if (!container) {
+    throw new Error('container not found.');
+  }
+  createRoot(container).render(
+    <Provider store={store}>
+      <App />
+    </Provider>,
+  );
+};
+void initialize().catch(error => console.error('Unable to initialize account display.', error));

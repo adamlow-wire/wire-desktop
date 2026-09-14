@@ -26,7 +26,7 @@ import {createWebappPreloadEvents, WebappPreloadEventActions} from './WebappPrel
 import {EVENT_TYPE} from '../lib/eventType';
 
 describe('webapp preload event routing', () => {
-  const createHarness = () => {
+  const createHarness = (sendAccountEvent?: (event: unknown) => void) => {
     const calls: Array<{args: unknown[]; name: string}> = [];
     const listeners = new Map<string, (event: unknown, ...args: unknown[]) => void>();
     let versions: {webappVersion: string} | undefined = {webappVersion: 'webapp'};
@@ -46,9 +46,11 @@ describe('webapp preload event routing', () => {
       relaunch: record('relaunch'),
       reload: record('reload'),
       reportVersions: record('versions'),
+      requestNotificationPermission: async () => 'denied',
       updateDownloadPath: record('download'),
     };
     const preloadEvents = createWebappPreloadEvents({
+      sendAccountEvent,
       actions,
       ipc: {
         on: (channel, listener) => listeners.set(channel, listener),
@@ -69,8 +71,126 @@ describe('webapp preload event routing', () => {
       assert.ok(listener, `missing listener for ${channel}`);
       listener({}, ...args);
     };
-    return {calls, emit, preloadEvents, setVersions: (value: typeof versions) => (versions = value)};
+    return {calls, emit, preloadEvents, actions, setVersions: (value: typeof versions) => (versions = value)};
   };
+
+  it('[security-target][SEC-009] publishes only the real notification result and bounds pending requests', async () => {
+    const {actions, calls, emit, preloadEvents} = createHarness();
+    let answer!: (value: NotificationPermission) => void;
+    let requests = 0;
+    Object.assign(actions, {
+      requestNotificationPermission: () => {
+        requests++;
+        return new Promise<NotificationPermission>(resolve => {
+          answer = resolve;
+        });
+      },
+    });
+    preloadEvents.subscribeToMainProcessEvents();
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION, 'granted');
+    assert.equal(requests, 0);
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await Promise.resolve();
+    assert.equal(requests, 1);
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    assert.equal(requests, 1);
+    assert.equal(
+      calls.some(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`),
+      false,
+    );
+    answer('granted');
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.deepEqual(
+      calls.filter(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`),
+      [{name: `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`, args: ['granted']}],
+    );
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await Promise.resolve();
+    assert.equal(requests, 2);
+    answer('denied');
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.deepEqual(
+      calls
+        .filter(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`)
+        .map(call => call.args),
+      [['granted'], ['denied']],
+    );
+  });
+
+  it('[security-target][SEC-009] contains notification request failures and rejects malformed results', async () => {
+    const {actions, calls, emit, preloadEvents} = createHarness();
+    Object.assign(actions, {
+      requestNotificationPermission: async () => {
+        throw new Error('private failure');
+      },
+    });
+    preloadEvents.subscribeToMainProcessEvents();
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    Object.assign(actions, {requestNotificationPermission: async () => 'forged'});
+    emit(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(
+      calls.some(call => call.name === `publish:${WebAppEvents.NOTIFICATION.PERMISSION_STATE}`),
+      false,
+    );
+    assert.equal(JSON.stringify(calls).includes('private failure'), false);
+  });
+
+  it('[compatibility][CAP-001] routes named native-account events without depending on a webview host', () => {
+    const events: unknown[] = [];
+    const {calls, emit, preloadEvents} = createHarness(event => events.push(event));
+    preloadEvents.subscribeToMainProcessEvents();
+    preloadEvents.events.activateNotification();
+    preloadEvents.events.changeEnvironment('https://custom.wire.test/');
+    preloadEvents.events.loaded();
+    preloadEvents.events.signedOut(false);
+    preloadEvents.events.signOut();
+    preloadEvents.events.teamInfo({name: 'Account'});
+    preloadEvents.events.theme('dark');
+    preloadEvents.events.unreadCount(3);
+    emit(EVENT_TYPE.ACTION.JOIN_CONVERSATION, {code: 'code', key: 'key'});
+    assert.deepStrictEqual(events, [
+      {type: 'activate'},
+      {type: 'environment', url: 'https://custom.wire.test/'},
+      {type: 'loaded'},
+      {type: 'signed-out', clearData: false},
+      {type: 'sign-out'},
+      {type: 'metadata', data: {name: 'Account'}},
+      {type: 'theme', theme: 'dark'},
+      {type: 'unread', count: 3},
+      {type: 'join', code: 'code', key: 'key', domain: undefined},
+    ]);
+    assert.equal(
+      calls.some(call => call.name.startsWith('host:')),
+      false,
+    );
+  });
+
+  it('[regression][CAP-001][CAP-006] delivers non-federated conversation joins using the webapp domain fallback', () => {
+    for (const data of [
+      {code: 'code', key: 'key'},
+      {code: 'code', key: 'key', domain: null},
+    ]) {
+      const {calls, emit, preloadEvents} = createHarness();
+      preloadEvents.subscribeToMainProcessEvents();
+      emit(WebAppEvents.CONVERSATION.JOIN, data);
+      const delivered = calls.filter(call => call.name === `dispatch:${WebAppEvents.CONVERSATION.JOIN}`);
+      assert.deepStrictEqual(
+        delivered.map(call => call.args[0]),
+        [{...data, domain: data.domain}],
+      );
+    }
+    for (const domain of [42, {}, []]) {
+      const {calls, emit, preloadEvents} = createHarness();
+      preloadEvents.subscribeToMainProcessEvents();
+      emit(WebAppEvents.CONVERSATION.JOIN, {code: 'code', key: 'key', domain});
+      assert.equal(
+        calls.some(call => call.name === `dispatch:${WebAppEvents.CONVERSATION.JOIN}`),
+        false,
+      );
+    }
+  });
 
   it('[characterization][security-target][INV-002][SEC-005] preserves named webapp-to-shell capabilities', () => {
     const {calls, preloadEvents} = createHarness();

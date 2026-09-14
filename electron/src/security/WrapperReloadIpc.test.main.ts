@@ -104,7 +104,9 @@ describe('wrapper-reload IPC contract', () => {
     const registry = new ViewIdentityRegistry();
     const event = createSender(registry);
     let reloadCalls = 0;
-    const dispose = bindWrapperReloadIpc(createIpc(handlers), registry, () => {
+    const dispose = bindWrapperReloadIpc(createIpc(handlers), registry, identity => {
+      assert.equal(identity.webContents, event.sender);
+      assert.equal(identity.accountId, 'account-a');
       reloadCalls += 1;
     });
     const handler = handlers.get(WRAPPER_RELOAD_REQUEST_CHANNEL);

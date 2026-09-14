@@ -22,11 +22,13 @@ import type {RendererEnvironmentSnapshot} from './rendererEnvironment';
 const ENVIRONMENT_ARGUMENT = '--wire-desktop-environment=';
 const LOCALE_ARGUMENT = '--wire-desktop-locale=';
 const USER_DATA_ARGUMENT = '--wire-desktop-user-data=';
+const APPLOCK_ARGUMENT = '--wire-desktop-applock-override=';
 
 export interface RendererRuntimeValues {
   readonly locale: string;
   readonly userDataPath: string;
   readonly environment?: RendererEnvironmentSnapshot;
+  readonly applockOverride?: boolean;
 }
 
 const encodeArgument = (prefix: string, value: string): string => `${prefix}${encodeURIComponent(value)}`;
@@ -47,7 +49,21 @@ export const createRendererRuntimeArguments = (values: RendererRuntimeValues): s
   encodeArgument(LOCALE_ARGUMENT, values.locale),
   encodeArgument(USER_DATA_ARGUMENT, values.userDataPath),
   ...(values.environment ? [encodeArgument(ENVIRONMENT_ARGUMENT, JSON.stringify(values.environment))] : []),
+  ...(typeof values.applockOverride === 'boolean'
+    ? [encodeArgument(APPLOCK_ARGUMENT, String(values.applockOverride))]
+    : []),
 ];
+
+export const readRendererApplockOverride = (argv: readonly string[] = process.argv): boolean => {
+  const argumentsForPolicy = argv.filter(value => value.startsWith(APPLOCK_ARGUMENT));
+  if (
+    argumentsForPolicy.length !== 1 ||
+    ![`${APPLOCK_ARGUMENT}true`, `${APPLOCK_ARGUMENT}false`].includes(argumentsForPolicy[0])
+  ) {
+    throw new Error('Missing or invalid main-owned App-lock policy');
+  }
+  return argumentsForPolicy[0] === `${APPLOCK_ARGUMENT}true`;
+};
 
 export const readRendererEnvironment = (argv: readonly string[] = process.argv): RendererEnvironmentSnapshot => {
   const value = readArgument(argv, ENVIRONMENT_ARGUMENT);

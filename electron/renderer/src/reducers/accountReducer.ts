@@ -111,6 +111,7 @@ export interface SetConversationJoinData extends AppAction {
 }
 
 export type AccountActions =
+  | {type: 'SYNC_ACCOUNTS'; accounts: Account[]}
   | AddAccount
   | InitiateSSO
   | DeleteAccount
@@ -124,6 +125,8 @@ export type AccountActions =
 
 export default (state = [createAccount()], action: AccountActions): Account[] => {
   switch (action.type) {
+    case 'SYNC_ACCOUNTS':
+      return action.accounts;
     case ACCOUNT_ACTION.ADD_ACCOUNT: {
       const newState = state.map(account => ({...account, visible: false}));
       const newAccount = createAccount({sessionID: action.sessionID});

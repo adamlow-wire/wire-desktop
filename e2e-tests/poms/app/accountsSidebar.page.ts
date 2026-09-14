@@ -17,6 +17,9 @@
  *
  */
 
+import {expect} from '@playwright/test';
+
+import type {AccountShellBridge} from '../../../electron/src/preload/AccountShellBridge';
 import {App} from '../../actions/createApp';
 import {RegisteredUser} from '../../backend/PublicApiClient';
 
@@ -25,8 +28,68 @@ export const accountsSidebar = (app: App) => {
 
   const accountItems = sidebar.getByTestId('account-cell');
   const addAccountButton = sidebar.getByTestId('do-open-plus-menu');
-  const logoutButton = sidebar.getByRole('button', {name: 'Log out'});
-  const removeAccountButton = sidebar.getByRole('button', {name: 'Remove Account'});
+
+  const readAccounts = () =>
+    app.wrapper.evaluate(() => (window as unknown as {wireAccounts: AccountShellBridge}).wireAccounts.read());
+
+  const updateSelectedPage = async () => {
+    await expect
+      .poll(async () => {
+        const selected = (await readAccounts()).find(account => account.visible);
+        const page = app
+          .windows()
+          .find(page => !page.isClosed() && new URL(page.url()).searchParams.get('id') === selected?.id);
+        if (page) {
+          app.page = page;
+        }
+        return Boolean(page);
+      })
+      .toBe(true);
+  };
+
+  const openContextMenu = async (index: number) => {
+    // Observe the real main-owned menu; native items are not DOM locators.
+    await app.evaluate(({Menu}) => {
+      Reflect.deleteProperty(globalThis, 'wireE2EAccountMenu');
+      const popup = Menu.prototype.popup;
+      Reflect.set(globalThis, 'wireE2EOriginalMenuPopup', popup);
+      Menu.prototype.popup = function (options) {
+        Reflect.set(globalThis, 'wireE2EAccountMenu', {menu: this, owner: options?.window});
+        Menu.prototype.popup = popup;
+        popup.call(this, options);
+      };
+    });
+    try {
+      await accountItems.nth(index).click({button: 'right'});
+      await expect.poll(() => app.evaluate(() => Reflect.has(globalThis, 'wireE2EAccountMenu'))).toBe(true);
+      return await app.evaluate(() => {
+        const {menu} = Reflect.get(globalThis, 'wireE2EAccountMenu') as {menu: Electron.Menu};
+        return menu.items
+          .filter(item => item.visible)
+          .map(item => ({id: item.id, label: item.label, enabled: item.enabled}));
+      });
+    } finally {
+      await app.evaluate(({Menu}) => {
+        Menu.prototype.popup = Reflect.get(globalThis, 'wireE2EOriginalMenuPopup');
+        Reflect.deleteProperty(globalThis, 'wireE2EOriginalMenuPopup');
+      });
+    }
+  };
+
+  const clickContextMenu = async (id: 'account-logout' | 'account-remove') => {
+    await app.evaluate((_, id) => {
+      const target = Reflect.get(globalThis, 'wireE2EAccountMenu') as
+        | {menu: Electron.Menu; owner?: Electron.BrowserWindow}
+        | undefined;
+      const item = target?.menu.getMenuItemById(id);
+      if (!target?.owner || target.owner.isDestroyed() || !item?.enabled || !item.visible) {
+        throw new Error(`Account menu item unavailable: ${id}`);
+      }
+      target.menu.closePopup();
+      Reflect.deleteProperty(globalThis, 'wireE2EAccountMenu');
+      item.click(item, target.owner, {} as Electron.KeyboardEvent);
+    }, id);
+  };
 
   const getAccount = (user: RegisteredUser) => {
     const accountLocator = sidebar.locator(`[data-account-id="${user.id}"]`);
@@ -36,49 +99,44 @@ export const accountsSidebar = (app: App) => {
     });
   };
 
-  /* Trigger the flow to add a new account, replacing the currenly shown page with the page for adding the new account */
+  /* Trigger the flow to add a new account, selecting its native page. */
   const addAccount = async () => {
     await sidebar.hover();
-
-    const newWindowPromise = app.waitForEvent('window');
+    const ids = (await readAccounts()).map(account => account.id);
     await addAccountButton.click();
-
-    // Set the current page to the now visible one
-    app.page = await newWindowPromise;
+    await expect
+      .poll(async () => (await readAccounts()).some(account => account.visible && !ids.includes(account.id)))
+      .toBe(true);
+    await updateSelectedPage();
   };
 
   /* Switch to the account at the given index, replacing the currently shown page with the page of the other account */
   const switchAccount = async (index: number) => {
+    const targetId = (await readAccounts())[index].id;
     await accountItems.nth(index).click();
-
-    // Set the current page to the new active one. The first index in the windows list is always the wrapper
-    app.page = app.windows()[index + 1];
+    await expect.poll(async () => (await readAccounts()).find(account => account.visible)?.id).toBe(targetId);
+    await updateSelectedPage();
   };
 
   const logOut = async (index: number) => {
-    await accountItems.nth(index).click({button: 'right'});
-    await logoutButton.click();
+    await openContextMenu(index);
+    await clickContextMenu('account-logout');
   };
 
   const removeAccount = async (index: number) => {
-    if (app.windows().length <= 2) {
-      const newWindowPromise = app.waitForEvent('window');
-      await accountItems.nth(index).click({button: 'right'});
-      await removeAccountButton.click();
-      app.page = await newWindowPromise;
-    } else {
-      await accountItems.nth(index).click({button: 'right'});
-      await removeAccountButton.click();
-      app.page = app.windows().at(-1)!;
-    }
+    const removedId = (await readAccounts())[index].id;
+    await openContextMenu(index);
+    await clickContextMenu('account-remove');
+    await expect.poll(async () => (await readAccounts()).some(account => account.id === removedId)).toBe(false);
+    await updateSelectedPage();
   };
 
   return Object.assign(sidebar, {
     sidebar,
     accountItems,
     addAccountButton,
-    logoutButton,
-    removeAccountButton,
+    openContextMenu,
+    clickContextMenu,
     getAccount,
     addAccount,
     switchAccount,

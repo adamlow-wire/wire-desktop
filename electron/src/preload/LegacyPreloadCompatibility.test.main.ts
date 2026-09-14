@@ -25,12 +25,17 @@ import {pathToFileURL} from 'url';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
+import {parseLegacyAccounts} from '../accounts/AccountProfile';
+import {AccountState} from '../accounts/AccountState';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {snapshotRendererEnvironment} from '../runtime/rendererEnvironment';
 import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
+import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
+import {bindAccountControlIpc} from '../security/AccountControlIpc';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
+import {registerApplicationShellIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
-const preloadPath = (name: 'preload-app' | 'preload-webview'): string =>
+const preloadPath = (name: 'preload-app' | 'preload-webview' | 'preload-shell'): string =>
   path.resolve(__dirname, `../../dist/preload/${name}.js`);
 
 const createWindow = (preload: string, contextIsolation: boolean, partition?: string): BrowserWindow =>
@@ -67,6 +72,40 @@ const WEBAPP_FIXTURE = `data:text/html,<script>
 
 describe('legacy preload compatibility surface', () => {
   const windows: BrowserWindow[] = [];
+  let disposeShell: (() => void) | undefined;
+  const loadCurrentShell = async (partition: string): Promise<BrowserWindow> => {
+    const window = createWindow(preloadPath('preload-shell'), true, partition);
+    windows.push(window);
+    const url = pathToFileURL(path.resolve(__dirname, '../../renderer/index.html'));
+    url.searchParams.set('noUrlConfigured', 'true');
+    const registry = new ViewIdentityRegistry();
+    registerApplicationShellIdentity(registry, window.webContents, url.href, [ACCOUNT_CONTROL_CAPABILITY]);
+    const state = new AccountState(parseLegacyAccounts('{"accounts":[]}', 3), 3, () => undefined);
+    const unavailable = async (): Promise<void> => {
+      throw new Error('Not part of the CSP fixture');
+    };
+    disposeShell = bindAccountControlIpc(ipcMain, registry, {
+      snapshots: () => state.snapshots(),
+      layout: async () => undefined,
+      add: unavailable,
+      select: unavailable,
+      remove: unavailable,
+      reload: unavailable,
+      logout: unavailable,
+      contextMenu: unavailable,
+      join: unavailable,
+    });
+    await window.loadURL(url.href);
+    await window.webContents.executeJavaScript(`new Promise(resolve => {
+      const ready = () => !!document.querySelector('[data-uie-name="status-no-url-configured"]');
+      if (ready()) { resolve(true); return; }
+      const observer = new MutationObserver(() => {
+        if (ready()) { observer.disconnect(); resolve(true); }
+      });
+      observer.observe(document.documentElement, {childList: true, subtree: true});
+    })`);
+    return window;
+  };
   const provideManagedConfig = (event: Electron.IpcMainEvent): void => {
     event.returnValue = {applockOverride: false};
   };
@@ -74,6 +113,8 @@ describe('legacy preload compatibility surface', () => {
   beforeEach(() => ipcMain.on(MANAGED_CONFIG_CHANNEL, provideManagedConfig));
 
   afterEach(() => {
+    disposeShell?.();
+    disposeShell = undefined;
     ipcMain.removeListener(MANAGED_CONFIG_CHANNEL, provideManagedConfig);
     for (const window of windows.splice(0)) {
       if (!window.isDestroyed()) {
@@ -84,9 +125,7 @@ describe('legacy preload compatibility surface', () => {
 
   it('[characterization][SEC-010] renders the real local shell bundle under its production CSP', async function () {
     this.timeout(10_000);
-    const window = createWindow(preloadPath('preload-app'), true, 'local-shell-csp');
-    windows.push(window);
-    await window.loadFile(path.resolve(__dirname, '../../renderer/index.html'), {query: {noUrlConfigured: 'true'}});
+    const window = await loadCurrentShell('local-shell-csp');
 
     assert.strictEqual(
       await window.webContents.executeJavaScript(
@@ -98,9 +137,7 @@ describe('legacy preload compatibility surface', () => {
 
   it('[security-target][SEC-010] blocks eval and Function in an ordinary shell script', async function () {
     this.timeout(10_000);
-    const window = createWindow(preloadPath('preload-app'), true, 'local-shell-csp-denial');
-    windows.push(window);
-    await window.loadFile(path.resolve(__dirname, '../../renderer/index.html'), {query: {noUrlConfigured: 'true'}});
+    const window = await loadCurrentShell('local-shell-csp-denial');
     const probeUrl = pathToFileURL(path.resolve(__dirname, '../../test/fixtures/csp-probe.js')).href;
     // Load a normal script: debugger/executeJavaScript evaluation can bypass CSP.
     const result = await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {

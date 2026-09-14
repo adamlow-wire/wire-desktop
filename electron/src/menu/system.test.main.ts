@@ -19,12 +19,15 @@
 
 import type {WallClock} from '@enormora/wall-clock/wall-clock';
 import {Menu, MenuItem} from 'electron';
+import {stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 
 import {createMenu} from './system';
 
+import {EVENT_TYPE} from '../lib/eventType';
 import * as locale from '../locale';
+import * as WindowUtil from '../window/WindowUtil';
 
 function findMenuItem(menu: Menu, label: string): MenuItem | undefined {
   for (const item of menu.items) {
@@ -42,6 +45,22 @@ function findMenuItem(menu: Menu, label: string): MenuItem | undefined {
 }
 
 describe('system menu', () => {
+  it('[security-target][SEC-009] requests notification consent through the bound native menu route', () => {
+    const send = stub(WindowUtil, 'sendToWebContents');
+    try {
+      const menu = createMenu(false, {currentDate: new Date('2026-09-10T00:00:00Z')} as WallClock, () => undefined);
+      const item = findMenuItem(menu, locale.getText('menuNotificationSettings'));
+      assert.ok(item);
+      const owner = {};
+      item.click(undefined as never, owner as never, undefined as never);
+      assert.deepEqual(send.args, [
+        [owner, EVENT_TYPE.UI.SYSTEM_MENU, EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION],
+      ]);
+    } finally {
+      send.restore();
+    }
+  });
+
   it('[characterization][security-target][INV-003] opens About through the native menu action', () => {
     let showRequests = 0;
     const wallClock = {currentDate: new Date('2026-09-03T00:00:00Z')} as WallClock;

@@ -75,10 +75,9 @@ module.exports = (env = {}) => [
     devtool: 'source-map',
     target: 'web',
     entry: Object.fromEntries(
-      ['preload-app', 'preload-webview', 'menu/preload-about', 'menu/preload-proxy-prompt'].map(name => [
-        name,
-        path.resolve(__dirname, `electron/src/preload/${name}.ts`),
-      ]),
+      ['preload-app', 'preload-webview', 'preload-account', 'preload-shell', 'menu/preload-about', 'menu/preload-proxy-prompt'].map(
+        name => [name, path.resolve(__dirname, `electron/src/preload/${name}.ts`)],
+      ),
     ),
     output: {filename: '[name].js', path: path.resolve(__dirname, 'electron/dist/preload')},
     externals: {electron: 'commonjs electron'},

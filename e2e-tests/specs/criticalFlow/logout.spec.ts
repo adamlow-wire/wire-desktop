@@ -49,13 +49,14 @@ test('Logout flow', {tag: ['@TC-11286', '@crit-flow-desktop']}, async ({app, cre
   });
 
   await test.step("User right-clicks on the Account A's avatar on the sidebar with accounts' avatars", async () => {
-    await accountsSidebar(app).accountItems.first().click({button: 'right'});
-    await expect(accountsSidebar(app).logoutButton).toBeVisible();
-    await expect(accountsSidebar(app).removeAccountButton).toBeVisible();
+    expect(await accountsSidebar(app).openContextMenu(0)).toEqual([
+      {id: 'account-logout', label: 'Log out', enabled: true},
+      {id: 'account-remove', label: 'Remove Account', enabled: true},
+    ]);
   });
 
   await test.step("User clicks 'Log out' option", async () => {
-    await accountsSidebar(app).logoutButton.click();
+    await accountsSidebar(app).clickContextMenu('account-logout');
     await expect(logoutModal(app).title).toHaveText('Clear Data?');
   });
 
@@ -68,8 +69,7 @@ test('Logout flow', {tag: ['@TC-11286', '@crit-flow-desktop']}, async ({app, cre
     // TODO (WPB-26936): Remove this workaround once the issue is resolved
     await accountsSidebar(app).sidebar.click();
 
-    await accountsSidebar(app).accountItems.first().click({button: 'right'});
-    await accountsSidebar(app).logoutButton.click();
+    await accountsSidebar(app).logOut(0);
 
     await logoutModal(app).closeButton.click();
     await expect(logoutModal(app).title).toBeHidden();
@@ -79,8 +79,7 @@ test('Logout flow', {tag: ['@TC-11286', '@crit-flow-desktop']}, async ({app, cre
     // TODO (WPB-26936): Remove this workaround once the issue is resolved
     await accountsSidebar(app).sidebar.click();
 
-    await accountsSidebar(app).accountItems.first().click({button: 'right'});
-    await accountsSidebar(app).logoutButton.click();
+    await accountsSidebar(app).logOut(0);
 
     await logoutModal(app).logoutButton.click();
     await expect(app.page.getByText('Welcome to Wire!')).toBeVisible();

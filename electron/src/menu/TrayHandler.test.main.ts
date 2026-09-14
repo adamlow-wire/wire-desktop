@@ -49,6 +49,22 @@ const createRuntime = (
 });
 
 describe('TrayHandler', () => {
+  const windows: BrowserWindow[] = [];
+  const createWindow = (options?: Electron.BrowserWindowConstructorOptions) => {
+    const window = new BrowserWindow(options);
+    windows.push(window);
+    return window;
+  };
+
+  afterEach(() => {
+    for (const window of windows.splice(0)) {
+      if (!window.isDestroyed()) {
+        window.destroy();
+      }
+      assert.equal(window.isDestroyed(), true, 'The tray fixture must release its native window');
+    }
+  });
+
   describe('platform icon policy', () => {
     it('selects the default, GNOME X11, and high-resolution Linux icon variants', () => {
       assert.deepStrictEqual(resolveTrayIconNames({isGnomeX11: false, isLinux: false}), {
@@ -112,16 +128,29 @@ describe('TrayHandler', () => {
         const tray = new TrayHandler();
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow();
+        const appWindow = createWindow();
         const flashFrameSpy = spy(appWindow, 'flashFrame');
+        const focused = new Promise<void>(resolve => appWindow.once('focus', () => resolve()));
 
         await appWindow.loadURL('about:blank');
+        if (!appWindow.isFocused()) {
+          appWindow.focus();
+          await focused;
+        }
         assert.strictEqual(appWindow.isFocused(), true);
         assert.ok(flashFrameSpy.notCalled);
         tray.showUnreadCount(appWindow, 1);
 
         assert.ok(flashFrameSpy.firstCall.calledWith(false));
         assert.strictEqual(tray['lastUnreadCount'], 1);
+
+        // Exercise loaded account content on the same genuinely focused window.
+        await appWindow.loadFile(path.join(fixturesDir, 'badge.html'));
+        assert.strictEqual(appWindow.isFocused(), true);
+        flashFrameSpy.resetHistory();
+        tray.showUnreadCount(appWindow, 10);
+        assert.ok(flashFrameSpy.firstCall.calledWith(false));
+        assert.strictEqual(tray['lastUnreadCount'], 10);
 
         flashFrameSpy.restore();
       });
@@ -133,7 +162,7 @@ describe('TrayHandler', () => {
         tray.initTray(TrayMock);
         setImageSpy.resetHistory();
 
-        const appWindow = new BrowserWindow({show: false});
+        const appWindow = createWindow({show: false});
         const setOverlayIconSpy = spy(appWindow, 'setOverlayIcon');
         await appWindow.loadURL('about:blank');
 
@@ -162,28 +191,12 @@ describe('TrayHandler', () => {
     });
 
     describe('with tray icon initialization', () => {
-      it('updates the badge counter and stops flashing the app frame when app is in focus while receiving new messages', async () => {
-        const tray = new TrayHandler();
-        tray.initTray(TrayMock);
-
-        const appWindow = new BrowserWindow();
-        const flashFrameSpy = spy(appWindow, 'flashFrame');
-
-        await appWindow.loadFile(path.join(fixturesDir, 'badge.html'));
-        assert.strictEqual(appWindow.isFocused(), true);
-        assert.ok(flashFrameSpy.notCalled);
-        tray.showUnreadCount(appWindow, 10);
-        assert.ok(flashFrameSpy.firstCall.calledWith(false));
-        assert.strictEqual(tray['lastUnreadCount'], 10);
-        flashFrameSpy.restore();
-      });
-
       it('flashes the app frame on non-macOS when an unfocused window receives more unread messages', async () => {
         const runtime = createRuntime({isMacOS: false});
         const tray = new TrayHandler(runtime);
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow({show: false, useContentSize: true});
+        const appWindow = createWindow({show: false, useContentSize: true});
         const flashFrameSpy = spy(appWindow, 'flashFrame');
 
         await appWindow.loadURL('about:blank');
@@ -199,7 +212,7 @@ describe('TrayHandler', () => {
         const tray = new TrayHandler(runtime);
         tray.initTray(TrayMock);
 
-        const appWindow = new BrowserWindow({show: false, useContentSize: true});
+        const appWindow = createWindow({show: false, useContentSize: true});
         const flashFrameSpy = spy(appWindow, 'flashFrame');
 
         await appWindow.loadURL('about:blank');
@@ -215,7 +228,7 @@ describe('TrayHandler', () => {
         tray.initTray(TrayMock);
         tray['lastUnreadCount'] = 5;
 
-        const appWindow = new BrowserWindow({
+        const appWindow = createWindow({
           show: false,
           useContentSize: true,
         });
