@@ -46,7 +46,8 @@ const readChangedLines = base => {
   const output = execFileSync(
     'git',
     ['diff', '--unified=0', '--diff-filter=ACMR', '--find-copies-harder', `${base}...HEAD`, '--', ...SOURCE_ROOTS],
-    {encoding: 'utf8'},
+    // Milestone comparisons can exceed Node's default 1 MiB output buffer.
+    {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024},
   );
   const changed = new Map();
   let currentFile;
