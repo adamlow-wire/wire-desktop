@@ -57,9 +57,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+            xvfb-run yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
           else
-            yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
+            yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
           fi
       - name: Test account media permission policy with fake devices
         shell: bash
