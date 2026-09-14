@@ -61,6 +61,36 @@ jobs:
           else
             yarn electron-mocha --require .babel-register.js "electron/src/accounts/**/*.test.main.ts" "electron/src/security/AccountPermission*.test.main.ts" "electron/src/window/WindowManager.test.main.ts" --no-sandbox
           fi
+      - name: Test native Windows machine destination and guard sensitivity
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          target=electron/src/accounts/AccountDestination.ts
+          original=$(mktemp)
+          cp "$target" "$original"
+          trap 'cp "$original" "$target"; rm -f "$original"' EXIT
+          python - <<'PYTHON'
+          from pathlib import Path
+          target = Path('electron/src/accounts/AccountDestination.ts')
+          source = target.read_text()
+          guard = '  assertManagedAccountDestination(candidate, managed);'
+          assert source.count(guard) == 1
+          target.write_text(source.replace(guard, '  // Temporary native registry sensitivity perturbation.'))
+          PYTHON
+          set +e
+          yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox > native-registry-sensitivity.log 2>&1
+          result=$?
+          set -e
+          cat native-registry-sensitivity.log
+          test "$result" -ne 0
+          python - <<'PYTHON'
+          from pathlib import Path
+          log = Path('native-registry-sensitivity.log').read_text()
+          assert 'Missing expected exception' in log and 'foreign registry destination must be denied' in log
+          PYTHON
+          cp "$original" "$target"
+          yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox
+
       - name: Test account media permission policy with fake devices
         shell: bash
         run: |
@@ -73,9 +103,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup'
+            xvfb-run yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration'
           else
-            yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup'
+            yarn test:main --grep 'dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration'
           fi
       - name: Test product account storage and restart
         shell: bash
