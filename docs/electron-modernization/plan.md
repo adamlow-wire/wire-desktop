@@ -418,7 +418,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-008 — Centralize navigation and window-open policy
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Enforce allowed origins, navigation types, external destinations, SSO windows, PiP windows, and denial behavior.
@@ -431,7 +431,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - External URLs use protocol and origin policy with adversarial tests.
 - Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. PR #38 merged as `67dfb5db` after final-head build, analysis, all-platform packages and authenticated Windows/macOS E2E/report passed; the custom-backend cutover gate below remains open.
 - SSO lifecycle refinement: reserve the single active flow before asynchronous initialization and retain it until cleanup completes. Repeated requests from its owner focus it; requests from another account cannot replace or control it. Close and native closed events share one captured-session cleanup operation; a new target reproduced a duplicate-cleanup `undefined.protocol` error. Failed cleanup does not mark the session reusable. CAP-002 still owns one-time callback validation, cookie scope, and full IdP acceptance.
-- Remaining cutover gate: the legacy environment-change bridge can initiate programmatic `loadURL`, which is not governed by cancellable renderer navigation events. CAP-001/CAP-005 must preserve approved custom backend switching through a main-owned destination policy before SEC-008 is globally complete.
+- Cutover acceptance: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) integrates main-owned destination approval with exact owning-view replacement, preserved partitions, saved-destination denial and invalid approval-result rejection. [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49) integrates unreadable machine-policy denial as4f04a8a0. Final head66f9d9db passes [all-platform native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889664), including real Windows registry guard-removal failure/restoration and combined account/navigation/popup/SSO/PiP/external policy targets, plus build/lint/analysis and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889715),43 initial passes per platform without skips or retries. Programmatic navigation cannot bypass main-owned policy; all four SEC-008 acceptance criteria are satisfied. Live identity-provider acceptance remains CAP-002, not a waiver of navigation enforcement.
 
 #### SEC-009 — Centralize permission policy
 
