@@ -2,13 +2,13 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-14
 milestone: M3
-active_work_item: CAP-005
-state: qualifying-certificate-callback-candidate
+active_work_item: CAP-002
+state: qualifying-automated-identity-boundaries-for-qa-handoff
 integration_branch: integration/electron-modernization
-integration_head_commit: c74d116e3d8bb52b7c8234100290b54a3eb91f4a
+integration_head_commit: 784ffabe46a48d5bbcba7bbeee49735a754070eb
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: cap/CAP-005-certificate-verification-2026-09-10
+active_branch: cap/CAP-002-e2ei-acceptance-2026-09-10
 next_work_item: CAP-002
 blockers:
   - live-sso-e2ei-provider-configuration-pending
@@ -19,15 +19,15 @@ blockers:
 
 ## Current execution
 
-Protected integration is `c74d116e3d8bb52b7c8234100290b54a3eb91f4a`, after reviewed [lifecycle PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51) merged. The merged tree equals exact reviewed1eaf7fba. [Build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334644), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334760), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334709), [all native/package platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334704), and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862337125) pass. macOS43 initial cases; Windows41 initial/two retry passes (authenticated account readiness and group-member lookup), no skips or worker errors. Strict protection and exact-head merge guard were preserved.
+Protected integration is `784ffabe46a48d5bbcba7bbeee49735a754070eb`, after reviewed [certificate/proxy PR #52](https://github.com/adamlow-wire/wire-desktop/pull/52) merged. Its tree equals reviewedaaa1a62f. [Build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722296), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722299), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722277), [all native/package platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722242), and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866745391) pass on that exact head. Coverage explicitly compares actual basec74d116e and covers26/27 changed statements (96.30%, required80%). All native platforms pass initially. Each authenticated platform passes40 cases initially and three on retry, all initial failures in login readiness; no skips or worker errors. Report104064739417 passes. Strict protection, substantive review, no unresolved threads and SHA-guarded merge are recorded in PR #52.
 
-**Fourteen of sixteen M3 work items are done; CAP-005 and CAP-002 remain open.** CAP-006 and SEC-013 now have integrated lifecycle, strict parser/external-denial and final platform acceptance. Electron remains **43.4.0**; no invariant or criterion is waived.
+**Fourteen of sixteen M3 work items are done. CAP-005 and CAP-002 remain open.** Certificate callback/save/warning recovery and challenged-session proxy state ordering are integrated, but the process-global pinning bypass remains unchanged and is not an accepted M3 target. Electron remains **43.4.0** and no criterion or invariant is waived.
 
-Existing certificate/proxy PR #52 is reconciled with this actual integration head. Its callbacks deny on verification/dialog failure exactly once; save cancellation is respected and remembered proxy state changes only after successful setup on the challenged session. Combined1f776851 native/package preflight passes all three platforms after one unchanged Windows teardown retry. Fresh local correct-base coverage passes112 Jest,896 main and four renderer cases,26/27 changed statements (96.30%). Its earlier hosted diff calculation failed on the former base retained by a concurrent retarget event; that is not a coverage pass. Require every check on the new final integration composition, including full authenticated E2E/report, before merge.
+The existing CAP-002 branch now merges actual integration in97f6f1ac. Its only test delta is the prior80-line E2EI transport fixture; current production source equals integration. Completed TypeScript then bundling and two real local transport tests pass (8.2 seconds). Logs `/tmp/m3-e2ei-final-integration-{build,product,lint}.log`. This Linux run uses the project named macOS; it does not claim native macOS qualification. The fixture denies an unregistered loopback provider with zero requests and preserves account storage across an inert same-origin OIDC-shaped redirect. It does not authenticate, enrol, issue a certificate, verify a device or renew anything.
 
-Q-005 remains the required certificate-policy choice: the existing process-global pinning bypass is unchanged by this safety slice and is not accepted as the M3 target. Q-011 requires dedicated live SSO/OIDC/ACME configuration and approved access or provisioning authorization. CAP-002's existing07c9d449 transport candidate cannot replace live enrolment, certificate/device restart and renewal acceptance. Both questions were already requested; no answer or access is inferred.
+Maintainer-approved September 14 scope change: live environment discovery/provisioning is outside current M3 work. Build and qualify automated desktop-boundary tests, then hand live SSO and Keycloak E2EI enrolment/restart/renewal acceptance to QA under [qa-sso-e2ei.md](qa-sso-e2ei.md). Q-011 is a downstream QA prerequisite, not an M3 blocker. Live customer compatibility remains explicitly unqualified. No security invariant is weakened.
 
-Next executable work: qualify and integrate the existing CAP-005 safety slice; implement the selected Q-005 policy and complete dedicated live CAP-002 acceptance when the required inputs arrive.
+Next executable work: audit existing deterministic SSO and E2EI transport assertions against revised CAP-002 acceptance, strengthen any missing desktop-owned denial/cancellation/account-isolation cases with sensitivity evidence, and qualify the existing branch through all applicable final-head checks. CAP-002 remains open until that evidence is integrated. Q-005 is resolved by the maintainer instruction to preserve existing product behavior: characterize the built-in pinning and native user override, keeping Chromium validation and restart reset. There is no existing MDM pinning setting to migrate. Do not add or remove a policy as incidental modernization; record the broad existing override for later security review. CAP-005 still needs explicit retained-policy tests and evidence before closure.
 
 ## Completed account cutover
 
@@ -47,7 +47,7 @@ The permission review reproduced unconsented thumbnail enumeration with an inert
 | Open item | Integrated/prepared work | Next acceptance evidence |
 | --- | --- | --- |
 | SEC-008 | Done: PRs #38/#47/#49 integrate navigation/popup/SSO/PiP/external policy and fail-closed managed destination approval. Final49 native/package and authenticated gates pass. | No remaining M3 acceptance; live provider flows remain CAP-002. |
-| CAP-005 | PR #49 integrates registry fail-closed policy and exact challenged-session proxy behavior with all final gates. Existing #52 adds certificate callback/save safety and pending/rejected proxy-state ordering. | Final qualification/integration of #52, then Q-005 policy resolution and its required scope/restart/deny tests. |
+| CAP-005 | PR #49 integrates registry fail-closed policy and exact challenged-session proxy behavior with all final gates. Existing #52 adds certificate callback/save safety and pending/rejected proxy-state ordering. | PR #52 is integrated; Q-005 policy resolution and its required scope/restart/deny tests remain. |
 | SEC-010 | Done: PR #50 merged18235a5a after reviewed final-head native/package and authenticated E2E/report gates. DEC-010 accepted. | No remaining M3 protocol criterion. |
 | CAP-006 | Done: reviewed PR #51 mergedc74d116e, with actual second-Electron delivery, primary ownership, zero loser exit, no stale writes and preserved exact installed-Squirrel handling. | All final-head native/package and authenticated E2E/report gates pass; no remaining criterion. |
 | SEC-013 | Done: PRs #39/#38/#47/#51 combine strict parsing/external denials and authorized startup/running/second-instance selected-account dispatch. | Final lifecycle gates pass; no remaining criterion. |
@@ -208,3 +208,11 @@ Head1f776851 passes [native/package qualification](https://github.com/adamlow-wi
 The evidence checkpoint triggers a fresh synchronize event while the current lifecycle base is stable; require a successful hosted current-base comparison. No workflow threshold, source behavior or assertion changes. Lifecycle final Windows E2E passes; macOS/report remain pending at this checkpoint. After #51 merges, reconcile #52 with actual integration and require every final-head gate including authenticated E2E/report. Q-005 and Q-011 remain unresolved.
 
 Lifecycle final closure: PR #51 mergedc74d116e after every final-head gate passed. Earlier pending lifecycle notes below are historical. Final test logs `/tmp/m3-1eaf-{macos,windows}-e2e.log`; all durable links and review are in PR #51. The certificate candidate merges actual integration without runtime changes and renews its own final qualification.
+
+## CAP-002 transport qualification history
+
+The existing CAP-002 candidate `44f8a9ed` is reconciled with current CAP-005 dependency `66f9d9db`. Its prior account-navigation fixture changes are already present in that dependency; the remaining test delta is the existing80-line E2EI redirect transport fixture. The current authoritative plan already includes the approved live SSO/E2EI enrolment and renewal acceptance, so no scope change or new work item is introduced. The completed build/bundle and changed-source lint pass; existing navigation plus E2EI transport fixtures pass2/2 locally (`/tmp/m3-e2ei-reconciled-{build,lint,product}.log`). Standalone Playwright types retain only the nine recorded generated/mock declarations, with none in the E2EI fixture. Preserve this qualified candidate; keep Q-011 provider configuration/access pending and do not treat inert redirect values as enrolment.
+
+The fixture has two owned loopback origins: unregistered-provider navigation must be canceled with zero requests, while an account-origin `/oidc` return preserves its session storage across the existing redirect shape. Earlier navigation-guard and SSO-creation perturbations fail their targets and are restored (`/tmp/cap002-e2ei-navigation-{baseline,sensitivity,restored}.log`, `/tmp/cap002-native-sso-sensitivity.log`). This is transport evidence only: no OIDC tokens/state validation, ACME issuance, verified-device state, renewal or live SSO success is established. The sibling webapp/core own cryptography and interactive/silent OIDC behavior. Q-011's dedicated staging team/provider prerequisites are still required; no shared identity or production credential is used.
+
+CAP-002 closeout candidate: 64 deterministic native SSO cases pass; three E2EI-shaped success/cancel/interactive-required transport cases retain exact account storage/query assertions. Removing the real compiled navigation guard fails all three, then the guard is restored. All-platform CI now selects SSO window-control/account-limit contracts and product navigation/E2EI fixtures. Completed build/lint pass; four restored local product cases pass (6.4 seconds); final hosted gates remain required. Live Keycloak/OIDC/ACME QA remains explicitly unrun under the approved handoff.
