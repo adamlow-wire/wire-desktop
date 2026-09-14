@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.40
+revision: 1.5.41
 status: draft
 updated: 2026-09-14
 owners:
@@ -451,19 +451,21 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
-- Protocol cutover: [proposed DEC-010](./decisions/0003-local-content-protocol.md) serves seven fixed role-specific assets on `wire-app`, GET/HEAD only, with exact document identities and unchanged account sessions. Only standard/secure scheme privileges are enabled. The conditional migration-only file-origin reader stays script-disabled; ordinary content uses the scheme. Existing baselines protect relative resources, legacy import and production/development CSP denial.
-- Current reconciliation: the preserved protocol candidate `bbda8530` now includes reviewed CAP-005 candidate `2fd2f5d1` and merged account integration `683ac9af`. No new branch is created. Renew local composition tests, then final integration-base native/package/CSP/migration/E2E qualification before acceptance.
+- Protocol cutover: [accepted DEC-010](./decisions/0003-local-content-protocol.md) serves seven fixed role-specific assets on `wire-app`, GET/HEAD only, with exact document identities and unchanged account sessions. Only standard/secure scheme privileges are enabled. The conditional migration-only file-origin reader stays script-disabled; ordinary content uses the scheme. Existing baselines protect relative resources, legacy import and production/development CSP denial.
+- Integration: [PR #50](https://github.com/adamlow-wire/wire-desktop/pull/50) merged as `18235a5a646d24ee936d040d7a400980f912ee98`. Its tree equals reviewed head4f867021; normal shell/About/proxy content uses the finite custom scheme, while only the conditional script-disabled migration reader touches the former file origin.
 - Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
   - Production CSP does not include `unsafe-eval`.
   - Custom protocol privileges are minimal and tested.
   - Development-only relaxations cannot reach production builds.
-- Evidence: CSP slice [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial are tested with sensitivity evidence. Custom protocol and storage migration remain open.
+- Evidence: CSP slice [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial are tested with sensitivity evidence. That earlier slice left custom protocol and storage migration open; the final acceptance below closes both.
+
+- Final acceptance: head4f867021 passes [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405276), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405311), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405296), [all-platform native/package qualification](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405317), and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857460712). All43 cases complete per platform: macOS43 initial; Windows41 initial/two retry passes, no skips or worker errors. One unchanged-head Windows native retry follows an initial fixture setup timeout; both attempts are retained. Substantive fixed-path/session/privilege/CSP/migration review and strict current-base checks precede merge. All four SEC-010 acceptance criteria are met; DEC-010 is accepted.
 
 #### SEC-011 — Harden Electron fuses and package integrity
 
@@ -730,7 +732,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: SEC-013, CAP-001
 - Scope: Preserve conversation, user, login, and SSO links while safely routing them to the intended account/window.
-- Current second-instance composition: preserved candidate `e87dab1a` now includes protocol `e31ff276` and CAP-005 `fd3c5c35`. Ordinary Windows lock losers exit without stale settings writes or update scheduling; exact installed Squirrel lifecycle flags retain handling. The same short isolated profile is used by the real child-process fixture, which asserts clean exit, selected-account delivery and unchanged account count. Native Windows and final integration-base qualification remain required.
+- Current second-instance composition: existing lifecycle PR #51 includes merged protocol18235a5a. Ordinary Windows/Linux lock losers exit without stale settings writes or updater scheduling; exact installed Squirrel lifecycle events retain handling. Preflight7d15a032 passes all three native/package platforms, including real Windows Electron-to-Electron delivery, zero secondary exit, exact selected-account routing and unchanged account count. Final current integration-head gates including authenticated E2E/report remain required.
 - Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` contains implementation and local lifecycle tests; native Windows and final-head qualification remain open. See `status.md` for candidate dependencies. This corrects stale tracking, not acceptance scope.
 - Acceptance:
   - Valid links work before and after application readiness.
@@ -906,6 +908,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.41 | 2026-09-14 | Codex | Close SEC-010 and accept DEC-010 after reviewed protocol PR #50 and all final-head gates; qualify existing lifecycle candidate against actual integration | SEC-010, DEC-010, CAP-006, SEC-013 |
 | 1.5.40 | 2026-09-14 | Codex | Reconcile preserved lifecycle candidate with current protocol and final CAP-005 credential/native-test qualification; require current composition and final-head gates | CAP-006, SEC-013 |
 | 1.5.39 | 2026-09-14 | Codex | Reconcile preserved protocol candidate with merged account cutover and final CAP-005 credential/session/native qualification; retain all security contracts and require current-head gates | SEC-010, CAP-005 |
 | 1.5.38 | 2026-09-14 | Codex | Close CAP-001/SEC-007/SEC-009 after reviewed PR #47 final-head gates and integration merge; accept the qualified notification/media policy, retain display denial and remaining M3 gates | CAP-001, SEC-007, SEC-009, DEC-009 |
