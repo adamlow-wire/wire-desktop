@@ -223,11 +223,24 @@ test(
         // Windows/Linux receive argv from another process; macOS uses open-url.
         const environment = {...process.env};
         delete environment.ELECTRON_RUN_AS_NODE;
+        await app.evaluate(({app}) => {
+          const events: {argv: string[]; workingDirectory: string}[] = [];
+          Reflect.set(globalThis, '__m3SecondInstanceEvents', events);
+          app.on('second-instance', (_event, argv, workingDirectory) => {
+            events.push({argv, workingDirectory});
+          });
+        });
+        let secondInstanceOutput = '';
         const secondInstance = spawn(
           app.process().spawnfile,
           ['.', `--env=${origin}`, `--user-data-dir=${profileDirectory}`, 'wire://preferences/account'],
-          {env: environment, stdio: 'ignore'},
+          {env: environment, stdio: ['ignore', 'pipe', 'pipe']},
         );
+        for (const stream of [secondInstance.stdout, secondInstance.stderr]) {
+          stream?.on('data', data => {
+            secondInstanceOutput = (secondInstanceOutput + data.toString()).slice(-16384);
+          });
+        }
         let launchError: Error | undefined;
         secondInstance.once('error', error => {
           launchError = error;
@@ -247,6 +260,23 @@ test(
             secondInstance.kill('SIGKILL');
           }
           await closed;
+          const handoff = await app.evaluate(({app}) => ({
+            events: Reflect.get(globalThis, '__m3SecondInstanceEvents'),
+            primaryArgv: process.argv,
+            primaryProfile: app.getPath('userData'),
+          }));
+          const diagnostic = JSON.stringify({
+            ...handoff,
+            secondaryArgv: secondInstance.spawnargs,
+            exit: secondInstance.exitCode,
+            signal: secondInstance.signalCode,
+            output: secondInstanceOutput,
+          });
+          console.info('[CAP-006 second-instance handoff]', diagnostic);
+          await testInfo.attach('second-instance-handoff', {
+            body: diagnostic,
+            contentType: 'application/json',
+          });
         }
       }
       await shell.evaluate(async ([first, second]) => {
