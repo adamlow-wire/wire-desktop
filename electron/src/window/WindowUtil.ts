@@ -45,6 +45,14 @@ export const pointInRectangle = (point: [number, number], rectangle: Rectangle):
   return xInRange && yInRange;
 };
 
+export const showAfterStartupDelay = (window: BrowserWindow): void => {
+  setTimeout(() => {
+    if (!window.isDestroyed()) {
+      window.show();
+    }
+  }, 800);
+};
+
 export const isInView = (win: BrowserWindow): boolean => {
   const windowBounds = win.getBounds();
   const nearestWorkArea = screen.getDisplayMatching(windowBounds).workArea;
