@@ -56,10 +56,10 @@ export const createProxyPromptActions = <WebContents>(
     const {username, password} = promptData;
     const protocol = options.getProxyInfo()?.protocol?.replace(':', '');
     const proxy = ProxyAuth.generateProxyURL(options.authInfo, {...promptData, protocol});
-    options.setProxyInfo(proxy);
 
     options.logger.log('Proxy prompt was submitted, applying proxy settings on the challenged view...');
     await options.applyProxySettings(proxy, options.challengedView.webContents);
+    options.setProxyInfo(proxy);
     options.authenticate(username, password);
   },
   async cancel() {

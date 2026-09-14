@@ -24,14 +24,16 @@ import * as assert from 'assert';
 import {createServer} from 'http';
 import {AddressInfo} from 'net';
 import * as path from 'path';
-import {pathToFileURL} from 'url';
 
 import {WindowManager} from './WindowManager';
 
 import {getPictureInPictureCallWindowOptions} from '../calling/PictureInPictureCall';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ABOUT_LOCALE_READ_CAPABILITY} from '../security/AboutWindowContract';
+import {LOCAL_CONTENT_ORIGIN} from '../security/LocalContentPolicy';
+import {installLocalContentProtocol} from '../security/LocalContentProtocol';
 import {PROXY_PROMPT_LOCALE_READ_CHANNEL, PROXY_PROMPT_SUBMIT_CAPABILITY} from '../security/ProxyPromptContract';
+import {bindProxyPromptIpc, ProxyPromptCredentials} from '../security/ProxyPromptIpc';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
 import {SingleSignOn} from '../sso/SingleSignOn';
@@ -54,6 +56,7 @@ const assertSandboxed = (window: BrowserWindow): void => {
 describe('auxiliary window identity', () => {
   const windows: BrowserWindow[] = [];
   const originalAppPath = app.getAppPath();
+  const disposeProtocols: (() => void)[] = [];
   let acceptWebappVersions: typeof import('./AboutWindow').acceptWebappVersions;
   let AboutWindow: typeof import('./AboutWindow').AboutWindow;
   let requestActiveWebappVersions: typeof import('./AboutWindow').requestActiveWebappVersions;
@@ -62,11 +65,21 @@ describe('auxiliary window identity', () => {
   before(async () => {
     await app.whenReady();
     mutableApp.setAppPath(process.cwd());
+    for (const role of ['about', 'proxy-prompt'] as const) {
+      disposeProtocols.push(
+        installLocalContentProtocol(
+          session.fromPartition(`${role}-window`),
+          path.join(app.getAppPath(), config.electronDirectory),
+          role,
+        ),
+      );
+    }
     ({AboutWindow, acceptWebappVersions, requestActiveWebappVersions} = await import('./AboutWindow'));
     ({ProxyPromptWindow} = await import('./ProxyPromptWindow'));
   });
 
   after(() => {
+    disposeProtocols.splice(0).forEach(dispose => dispose());
     mutableApp.setAppPath(originalAppPath);
   });
 
@@ -103,7 +116,98 @@ describe('auxiliary window identity', () => {
     }
   });
 
+  for (const action of ['submit', 'cancel', 'escape'] as const) {
+    it(`[compatibility][SEC-010] preserves proxy ${action} through the bundled preload and authorized IPC`, async () => {
+      const registry = new ViewIdentityRegistry();
+      const submissions: {id: number; credentials: ProxyPromptCredentials}[] = [];
+      const cancellations: number[] = [];
+      const dispose = bindProxyPromptIpc(ipcMain, registry, {
+        cancel: id => void cancellations.push(id),
+        readLocaleValues: labels => Object.fromEntries(labels.map(label => [label, `Fixture ${label}`])),
+        submit: (id, credentials) => void submissions.push({id, credentials}),
+      });
+      try {
+        const window = await ProxyPromptWindow.showWindow(registry);
+        windows.push(window);
+        const id = window.webContents.id;
+        const readLabel = () => window.webContents.executeJavaScript('document.querySelector("#okButton").textContent');
+        const deadline = Date.now() + 1000;
+        let label = await readLabel();
+        while (label !== 'Fixture promptOK' && Date.now() < deadline) {
+          await new Promise(resolve => setTimeout(resolve, 20));
+          label = await readLabel();
+        }
+        assert.strictEqual(label, 'Fixture promptOK', 'the real isolated preload must initialize the form');
+        const destroyed = new Promise<void>(resolve => window.webContents.once('destroyed', resolve));
+        await window.webContents.executeJavaScript(
+          action === 'submit'
+            ? `document.querySelector('#usernameInput').value = 'fixture-user';
+               document.querySelector('#passwordInput').value = 'fixture-password';
+               document.querySelector('#okButton').click(); undefined;`
+            : action === 'cancel'
+            ? `document.querySelector('#cancelButton').click(); undefined;`
+            : `window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'})); undefined;`,
+        );
+        await destroyed;
+        assert.deepStrictEqual(
+          submissions,
+          action === 'submit' ? [{id, credentials: {username: 'fixture-user', password: 'fixture-password'}}] : [],
+        );
+        assert.deepStrictEqual(cancellations, action === 'submit' ? [] : [id]);
+        assert.strictEqual(registry.has(id), false);
+      } finally {
+        dispose();
+      }
+    });
+  }
+
   for (const kind of ['about', 'proxy-prompt'] as const) {
+    it(`[characterization][SEC-010] renders ${kind} relative resources in its document`, async () => {
+      ipcMain.handle(PROXY_PROMPT_LOCALE_READ_CHANNEL, () => ({}));
+      const window = await (kind === 'about' ? AboutWindow : ProxyPromptWindow).showWindow(new ViewIdentityRegistry());
+      windows.push(window);
+      // About disables page JavaScript; inspect DOM through the test debugger.
+      const debuggerApi = window.webContents.debugger;
+      debuggerApi.attach('1.3');
+      const inspect = async (expression: string) => {
+        const {result, exceptionDetails} = await debuggerApi.sendCommand('Runtime.evaluate', {
+          expression,
+          awaitPromise: true,
+          returnByValue: true,
+        });
+        assert.strictEqual(exceptionDetails, undefined, JSON.stringify(exceptionDetails));
+        return result.value;
+      };
+      try {
+        const styles = await inspect(`Array.from(document.styleSheets, sheet => ({
+        path: new URL(sheet.href).pathname,
+        rules: sheet.cssRules.length
+      }))`);
+        assert.strictEqual(styles.length, 1);
+        assert.ok(styles[0].path.endsWith(`/css/${kind}.css`));
+        assert.ok(styles[0].rules > 0, 'stylesheet must be applied, not merely present as a link');
+        if (kind === 'about') {
+          // Page callbacks cannot provide readiness when About disables scripts.
+          // Poll read-only snapshots from main without relaxing the test deadline.
+          const readLogo = () =>
+            inspect(`(() => {
+            const image = document.querySelector('#logo');
+            return image.complete && image.getAttribute('src')
+              ? {width: image.naturalWidth, height: image.naturalHeight} : null;
+          })()`);
+          const deadline = Date.now() + 1000;
+          let logo = await readLogo();
+          while (logo === null && Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+            logo = await readLogo();
+          }
+          assert.deepStrictEqual(logo, {width: 256, height: 256});
+        }
+      } finally {
+        debuggerApi.detach();
+      }
+    });
+
     it(`[security-target][SEC-008] explicitly cancels unknown ${kind} requests and serves its own stylesheet`, async function () {
       this.timeout(10_000);
       ipcMain.handle(PROXY_PROMPT_LOCALE_READ_CHANNEL, () => ({}));
@@ -127,7 +231,7 @@ describe('auxiliary window identity', () => {
         assert.strictEqual(await window.webContents.executeJavaScript("window.open('about:blank') === null"), true);
         assert.strictEqual(BrowserWindow.getAllWindows().length, windowCount);
       }
-      const stylesheet = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, `css/${kind}.css`)).href;
+      const stylesheet = `${LOCAL_CONTENT_ORIGIN}/css/${kind}.css`;
       const response = await window.webContents.session.fetch(stylesheet);
       assert.ok((await response.text()).includes('{'), 'expected the actual stylesheet, not an HTML redirect');
       assert.ok(response.headers.get('content-type')?.includes('text/css'));
@@ -189,7 +293,7 @@ describe('auxiliary window identity', () => {
     const window = await AboutWindow.showWindow(registry);
     windows.push(window);
 
-    const expectedUrl = pathToFileURL(path.join(app.getAppPath(), config.electronDirectory, 'html/about.html')).href;
+    const expectedUrl = `${LOCAL_CONTENT_ORIGIN}/html/about.html`;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('about-window'));
     assertSandboxed(window);
@@ -228,9 +332,7 @@ describe('auxiliary window identity', () => {
     });
     windows.push(window);
 
-    const expectedUrl = pathToFileURL(
-      path.join(app.getAppPath(), config.electronDirectory, 'html/proxy-prompt.html'),
-    ).href;
+    const expectedUrl = `${LOCAL_CONTENT_ORIGIN}/html/proxy-prompt.html`;
     assert.strictEqual(window.webContents.getURL(), expectedUrl);
     assert.strictEqual(window.webContents.session, session.fromPartition('proxy-prompt-window'));
     assertSandboxed(window);

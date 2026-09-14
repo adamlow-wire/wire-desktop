@@ -4,7 +4,17 @@ on:
   push:
     branches: [main, staging, dev, integration/electron-modernization]
   pull_request:
-    branches: [main, staging, dev, integration/electron-modernization, cap/CAP-001-production-accounts-2026-09-09]
+    branches:
+      [
+        main,
+        staging,
+        dev,
+        integration/electron-modernization,
+        cap/CAP-001-production-accounts-2026-09-09,
+        cap/CAP-005-managed-backends-2026-09-10,
+        sec/SEC-010-local-protocol-2026-09-10,
+        cap/CAP-006-second-instance-2026-09-10,
+      ]
   merge_group:
     branches: [main, staging, dev]
 

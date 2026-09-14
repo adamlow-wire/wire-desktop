@@ -39,7 +39,7 @@ import minimist from 'minimist';
 import {Maybe} from 'true-myth';
 
 import * as path from 'path';
-import {URL, pathToFileURL} from 'url';
+import {URL} from 'url';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
@@ -103,6 +103,8 @@ import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/Dee
 import {bindDesktopSourcesIpc, DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {ACCOUNT_CAPABILITIES} from './security/LegacyAccountViewIdentity';
+import {LOCAL_CONTENT_ORIGIN} from './security/LocalContentPolicy';
+import {installLocalContentProtocol} from './security/LocalContentProtocol';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNavigationGuard} from './security/NavigationGuard';
 import {isAllowedAccountNavigation} from './security/NavigationPolicy';
@@ -157,9 +159,7 @@ const developerMenu = createDeveloperMenu(viewIdentityRegistry);
 const argv = minimist(process.argv.slice(1));
 const secureShellProof = argv['secure-shell-proof'] === true;
 
-if (secureShellProof) {
-  registerSecureShellSchemePrivileges();
-}
+registerSecureShellSchemePrivileges();
 
 const APP_PATH = path.join(app.getAppPath(), config.electronDirectory);
 const INDEX_HTML = path.join(APP_PATH, 'renderer/index.html');
@@ -359,7 +359,7 @@ const initWindowStateKeeper = (): windowStateKeeper.State => {
 
 function getMainWindowUrl() {
   const baseUrl = EnvironmentUtil.web.getWebappUrl();
-  const mainURL = pathToFileURL(INDEX_HTML);
+  const mainURL = new URL(`${LOCAL_CONTENT_ORIGIN}/renderer/index.html`);
   mainURL.searchParams.set('focus', String(!startHidden));
 
   if (!baseUrl) {
@@ -622,6 +622,9 @@ const handleAppEvents = (): void => {
 
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {
+    installLocalContentProtocol(session.defaultSession, APP_PATH, 'shell');
+    installLocalContentProtocol(session.fromPartition('about-window'), APP_PATH, 'about');
+    installLocalContentProtocol(session.fromPartition('proxy-prompt-window'), APP_PATH, 'proxy-prompt');
     const mainWindowState = initWindowStateKeeper();
     /* istanbul ignore next -- composition root */
     const appMenu = systemMenu.createMenu(isFullScreen, wallClock, () => {

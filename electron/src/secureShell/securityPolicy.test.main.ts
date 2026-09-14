@@ -17,6 +17,9 @@
  *
  */
 
+import {protocol} from 'electron';
+import {stub} from 'sinon';
+
 import * as assert from 'assert';
 
 import {SECURE_SHELL_CONTRACT_VERSION, SECURE_SHELL_RUNTIME_INFO_CAPABILITY} from './constants';
@@ -27,7 +30,7 @@ import {
   isRuntimeInfoRequest,
   parseSecureAccountUrl,
 } from './policy';
-import {CONTENT_SECURITY_POLICY, createSecureShellResponse} from './protocol';
+import {CONTENT_SECURITY_POLICY, createSecureShellResponse, registerSecureShellSchemePrivileges} from './protocol';
 
 import {
   LifecycleWebContentsIdentity,
@@ -57,6 +60,33 @@ const createSender = (id: number, url = 'https://app.wire.test/account', session
 };
 
 describe('secure shell policy', () => {
+  it('[security-target][SEC-010] registers only standard secure local-scheme privileges', () => {
+    const registration = stub(protocol, 'registerSchemesAsPrivileged');
+    try {
+      registerSecureShellSchemePrivileges();
+      assert.strictEqual(registration.callCount, 1);
+      assert.deepStrictEqual(registration.firstCall.args, [
+        [
+          {
+            scheme: 'wire-app',
+            privileges: {
+              allowServiceWorkers: false,
+              bypassCSP: false,
+              codeCache: false,
+              corsEnabled: false,
+              secure: true,
+              standard: true,
+              stream: false,
+              supportFetchAPI: false,
+            },
+          },
+        ],
+      ]);
+    } finally {
+      registration.restore();
+    }
+  });
+
   it('[security-target][INV-005][ARC-002] accepts only the exact account origin', () => {
     assert.strictEqual(isAllowedAccountNavigation('https://app.wire.test/path', 'https://app.wire.test'), true);
     assert.strictEqual(isAllowedAccountNavigation('https://app.wire.test.evil/path', 'https://app.wire.test'), false);

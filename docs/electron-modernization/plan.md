@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.38
+revision: 1.5.42
 status: draft
 updated: 2026-09-14
 owners:
@@ -418,7 +418,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-008 — Centralize navigation and window-open policy
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Enforce allowed origins, navigation types, external destinations, SSO windows, PiP windows, and denial behavior.
@@ -431,7 +431,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - External URLs use protocol and origin policy with adversarial tests.
 - Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. PR #38 merged as `67dfb5db` after final-head build, analysis, all-platform packages and authenticated Windows/macOS E2E/report passed; the custom-backend cutover gate below remains open.
 - SSO lifecycle refinement: reserve the single active flow before asynchronous initialization and retain it until cleanup completes. Repeated requests from its owner focus it; requests from another account cannot replace or control it. Close and native closed events share one captured-session cleanup operation; a new target reproduced a duplicate-cleanup `undefined.protocol` error. Failed cleanup does not mark the session reusable. CAP-002 still owns one-time callback validation, cookie scope, and full IdP acceptance.
-- Remaining cutover gate: the legacy environment-change bridge can initiate programmatic `loadURL`, which is not governed by cancellable renderer navigation events. CAP-001/CAP-005 must preserve approved custom backend switching through a main-owned destination policy before SEC-008 is globally complete.
+- Cutover acceptance: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) integrates main-owned destination approval with exact owning-view replacement, preserved partitions, saved-destination denial and invalid approval-result rejection. [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49) integrates unreadable machine-policy denial as4f04a8a0. Final head66f9d9db passes [all-platform native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889664), including real Windows registry guard-removal failure/restoration and combined account/navigation/popup/SSO/PiP/external policy targets, plus build/lint/analysis and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889715),43 initial passes per platform without skips or retries. Programmatic navigation cannot bypass main-owned policy; all four SEC-008 acceptance criteria are satisfied. Live identity-provider acceptance remains CAP-002, not a waiver of navigation enforcement.
 
 #### SEC-009 — Centralize permission policy
 
@@ -451,17 +451,21 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
+- Protocol cutover: [accepted DEC-010](./decisions/0003-local-content-protocol.md) serves seven fixed role-specific assets on `wire-app`, GET/HEAD only, with exact document identities and unchanged account sessions. Only standard/secure scheme privileges are enabled. The conditional migration-only file-origin reader stays script-disabled; ordinary content uses the scheme. Existing baselines protect relative resources, legacy import and production/development CSP denial.
+- Integration: [PR #50](https://github.com/adamlow-wire/wire-desktop/pull/50) merged as `18235a5a646d24ee936d040d7a400980f912ee98`. Its tree equals reviewed head4f867021; normal shell/About/proxy content uses the finite custom scheme, while only the conditional script-disabled migration reader touches the former file origin.
 - Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
   - Production CSP does not include `unsafe-eval`.
   - Custom protocol privileges are minimal and tested.
   - Development-only relaxations cannot reach production builds.
-- Evidence: CSP slice [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial are tested with sensitivity evidence. Custom protocol and storage migration remain open.
+- Evidence: CSP slice [PR #42](https://github.com/adamlow-wire/wire-desktop/pull/42) merged as `9c188bf1` after build, lint, analysis, [all-platform packages](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374305) and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34321374718) passed naturally. Production/development startup and ordinary-script eval/Function denial are tested with sensitivity evidence. That earlier slice left custom protocol and storage migration open; the final acceptance below closes both.
+
+- Final acceptance: head4f867021 passes [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405276), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405311), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405296), [all-platform native/package qualification](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857405317), and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34857460712). All43 cases complete per platform: macOS43 initial; Windows41 initial/two retry passes, no skips or worker errors. One unchanged-head Windows native retry follows an initial fixture setup timeout; both attempts are retained. Substantive fixed-path/session/privilege/CSP/migration review and strict current-base checks precede merge. All four SEC-010 acceptance criteria are met; DEC-010 is accepted.
 
 #### SEC-011 — Harden Electron fuses and package integrity
 
@@ -497,7 +501,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-013 — Harden deep-link and external-link handling
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-003; SEC-008 for final popup/external closure (incoming parsing is independently executable)
 - Scope: Parse custom-protocol and external-link inputs with strict schemas and explicit action routing.
@@ -507,7 +511,9 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - External links cannot invoke dangerous local protocols.
 - Boundary contract: Only bounded recognized user/conversation (including federated and file-list), preferences, meetings, SSO, login and join actions are accepted. Malformed paths, traversal, encoded path delimiters, credentials, ports, fragments, unknown routes, duplicate/unknown parameters and invalid backend domains fail closed. Absent join domain stays null at the existing dispatch boundary. Desktop has no existing access/config route; adding remote backend configuration remains CAP-005 scope.
 - Execution split: Publish incoming parsing independently on `sec/SEC-013-incoming-links-2026-09-08`, then reuse it in SEC-008 for safe internal popup routing. Do not close SEC-013 until external-link and lifecycle acceptance is evidenced.
-- Evidence: Existing parser work was reconciled without restoring raw IPC. Thirteen baseline dispatch tests pass; destination mutation fails all seven added route tests. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks initially pass 36/36; final full Electron-main run passes 366 with 3 owned CAP-002 targets pending, Jest passes 64/64. PR #39 merged as `75b22ded` after applicable final-head coverage, package and E2E gates; PR #38 supplies validated internal/external popup routing. Account-targeted lifecycle acceptance remains open. Route contracts were checked against sibling webapp page/appMain.tsx and router/routeGenerator.ts; domains against sibling server libs/types-common/src/Data/Domain.hs.
+- Evidence: Existing parser work was reconciled without restoring raw IPC. Thirteen baseline dispatch tests pass; destination mutation fails all seven added route tests. Legacy dispatch fails 14/15 new deny cases. Strict parser, dispatch and existing authorized submission checks initially pass 36/36; final full Electron-main run passes 366 with 3 owned CAP-002 targets pending, Jest passes 64/64. PR #39 merged as `75b22ded` after applicable final-head coverage, package and E2E gates; PR #38 supplies validated internal/external popup routing. Account-targeted lifecycle acceptance is now supplied by final PR #51 below. Route contracts were checked against sibling webapp page/appMain.tsx and router/routeGenerator.ts; domains against sibling server libs/types-common/src/Data/Domain.hs.
+
+- Final acceptance: [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51) merged as `c74d116e` after substantive review of exact head1eaf7fba and successful build/coverage, lint, analysis, all three native/package platforms and authenticated Windows/macOS E2E/report. Existing strict parser/external-link denials and authorized selected-account startup/running dispatch remain intact; actual second-Electron delivery verifies exact routing, zero secondary exit and unchanged account count. [Native34862334704](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334704) and [E2E/report34862337125](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862337125) provide final platform evidence. macOS43 initial passes; Windows41 initial/two retry passes, no skips or worker errors. No acceptance criterion or security invariant is waived.
 
 ### 10.3 Electron and dependency currency
 
@@ -710,6 +716,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Scope: Preserve enterprise network behavior without global or unauthenticated renderer authority.
 - Machine endpoint read failures (September 14, INV-010): an unavailable registry dependency or a registry access error is configured-invalid policy, not proof that policy is absent. Block command-line, per-user, default and saved-account endpoint fallback and emit a non-secret diagnostic. Preserve unmanaged behavior only after a successful read with no configured value. The pinned registry library returns an empty array for a missing key and throws for other read failures. This intentionally strengthens the older fallback characterization; it does not change the separate App-lock override backend contract.
 - Backend characterization checkpoint (2026-09-10): 23 fixture-adapter tests cover all three unchanged backend contracts and error fallbacks; Linux opt-out, macOS preference-key and Windows per-user-policy mutations fail seven targets. The combined central/backend/authorized-IPC suite passes 35/35 locally. Actual OS policy deployment/readback and final-platform gates remain open; the certificate candidate is preserved separately at `ad1211cd` with scoped-exception acceptance still pending.
+- Certificate completion checkpoint (2026-09-10): seven synthetic decision baselines preserve Chromium delegation and explicit rejection; sensitivity mutation detects unconditional acceptance. Three regressions reproduce unanswered callbacks on verifier/dialog exceptions. The local repair returns denial once and does not retry a throwing callback; 11 focused tests pass. Native TLS, final-platform and exception-scope acceptance remain open; the legacy process-global pinning bypass is not a target contract.
 - Download-path contract (2026-09-09): retain ordinary home-relative nested folders, Unicode/spaces and clearing the setting; normalize separators before persistence. Reject traversal, rooted/drive/UNC/device/stream paths, ambiguous names and linked directory components. Validate saved configuration at startup and revalidate at download start; invalid enforced configuration blocks downloads until corrected and restarted rather than silently bypassing enterprise policy. The main-selected home base is trusted; defending against a same-user filesystem race after validation is not claimed. Native Windows junction evidence is required in addition to platform-independent policy tests.
 - Path-policy reference: [Microsoft file/path naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file), including device aliases, superscript port numbers and trailing-dot/space ambiguity; use explicit Windows path semantics on every test host.
 - Session contract (September 14): automatic system credentials require an exact configured proxy host (case-insensitive) and port match to the native challenge. Missing credentials, an unreadable settings source or a different proxy require the native prompt; no foreign credentials may be transmitted. Applying settings must succeed before authentication or saved proxy state changes. System-proxy credentials and native prompt submission apply settings to the web contents that raised the challenge. Cancellation clears that session and reloads that view; the main shell and unrelated accounts retain their routing. A real two-account proxy regression reproduces the old unrelated default-session mutation.
@@ -724,16 +731,19 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-006 — Migrate deep links and single-instance behavior
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-013, CAP-001
 - Scope: Preserve conversation, user, login, and SSO links while safely routing them to the intended account/window.
-- Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` contains implementation and local lifecycle tests; native Windows and final-head qualification remain open. See `status.md` for candidate dependencies. This corrects stale tracking, not acceptance scope.
+- Current second-instance composition: existing lifecycle PR #51 includes merged protocol18235a5a. Ordinary Windows/Linux lock losers exit without stale settings writes or updater scheduling; exact installed Squirrel lifecycle events retain handling. Preflight7d15a032 passes all three native/package platforms, including real Windows Electron-to-Electron delivery, zero secondary exit, exact selected-account routing and unchanged account count. Final current integration-head gates including authenticated E2E/report pass in PR #51 (see final acceptance below).
+- Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` supplied implementation and local lifecycle tests; native Windows and final-head qualification subsequently pass in PR #51. See final acceptance below.
 - Acceptance:
   - Valid links work before and after application readiness.
   - Invalid and hostile links fail closed.
   - Second-instance delivery cannot target an unauthorized view or invoke arbitrary actions.
-- Evidence: TBD
+- Evidence: final acceptance below; separate baselinesca1961e3/4a3859dc precede6902448a, with dispatch/activation/installer-deferral mutation failures and restored native/product passes recorded in testing.md.
+
+- Final acceptance: [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51) merged as `c74d116e` after substantive review of exact head1eaf7fba and successful build/coverage, lint, analysis, all three native/package platforms and authenticated Windows/macOS E2E/report. Existing strict parser/external-link denials and authorized selected-account startup/running dispatch remain intact; actual second-Electron delivery verifies exact routing, zero secondary exit and unchanged account count. [Native34862334704](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334704) and [E2E/report34862337125](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862337125) provide final platform evidence. macOS43 initial passes; Windows41 initial/two retry passes, no skips or worker errors. No acceptance criterion or security invariant is waived.
 
 ### 10.6 Packaging, update, and rollout
 
@@ -872,6 +882,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
+| DEC-010 | 2026-09-10 | proposed | [Bounded production local content protocol](./decisions/0003-local-content-protocol.md) | Fixed role-specific assets avoid arbitrary filesystem serving while preserving migration and preloads | Asset, session, CSP or legacy-import incompatibility |
 | DEC-009 | 2026-09-14 | accepted | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Explicit main-owned document-scoped consent is integrated and qualified; display and thumbnail capture stay denied under CAP-003/M4 | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
@@ -902,9 +913,17 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.42 | 2026-09-14 | Codex | Close CAP-006 and SEC-013 after reviewed lifecycle PR #51 and all final-head checks; qualify existing certificate slice against actual integration | CAP-006, SEC-013, CAP-005 |
+| 1.5.41 | 2026-09-14 | Codex | Close SEC-010 and accept DEC-010 after reviewed protocol PR #50 and all final-head gates; qualify existing lifecycle candidate against actual integration | SEC-010, DEC-010, CAP-006, SEC-013 |
+| 1.5.40 | 2026-09-14 | Codex | Reconcile preserved lifecycle candidate with current protocol and final CAP-005 credential/native-test qualification; require current composition and final-head gates | CAP-006, SEC-013 |
+| 1.5.39 | 2026-09-14 | Codex | Reconcile preserved protocol candidate with merged account cutover and final CAP-005 credential/session/native qualification; retain all security contracts and require current-head gates | SEC-010, CAP-005 |
 | 1.5.38 | 2026-09-14 | Codex | Close CAP-001/SEC-007/SEC-009 after reviewed PR #47 final-head gates and integration merge; accept the qualified notification/media policy, retain display denial and remaining M3 gates | CAP-001, SEC-007, SEC-009, DEC-009 |
+| 1.5.37 | 2026-09-14 | Codex | Reconcile existing second-instance candidate with protocol, proxy/registry fixes and native setup evidence | CAP-006, SEC-013, CAP-005 |
+| 1.5.36 | 2026-09-14 | Codex | Reconcile existing local-protocol candidate with current metadata/native-quit and CAP-005 registry/proxy fixes | SEC-010, CAP-005, CAP-001 |
 | 1.5.35 | 2026-09-14 | Codex | Reproduce unrelated-session proxy mutation with a real native prompt; bind proxy application and cancellation reload to the challenged view without changing credential/IPC authorization | CAP-005, DCP-011, RSK-015 |
 | 1.5.34 | 2026-09-14 | Codex | Reproduce and close machine endpoint fallback after unavailable/failed registry reads; preserve genuinely absent policy and prepare real Windows reader/destination sensitivity proof | CAP-005, INV-010 |
+| 1.5.33 | 2026-09-14 | Codex | Reconcile existing single-instance candidate and actual child-process fixture with short profiles and local protocol | CAP-006, SEC-013 |
+| 1.5.32 | 2026-09-14 | Codex | Reconcile finite local-protocol candidate with reviewed account/permission/managed-destination code; preserve CSP, minimal privileges, legacy import and hosted gates | SEC-010, DEC-010, CAP-001 |
 | 1.5.31 | 2026-09-14 | Codex | Integrate reviewed permission dependency through PR #48 and reconcile existing managed destination baseline/enforcement into PR #47; retain final cutover gates and CAP-005 native registry qualification | CAP-001, SEC-007, SEC-008, SEC-009 |
 | 1.5.30 | 2026-09-14 | Codex | Reproduced unconsented desktop-thumbnail enumeration and removed its production account capability pending authorized source selection; preserve device consent and all milestone gates | SEC-009, DCP-008, INV-006 |
 | 1.5.29 | 2026-09-14 | Codex | Revalidated remote state, restored an executable closeout handoff and corrected CAP-006 to in progress; no gate closed or scope changed. Revision follows parallel candidate revisions 1.5.26–1.5.28, whose branch-specific changes still require reconciliation | CAP-006, CAP-001, CAP-002, SEC-009, SEC-010 |
