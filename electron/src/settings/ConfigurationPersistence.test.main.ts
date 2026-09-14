@@ -34,12 +34,12 @@ describe('ConfigurationPersistence diagnostics', () => {
       const secret = 'synthetic-proxy-password';
       const value = `http://fixture-user:${secret}@proxy.invalid:3128`;
       const configuration = {configVersion: 1, [SettingsType.PROXY_SERVER_URL]: value};
-      global._ConfigurationPersistence = {...configuration};
+      global._ConfigurationPersistence = operation === 'save' ? {configVersion: 1} : {...configuration};
       const directory = fs.mkdtempSync(path.join(tmpdir(), 'wire-settings-diagnostics-'));
       const configFile = path.join(directory, 'init.json');
       const originalPath = Reflect.get(settings, 'configFile');
       Reflect.set(settings, 'configFile', configFile);
-      fs.writeJSONSync(configFile, configuration);
+      fs.writeJSONSync(configFile, operation === 'readFromFile' ? configuration : {});
       const diagnostics: string[] = [];
       const capture: logdown.TransportFunction = options => {
         if (options.instance.includes('ConfigurationPersistence')) {

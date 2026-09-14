@@ -216,8 +216,11 @@ test('[CAP-005][INV-010][security-target] stored proxy credentials stay out of s
     await expect.poll(readDiagnostics).toContain('Using proxy server URL from "init.json"');
     expect(await readDiagnostics(), 'Startup diagnostics must omit stored credentials').not.toContain(secret);
   } finally {
-    await app?.close();
-    await new Promise<void>(resolve => server.close(() => resolve()));
-    await rm(profile, {recursive: true, force: true});
+    try {
+      await app?.close();
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+      await rm(profile, {recursive: true, force: true});
+    }
   }
 });

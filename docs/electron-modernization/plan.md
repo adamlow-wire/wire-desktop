@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.45
+revision: 1.5.46
 status: draft
-updated: 2026-09-14
+updated: 2026-09-15
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -712,7 +712,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-005 — Migrate proxy, certificate, and managed configuration
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-003, SEC-009, TST-004
 - Scope: Preserve enterprise network behavior without global or unauthenticated renderer authority.
@@ -731,16 +731,20 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Windows, macOS, and Linux managed-config backends have representative tests.
 - Evidence: PR #16 provides authorized immutable managed-configuration reads and PR #25 provides bounded enforced-download-location updates. [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) adds sensitivity-proven exact-prompt authorization, bounded credential handling, one-shot submit/cancel coordination, retry semantics, challenged-session proxy application, and cancellation reload behavior; all applicable hosted gates passed before merge. Download containment PR #45 merged as `d94253c9` after final-head build/lint/analysis, all-platform packages (including real Windows junction denial) and [Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34337502792) passed. Certificate policy, platform backend coverage, and packaged enterprise proxy/configuration evidence remain open.
 
+- Final acceptance: reviewed PRs [#49](https://github.com/adamlow-wire/wire-desktop/pull/49), [#52](https://github.com/adamlow-wire/wire-desktop/pull/52) and [#54](https://github.com/adamlow-wire/wire-desktop/pull/54) integrate managed/backend and exact-session proxy behavior, fail-closed certificate callbacks and the approved retained pinning policy. PR #54 merged2ee0be97 with identical qualified tree e47febe4 after build/lint/analysis, all native platforms and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34905928582) passed. Each E2E platform has45 initial passes/one recovered retry. Historical open-checkpoint statements above are superseded by these final records. The final-audit diagnostic correction is tracked under CAP-006 with supporting CAP-005 tests; broader enterprise/customer qualification remains downstream QA.
+
 #### CAP-006 — Migrate deep links and single-instance behavior
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-013, CAP-001
 - Scope: Preserve conversation, user, login, and SSO links while safely routing them to the intended account/window.
 - Current second-instance composition: existing lifecycle PR #51 includes merged protocol18235a5a. Ordinary Windows/Linux lock losers exit without stale settings writes or updater scheduling; exact installed Squirrel lifecycle events retain handling. Preflight7d15a032 passes all three native/package platforms, including real Windows Electron-to-Electron delivery, zero secondary exit, exact selected-account routing and unchanged account count. Final current integration-head gates including authenticated E2E/report pass in PR #51 (see final acceptance below).
 - Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` supplied implementation and local lifecycle tests; native Windows and final-head qualification subsequently pass in PR #51. See final acceptance below.
+- Final-audit correction (September15): INV-010 prohibits diagnostic payloads containing incoming SSO/join credentials or stored proxy credentials. Preserve exact dispatch and settings behavior while removing those payloads; supporting CAP-005 coverage shares this focused correction. Prior lifecycle qualification remains valid, but overall acceptance awaits the corrected final head.
 - Acceptance:
+  - Action, stored-settings and proxy-startup diagnostics contain no credential payloads.
   - Valid links work before and after application readiness.
   - Invalid and hostile links fail closed.
   - Second-instance delivery cannot target an unauthorized view or invoke arbitrary actions.
@@ -916,6 +920,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.46 | 2026-09-15 | Codex | Integrate qualified retained pinning PR #54; reopen CAP-006 for final-audit action/settings/startup credential diagnostics under INV-010 | CAP-006, CAP-005 |
 | 1.5.45 | 2026-09-14 | Codex | Close CAP-002 automated acceptance after reviewed PR #53 and final native/authenticated/report gates; reconcile retained pinning candidate with actual integration and preserve downstream live QA | CAP-002, CAP-005, Q-011 |
 | 1.5.44 | 2026-09-14 | Maintainer in chat; Codex | Resolve Q-005 by preserving existing pinning product behavior with explicit default/consent/Chromium-denial/reset characterization; retain broad-override concern for independent review | CAP-005, Q-005 |
 | 1.5.43 | 2026-09-14 | Maintainer in chat; Codex | Separate M3 automated desktop-boundary acceptance from downstream live Keycloak/SSO/E2EI QA; retain every security invariant and explicitly withhold live compatibility claims | CAP-002, DCP-003, DCP-022, Q-011 |
