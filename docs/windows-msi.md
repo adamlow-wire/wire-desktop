@@ -46,6 +46,8 @@ msiexec.exe /i Wire-<version>-x64.msi WIRE_WEBAPP_URL="https://wire.example.com"
 
 Only credential-free HTTPS URLs are accepted. The machine-wide value takes precedence over `--env` and per-user `init.json`; an invalid managed value fails closed instead of silently connecting to a different environment. Windows Installer logs public properties, so the configured URL must not contain credentials or other secrets.
 
+The modernized account controller also constrains saved account URLs and server-change requests to the configured origin (scheme, hostname and port). Same-origin paths, query parameters and SSO routes remain supported. An account saved for another origin is retained but cannot load; it is not silently moved to a different backend. Invalid configured policy cannot be bypassed through a saved account or a confirmation prompt. Restart the application after changing machine policy. Native Windows qualification of this modernization change remains pending.
+
 The endpoint-management policy should close Wire before an upgrade. A deployment must handle Windows Installer exit codes, including reboot-required results, rather than treating every non-zero result as a generic failure.
 
 ## MDM deployment contract
@@ -82,3 +84,5 @@ A release candidate is acceptable only after it has been exercised on a supporte
 - An MSI-installed application neither schedules Squirrel updates nor reports a missing `Update.exe`.
 - Production, Internal, Wire-Gov, and custom products do not share upgrade codes.
 - The managed Squirrel-to-MSI removal and installation sequence has been tested on a representative existing profile.
+
+If the application cannot load the native registry reader or cannot read machine endpoint policy, it refuses to select an unmanaged endpoint. Repair the dependency or registry access and restart. An absent key or empty `WebAppUrl` after a successful read retains ordinary configuration behavior.

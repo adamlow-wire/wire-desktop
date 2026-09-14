@@ -21,12 +21,20 @@ import {app, BrowserWindow} from 'electron';
 
 import * as path from 'path';
 
+import {EVENT_TYPE} from '../lib/eventType';
 import {getLogger} from '../logging/getLogger';
 
 const logger = getLogger(path.basename(__filename));
+const incomingActions: readonly string[] = [
+  EVENT_TYPE.ACCOUNT.SSO_LOGIN,
+  EVENT_TYPE.ACTION.START_LOGIN,
+  EVENT_TYPE.ACTION.JOIN_CONVERSATION,
+  EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH,
+];
 
 export class WindowManager {
   private static primaryWindowId: number | undefined;
+  private static nativeActions: {windowId: number; send(channel: string, args: unknown[]): void} | undefined;
   public static actionsQueue: {action: string; args: any[]}[] = [];
 
   static getPrimaryWindow(): BrowserWindow | undefined {
@@ -43,6 +51,37 @@ export class WindowManager {
   static setPrimaryWindowId(newPrimaryWindowId: number): void {
     logger.info(`Setting primary window ID to "${newPrimaryWindowId}" ...`);
     WindowManager.primaryWindowId = newPrimaryWindowId;
+  }
+
+  static bindNativeActions(windowId: number, send: (channel: string, args: unknown[]) => void): () => void {
+    const binding = {windowId, send};
+    WindowManager.nativeActions = binding;
+    return () => {
+      if (WindowManager.nativeActions === binding) {
+        WindowManager.nativeActions = undefined;
+      }
+    };
+  }
+
+  static dispatchNativeAction(windowId: number, channel: string, args: unknown[]): boolean {
+    const binding = WindowManager.nativeActions;
+    const supported: string[] = [
+      EVENT_TYPE.UI.SYSTEM_MENU,
+      EVENT_TYPE.UI.REQUEST_WEBAPP_VERSION,
+      EVENT_TYPE.ACCOUNT.SSO_LOGIN,
+      EVENT_TYPE.ACTION.START_LOGIN,
+      EVENT_TYPE.ACTION.JOIN_CONVERSATION,
+      EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH,
+      EVENT_TYPE.ACTION.SWITCH_ACCOUNT,
+      ...Object.values(EVENT_TYPE.EDIT),
+    ];
+    if (!binding || binding.windowId !== windowId || !supported.includes(channel)) {
+      return false;
+    }
+    if (channel !== EVENT_TYPE.UI.SYSTEM_MENU || (args.length === 1 && typeof args[0] === 'string')) {
+      binding.send(channel, args);
+    }
+    return true;
   }
 
   static showPrimaryWindow(): void {
@@ -62,20 +101,41 @@ export class WindowManager {
   static sendActionToPrimaryWindow(action: string, ...args: any[]): void {
     const primaryWindow = WindowManager.getPrimaryWindow();
 
+    if (
+      incomingActions.includes(action) &&
+      (!primaryWindow || WindowManager.nativeActions?.windowId !== primaryWindow.id)
+    ) {
+      WindowManager.queueAction(action, args);
+      return;
+    }
+
     if (primaryWindow) {
       logger.info(`Sending action "${action}" to window with ID "${primaryWindow.id}":`, {args});
+      if (WindowManager.dispatchNativeAction(primaryWindow.id, action, args)) {
+        return;
+      }
       primaryWindow.webContents.send(action, ...args);
     } else {
       logger.warn(`Got no primary window, can't send action "${action}".`);
     }
   }
 
+  private static queueAction(action: string, args: any[]): void {
+    if (WindowManager.actionsQueue.length >= 32) {
+      throw new Error('Desktop startup queue is full.');
+    }
+    WindowManager.actionsQueue.push({action, args: structuredClone(args)});
+  }
+
   static flushActionsQueue() {
     const actions = WindowManager.actionsQueue;
-    if (actions) {
-      actions.forEach(({action, args}) => this.sendActionToPrimaryWindow(action, ...args));
-      WindowManager.actionsQueue = [];
+    WindowManager.actionsQueue = [];
+    if (
+      actions.some(({action}) => incomingActions.includes(action) && action !== EVENT_TYPE.WEBAPP.CHANGE_LOCATION_HASH)
+    ) {
+      WindowManager.showPrimaryWindow();
     }
+    actions.forEach(({action, args}) => this.sendActionToPrimaryWindow(action, ...args));
   }
 
   static async sendActionAndFocusWindow(action: string, ...args: any[]): Promise<void> {
@@ -84,18 +144,15 @@ export class WindowManager {
     const primaryWindow = WindowManager.getPrimaryWindow();
 
     if (primaryWindow) {
+      WindowManager.showPrimaryWindow();
       if (primaryWindow.webContents.isLoading()) {
         // If the webapp is not yet loaded we queue the action we want to send. It will be flushed later on by the flushActionsQueue` method
-        WindowManager.actionsQueue.push({action, args});
+        WindowManager.queueAction(action, args);
       } else {
-        if (!primaryWindow.isVisible()) {
-          primaryWindow.show();
-          primaryWindow.focus();
-        }
-        primaryWindow.webContents.send(action, ...args);
+        WindowManager.sendActionToPrimaryWindow(action, ...args);
       }
     } else {
-      logger.warn(`Got no primary window, can't send action "${action}".`);
+      WindowManager.sendActionToPrimaryWindow(action, ...args);
     }
   }
 }

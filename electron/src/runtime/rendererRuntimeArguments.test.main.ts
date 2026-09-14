@@ -26,9 +26,27 @@ import {
   readRendererLocale,
   readRendererUserDataPath,
   readRendererEnvironment,
+  readRendererApplockOverride,
 } from './rendererRuntimeArguments';
 
 describe('renderer runtime arguments', () => {
+  it('[security-target][CAP-001] preserves explicit main-owned App-lock policy and refuses absent or ambiguous policy', () => {
+    for (const applockOverride of [true, false]) {
+      const argv = createRendererRuntimeArguments({locale: 'en', userDataPath: '/unused', applockOverride});
+      assert.strictEqual(readRendererApplockOverride(argv), applockOverride);
+    }
+    for (const argv of [
+      [],
+      ['--wire-desktop-applock-override='],
+      ['--wire-desktop-applock-override=1'],
+      ['--wire-desktop-applock-override=%74rue'],
+      ['--wire-desktop-applock-override=true', '--wire-desktop-applock-override=false'],
+      ['--wire-desktop-applock-override=true', '--wire-desktop-applock-override=true'],
+    ]) {
+      assert.throws(() => readRendererApplockOverride(argv), /main-owned App-lock policy/);
+    }
+  });
+
   it('round-trips locale and user-data values without renderer access to Electron app', () => {
     const argv = createRendererRuntimeArguments({locale: 'de-DE', userDataPath: '/tmp/Wire Desktop/user data'});
 

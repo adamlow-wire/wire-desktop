@@ -33,7 +33,7 @@ import {PublicApiClient, RegisteredUser, TeamOwner} from './backend/PublicApiCli
 
 export type TestOptions = {
   os: 'windows' | 'macOS';
-  appOptions: {env?: string; lang?: string; bypassPermissions?: boolean};
+  appOptions: {env?: string; lang?: string; mediaConsent?: 'allow' | 'deny'};
 };
 
 type Fixtures = {

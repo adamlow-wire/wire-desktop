@@ -35,6 +35,23 @@ const accountId = '11111111-1111-4111-8111-111111111111';
 const otherAccountId = '22222222-2222-4222-8222-222222222222';
 
 describe('account log deletion', () => {
+  it('[security-target][CAP-001] excludes discovered paths outside the log root', () => {
+    const outside = path.resolve(logDirectory, '..', 'accounts', accountId, 'console.log');
+    const legacyOutside = path.resolve(logDirectory, '..', `2_2026_07_10_12_34_56_${accountId}`, 'console.log');
+    assert.deepStrictEqual(getAccountLogDirectories({accountId, filePaths: [outside, legacyOutside], logDirectory}), [
+      path.join(logDirectory, accountId),
+    ]);
+  });
+
+  it('[security-target][CAP-001] refuses invalid account identities before selecting directories', () => {
+    for (const invalid of ['..', '../other-account', '', `${accountId}/child`]) {
+      assert.throws(
+        () => getAccountLogDirectories({accountId: invalid, filePaths: [], logDirectory}),
+        /Invalid account/,
+      );
+    }
+  });
+
   it('matches new daily and supported legacy layouts by exact account identity', () => {
     const filePaths = [
       path.join(logDirectory, '2026-07-10', 'accounts', accountId, 'console.log'),

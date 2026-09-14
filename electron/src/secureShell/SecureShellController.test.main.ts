@@ -276,20 +276,30 @@ describe('SecureShellController', () => {
     assert.deepStrictEqual(getVisibleAccountContentsIds(controller), [firstContents.id]);
   });
 
-  it('[security-target][INV-005][INV-006][INV-010][ARC-002] denies popup, navigation, and permissions', async () => {
-    const controller = await createController('account-a');
-    const webContents = controller.getAccountWebContentsForTest();
-    assert.ok(webContents);
-    const originalOrigin = new URL(webContents.getURL()).origin;
+  describe('native denial boundary', () => {
+    let webContents: WebContents;
 
-    assert.strictEqual(await webContents.executeJavaScript("window.open('/popup')"), null);
-    assert.strictEqual(await webContents.executeJavaScript('Notification.requestPermission()'), 'denied');
-    await webContents.executeJavaScript("location.href = 'https://example.com/escape'");
-    await new Promise(resolve => setTimeout(resolve, 100));
-    assert.strictEqual(new URL(webContents.getURL()).origin, originalOrigin);
-    await webContents.executeJavaScript("location.href = '/redirect'");
-    await new Promise(resolve => setTimeout(resolve, 100));
-    assert.strictEqual(new URL(webContents.getURL()).origin, originalOrigin);
+    beforeEach(async function () {
+      // Native renderer startup is setup; keep the denial assertions on Mocha's two-second budget.
+      this.timeout(10_000);
+      const controller = await createController('account-a');
+      const contents = controller.getAccountWebContentsForTest();
+      assert.ok(contents);
+      webContents = contents;
+    });
+
+    it('[security-target][INV-005][INV-006][INV-010][ARC-002] denies popup, navigation, and permissions', async () => {
+      const originalOrigin = new URL(webContents.getURL()).origin;
+
+      assert.strictEqual(await webContents.executeJavaScript("window.open('/popup')"), null);
+      assert.strictEqual(await webContents.executeJavaScript('Notification.requestPermission()'), 'denied');
+      await webContents.executeJavaScript("location.href = 'https://example.com/escape'");
+      await new Promise(resolve => setTimeout(resolve, 100));
+      assert.strictEqual(new URL(webContents.getURL()).origin, originalOrigin);
+      await webContents.executeJavaScript("location.href = '/redirect'");
+      await new Promise(resolve => setTimeout(resolve, 100));
+      assert.strictEqual(new URL(webContents.getURL()).origin, originalOrigin);
+    });
   });
 
   it('[security-target][INV-003][INV-010][ARC-002] revokes authority before crash recovery', async function () {

@@ -17,7 +17,9 @@
  *
  */
 
-import {_electron as electron} from '@playwright/test';
+import {_electron as electron, expect, Page} from '@playwright/test';
+
+import path from 'node:path';
 
 export type App = Awaited<ReturnType<typeof createApp>>;
 
@@ -25,7 +27,7 @@ export const createApp = async (options: {
   env?: string;
   lang?: string;
   dataDir: string;
-  bypassPermissions?: boolean;
+  mediaConsent?: 'allow' | 'deny';
 }) => {
   if (!options.env) {
     throw new Error(`Can't create app without environment, make sure the env var "WEBAPP_URL" is set`);
@@ -33,13 +35,14 @@ export const createApp = async (options: {
 
   const app = await electron.launch({
     chromiumSandbox: true,
+    env: {...process.env, WIRE_E2E_MEDIA_CONSENT: options.mediaConsent ?? 'allow'},
     args: [
+      '-r',
+      path.resolve(__dirname, '../utils/nativeConsent.cjs'),
       // Chromium launch args
       `--user-data-dir=${options.dataDir}`,
       '--mute-audio', // Mute all audio output from the test browser because e.g. the ringtone of a call can be annoying during testing
-      ...(options.bypassPermissions ?? true
-        ? ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
-        : []), // Provide fake devices for audio & video device input and bypasses the popup to grant permission and select video / audio input device by automatically selecting the default one
+      '--use-fake-device-for-media-stream', // Never expose real devices, including in permission-denial tests.
       '.',
       // Wire specific cli flags to set during launch
       `--env=${options.env}`,
@@ -57,18 +60,56 @@ export const createApp = async (options: {
     console.log(...args);
   });
 
-  /**
-   * The webview element isn't treated as a regular webcomponent / iframe by electron but as individual window.
-   * So in order to access the contents of the application we need to use the second window.
-   */
-  const wrapper = await app.waitForEvent('window');
-  const page = await app.waitForEvent('window');
+  let wrapper: Page | undefined;
+  let page: Page | undefined;
+  try {
+    // A fresh profile first opens a temporary migration reader, not the product shell.
+    await expect
+      .poll(() => {
+        wrapper = app.windows().find(candidate => {
+          if (candidate.isClosed()) {
+            return false;
+          }
+          const url = new URL(candidate.url());
+          return ['file:', 'wire-app:'].includes(url.protocol) && url.searchParams.has('env');
+        });
+        return Boolean(wrapper);
+      })
+      .toBe(true);
+    let selectedId: string | undefined;
+    await expect
+      .poll(async () => {
+        selectedId = await wrapper!
+          .evaluate(async () => {
+            const bridge = (
+              window as unknown as {
+                wireAccounts?: {read(): Promise<Array<{id: string; visible: boolean}>>};
+              }
+            ).wireAccounts;
+            return (await bridge?.read())?.find(account => account.visible)?.id;
+          })
+          .catch(() => undefined);
+        return selectedId;
+      })
+      .toBeTruthy();
+    await expect
+      .poll(() => {
+        page = app
+          .windows()
+          .find(candidate => !candidate.isClosed() && new URL(candidate.url()).searchParams.get('id') === selectedId);
+        return Boolean(page);
+      })
+      .toBe(true);
+  } catch (error) {
+    await app.close();
+    throw error;
+  }
 
   return Object.assign(app, {
     /* The playwright page for the main electron window wrapping the webapp */
-    wrapper,
+    wrapper: wrapper!,
     /* The playwright page for the currently shown webapp */
-    page,
+    page: page!,
     /**
      * Utility function to re-open the application re-using the existing storage state
      * **Important:** the existing app won't be updated by this, instead the variable needs to be re-assigned
