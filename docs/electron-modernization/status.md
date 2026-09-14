@@ -5,7 +5,7 @@ milestone: M3
 active_work_item: CAP-005
 state: qualifying-certificate-callback-candidate
 integration_branch: integration/electron-modernization
-integration_head_commit: 683ac9af672168d48c9154c47f3dc99a2bdd5d66
+integration_head_commit: 4f04a8a0700d388a9b1199e5905df5f2bc70b72e
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: cap/CAP-005-certificate-verification-2026-09-10
@@ -18,6 +18,8 @@ blockers:
 # Current project status
 
 ## Current execution
+
+Latest CAP-005 checkpoint: PR #49 is merged as4f04a8a0 after every final-head gate passed (43 initial authenticated cases/platform). Protocol PR #50 at4f867021 is in final integration qualification; lifecycle PR #51 at1c919c2f diagnoses a Windows test launcher error (Playwright spawnfile is cmd.exe, not Electron), with its fix next. Certificate/proxy draft #52 remains on its existing branch; Q-005 certificate policy and dedicated live SSO/E2EI inputs remain pending. No CAP-005 closure or scoped certificate exception is claimed.
 
 The existing certificate candidate now includes CAP-005 PR #49 head `66f9d9db`; prepare a scoped native/build preflight draft on that branch. The runtime fixes remain callback completion, warning-lock recovery and save cancellation. The process-global pinning override is unchanged and **not accepted as the target policy**: Q-005 still requires the product choice already requested. This draft's scoped safety fixes do not establish exception-scope or M3 completion. No host trust store is changed.
 
@@ -140,3 +142,7 @@ The remaining macOS failure at [34847474271](https://github.com/adamlow-wire/wir
 Existing downstream candidates preserve the reviewed shutdown fix and local qualification: protocol `2c0801b4` passes56 focused native and five product cases (16.8 seconds); lifecycle `604c33d5` passes63 native and one actual two-process case (5.4 seconds). Certificate `38421619` retains five22-case focused passes and856 full-native passes; Q-005 remains open. Update these existing candidates with the final package-fixture dependency after #49 qualifies; do not recreate them.
 
 The updated external driver passes fresh local development-binary startup and actual authenticated-proxy traffic, with unchanged immutable-policy/bridge/Node and challenge assertions (`/tmp/m3-native-architecture-driver.log`). This is Linux driver validation; the native arm64 package itself still requires its hosted final-head gate. Publishing this necessary package-fixture change starts new final-head checks, and the prior729 E2E run is not reused as qualification.
+
+### Proxy prompt state ordering
+
+The CAP-005 session contract also applies to prompt submission: proxy state must not change until session setup succeeds. Separate baselinea5bcb6a5 reproduces two failures: state is changed while setup is pending and remains changed after setup rejects. The fix moves only state publication after successful application to the original challenged view, retaining authentication order and coordinator retry behavior. Restoring the old order fails both baselines; restoration passes20 action/coordinator/login cases and three real proxy product cases (9.2 seconds). Completed app build/bundle, Mocha types and changed-source lint pass. Evidence `/tmp/m3-proxy-prompt-state-{before,sensitivity,restored,product,types,lint}.log` and `/tmp/m3-proxy-prompt-state-fixed-build.log`. No credential or product-policy relaxation is added. Final combined current-base hosted gates remain required before merging this CAP-005 slice.
