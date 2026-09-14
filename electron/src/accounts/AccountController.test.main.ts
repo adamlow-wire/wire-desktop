@@ -69,7 +69,9 @@ describe('production account controller integration', () => {
   const identity = (contents: WebContents) =>
     registry.authorize({sender: contents, senderFrame: contents.mainFrame}, ACCOUNT_EVENT_CAPABILITY);
 
-  beforeEach(async () => {
+  beforeEach(async function () {
+    // Starting three real sandboxed renderers exceeds Mocha's 2s default on hosted Windows.
+    this.timeout(10_000);
     server = createServer((_request, response) =>
       response.end('<!doctype html><title>Account controller fixture</title>'),
     );
@@ -127,7 +129,9 @@ describe('production account controller integration', () => {
     await controller.start();
   });
 
-  afterEach(async () => {
+  afterEach(async function () {
+    // Native renderer/session teardown has the same bounded fixture budget as startup.
+    this.timeout(10_000);
     restore();
     disposeControl?.();
     disposeEvents?.();
