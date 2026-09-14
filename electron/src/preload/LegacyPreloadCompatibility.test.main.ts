@@ -20,8 +20,8 @@
 import {app, BrowserWindow, ipcMain} from 'electron';
 
 import * as assert from 'assert';
+import {readFile} from 'node:fs/promises';
 import * as path from 'path';
-import {pathToFileURL} from 'url';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
@@ -30,8 +30,11 @@ import {AccountState} from '../accounts/AccountState';
 import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 import {snapshotRendererEnvironment} from '../runtime/rendererEnvironment';
 import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
+import {SECURE_SHELL_SCHEME} from '../secureShell/constants';
 import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
 import {bindAccountControlIpc} from '../security/AccountControlIpc';
+import {LOCAL_CONTENT_ORIGIN} from '../security/LocalContentPolicy';
+import {createLocalContentResponse} from '../security/LocalContentProtocol';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
@@ -73,10 +76,23 @@ const WEBAPP_FIXTURE = `data:text/html,<script>
 describe('legacy preload compatibility surface', () => {
   const windows: BrowserWindow[] = [];
   let disposeShell: (() => void) | undefined;
-  const loadCurrentShell = async (partition: string): Promise<BrowserWindow> => {
+  let disposeProtocol: (() => void) | undefined;
+  const probeUrl = `${LOCAL_CONTENT_ORIGIN}/test/csp-probe.js`;
+  const loadCurrentShell = async (partition: string, allowCspProbe = false): Promise<BrowserWindow> => {
     const window = createWindow(preloadPath('preload-shell'), true, partition);
     windows.push(window);
-    const url = pathToFileURL(path.resolve(__dirname, '../../renderer/index.html'));
+    const url = new URL(`${LOCAL_CONTENT_ORIGIN}/renderer/index.html`);
+    const target = window.webContents.session;
+    target.protocol.handle(SECURE_SHELL_SCHEME, async request => {
+      // Test-only ordinary script; never add this resource to the production policy.
+      if (allowCspProbe && request.url === probeUrl && request.method === 'GET') {
+        return new Response(await readFile(path.resolve(__dirname, '../../test/fixtures/csp-probe.js'), 'utf8'), {
+          headers: {'Content-Type': 'text/javascript; charset=utf-8'},
+        });
+      }
+      return createLocalContentResponse(path.resolve(__dirname, '../..'), 'shell', request);
+    });
+    disposeProtocol = () => target.protocol.unhandle(SECURE_SHELL_SCHEME);
     url.searchParams.set('noUrlConfigured', 'true');
     const registry = new ViewIdentityRegistry();
     registerApplicationShellIdentity(registry, window.webContents, url.href, [ACCOUNT_CONTROL_CAPABILITY]);
@@ -113,6 +129,8 @@ describe('legacy preload compatibility surface', () => {
   beforeEach(() => ipcMain.on(MANAGED_CONFIG_CHANNEL, provideManagedConfig));
 
   afterEach(() => {
+    disposeProtocol?.();
+    disposeProtocol = undefined;
     disposeShell?.();
     disposeShell = undefined;
     ipcMain.removeListener(MANAGED_CONFIG_CHANNEL, provideManagedConfig);
@@ -126,6 +144,7 @@ describe('legacy preload compatibility surface', () => {
   it('[characterization][SEC-010] renders the real local shell bundle under its production CSP', async function () {
     this.timeout(10_000);
     const window = await loadCurrentShell('local-shell-csp');
+    assert.strictEqual(new URL(window.webContents.getURL()).protocol, 'wire-app:');
 
     assert.strictEqual(
       await window.webContents.executeJavaScript(
@@ -137,8 +156,7 @@ describe('legacy preload compatibility surface', () => {
 
   it('[security-target][SEC-010] blocks eval and Function in an ordinary shell script', async function () {
     this.timeout(10_000);
-    const window = await loadCurrentShell('local-shell-csp-denial');
-    const probeUrl = pathToFileURL(path.resolve(__dirname, '../../test/fixtures/csp-probe.js')).href;
+    const window = await loadCurrentShell('local-shell-csp-denial', true);
     // Load a normal script: debugger/executeJavaScript evaluation can bypass CSP.
     const result = await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
       const script = document.createElement('script');

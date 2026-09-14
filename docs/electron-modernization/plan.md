@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.19
+revision: 1.5.33
 status: draft
-updated: 2026-09-09
+updated: 2026-09-14
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -436,16 +436,17 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### SEC-009 — Centralize permission policy
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002, SEC-003
 - Scope: Implement request and check handlers for camera, microphone, notifications, display media, and any device permissions.
+- Desktop-source contract: Enumeration returns screen/window thumbnails and is itself privileged capture. Production accounts must not receive the enumeration capability until main-owned source consent is enforced; camera/microphone consent never authorizes it. The September 14 product regression intercepts native enumeration without capturing the host and reproduces one unapproved call before the capability is removed. Display milestone selection remains pending; no acceptance criterion is waived.
 - Acceptance:
   - Permissions default to deny.
   - Grants bind permission type to authorized origin, view, account, and user flow.
   - Main-frame and subframe behavior is defined.
   - Allowed and denied cases are tested on supported platforms.
-- Evidence: TBD
+- Evidence: The dependent branch `sec/SEC-009-account-permissions-2026-09-10` (based on CAP-001 `a4ce662c`) activates account-scoped request/check policy and native notification/media consent in the local application candidate. A product target fails before activation and passes after it for separate notification/microphone/camera approval and reload denial, using real foreground eligibility, synthetic devices and test-controlled dialog responses. Defaults remain denied without consent. Integration has not changed. Real user approval/OS-platform acceptance, display capture and final-head qualification remain open. See [current validation and gaps](./status.md) and proposed DEC-009; acceptance is unchanged. Exact-version contracts: [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
 
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
@@ -454,6 +455,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: ARC-001
 - Scope: Serve packaged local content through a privileged custom scheme and remove production `unsafe-eval`.
+- Protocol cutover: [proposed DEC-010](./decisions/0003-local-content-protocol.md) uses seven fixed, role-specific assets on `wire-app`, GET/HEAD only, exact document identities and unchanged isolated account sessions. Shell/auxiliary resource and legacy-reader baselines precede wiring. Only standard/secure scheme privileges are enabled. The conditional migration-only file-origin reader stays script-disabled; ordinary application content uses the new scheme.
+- Reconciled September 14: existing candidate `2ce86631` is composed with account/permission/managed-destination head `b46b0858`. Combined builds/types/lint, 821 native tests, direct secure-shell command (27) and eight product fixtures pass locally. The bounded September 10 source review is retained, not counted twice. Final-head hosted CSP/migration/platform/package/E2E qualification and merge remain required.
 - Execution: remove `unsafe-eval` independently, with actual production/development shell startup and ordinary-script denial tests; development source maps must not require a relaxed policy. Keep the current storage origin in this slice. The subsequent custom-scheme cutover must preserve legacy account state and session mappings; the CAP-001 persistence fixture supplies that regression gate. This slice does not close SEC-010 until local content no longer depends on `file://`.
 - Acceptance:
   - Local application content does not depend on `file://`.
@@ -646,6 +649,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
+- Managed destination boundary (reconciled September 14): machine-enforced HTTPS configuration constrains saved account destinations and explicit environment-change approval to its canonical origin. Same-origin paths/query/SSO routes remain compatible. Invalid configured policy or a foreign saved destination fails before navigation; a foreign environment request fails before prompting or profile mutation. Preserve saved account records rather than rebinding their identity/session. The main-owned policy snapshot is fixed until restart. Native Windows registry-to-navigation qualification remains under CAP-005; final cutover gates remain required.
 - Test-harness prerequisite (2026-09-08): real fixture renderer termination avoids host crash-dump delays without changing runtime recovery code or test deadlines. Add an explicit pre-replacement revocation assertion; deliberately delayed revocation must fail it. This test-only slice does not close production account migration. Local forced-crash diagnostics stalled before process-loss notification on WSL; non-dumping termination produced notification at 29 ms and completed recovery at 153 ms.
 - Metadata identity prerequisite (2026-09-08): webapp account-info updates must reject desktop-owned identity, session, visibility, lifecycle, badge and arbitrary fields. The existing known metadata fields and separate custom-environment URL update remain compatible. Malformed messages must not throw in the user-ID guard. Characterize targeted reducer updates first and prove the tests detect corruption. This bounded validation does not make production account state main-owned or authorize the remaining programmatic environment-change path; those remain CAP-001/CAP-005 cutover work.
 - Acceptance:
@@ -660,13 +664,16 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: TST-002, SEC-008, CAP-001
-- Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation.
+- Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation. Include E2EI enrolment and renewal authentication compatibility explicitly; the webapp/core retain ownership of OIDC, ACME and certificate cryptography. This is distinct from CAP-005 transport certificate verification.
 - Acceptance:
   - TST-002 passes against the new implementation.
   - Every CAP-002 `security-target` quarantine in the SSO suite is removed and passes.
   - SSO windows use fixed secure preferences and ephemeral sessions.
   - Account targeting and cookie transfer cannot cross partitions.
   - The real backend verdict is delivered without a renderer opener, with success/error and backend error-label compatibility; synthetic direct finalization alone is insufficient.
+  - Desktop E2E covers E2EI-enabled account enrolment through OIDC authentication and ACME completion, with observable verified-device/certificate state retained after restart; ordinary login or SSO success is not equivalent evidence.
+  - Enrolment cancellation, provider failure, renewal/silent-auth fallback and invalid or foreign-account callback attempts preserve account isolation and fail closed. No arbitrary cross-origin account navigation or privileged bridge authority is added for IdP pages.
+  - Deterministic desktop boundary tests and a controlled live SSO/E2EI provider checkpoint run against the refactored application on supported platforms; missing provider configuration remains an explicit gap, not a skipped pass.
 - Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. A controlled live IdP checkpoint remains required before CAP-002 closure.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
@@ -720,7 +727,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: SEC-013, CAP-001
 - Scope: Preserve conversation, user, login, and SSO links while safely routing them to the intended account/window.
-- Second-instance checkpoint (2026-09-10): branch from CAP-001 `a4ce662c` adds a real second Electron invocation using the product fixture's isolated profile/local backend, checking clean child exit, selected-account delivery and unchanged account count. Prior startup and `open-url` fixture evidence does not by itself prove OS second-instance delivery. Windows/Linux argv and macOS open-url handling remain distinct contracts; final platform gates are retained.
+- Second-instance checkpoint (reconciled September 14): existing `6902448a` is composed with account/permission/managed-destination/protocol code. The real secondary invocation uses the same short isolated profile and checks clean exit, exact selected-account delivery and unchanged account count. Ordinary Windows lock losers exit without persisting stale settings or scheduling updates; exact installed Squirrel lifecycle flags remain supported. Windows/Linux argv and macOS open-url contracts stay distinct. Local combined 52 native tests and the real Linux two-process storage/restart flow pass; native Windows and final hosted qualification remain required.
+- Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` contains implementation and local lifecycle tests; native Windows and final-head qualification remain open. See `status.md` for candidate dependencies. This corrects stale tracking, not acceptance scope.
 - Acceptance:
   - Valid links work before and after application readiness.
   - Invalid and hostile links fail closed.
@@ -857,11 +865,14 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | RSK-011 | Knowledge is concentrated in too few Wire developers and is lost between implementation periods | high | high | Stable project IDs, baseline contracts, concise ADRs, current handoff, small PRs, and cross-review of security-sensitive work | TBD | open |
 | RSK-012 | Packaging code catches errors and CI can appear successful without producing an artifact | high | high | Assert artifact existence, make package errors fatal under PKG-001, and retain runner logs | Release Engineering | open |
 | RSK-013 | Solo development concentrates product, platform, and security decisions in one maintainer | high | high | PR-only integration, strict CI, explicit security-review passes, sensitive-test demonstrations, concise decision records, and external review before release when feasible | adamlow-wire | open |
+| RSK-014 | Electron 43.4.0 shares the permission gate for legacy capture and modern display selection, so allowing the latter can bypass source choice through the former | confirmed callback limitation | high | Keep empty media types denied; preserve real-runtime regression tests; resolve a native-enforced distinction or approved alternative under SEC-009 before enabling capture. Do not replace source authorization with a page override or silently change the pinned runtime | adamlow-wire | open |
 
 ## 15. Decision log
 
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
+| DEC-010 | 2026-09-10 | proposed | [Bounded production local content protocol](./decisions/0003-local-content-protocol.md) | Fixed role-specific assets avoid arbitrary filesystem serving while preserving migration and existing preloads | Asset, session, CSP or legacy-import incompatibility |
+| DEC-009 | 2026-09-10 | proposed | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Origin identity alone does not prove user consent; production remains deny-all while policy and runtime evidence are developed | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
 | DEC-003 | 2026-08-18 | accepted | Supported Electron runtime and security-boundary work are P0 | The current runtime is EOL and the current boundary violates modern Electron security guidance | Never; only implementation ordering may change |
@@ -875,6 +886,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Question ID | Question | Needed by | Owner | Resolution |
 | --- | --- | --- | --- | --- |
+| Q-011 | Which dedicated staging team/account, OIDC provider and ACME discovery endpoint support desktop E2EI enrolment and renewal validation? | CAP-002 / M3 | adamlow-wire | Pending fixture inventory; reuse approved staging provisioning where possible, never production test identities. Credentials stay outside source and chat. |
 | Q-001 | Which Windows, macOS, and Linux versions are release-blocking? | M0 | adamlow-wire | All three platforms remain in scope; minimum supported OS versions are fixed under PKG-001 before release qualification |
 | Q-002 | Which identity providers and federation variants form the mandatory SSO matrix? | TST-002 | adamlow-wire | Automate protocol behavior with deterministic fixtures; record real-provider evidence when available without making an undocumented vendor list an M0 dependency |
 | Q-003 | Can the Wire webapp accept a versioned `contextBridge` adapter, and where should that adapter live? | ARC-001 | adamlow-wire | Resolved by PR #35: desktop-owned preloads expose immutable named APIs; fixed main-world adapters preserve existing webapp globals/events. Authenticated Windows/macOS E2E passes without a webapp source change. |
@@ -890,6 +902,17 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.33 | 2026-09-14 | Codex | Reconcile existing single-instance candidate and actual child-process fixture with short profiles and local protocol; retain native Windows and final hosted gates | CAP-006, SEC-013 |
+| 1.5.32 | 2026-09-14 | Codex | Reconcile existing finite local-protocol candidate with reviewed account/permission/managed-destination code; preserve CSP, minimal privileges, legacy import and final hosted gates | SEC-010, DEC-010, CAP-001 |
+| 1.5.31 | 2026-09-14 | Codex | Integrate reviewed permission dependency through PR #48 and reconcile existing managed destination baseline/enforcement into PR #47; retain final cutover gates and CAP-005 native registry qualification | CAP-001, SEC-007, SEC-008, SEC-009 |
+| 1.5.30 | 2026-09-14 | Codex | Reproduced unconsented desktop-thumbnail enumeration and removed its production account capability pending authorized source selection; preserve device consent and all milestone gates | SEC-009, DCP-008, INV-006 |
+| 1.5.29 | 2026-09-14 | Codex | Revalidated remote state, restored an executable closeout handoff and corrected CAP-006 to in progress; no gate closed or scope changed. Revision follows parallel candidate revisions 1.5.26–1.5.28, whose branch-specific changes still require reconciliation | CAP-006, CAP-001, CAP-002, SEC-009, SEC-010 |
+| 1.5.25 | 2026-09-10 | Codex; approved by maintainer in chat | Explicitly include E2EI enrolment/renewal and separate live SSO/E2EI acceptance in M3; retain webapp cryptography ownership and navigation/session invariants | CAP-002, SEC-008, DCP-022, Q-011 |
+| 1.5.24 | 2026-09-10 | Codex | Recorded sensitivity-proven legacy/modern capture callback limitation and its open risk; retained runtime pin, source-selection requirement and all M3 acceptance gates | SEC-009, DEC-009, RSK-014 |
+| 1.5.23 | 2026-09-10 | Codex | Activated native account notification/media consent in the local candidate after product baseline/allow/reload-denial evidence; retained all display, platform and final-head acceptance gates | SEC-009, DEC-009, CAP-003 |
+| 1.5.22 | 2026-09-10 | Codex | Reconciled SEC-009 implementation evidence for native policy/session composition, cancellation, fake media and notification routing/readiness; retained production denial and all platform/display acceptance gates | SEC-009, DEC-009, INV-006 |
+| 1.5.21 | 2026-09-10 | Codex | Recorded proposed main-owned consent/document-scoped grant ADR and sensitivity-tested unwired policy; production stays deny-all and permission integration/platform gates remain open | SEC-009, DEC-009, INV-006 |
+| 1.5.20 | 2026-09-10 | Codex | Started SEC-009 on a separate dependent branch with real native permission callback characterization; retained deny-all and all existing acceptance gates while consent/grant policy is designed | SEC-009, INV-006 |
 | 1.5.19 | 2026-09-09 | Codex | Characterized download preparation, reproduced unsafe path writes and specified normalized home-relative enforcement across update/startup/download boundaries | CAP-005, DCP-013 |
 | 1.5.18 | 2026-09-09 | Codex | Explicit public-only credential-free preview contract and bounded field-specific parser after reproducing private fetches and inherited-object mutation; preserve ordinary account traffic and required preview fields | SEC-012, DCP-015, INV-007 |
 | 1.5.17 | 2026-09-09 | Codex | Reconciled merged SSO, navigation, metadata and parser evidence; restored concise M3 handoff and synchronized CSP validation without claiming remaining cutover or capability acceptance | SEC-008, SEC-010, SEC-012, SEC-013, CAP-001, CAP-002 |

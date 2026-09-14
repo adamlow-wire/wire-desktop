@@ -39,11 +39,12 @@ import minimist from 'minimist';
 import {Maybe} from 'true-myth';
 
 import * as path from 'path';
-import {URL, pathToFileURL} from 'url';
+import {URL} from 'url';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {AccountController} from './accounts/AccountController';
+import {getAccountDestination} from './accounts/AccountDestination';
 import {approveAccountEnvironment} from './accounts/AccountEnvironmentApproval';
 import {deleteNativeAccountLogs} from './accounts/AccountLogCleanup';
 import {AccountProfile} from './accounts/AccountProfile';
@@ -96,12 +97,16 @@ import {ACCOUNT_CONTROL_CAPABILITY, ACCOUNT_SNAPSHOTS_CHANNEL} from './security/
 import {bindAccountControlIpc} from './security/AccountControlIpc';
 import {ACCOUNT_EVENT_CAPABILITY} from './security/AccountEventContract';
 import {bindAccountEventIpc} from './security/AccountEventIpc';
+import {createAccountPermissionConsent} from './security/AccountPermissionConsent';
+import {ACCOUNT_PERMISSION_CAPABILITY} from './security/AccountPermissionPolicy';
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
-import {bindDesktopSourcesIpc} from './security/DesktopSourcesIpc';
+import {bindDesktopSourcesIpc, DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {ACCOUNT_CAPABILITIES} from './security/LegacyAccountViewIdentity';
+import {LOCAL_CONTENT_ORIGIN} from './security/LocalContentPolicy';
+import {installLocalContentProtocol} from './security/LocalContentProtocol';
 import {bindManagedConfigIpc} from './security/ManagedConfigIpc';
 import {bindNavigationGuard} from './security/NavigationGuard';
 import {isAllowedAccountNavigation} from './security/NavigationPolicy';
@@ -156,9 +161,7 @@ const developerMenu = createDeveloperMenu(viewIdentityRegistry);
 const argv = minimist(process.argv.slice(1));
 const secureShellProof = argv['secure-shell-proof'] === true;
 
-if (secureShellProof) {
-  registerSecureShellSchemePrivileges();
-}
+registerSecureShellSchemePrivileges();
 
 const APP_PATH = path.join(app.getAppPath(), config.electronDirectory);
 const INDEX_HTML = path.join(APP_PATH, 'renderer/index.html');
@@ -358,7 +361,7 @@ const initWindowStateKeeper = (): windowStateKeeper.State => {
 
 function getMainWindowUrl() {
   const baseUrl = EnvironmentUtil.web.getWebappUrl();
-  const mainURL = pathToFileURL(INDEX_HTML);
+  const mainURL = new URL(`${LOCAL_CONTENT_ORIGIN}/renderer/index.html`);
   mainURL.searchParams.set('focus', String(!startHidden));
 
   if (!baseUrl) {
@@ -436,32 +439,37 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     registry: viewIdentityRegistry,
     preload: PRELOAD_RENDERER_JS,
     additionalArguments: getRendererRuntimeArguments(),
-    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY],
+    capabilities: [
+      // Enumeration returns desktop thumbnails too. Keep it denied until source consent is enforced.
+      ...ACCOUNT_CAPABILITIES.filter(capability => capability !== DESKTOP_SOURCES_ENUMERATE_CAPABILITY),
+      ACCOUNT_EVENT_CAPABILITY,
+      ACCOUNT_PERMISSION_CAPABILITY,
+    ],
+    permissionConsent: createAccountPermissionConsent(main),
     configure: (contents, account, url) => wrapperInit.configureAccountContents(contents, account, url),
     lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),
   });
   accountViews = nativeViews;
+  const managedDestination = EnvironmentUtil.getManagedWebappConfiguration();
   const controller = new AccountController({
     accountLimit: showAccountLimitWarning,
     state: accountState,
     views: nativeViews,
     registry: viewIdentityRegistry,
-    destination: account => {
-      const url = new URL(account.webappUrl || decodeURIComponent(mainURL.searchParams.get('env') || ''));
-      url.searchParams.set('hl', currentLocale);
-      if (account.ssoCode && account.isAdding) {
-        url.pathname = '/auth';
-        url.hash = `#sso/${account.ssoCode}`;
-      }
-      return url.href;
-    },
+    destination: account =>
+      getAccountDestination(
+        account,
+        decodeURIComponent(mainURL.searchParams.get('env') || ''),
+        currentLocale,
+        managedDestination,
+      ),
     session: account =>
       account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession,
     clearData: async (account, targetSession) => {
       await clearAccountSession(targetSession);
       await deleteNativeAccountLogs(account.id, getLogDirectory());
     },
-    approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate),
+    approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate, managedDestination),
     changed: accounts => {
       if (!main.isDestroyed()) {
         main.webContents.send(ACCOUNT_SNAPSHOTS_CHANNEL, accounts);
@@ -642,6 +650,9 @@ const handleAppEvents = (): void => {
 
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {
+    installLocalContentProtocol(session.defaultSession, APP_PATH, 'shell');
+    installLocalContentProtocol(session.fromPartition('about-window'), APP_PATH, 'about');
+    installLocalContentProtocol(session.fromPartition('proxy-prompt-window'), APP_PATH, 'proxy-prompt');
     const mainWindowState = initWindowStateKeeper();
     /* istanbul ignore next -- composition root */
     const appMenu = systemMenu.createMenu(isFullScreen, wallClock, () => {

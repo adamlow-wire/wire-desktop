@@ -22,9 +22,16 @@ import {BrowserWindow, session, WebContents, WebContentsView} from 'electron';
 import {ValidationUtil} from '@wireapp/commons';
 
 import type {Account} from '../../renderer/src/types/account';
+import {EVENT_TYPE} from '../lib/eventType';
+import {
+  ACCOUNT_PERMISSION_CAPABILITY,
+  type AccountPermissionConsent,
+  AccountPermissionPolicy,
+} from '../security/AccountPermissionPolicy';
+import {bindAccountPermissionSession} from '../security/AccountPermissionSession';
 import {bindNavigationGuard} from '../security/NavigationGuard';
 import {isAllowedAccountNavigation, parseNetworkNavigation} from '../security/NavigationPolicy';
-import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
+import {AuthorizedViewIdentity, registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 type AccountViewRecord = Pick<Account, 'id' | 'sessionID'>;
 
@@ -32,6 +39,10 @@ interface ViewEntry {
   view: WebContentsView;
   contents: WebContents;
   partition: string;
+  identity: AuthorizedViewIdentity;
+  ready: boolean;
+  notificationRequested: boolean;
+  cancelConsent(): void;
   revoke(): void;
 }
 
@@ -41,6 +52,8 @@ export interface AccountViewsOptions {
   preload: string;
   additionalArguments: string[];
   capabilities: readonly string[];
+  permissionConsent?: AccountPermissionConsent;
+  permissionFailure?(): void;
   configure(contents: WebContents, account: AccountViewRecord, url: URL): Promise<void>;
   lost(accountId: string): void;
 }
@@ -54,6 +67,7 @@ export class AccountViews {
 
   constructor(private readonly options: AccountViewsOptions) {
     options.window.on('resize', this.layout);
+    options.window.on('focus', this.requestNotifications);
     options.window.once('closed', this.dispose);
   }
 
@@ -103,7 +117,23 @@ export class AccountViews {
       viewType: 'account',
       webContents: contents,
     });
-    this.entries.set(account.id, {view, contents, partition, revoke: registration.revoke});
+    const entry: ViewEntry = {
+      view,
+      contents,
+      partition,
+      identity: registration.identity,
+      ready: false,
+      notificationRequested: false,
+      cancelConsent: () => undefined,
+      revoke: registration.revoke,
+    };
+    this.entries.set(account.id, entry);
+    contents.on('did-start-navigation', details => {
+      if (details.isMainFrame && !details.isSameDocument) {
+        entry.ready = false;
+        entry.notificationRequested = false;
+      }
+    });
     bindNavigationGuard(contents, target => isAllowedAccountNavigation(target, url.origin));
     contents.setWindowOpenHandler(() => ({action: 'deny'}));
     contents.once('render-process-gone', () => {
@@ -113,6 +143,22 @@ export class AccountViews {
       }
     });
     try {
+      const consent = this.options.permissionConsent;
+      const permissions = new AccountPermissionPolicy(this.options.registry, registration.identity, {
+        canPrompt: identity => view.getVisible() && consent?.canPrompt(identity) === true,
+        ask: (identity, scopes, signal) => consent?.ask(identity, scopes, signal) ?? Promise.resolve(false),
+      });
+      const disposePermissions = bindAccountPermissionSession(
+        accountSession,
+        contents,
+        permissions,
+        this.options.permissionFailure ?? (() => console.error('Account permission request failed.')),
+      );
+      entry.cancelConsent = () => permissions.cancelPending();
+      entry.revoke = () => {
+        registration.revoke();
+        disposePermissions();
+      };
       await this.options.configure(contents, {...account}, new URL(url.href));
       if (this.disposed || this.entries.get(account.id)?.view !== view || contents.isDestroyed()) {
         throw new Error('Account view creation was cancelled.');
@@ -144,14 +190,47 @@ export class AccountViews {
   select(accountId: string): void {
     const contents = this.get(accountId);
     for (const [id, entry] of this.entries) {
+      if (id !== accountId) {
+        entry.cancelConsent();
+      }
       entry.view.setVisible(id === accountId);
     }
     this.options.window.focus();
     contents.focus();
+    this.requestNotifications();
   }
+
+  markReady(accountId: string): void {
+    this.get(accountId);
+    this.entries.get(accountId)!.ready = true;
+    this.requestNotifications();
+  }
+
+  private readonly requestNotifications = (): void => {
+    if (
+      this.disposed ||
+      this.options.window.isDestroyed() ||
+      !this.options.capabilities.includes(ACCOUNT_PERMISSION_CAPABILITY)
+    ) {
+      return;
+    }
+    for (const entry of this.entries.values()) {
+      if (
+        entry.ready &&
+        !entry.notificationRequested &&
+        entry.view.getVisible() &&
+        !entry.contents.isDestroyed() &&
+        this.options.permissionConsent?.canPrompt(entry.identity) === true
+      ) {
+        entry.notificationRequested = true;
+        entry.contents.send(EVENT_TYPE.ACTION.REQUEST_NOTIFICATION_PERMISSION);
+      }
+    }
+  };
 
   hide(): void {
     for (const entry of this.entries.values()) {
+      entry.cancelConsent();
       entry.view.setVisible(false);
     }
   }
@@ -202,6 +281,7 @@ export class AccountViews {
   readonly dispose = async (): Promise<void> => {
     this.disposed = true;
     this.options.window.removeListener('resize', this.layout);
+    this.options.window.removeListener('focus', this.requestNotifications);
     this.options.window.removeListener('closed', this.dispose);
     await Promise.all([
       ...[...this.entries.keys()].map(id => this.close(id)),
