@@ -17,14 +17,49 @@
  *
  */
 
-import {dialog, shell} from 'electron';
-import {stub, SinonStub} from 'sinon';
+import {BrowserWindow, dialog, shell} from 'electron';
+import {stub, SinonStub, useFakeTimers} from 'sinon';
 
 import * as assert from 'assert';
 
 import * as WindowUtil from './WindowUtil';
 
 describe('WindowUtil', () => {
+  describe('[CAP-001] delayed startup visibility', () => {
+    it('[characterization] shows the native window only after the existing delay', () => {
+      const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+      const clock = useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
+      const show = stub(window, 'show');
+      try {
+        WindowUtil.showAfterStartupDelay(window);
+        clock.tick(799);
+        assert.equal(show.callCount, 0);
+        clock.tick(1);
+        assert.equal(show.callCount, 1);
+      } finally {
+        clock.restore();
+        show.restore();
+        window.destroy();
+      }
+    });
+
+    it('[regression] does not show a native window destroyed before the delay', () => {
+      const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+      const clock = useFakeTimers({toFake: ['setTimeout', 'clearTimeout']});
+      try {
+        WindowUtil.showAfterStartupDelay(window);
+        window.destroy();
+        assert.equal(window.isDestroyed(), true);
+        assert.doesNotThrow(() => clock.tick(800));
+      } finally {
+        clock.restore();
+        if (!window.isDestroyed()) {
+          window.destroy();
+        }
+      }
+    });
+  });
+
   describe('openExternal', () => {
     let dialogStub: SinonStub;
     let shellStub: SinonStub;

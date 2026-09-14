@@ -526,7 +526,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     }
 
     WindowManager.setPrimaryWindowId(main.id);
-    setTimeout(() => main.show(), 800);
+    WindowUtil.showAfterStartupDelay(main);
   }
 
   bindNavigationGuard(main.webContents, () => false);
