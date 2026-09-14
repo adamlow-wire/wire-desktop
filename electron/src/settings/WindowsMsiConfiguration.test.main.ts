@@ -19,14 +19,14 @@
 
 import assert from 'node:assert';
 
-import {getAccountDestination} from '../accounts/AccountDestination';
-
 import {
   getWindowsMsiWebAppConfiguration,
   loadWindowsRegistry,
   selectWebAppUrlOverride,
   WindowsRegistry,
 } from './WindowsMsiConfiguration';
+
+import {getAccountDestination} from '../accounts/AccountDestination';
 
 function registryWith(values: Array<{name: string; data: unknown}>): WindowsRegistry {
   return {
@@ -90,11 +90,11 @@ describe('WindowsMsiConfiguration', () => {
       };
 
       assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', null), {
-        isConfigured: false,
+        isConfigured: true,
         issue: 'registry-unavailable',
       });
       assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', unreadableRegistry), {
-        isConfigured: false,
+        isConfigured: true,
         issue: 'registry-read-failed',
       });
       assert.deepStrictEqual(getWindowsMsiWebAppConfiguration('Wire', registryWith([{name: 'WebAppUrl', data: 42}])), {

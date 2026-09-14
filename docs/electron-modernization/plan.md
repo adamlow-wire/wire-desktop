@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.31
+revision: 1.5.34
 status: draft
 updated: 2026-09-14
 owners:
@@ -440,13 +440,13 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: SEC-002, SEC-003
 - Scope: Implement request and check handlers for camera, microphone, notifications, display media, and any device permissions.
-- Desktop-source contract: Enumeration returns screen/window thumbnails and is itself privileged capture. Production accounts must not receive the enumeration capability until main-owned source consent is enforced; camera/microphone consent never authorizes it. The September 14 product regression intercepts native enumeration without capturing the host and reproduces one unapproved call before the capability is removed. Display milestone selection remains pending; no acceptance criterion is waived.
+- Desktop-source contract: Enumeration returns screen/window thumbnails and is itself privileged capture. Production accounts must not receive the enumeration capability until main-owned source consent is enforced; camera/microphone consent never authorizes it. The September 14 product regression intercepts native enumeration without capturing the host and reproduces one unapproved call before the capability is removed. Display enabling/source selection remains CAP-003/M4; M3 permission enforcement retains capture and thumbnail denial. No acceptance criterion is changed.
 - Acceptance:
   - Permissions default to deny.
   - Grants bind permission type to authorized origin, view, account, and user flow.
   - Main-frame and subframe behavior is defined.
   - Allowed and denied cases are tested on supported platforms.
-- Evidence: The dependent branch `sec/SEC-009-account-permissions-2026-09-10` (based on CAP-001 `a4ce662c`) activates account-scoped request/check policy and native notification/media consent in the local application candidate. A product target fails before activation and passes after it for separate notification/microphone/camera approval and reload denial, using real foreground eligibility, synthetic devices and test-controlled dialog responses. Defaults remain denied without consent. Integration has not changed. Real user approval/OS-platform acceptance, display capture and final-head qualification remain open. See [current validation and gaps](./status.md) and proposed DEC-009; acceptance is unchanged. Exact-version contracts: [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
+- Evidence: The dependent branch `sec/SEC-009-account-permissions-2026-09-10` (based on CAP-001 `a4ce662c`) activates account-scoped request/check policy and native notification/media consent in the local application candidate. A product target fails before activation and passes after it for separate notification/microphone/camera approval and reload denial, using real foreground eligibility, synthetic devices and test-controlled dialog responses. Defaults remain denied without consent. Integration has not changed. Final integrated-head qualification remains open. Native policy/dialog cancellation and synthetic-media allow/deny are the M3 platform gate; enabling display capture remains CAP-003/M4. See [current validation and gaps](./status.md) and proposed DEC-009; acceptance is unchanged. Exact-version contracts: [Electron 43.4.0 session documentation](https://github.com/electron/electron/blob/v43.4.0/docs/api/session.md).
 
 #### SEC-010 — Replace `file://` shell loading and tighten CSP
 
@@ -708,6 +708,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Milestone: `M3`
 - Dependencies: SEC-003, SEC-009, TST-004
 - Scope: Preserve enterprise network behavior without global or unauthenticated renderer authority.
+- Machine endpoint read failures (September 14, INV-010): an unavailable registry dependency or a registry access error is configured-invalid policy, not proof that policy is absent. Block command-line, per-user, default and saved-account endpoint fallback and emit a non-secret diagnostic. Preserve unmanaged behavior only after a successful read with no configured value. The pinned registry library returns an empty array for a missing key and throws for other read failures. This intentionally strengthens the older fallback characterization; it does not change the separate App-lock override backend contract.
 - Backend characterization checkpoint (2026-09-10): 23 fixture-adapter tests cover all three unchanged backend contracts and error fallbacks; Linux opt-out, macOS preference-key and Windows per-user-policy mutations fail seven targets. The combined central/backend/authorized-IPC suite passes 35/35 locally. Actual OS policy deployment/readback and final-platform gates remain open; the certificate candidate is preserved separately at `ad1211cd` with scoped-exception acceptance still pending.
 - Download-path contract (2026-09-09): retain ordinary home-relative nested folders, Unicode/spaces and clearing the setting; normalize separators before persistence. Reject traversal, rooted/drive/UNC/device/stream paths, ambiguous names and linked directory components. Validate saved configuration at startup and revalidate at download start; invalid enforced configuration blocks downloads until corrected and restarted rather than silently bypassing enterprise policy. The main-selected home base is trusted; defending against a same-user filesystem race after validation is not claimed. Native Windows junction evidence is required in addition to platform-independent policy tests.
 - Path-policy reference: [Microsoft file/path naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file), including device aliases, superscript port numbers and trailing-dot/space ambiguity; use explicit Windows path semantics on every test host.
@@ -899,6 +900,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.34 | 2026-09-14 | Codex | Reproduce and close machine endpoint fallback after unavailable/failed registry reads; preserve genuinely absent policy and prepare real Windows reader/destination sensitivity proof | CAP-005, INV-010 |
 | 1.5.31 | 2026-09-14 | Codex | Integrate reviewed permission dependency through PR #48 and reconcile existing managed destination baseline/enforcement into PR #47; retain final cutover gates and CAP-005 native registry qualification | CAP-001, SEC-007, SEC-008, SEC-009 |
 | 1.5.30 | 2026-09-14 | Codex | Reproduced unconsented desktop-thumbnail enumeration and removed its production account capability pending authorized source selection; preserve device consent and all milestone gates | SEC-009, DCP-008, INV-006 |
 | 1.5.29 | 2026-09-14 | Codex | Revalidated remote state, restored an executable closeout handoff and corrected CAP-006 to in progress; no gate closed or scope changed. Revision follows parallel candidate revisions 1.5.26–1.5.28, whose branch-specific changes still require reconciliation | CAP-006, CAP-001, CAP-002, SEC-009, SEC-010 |

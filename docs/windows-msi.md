@@ -84,3 +84,5 @@ A release candidate is acceptable only after it has been exercised on a supporte
 - An MSI-installed application neither schedules Squirrel updates nor reports a missing `Update.exe`.
 - Production, Internal, Wire-Gov, and custom products do not share upgrade codes.
 - The managed Squirrel-to-MSI removal and installation sequence has been tested on a representative existing profile.
+
+If the application cannot load the native registry reader or cannot read machine endpoint policy, it refuses to select an unmanaged endpoint. Repair the dependency or registry access and restart. An absent key or empty `WebAppUrl` after a successful read retains ordinary configuration behavior.

@@ -48,7 +48,7 @@ describe('EnvironmentUtil managed webapp configuration', () => {
     );
   });
 
-  it('warns for unavailable optional configuration and preserves normal URL precedence', () => {
+  it('reports unreadable machine policy as an error and preserves normal precedence only when absent', () => {
     const errors: string[] = [];
     const warnings: string[] = [];
     const issueLogger = {
@@ -56,13 +56,13 @@ describe('EnvironmentUtil managed webapp configuration', () => {
       warn: (message: string) => warnings.push(message),
     };
 
-    reportWindowsMsiConfigurationIssue({isConfigured: false, issue: 'registry-unavailable'}, issueLogger);
+    reportWindowsMsiConfigurationIssue({isConfigured: true, issue: 'registry-unavailable'}, issueLogger);
     reportWindowsMsiConfigurationIssue({isConfigured: false}, issueLogger);
 
-    assert.deepStrictEqual(errors, []);
-    assert.deepStrictEqual(warnings, [
-      'MSI webapp configuration issue: registry-unavailable; continuing without machine-wide configuration.',
+    assert.deepStrictEqual(errors, [
+      'MSI webapp configuration issue: registry-unavailable; refusing to fall back to an unmanaged endpoint.',
     ]);
+    assert.deepStrictEqual(warnings, []);
     assert.strictEqual(
       resolveWebappUrl(
         {isConfigured: false},

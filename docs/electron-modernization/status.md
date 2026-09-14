@@ -12,12 +12,14 @@ active_branch: cap/CAP-005-managed-backends-2026-09-10
 next_work_item: SEC-010
 blockers:
   - live-sso-e2ei-provider-configuration-pending
-  - certificate-exception-and-display-phase-decisions-pending
+  - certificate-exception-policy-pending
 ---
 
 # Current project status
 
 ## Current execution
+
+A fresh source review reproduced unsafe machine endpoint fallback after registry dependency/read failure: both new targets select the CLI URL instead of refusing it (`/tmp/m3-registry-fallback-before.log`). The separate failing baseline is `24cd61b4`. The implementation treats these failures as configured-invalid; thirteen focused reader/environment tests pass after restoring denial, and Mocha types/lint pass. Normal absence remains supported. The combined backend/central/IPC/reader group passes 47 cases. Temporarily restoring the old failure classification makes both new targets fail; restored denial passes both (`/tmp/m3-registry-fallback-sensitivity{,-restored}.log`). This is now a runtime security fix requiring full final-head platform and authenticated E2E gates, not a tests-only exception.
 
 This existing CAP-005 backend branch is reconciled with account head `b46b0858` while PR #47 qualifies. No new branch or PR is created. Its original backend tests and string-hive typing are preserved; a new native Windows registry test is prepared separately. It uses one random test-owned HKLM leaf, the real registry-js module and production configuration/destination functions; valid machine policy wins over user/CLI URLs, and foreign/invalid destinations reject before any dialog. Cleanup removes only that leaf. The Windows gate temporarily removes the actual builder guard, requires its specific assertion failure, restores the source, then requires the unchanged fixture to pass. Native Windows evidence is still pending. TypeScript/bundle, Mocha types, lint and 45 focused Linux native backend/configuration/IPC cases pass (`/tmp/m3-backends-{build,types,lint,native}.log`). Linux execution does not qualify the Windows-only case. Integration remains unchanged. Publish this scoped candidate only after the account dependency merges and its final base is reconciled.
 
@@ -35,7 +37,7 @@ September 14 restart independently verified integration `d94253c9`, PR #47 then 
 | --- | --- | --- |
 | CAP-001 | PRs #8/#10/#41 integrate account selection/cleanup/metadata foundations. PR #47 activates main-owned views, exact-target removal/retry, preserved partitions, routing and approved backend changes. | Final cutover critical/regression multi-account, cross-account IPC/session isolation and exact-target cleanup/restart qualification, then merge. No forensic-erasure requirement is inferred. |
 | SEC-007 | PR #47 removes production webview elements/popups and disables webview tags; native lifecycle fixtures cover selection/layout/recovery. | Final cutover source audit and supported-platform resize/focus/hide/show/crash/reload/add/remove/switch/storage evidence. |
-| SEC-009 | PR #48 supplies separate document-scoped notification/audio/video native consent, abort/revocation and desktop-thumbnail denial. | Integration through #47 and explicit display M3/M4 decision; preserve display and empty-media-type denial meanwhile. Native allow/deny and authenticated calling evidence is recorded below. |
+| SEC-009 | PR #48 supplies separate document-scoped notification/audio/video native consent, abort/revocation and desktop-thumbnail denial. | Integration through #47 and final permission qualification. The authoritative CAP-003 register assigns enabling display sharing to M4; M3 retains display/thumbnail/empty-media-type denial. Native allow/deny and authenticated calling evidence is recorded below. |
 | SEC-008 | PR #38 integrates navigation/popup/SSO/PiP/external boundaries. Prepared managed-destination policy is reconciled into #47. | Final programmatic destination/approval qualification; configured foreign/invalid origins must fail before navigation, prompt or profile replacement. |
 | SEC-010 | PR #42 integrates no-eval CSP. Existing `2ce86631` supplies seven-resource custom protocol and conditional legacy-state migration. | Reconcile current composition/docs, qualify scheme privileges/CSP/migration and native/package startup, review and merge. |
 | CAP-005 | PRs #16/#25/#31/#45 integrate immutable config, proxy identity and download containment. Existing backend/certificate candidates remain available. | Resolve Q-005 global pin override; qualify chosen fail-closed certificate behavior, native backend/proxy/config paths and Windows machine-policy-to-product behavior. |
@@ -79,10 +81,9 @@ Detailed commands/sensitivity and earlier chronology remain in `git show f3d538c
 
 ## Required decisions and access
 
-Three questions were sent September 14 and remain pending; do not repeat or infer approval from elapsed time:
+Two questions sent September 14 remain pending; do not repeat or infer approval from elapsed time. A fresh register audit resolves the earlier display question: CAP-003 explicitly assigns enabling display sharing to M4, while SEC-009/M3 requires permission enforcement. Correcting later notes that promoted a chooser to an M3 blocker changes no scope, criterion or invariant. Native display/thumbnail denial remains required.
 
 - Q-005: remove manual pinning override (recommended), or retain exact-certificate/hostname/account-session restart-cleared exceptions. Chromium verification errors remain denied either way.
-- Display scope: retain sharing in CAP-003/M4 with M3 capture denial (recommended), or require a secure sharing implementation in M3. Preserve DEC-009/RSK-014 and runtime pin while unresolved.
 - Q-011: dedicated staging SSO/E2EI team, OIDC and ACME nonsecret configuration plus approved credential location, or explicit authorization to provision an isolated test team. No shared/prod identities or credentials in source/chat.
 
 The sibling webapp uses OIDC `shouldBeRedirectedByProxy`, but no deployed same-origin proxy configuration is established. Foreign account OIDC navigation is currently denied. Provider compatibility requires implementation evidence, not merely a password or a transport fixture. Webapp/core retain OIDC, ACME and cryptographic ownership.

@@ -118,6 +118,9 @@ if (process.platform === 'win32') {
           execFileSync('reg.exe', ['DELETE', key, '/f', '/reg:64'], {stdio: 'pipe'});
         }
       }
+      const absent = getWindowsMsiWebAppConfiguration(productName);
+      assert.deepEqual(absent, {isConfigured: false}, 'the test-owned registry leaf is gone');
+      assert.equal(selectWebAppUrlOverride(absent, 'https://command.example.test'), 'https://command.example.test');
     });
   });
 }
