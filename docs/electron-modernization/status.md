@@ -9,10 +9,8 @@ integration_head_commit: 784ffabe46a48d5bbcba7bbeee49735a754070eb
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: cap/CAP-005-certificate-verification-2026-09-10
-next_work_item: CAP-002
-blockers:
-  - live-sso-e2ei-provider-configuration-pending
-  - certificate-exception-policy-pending
+next_work_item: CAP-003
+blockers: []
 ---
 
 # Current project status
@@ -21,13 +19,17 @@ blockers:
 
 Protected integration is `784ffabe46a48d5bbcba7bbeee49735a754070eb`, after reviewed [certificate/proxy PR #52](https://github.com/adamlow-wire/wire-desktop/pull/52) merged. Its tree equals reviewedaaa1a62f. [Build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722296), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722299), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722277), [all native/package platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866722242), and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34866745391) pass on that exact head. Coverage explicitly compares actual basec74d116e and covers26/27 changed statements (96.30%, required80%). All native platforms pass initially. Each authenticated platform passes40 cases initially and three on retry, all initial failures in login readiness; no skips or worker errors. Report104064739417 passes. Strict protection, substantive review, no unresolved threads and SHA-guarded merge are recorded in PR #52.
 
-**Fourteen of sixteen M3 work items are done. CAP-005 and CAP-002 remain open.** Certificate callback/save/warning recovery and challenged-session proxy state ordering are integrated, but the process-global pinning bypass is retained under the approved product-parity decision, with its explicit characterization candidate now qualifying. Electron remains **43.4.0** and no criterion or invariant is waived.
+**Fourteen of sixteen M3 work items are done; CAP-002 and CAP-005 are qualifying in existing PRs #53 and #54.** Electron remains **43.4.0**. The maintainer's explicit scope decisions are recorded in plan revisions1.5.43/1.5.44; no security invariant is weakened.
 
-The existing CAP-002 branch now merges actual integration in97f6f1ac. Its only test delta is the prior80-line E2EI transport fixture; current production source equals integration. Completed TypeScript then bundling and two real local transport tests pass (8.2 seconds). Logs `/tmp/m3-e2ei-final-integration-{build,product,lint}.log`. This Linux run uses the project named macOS; it does not claim native macOS qualification. The fixture denies an unregistered loopback provider with zero requests and preserves account storage across an inert same-origin OIDC-shaped redirect. It does not authenticate, enrol, issue a certificate, verify a device or renew anything.
+[Identity PR #53](https://github.com/adamlow-wire/wire-desktop/pull/53), head43961f6c, adds automated authorization/cancellation/interactive-auth-required transport cases and selects the SSO control/account-limit and product navigation groups on all supported platforms. It changes no runtime source. Build34901989433, lint34901989529, analysis34901989484 and all-platform native34901989430 pass. Windows required two unchanged-head investigative retries after native fixture timeouts; the successful final job104174541510 passes173 account,465 boundary and nine product cases. All failures are retained. Authenticated E2E34901989437/report remains pending, so the PR is not yet merged.
 
-Maintainer-approved September 14 scope change: live environment discovery/provisioning is outside current M3 work. Build and qualify automated desktop-boundary tests, then hand live SSO and Keycloak E2EI enrolment/restart/renewal acceptance to QA under [qa-sso-e2ei.md](qa-sso-e2ei.md). Q-011 is a downstream QA prerequisite, not an M3 blocker. Live customer compatibility remains explicitly unqualified. No security invariant is weakened.
+[Pinning PR #54](https://github.com/adamlow-wire/wire-desktop/pull/54), preflight head53ff9919, adds five sensitive tests for the existing native user override, mandatory Chromium validation and fresh verifier initialization. It changes no runtime source. Current-base preflight build34902872569, lint34902872710, analysis34902872612 and all-platform native34902872603 pass. It must be reconciled with actual integration after #53, then pass final-head checks and authenticated E2E/report before merge.
 
-Next executable work: audit existing deterministic SSO and E2EI transport assertions against revised CAP-002 acceptance, strengthen any missing desktop-owned denial/cancellation/account-isolation cases with sensitivity evidence, and qualify the existing branch through all applicable final-head checks. CAP-002 remains open until that evidence is integrated. Q-005 is resolved by the maintainer instruction to preserve existing product behavior: characterize the built-in pinning and native user override, keeping Chromium validation and restart reset. There is no existing MDM pinning setting to migrate. Do not add or remove a policy as incidental modernization; record the broad existing override for later security review. CAP-005 still needs explicit retained-policy tests and evidence before closure.
+Live environment discovery/provisioning is outside current M3 acceptance by the maintainer's September14 instruction. [qa-sso-e2ei.md](qa-sso-e2ei.md) retains live SSO and Keycloak E2EI enrolment, restart, renewal and isolation as downstream QA obligations. Q-011 is a QA prerequisite; customer compatibility remains unqualified. Q-005 preserves existing product policy: built-in pins and an explicit native process-wide override until restart, without bypassing Chromium validation. There is no existing MDM pinning setting. The broad override remains an independent-review concern.
+
+Requested aggregate validation passes112 Jest,901 main, four media, four renderer and38 build-tool cases plus types/build. Fresh whole-M3 coverage from completed-M2fe0b86cb passes3174/3758 changed statements (84.46%, required80%) and840/853 tracked security-policy branches (98.48%, required90%). A bounded16MiB diff-output buffer fixes the collector's reproduced1MiB ENOBUFS limit without changing coverage selection or thresholds. Final integrated-head acceptance audit and validation remain required.
+
+Next executable work: finish #53 final qualification, reconcile and qualify #54, then close M3 from the full acceptance audit. After M3 is accepted, complete functional CAP-003/CAP-004 and the development/test portion of TST-005. Packaging, installer/update/signing and independent release qualification remain in their assigned later work.
 
 ## Completed account cutover
 
@@ -47,11 +49,11 @@ The permission review reproduced unconsented thumbnail enumeration with an inert
 | Open item | Integrated/prepared work | Next acceptance evidence |
 | --- | --- | --- |
 | SEC-008 | Done: PRs #38/#47/#49 integrate navigation/popup/SSO/PiP/external policy and fail-closed managed destination approval. Final49 native/package and authenticated gates pass. | No remaining M3 acceptance; live provider flows remain CAP-002. |
-| CAP-005 | PR #49 integrates registry fail-closed policy and exact challenged-session proxy behavior with all final gates. Existing #52 adds certificate callback/save safety and pending/rejected proxy-state ordering. | PR #52 is integrated; Q-005 policy resolution and its required scope/restart/deny tests remain. |
+| CAP-005 | PR #49 integrates registry fail-closed policy and exact challenged-session proxy behavior with all final gates. Existing #52 adds certificate callback/save safety and pending/rejected proxy-state ordering. | Q-005 is resolved; PR #54 has sensitive retained-policy tests and green preflight. Actual integration-base final qualification remains. |
 | SEC-010 | Done: PR #50 merged18235a5a after reviewed final-head native/package and authenticated E2E/report gates. DEC-010 accepted. | No remaining M3 protocol criterion. |
 | CAP-006 | Done: reviewed PR #51 mergedc74d116e, with actual second-Electron delivery, primary ownership, zero loser exit, no stale writes and preserved exact installed-Squirrel handling. | All final-head native/package and authenticated E2E/report gates pass; no remaining criterion. |
 | SEC-013 | Done: PRs #39/#38/#47/#51 combine strict parsing/external denials and authorized startup/running/second-instance selected-account dispatch. | Final lifecycle gates pass; no remaining criterion. |
-| CAP-002 | PR #43 integrates isolated SSO, one-use callback, scoped cookie transfer and backend verdicts. Existing `07c9d449` adds transport fixtures only. | Dedicated live SSO and OIDC/ACME E2EI enrolment, verified certificate/device state, restart, renewal/fallback, cancellation/provider failure and cross-account denial. Transport fixtures are insufficient. |
+| CAP-002 | PR #43 integrates isolated SSO, one-use callback, scoped cookie transfer and backend verdicts. PR #53 qualifies strengthened transport fixtures and supported-platform coverage. | Complete final authenticated E2E/report and integrate #53 under the approved automated-acceptance scope. Live SSO/E2EI remains downstream QA; no live compatibility claim. |
 
 ## CAP-005 source and qualification
 
