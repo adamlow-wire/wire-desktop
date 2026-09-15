@@ -20,6 +20,14 @@ Safe local command, without Electron windows:
 node .yarn/releases/yarn-3.3.1.cjs mocha --require .babel-register.js --require electron/test/node-settings-context.cjs electron/src/settings/SchemaUpdater.test.main.ts electron/src/settings/ConfigurationPersistence.test.main.ts
 ```
 
+For isolated focused counters using the existing Istanbul instrumentation:
+
+```sh
+node .yarn/releases/yarn-3.3.1.cjs exec nyc --temp-dir /tmp/wire-settings-nyc --report-dir /tmp/wire-settings-coverage --include 'electron/src/settings/SchemaUpdater.ts' --include 'electron/src/settings/ConfigurationPersistence.ts' mocha --require .babel-register.js --require electron/test/node-settings-context.cjs electron/src/settings/SchemaUpdater.test.main.ts electron/src/settings/ConfigurationPersistence.test.main.ts electron/src/runtime/EnvironmentUtil.test.main.ts
+```
+
+Use a fresh temporary output directory for each candidate; do not combine counters from different source revisions. This focused report excludes other application modules by design and cannot serve as the full TST-006 denominator.
+
 The adapter supplies only an isolated user-data directory and logger for Node. Native CI uses real Electron with no adapter. Both filesystem suites and the Quit/environment/menu failure suites are selected explicitly in `electron-modernization-baseline.yml` for Windows/macOS/Linux. Hosted final-head results are required before acceptance.
 
 Fixtures use synthetic temporary directories. They cover valid migration, actual legacy window keys, current-file precedence, corrupt/non-object data, blocked destination, shared-default isolation, write/flush/publication failure, partial writes, concurrent destination creation and restart after interrupted legacy cleanup. Failure injection is restored before recovery assertions. Separate baseline commits distinguish observed legacy behavior from initially failing security targets.
