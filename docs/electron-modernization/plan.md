@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.49
+revision: 1.5.50
 status: draft
 updated: 2026-09-15
 owners:
@@ -700,7 +700,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - PiP windows use fixed secure preferences and controlled navigation.
   - Permission-denied behavior is tested.
 - Design: Proposed DEC-011 uses an isolated local chooser/broker and bounded approved-stream relay. Bridge version2 intentionally removes the legacy `desktopCapturer` global and production enumeration endpoint, so the released webapp selects its existing `getDisplayMedia` path. Remote native display/legacy permission remains denied.
-- Evidence: Production implementation is locally qualified by 52 focused native boundary cases and three real product cases repeated twice without retries. Full rebuilt validation passes 112 Jest, 956 main, four media, four renderer and 51 build-tool tests plus both type gates. Expanded qualification adds sensitive renderer tests and six native lifecycle/deny cases. A fresh clean coverage run passes112 Jest,962 main and22 renderer cases,455/545 changed statements (83.49%) and184/199 tracked security branches (92.46%). All15 combined Linux product cases pass initially. Hosted exact-final-head qualification remains required; local completion does not mark CAP-003 done. No host display capture or live OS privacy/portal qualification is claimed.
+- Evidence: Current composed capture447f4125 includes actual M3 integration51d and published TST-005c340. Fresh coverage passes112 Jest/964 native/23 renderer cases; changed statements455/545 (83.49%) and tracked security branches183/199 (91.96%) versusc340. Cumulative M3/M4 versus completed M2 passes3732/4373 (85.34%) and1021/1050 (97.24%). Application/E2E types and22 owned Linux product cases pass. Earlier native/renderer source-selection, frame-bound, source-label and parent-hide perturbations remain sensitive. An unclassified immediate local capture denial is retained with new bounded test diagnostics; no final-head gate is waived. Supported-platform final qualification remains required. Actual OS screen/portal/privacy checks remain explicit in [QA handoff](qa-display-capture.md).
 
 #### CAP-004 — Migrate tray, notification, badge, menu, and shortcut integration
 
@@ -929,6 +929,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.50 | 2026-09-15 | Codex | Reconcile CAP-003 with published fixture corrections; renew whole-milestone coverage and record capture diagnostics/OS QA handoff without claiming final platform acceptance | CAP-003, TST-005 |
 | 1.5.49 | 2026-09-15 | Codex | Restore CAP-001 acceptance after sensitivity-proven queued-log cleanup and reviewed PR #59 final-head qualification; reconcile functional TST-005 with actual integration | CAP-001, TST-005 |
 | 1.5.48 | 2026-09-15 | Codex | Accept all M3 work after reviewed PR #56 and complete final-head/aggregate evidence; clarify the previously accepted TST-003 packaged-smoke allocation and continue functional M4 | CAP-001, TST-003, CAP-003, CAP-004, TST-005 |
 | 1.5.47 | 2026-09-15 | Codex | Reopen CAP-001 for a native-reproduced same-origin startup redirect teardown found in retained PR55 retry evidence; require completed authorized replacement and bounded lifetime checks | CAP-001, INV-010 |
