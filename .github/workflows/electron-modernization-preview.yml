@@ -53,8 +53,23 @@ jobs:
             if (-not (Test-Path (Join-Path $bundle $relative))) { throw "Missing preview file: $relative" }
           }
           if (Test-Path 'wrap/build/Update.exe') { throw 'Preview must not be a Squirrel installation.' }
-          node bin/test-tools/packaged-account-smoke.cjs $exe
-          if ($LASTEXITCODE -ne 0) { throw 'Preview package smoke failed.' }
+          node -e 'const a=require("@electron/asar"); const c=JSON.parse(a.extractFile(process.argv[1],"electron/wire.json").toString()); const assert=require("node:assert/strict"); assert.equal(c.name,"WireM4Preview"); assert.equal(c.customProtocolName,"wire-m4-preview"); assert.equal(c.environment,"production");' (Join-Path $bundle 'resources/app.asar')
+          if ($LASTEXITCODE -ne 0) { throw 'Preview identity verification failed.' }
+          # The disposable runner may already be enrolled. Use a known managed
+          # fixture instead of assuming an unmanaged host; preserve every assertion.
+          $policy = 'HKCU:\SOFTWARE\Policies\Wire'
+          $existing = Get-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+          if ($null -ne $existing) { throw 'Refusing to replace existing App-lock policy.' }
+          New-Item -Path $policy -Force | Out-Null
+          try {
+            New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
+            $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
+            node bin/test-tools/packaged-account-smoke.cjs $exe
+            if ($LASTEXITCODE -ne 0) { throw 'Preview package smoke failed.' }
+          } finally {
+            Remove-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+            Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
+          }
           @'
           @echo off
           start "" "%~dp0WireM4Preview.exe" --user-data-dir="%~dp0Data"
