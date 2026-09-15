@@ -240,7 +240,6 @@ Fixture setup now rejects unsuccessful mutation responses, creates valid handles
 
 Local candidate evidence: complete `yarn test` passes112 Jest/923 main/4 media/4 renderer/51 build-tool cases and application/E2E types; the explicit Linux project passes14 fixture cases and11 rebuilt product boundary cases without retries. The native keyring runner passes3 actual isolation/failure/termination tests. This is Linux evidence, not Windows/macOS qualification. See current status for command-log paths and outstanding hosted gates.
 
-
 ## Functional M4 capture coverage checkpoint (2026-09-15)
 
 CAP-003 combines actual sandboxed native capture using test-owned WebFrameMain sources with direct renderer tests using generated tracks and a canvas stream. No suite enumerates or captures the host desktop. Native tests exercise explicit selection, remote modern/legacy denial, exact-owner lifetime, revocation, pending native enumeration bounds and main/receiver deadlines. Renderer tests cover bounded pixels, original/clone Stop, late native answers, literal source labels, fixed preload operations and subframe denial. The product regression covers account and detached-call sharing plus parent-navigation closure.
