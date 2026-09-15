@@ -168,21 +168,12 @@ describe('consented display capture native boundary', function () {
   };
 
   const clickStop = async (broker: BrowserWindow): Promise<void> => {
-    const requestor = owner;
-    const reply = broker.webContents
+    // Stop destroys this renderer. Electron may never settle its JavaScript
+    // reply after destruction, so observe the native outcome instead.
+    void broker.webContents
       .executeJavaScript('document.getElementById("stop-capture").click()', true)
       .catch(() => undefined);
-    const warning = setTimeout(() => {
-      console.error('Native Stop command reply pending:', {
-        brokerDestroyed: broker.isDestroyed(),
-        ownerDestroyed: requestor.isDestroyed(),
-      });
-    }, 1_000);
-    try {
-      await reply;
-    } finally {
-      clearTimeout(warning);
-    }
+    await until(() => broker.isDestroyed());
   };
 
   it('[security-target][INV-005][CAP-003] denies native modern and legacy remote capture without enumerating', async () => {
@@ -235,7 +226,7 @@ describe('consented display capture native boundary', function () {
         await owner.webContents.executeJavaScript('window.capturedStream.getVideoTracks()[0].readyState'),
         'live',
       );
-      stage = 'waiting for the Stop command reply';
+      stage = 'waiting for the Stop action to close the broker';
       await clickStop(broker);
       stage = 'waiting for original and cloned tracks to end';
       await until(() =>
