@@ -20,19 +20,31 @@
 import {ElectronApplication, expect} from '@playwright/test';
 
 // Preserve native-exit failures while always releasing the owned application.
-export const quitApp = async (app: ElectronApplication): Promise<void> => {
+export const quitApp = async (app: ElectronApplication, quit?: () => Promise<unknown>): Promise<void> => {
   const child = app.process();
   // Native Quit may close the inspector before its reply. Exit is authoritative.
-  void app
-    .evaluate(({app}) => {
-      setImmediate(() => app.quit());
-    })
-    .catch(() => undefined);
+  let requestFailure: unknown;
+  void Promise.resolve()
+    .then(() =>
+      quit
+        ? quit()
+        : app.evaluate(({app}) => {
+            setImmediate(() => app.quit());
+          }),
+    )
+    .catch(error => {
+      requestFailure = error;
+    });
   let failure: unknown;
   try {
     await expect.poll(() => child.exitCode).toBe(0);
   } catch (error) {
-    failure = error;
+    failure = requestFailure
+      ? new AggregateError(
+          [error, requestFailure],
+          'Native quit request failed and the process did not exit successfully.',
+        )
+      : error;
   }
   try {
     await app.close();

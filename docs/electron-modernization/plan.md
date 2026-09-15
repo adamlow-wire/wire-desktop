@@ -642,7 +642,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Security-critical smoke tests execute packaged artifacts.
   - Test artifacts, logs, screenshots, and traces are retained on failure.
   - Flaky tests have owners and bounded quarantine rules.
-- Evidence: Functional development-mode work is in local qualification: three-platform scheduling, isolated Linux native storage, retained failure artifacts, checked/cleaned account fixtures and reproducible typed API generation. Separate sensitive fixture baselines are `8ae22780` and `ba2328a2`; local fixture14, generator13 and keyring3 cases pass. Final hosted qualification and mandatory protection readback remain required. Packaged-artifact smoke acceptance remains open for PKG-001; it is not claimed by the functional M4 scope.
+- Evidence: The functional development/test foundation is integrated through reviewed [PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58), merge `6930c8ce`. All final-head core/native and 69-case Windows/macOS/Linux E2E/report gates pass, with retained bounded retries in status/PR evidence. All ten integration checks are strict and mandatory after protection readback. Capture qualification owns subsequent safe registration diagnostics and a native Quit inspector-reply regression. Packaged-artifact smoke acceptance remains open under PKG-001; this functional scope does not claim release qualification.
 
 ### 10.5 Capability migration
 
