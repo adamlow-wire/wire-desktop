@@ -17,11 +17,12 @@
  *
  */
 
-import {strict as assert} from 'assert';
 import fs from 'fs-extra';
+import {restore, stub} from 'sinon';
+
+import {strict as assert} from 'assert';
 import os from 'os';
 import path from 'path';
-import sinon from 'sinon';
 
 import {backupFiles, restoreFiles} from './bin-utils';
 
@@ -32,7 +33,7 @@ describe('build metadata backup recovery', () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-backup-test-'));
   });
   afterEach(async () => {
-    sinon.restore();
+    restore();
     await Promise.all([root, ...backups.splice(0)].map(directory => fs.remove(directory)));
   });
   async function file(name: string, content: string) {
@@ -109,7 +110,7 @@ describe('build metadata backup recovery', () => {
     });
     const actualCopy = fs.copy.bind(fs);
     let directory = '';
-    sinon.stub(fs, 'copy').callsFake((async (source: string, destination: string) => {
+    stub(fs, 'copy').callsFake((async (source: string, destination: string) => {
       directory = path.dirname(destination);
       if (source === first) {
         throw controlled;
@@ -140,7 +141,7 @@ describe('build metadata backup recovery', () => {
     const error = await outcome;
     // Drain the instrumented copy even if the old implementation returned early.
     await copied;
-    sinon.restore();
+    restore();
     backups.push(directory);
     assert.equal(error, controlled);
     assert.equal(settledBeforeRelease, false);

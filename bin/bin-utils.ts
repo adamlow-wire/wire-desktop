@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,16 +14,19 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
-import {LogFactory, Logger} from '@wireapp/commons';
-import {exec} from 'child_process';
 import {OptionValues} from 'commander';
 import fs from 'fs-extra';
+import {v4 as uuidv4} from 'uuid';
+
+import {exec} from 'child_process';
 import os from 'os';
 import path from 'path';
 import {promisify} from 'util';
-import {v4 as uuidv4} from 'uuid';
+
+import {LogFactory, Logger} from '@wireapp/commons';
 
 interface BackupResult {
   backupPaths: string[];
@@ -34,20 +37,32 @@ interface BackupResult {
 const createTempDir = () => fs.mkdtemp(path.join(os.tmpdir(), 'wire-build-'));
 
 export async function backupFiles(filePaths: string[]): Promise<BackupResult> {
+  const originalPaths = filePaths.map(filePath => path.resolve(filePath));
   const tempDir = await createTempDir();
-  const backupPaths = await Promise.all(
-    filePaths.map(async filePath => {
-      const backupPath = path.join(tempDir, path.basename(filePath));
-      await fs.copy(path.resolve(filePath), backupPath);
-      return backupPath;
-    }),
+  const backupPaths = originalPaths.map((filePath, index) => path.join(tempDir, `${index}-${path.basename(filePath)}`));
+  // Finish all copies before cleanup: a rejected Promise.all can leave a copy
+  // recreating the temporary directory after it has been removed.
+  const results = await Promise.allSettled(
+    originalPaths.map((filePath, index) => fs.copy(filePath, backupPaths[index])),
   );
+  const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+  if (failure) {
+    await fs.remove(tempDir);
+    throw failure.reason;
+  }
 
-  return {backupPaths, originalPaths: filePaths, tempDir};
+  return {backupPaths, originalPaths, tempDir};
 }
 
 export async function restoreFiles({originalPaths, backupPaths, tempDir}: BackupResult): Promise<void> {
-  await Promise.all(backupPaths.map((tempPath, index) => fs.copy(tempPath, originalPaths[index], {overwrite: true})));
+  const results = await Promise.allSettled(
+    backupPaths.map((tempPath, index) => fs.copy(tempPath, originalPaths[index], {overwrite: true})),
+  );
+  const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+  // Keep every backup available for a recovery attempt if any restore fails.
+  if (failure) {
+    throw failure.reason;
+  }
   await fs.remove(tempDir);
 }
 
