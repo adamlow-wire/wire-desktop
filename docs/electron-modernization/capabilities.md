@@ -4,6 +4,8 @@
 
 M3 and functional M4 are integrated at 6e27c614 through PR60; [status](status.md) records final qualification. TST-006 must map every retained row below to baseline provenance, current assertions, sensitivity, actual platform evidence and uncovered behavior before handoff. Existing confidence labels do not certify full coverage. The maintainer reports successful Windows preview checks, but the exact build/scenario/OS record is not yet supplied; do not upgrade all manual confidence from this report. Signing validation is deferred to Wire after review; packaging, real OS and live SSO/E2EI rows remain explicitly limited until evidenced.
 
+The current TST-006 audit reopens CAP-001 for F-008: pending lifecycle work behind an environment-approval dialog was unbounded. The local 32-operation queue candidate has sensitive Node-only ordering/authority/overload/recovery tests; hosted qualification is pending. Earlier DCP-002/DCP-004 acceptance is a historical checkpoint, not acceptance of this remediation. See [findings](review-findings.md).
+
 ## Rules
 
 September 15 reconciliation: the [M3 acceptance audit](m3-acceptance.md) records integrated final-head qualification. Checkpoint paragraphs below are historical evidence, not current open-item or deployment claims. Functional M4 and later packaged/customer qualification remain distinct. Use `status.md` for current execution.

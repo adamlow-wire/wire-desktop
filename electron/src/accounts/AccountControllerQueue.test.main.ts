@@ -38,15 +38,17 @@ const fixture = async () => {
     isLoading: () => false,
   };
   const registry = new ViewIdentityRegistry();
-  const identity = registry.register({
-    accountId: id,
-    allowedOrigin: 'https://account.example.test',
-    capabilities: [ACCOUNT_EVENT_CAPABILITY],
-    partition: 'queue-fixture',
-    session: sender.session,
-    viewType: 'account',
-    webContents: sender,
-  });
+  const register = () =>
+    registry.register({
+      accountId: id,
+      allowedOrigin: 'https://account.example.test',
+      capabilities: [ACCOUNT_EVENT_CAPABILITY],
+      partition: 'queue-fixture',
+      session: sender.session,
+      viewType: 'account',
+      webContents: sender,
+    });
+  const identity = register();
   const published: Array<string | undefined> = [];
   let decline!: (error: Error) => void;
   const controller = new AccountController({
@@ -81,7 +83,7 @@ const fixture = async () => {
     decline(new Error('Synthetic approval cancelled.'));
     await pendingApproval;
   };
-  return {state, id, sender, registry, identity, controller, published, cancel};
+  return {state, id, sender, registry, register, identity, controller, published, cancel};
 };
 
 describe('[CAP-001][INV-003][INV-010] account lifecycle queue', () => {
@@ -104,15 +106,24 @@ describe('[CAP-001][INV-003][INV-010] account lifecycle queue', () => {
   });
 
   it('rejects queued events whose sender loses authority before approval finishes', async () => {
-    const {state, id, sender, registry, identity, controller, cancel} = await fixture();
-    const queued = assert.rejects(
-      controller.receive(identity, {type: 'metadata', data: {name: 'must not be published'}}),
-      /View request is not authorized/,
+    const {state, id, sender, registry, register, identity, controller, cancel} = await fixture();
+    const queued = Array.from({length: 31}, () =>
+      assert.rejects(
+        controller.receive(identity, {type: 'metadata', data: {name: 'must not be published'}}),
+        /View request is not authorized/,
+      ),
     );
     registry.unregister(sender.id);
     await cancel();
-    await queued;
+    await Promise.all(queued);
     assert.equal(state.get(id).name, undefined);
+    const replacement = register();
+    await Promise.all(
+      Array.from({length: 32}, (_, index) =>
+        controller.receive(replacement, {type: 'metadata', data: {name: `replacement-${index}`}}),
+      ),
+    );
+    assert.equal(state.get(id).name, 'replacement-31');
   });
 
   it('[security-target] bounds pending lifecycle work and recovers capacity after cancellation', async () => {

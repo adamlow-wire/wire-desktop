@@ -36,6 +36,8 @@ import {AuthorizedViewIdentity, ViewIdentityRegistry} from '../security/ViewIden
 import {WRAPPER_RELOAD_CAPABILITY} from '../security/WrapperReloadContract';
 import {config} from '../settings/config';
 
+const MAX_PENDING_ACCOUNT_OPERATIONS = 32;
+
 export interface AccountControllerOptions {
   state: AccountState;
   views: AccountViews;
@@ -54,6 +56,7 @@ export interface AccountControllerOptions {
 // Serializes account lifecycle effects. Authority is checked again when queued work actually begins.
 export class AccountController {
   private pending: Promise<unknown> = Promise.resolve();
+  private pendingCount = 0;
   private desktopPending: Promise<void> = Promise.resolve();
   private desktopCount = 0;
   private readonly failures = new Set<string>();
@@ -453,16 +456,26 @@ export class AccountController {
     identity?: AuthorizedViewIdentity,
     capability = ACCOUNT_CONTROL_CAPABILITY,
   ): Promise<void> {
-    const task = this.pending.then(async () => {
-      if (identity) {
-        this.assertIdentity(identity, capability);
-      }
-      try {
-        await operation();
-      } finally {
-        this.options.changed(this.snapshots());
-      }
-    });
+    // A native approval may remain pending indefinitely. Per-minute IPC quotas
+    // cannot bound retained payloads while that approval holds the lifecycle queue.
+    if (this.pendingCount >= MAX_PENDING_ACCOUNT_OPERATIONS) {
+      return Promise.reject(new Error('Account operation queue is full.'));
+    }
+    this.pendingCount++;
+    const task = this.pending
+      .then(async () => {
+        if (identity) {
+          this.assertIdentity(identity, capability);
+        }
+        try {
+          await operation();
+        } finally {
+          this.options.changed(this.snapshots());
+        }
+      })
+      .finally(() => {
+        this.pendingCount--;
+      });
     this.pending = task.catch(() => undefined);
     return task;
   }

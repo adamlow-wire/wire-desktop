@@ -2,13 +2,13 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
-active_work_item: TST-006
-state: next-goal-planned
+active_work_item: CAP-001
+state: audit-remediation-in-progress
 integration_branch: integration/electron-modernization
-integration_head_commit: 6e27c614529c162463d7c5b1d4948bd9fa9fcec9
+integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: docs/M4-review-and-test-completeness-2026-09-15
+active_branch: fix/CAP-001-bounded-account-queue-2026-09-15
 next_work_item: TST-006
 blockers: []
 ---
@@ -23,7 +23,11 @@ Final [build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542
 
 The Windows false-success version-probe gap is corrected: job 104463987040 logs both actual packaged startups, authenticated proxy success and the mandatory completion gate. Linux and macOS also execute both package smokes. Historical green Windows jobs without execution remain excluded. This does not qualify signing, installers or unmanaged Windows policy transitions.
 
-**Next goal is planned, not executed:** [TST-006 work plan](quality-review.md) defines a complete integrated quality review, baseline-before-refactor audit and maximum practical meaningful coverage, followed by ELC-003, unsigned PKG-001 and packaged TST-005 qualification. See [restart prompt](resume-m4.md). This documentation branch records the requested plan; the new audit has not passed and M4 as a whole remains open. Finish publishing/integrating these documentation changes through normal applicable checks before implementation; never push integration directly.
+**TST-006 is in progress, not accepted.** The review plan merged through [PR61](https://github.com/adamlow-wire/wire-desktop/pull/61) as `897e3930` after all ten checks, 76 initial E2E passes/platform, exact CodeQL/tree verification and SHA guard. Native Linux/Windows each needed one retained unchanged-head rerun; the capture/fixture timeouts remain F-002. [Audit findings and evidence](review-findings.md), [full-delta inventory](review-inventory.csv) and [behavioral traceability](review-traceability.csv) record pending work without a full-coverage claim. The audit confirms packaging input/logging/error-order defects, dependency advisories needing graph-aware remediation and an unbounded account lifecycle queue. Other candidate observations remain explicitly unconfirmed.
+
+**Current scoped remediation: CAP-001 / F-008.** Baseline `8cd6bd18` preserves ordering and stale-authority behavior and fails overload rejection. The local candidate bounds active/queued lifecycle operations at 32 and restores capacity on every settlement, including authorization failure. Three Node-only tests and four temporary perturbations protect copying, authority, overload denial and recovery. No local native/GUI tests ran. Local queue/state/profile validation passes 40 cases; Mocha types, scoped lint and source review pass. Hosted native/product/all-platform gates remain required before merge acceptance. This later regression test is not relabelled as a pre-modernization baseline.
+
+**Next executable step:** publish the reviewed queue candidate's scoped fork PR, inspect all final-head CI and merge only after the usual protected gates; continue independent TST-006 audit while CI runs. Then remediate remaining high packaging/dependency findings and finish coverage/traceability/unsigned-package qualification. M4 and the overall unsigned handoff goal remain open.
 
 **Maintainer decision:** signing/notarization and actual signed-package validation are intended for Wire after engineering review, and remain M5 release gates. Prepare reviewed pipeline order and unsigned evidence now. No individual at Wire is assigned yet. Internal TST-006 review is additional to prior PR reviews and is not independent REL-001 review. Live customer Keycloak/E2EI remains downstream QA. The maintainer reports successful manual preview checks, but has not supplied an exact scenario/platform evidence record; do not mark the entire manual matrix passed.
 

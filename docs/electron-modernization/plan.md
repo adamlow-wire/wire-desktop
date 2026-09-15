@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.53
+revision: 1.5.54
 status: draft
 updated: 2026-09-15
 owners:
@@ -656,7 +656,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### TST-006 — Audit integrated implementation quality and test completeness
 
 - Priority: `P0`
-- Status: `ready`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: SEC-001, TST-001, TST-002, TST-003, TST-004
 - Scope: Review the entire modernization delta from the recorded pre-modernization baseline, including retained code at changed boundaries. Audit baseline-before-refactor provenance, test effectiveness, full changed-code coverage and production quality. This is an internal integrated review, not REL-001 independent security review. Existing CAP/SEC/ELC/PKG items own their implementation fixes; TST-005 owns platform CI, avoiding duplicate work.
@@ -668,14 +668,14 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Critical allow/deny, stale/cross-account, failure/recovery, persistence and teardown contracts are sensitivity-proven. Audit mocks, test-only hooks, collection, skip/quarantine, retries and actual CI execution. Unexplained timing failures are investigated and receive explicit bounded follow-up; a rerun alone is not a root-cause resolution.
   - All findings required for handoff are remediated and re-reviewed; the final composed candidate passes all applicable final-head gates. A reproducible test guide, coverage/gap ledger, internal review report and Wire QA handoff are committed with durable evidence and precise claim limits.
 - Execution: [Review and test-completeness work plan](quality-review.md). Do not claim this item done from earlier per-PR reviews or test counts.
-- Evidence: Not started. Maintainer requested this additional acceptance gate on September 15 after functional M4 integration.
+- Evidence: [Execution ledger](review-findings.md) records verified baseline/full scope, PR61 integration, current coverage/dependency audit and open findings. Module and DCP/INV/IPC traceability remain pending; this item is not accepted.
 
 ### 10.5 Capability migration
 
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
@@ -692,6 +692,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Evidence: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) merged as `683ac9af672168d48c9154c47f3dc99a2bdd5d66` after reviewed head `78231f74` passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701006), lint/analysis, [Windows/macOS/Linux native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701114), and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34834177940). Both platforms complete all forty cases with 39 initial passes and one login retry; no skips or worker-teardown errors. No unresolved review threads or security exception. Existing multi-account critical/regression flows, native account/session/IPC isolation, targeted cleanup/retry and cold-restart retention pass. Metadata cannot replace identity or partition. The normal native quit assertion is sensitive to a veto and preserves every storage/restart assertion. Prior #8/#10/#41 baselines remain in history. CAP-005 retains the pre-existing registry/proxy/certificate issues and final enterprise qualification.
 
 - Final startup acceptance: [PR #56](https://github.com/adamlow-wire/wire-desktop/pull/56) merged as `45840fca` with tree equal to reviewed `5c596187`. All native platforms, build/lint/analysis and full 48-case Windows/macOS E2E/report pass. Authorized same-origin replacements finish before startup succeeds; failure, cancellation, stale/foreign ownership and credential-bearing native errors remain denied or sanitized. The [complete M3 acceptance audit](m3-acceptance.md) records source review, sensitive baselines, all acceptance criteria and aggregate validation.
+
+- TST-006 follow-up F-008: reopen for bounded pending lifecycle work behind native environment consent. Baseline `8cd6bd18` fails overload rejection; the local candidate limits active/queued operations to 32, rejects excess without effects and releases capacity after success, cancellation and stale-authority failure. Prior cutover acceptance remains historical evidence; final remediation qualification is pending. See [review ledger](review-findings.md).
 
 #### CAP-002 — Migrate enterprise and automated SSO
 
@@ -957,6 +959,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.54 | 2026-09-15 | Codex | Start integrated review and record full-delta findings; reopen CAP-001 for sensitive bounded lifecycle queue remediation without changing security invariants | TST-006, CAP-001 |
 | 1.5.53 | 2026-09-15 | Codex | Add TST-006 integrated quality/baseline-provenance/test-completeness gate; define unsigned M4 review handoff and defer actual signing validation to Wire in M5 without weakening INV-009; reconcile merged PR60 | TST-006, TST-005, ELC-003, PKG-001, SEC-011, PKG-002, GOV-002 |
 | 1.5.52 | 2026-09-15 | Codex | Reopen Windows package execution evidence after a false-success version probe; require explicit smoke completion and deterministic managed fixtures without changing application policy or claiming unmanaged Windows QA | TST-005, CAP-005 |
 | 1.5.51 | 2026-09-15 | Codex | Accept reviewed functional CAP-003/CAP-004 and development TST-005 after all-platform qualification; accept DEC-011, reconcile DEC-010 clerical status, retain final documentation-head merge gates and explicit packaging/OS/live-QA limits | CAP-003, CAP-004, TST-005, DEC-011 |

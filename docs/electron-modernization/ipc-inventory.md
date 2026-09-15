@@ -38,6 +38,8 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:proxy-prompt:submit:v1` / `wire-desktop:proxy-prompt:cancel:v1` | exact active proxy prompt | Proxy credentials, challenged-session policy, and reload | merged in PR #31 | SEC-003, CAP-005 |
 | `wire-desktop:sso:account-limit:v1` | exact application shell | Native warning dialog with no renderer-supplied content | merged in PR #33 | SEC-004, CAP-002 |
 
+TST-006 F-008 identifies that the account-event per-minute quota did not bound pending controller work behind native environment consent. The current CAP-001 candidate bounds shared lifecycle work to 32 active/queued operations, including consent, and rejects overload without enqueueing or state mutation. Existing schemas, capabilities, per-minute quotas and queued authority checks remain. Sensitive local tests pass; hosted qualification and merge remain pending.
+
 The final production search found no additional privileged renderer-to-main listener. The native About menu now calls its main-owned window boundary directly, and the unproduced `WRAPPER.UPDATE` listener was removed; normal Squirrel update initialization remains unchanged. These dispositions prevent internal or dormant event names from becoming undocumented renderer authority later.
 
 When a migration changes a row, update this file in the same PR. Search evidence must include all production `ipcMain.on`, `ipcMain.once`, and `ipcMain.handle` registrations plus contract binders so wrapper helpers cannot hide an endpoint.
