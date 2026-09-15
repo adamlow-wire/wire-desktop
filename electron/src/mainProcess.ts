@@ -221,7 +221,7 @@ if (argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig) {
   try {
     proxyInfoArg = new URL(argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig);
     if (!argv[config.ARGUMENT.PROXY_SERVER] && fileBasedProxyConfig) {
-      logger.info(`Using proxy server URL from "init.json": ${fileBasedProxyConfig}`);
+      logger.info('Using proxy server URL from "init.json"');
       app.commandLine.appendSwitch('proxy-server', fileBasedProxyConfig);
     }
     if (!/^(https?|socks[45]):$/.test(proxyInfoArg.protocol)) {

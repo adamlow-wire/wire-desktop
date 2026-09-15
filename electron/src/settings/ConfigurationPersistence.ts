@@ -48,7 +48,7 @@ class ConfigurationPersistence {
   }
 
   save<T>(name: string, value: T): true {
-    this.logger.info(`Saving "${name}" with value:`, value);
+    this.logger.info(`Saving "${name}"`);
     global._ConfigurationPersistence[name] = value;
     return true;
   }
@@ -60,10 +60,7 @@ class ConfigurationPersistence {
   }
 
   persistToFile(): void {
-    this.logger.info(
-      `Saving configuration to persistent storage in "${this.configFile}":`,
-      global._ConfigurationPersistence,
-    );
+    this.logger.info(`Saving configuration to persistent storage in "${this.configFile}"`);
     try {
       return fs.outputJsonSync(this.configFile, global._ConfigurationPersistence, {spaces: 2});
     } catch (error) {
@@ -75,7 +72,7 @@ class ConfigurationPersistence {
     this.logger.info(`Reading config file from "${this.configFile}" ...`);
     try {
       const configContent: Record<string, any> = fs.readJSONSync(this.configFile);
-      this.logger.info('Read config:', JSON.stringify(configContent));
+      this.logger.info('Read configuration');
       return configContent;
     } catch (error) {
       this.logger.warn('No config found');

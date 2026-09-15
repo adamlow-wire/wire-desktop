@@ -110,7 +110,7 @@ export class WindowManager {
     }
 
     if (primaryWindow) {
-      logger.info(`Sending action "${action}" to window with ID "${primaryWindow.id}":`, {args});
+      logger.info(`Sending action "${action}" to window with ID "${primaryWindow.id}".`);
       if (WindowManager.dispatchNativeAction(primaryWindow.id, action, args)) {
         return;
       }

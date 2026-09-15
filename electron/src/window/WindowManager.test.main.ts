@@ -18,6 +18,7 @@
  */
 
 import {BrowserWindow} from 'electron';
+import * as logdown from 'logdown';
 import {assert as sinonAssert, replace, restore, spy, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
@@ -32,6 +33,57 @@ describe('WindowManager queued actions', () => {
     WindowManager.actionsQueue = [];
     restore();
   });
+
+  for (const [action, args, secrets] of [
+    [EVENT_TYPE.ACCOUNT.SSO_LOGIN, ['synthetic-sso-credential'], ['synthetic-sso-credential']],
+    [
+      EVENT_TYPE.ACTION.JOIN_CONVERSATION,
+      [{code: 'synthetic-join-code', key: 'synthetic-join-key', domain: null}],
+      ['synthetic-join-code', 'synthetic-join-key'],
+    ],
+  ] as const) {
+    it(`[security-target][CAP-006][INV-010] omits ${action} credentials from immediate and queued diagnostics`, () => {
+      const window = new BrowserWindow({show: false, webPreferences: {sandbox: true}});
+      const target: {window: BrowserWindow | undefined} = {window};
+      replace(WindowManager, 'getPrimaryWindow', () => target.window);
+      const native = spy();
+      const dispose = WindowManager.bindNativeActions(window.id, native);
+      const diagnostics: string[] = [];
+      const capture: logdown.TransportFunction = options => {
+        if (options.instance.includes('WindowManager')) {
+          diagnostics.push(JSON.stringify({args: options.args, message: options.msg}));
+        }
+      };
+      logdown.transports.push(capture);
+      try {
+        WindowManager.sendActionToPrimaryWindow(action, ...args);
+        target.window = undefined;
+        WindowManager.sendActionToPrimaryWindow(action, ...args);
+        target.window = window;
+        WindowManager.flushActionsQueue();
+        assert.deepEqual(native.args, [
+          [action, args],
+          [action, args],
+        ]);
+        assert.equal(WindowManager.actionsQueue.length, 0);
+        assert.equal(diagnostics.filter(message => message.includes(action)).length, 2);
+        for (const secret of secrets) {
+          assert.equal(
+            diagnostics.some(message => message.includes(secret)),
+            false,
+            'Credential reached diagnostics',
+          );
+        }
+      } finally {
+        const index = logdown.transports.indexOf(capture);
+        if (index !== -1) {
+          logdown.transports.splice(index, 1);
+        }
+        dispose();
+        window.destroy();
+      }
+    });
+  }
 
   for (const minimized of [false, true]) {
     it(`[regression][CAP-006] focuses an already visible window for login (minimized=${minimized})`, async () => {
