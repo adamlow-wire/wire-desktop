@@ -78,6 +78,14 @@ Do not encode insecure legacy behavior as a characterization contract.
 - Updating a characterization assertion during migration requires an explicit capability-contract or scope change.
 - Coverage percentages are supporting signals. Capability and invariant coverage are release gates.
 
+## Integrated review and coverage completion
+
+TST-006 adds a final integrated review beyond earlier PR reviews. Follow [quality-review.md](quality-review.md) for the full-baseline provenance ledger, complete changed-module review, coverage denominator/exclusion audit, sensitivity and residual-path dispositions. Report statement/branch/function coverage for whole instrumentable production scope and full modernization changes, with per-module results. The existing selected-security-file percentage is not all security coverage, and 80%/90% floors do not establish completion. Aim to cover every reachable in-scope contract/decision; explain every remaining uncovered path individually and fix reachable automatable gaps.
+
+Keep original passing characterization, legacy-failing security targets and later regressions distinct. Historical gaps must be disclosed, even if a retrospective test is added. No assertion may be weakened for coverage, and no exclusion, no-op mock, skipped execution or successful rerun may manufacture acceptance. Review every critical contract's positive/negative and failure/recovery evidence. Real OS/hardware/provider/signing results remain separate from deterministic boundary tests.
+
+Actual signing/notarization and signed-package/update validation is intended for Wire after engineering review under SEC-011/PKG-002/M5. Unsigned PKG-001/TST-005 must still build and execute actual artifacts, verify applicable effective security settings and supply reproducible downstream signing test procedures. This scheduling decision does not satisfy INV-009 or waive release gates.
+
 ## Initial priority
 
 The first baseline additions should be:

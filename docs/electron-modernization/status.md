@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
-active_work_item: CAP-003
-state: qualifying-windows-package-execution
+active_work_item: TST-006
+state: next-goal-planned
 integration_branch: integration/electron-modernization
-integration_head_commit: 6930c8cebe379dc7b04c89e1207fbbcefb80f010
+integration_head_commit: 6e27c614529c162463d7c5b1d4948bd9fa9fcec9
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: cap/CAP-003-consented-display-2026-09-15
-next_work_item: PKG-001
+active_branch: docs/M4-review-and-test-completeness-2026-09-15
+next_work_item: TST-006
 blockers: []
 ---
 
@@ -17,17 +17,19 @@ blockers: []
 
 ## Current execution
 
-**Qualification correction: Windows package execution must be renewed before merge.** Log review of final candidate bd8b054c finds that its green Windows package step exits after the GUI `--version` probe, with neither intended package smoke executed. The native groups pass, but that job's packaged startup/proxy claim is withdrawn. The independently smoke-tested Windows preview remains valid. See the correction in [M3](m3-acceptance.md) and [functional M4](m4-acceptance.md) audits. No application defect or invariant exception is identified.
+**M3 and functional M4 are integrated.** [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60) merged as `6e27c614529c162463d7c5b1d4948bd9fa9fcec9`, reviewed head `adbebedc4f033e63f39a662bc82c4797b5eb5bd9`. Reviewed head, tested synthetic merge `d9648c72` and actual merge share tree `bef4b31e75af640f63c271d1b22bd1687a241700`. All ten strict required checks, admin enforcement, conversation resolution, no unresolved threads and SHA guard were verified before merge. Local integration was fast-forwarded cleanly; protected MSI worktree remains `255bdd54`.
 
-Separate baseline02b9ee05 adds a mandatory completion output/gate. Requiring both package completion observations in the actual Windows log fails with zero. The correction removes the redundant GUI probe, runs the Node-owned managed startup and authenticated-proxy smokes, then emits completion only after both succeed. A temporary explicit HKCU policy avoids assuming an unenrolled hosted runner; existing values/enrollment remain untouched. Unmanaged Windows hardware and its policy transition are not claimed. Final corrected-head Windows execution and all core/native/full-E2E/report checks remain required before the SHA-guarded merge. Native bd8b054c passes all three platforms initially and its core/preview checks pass, but its full E2E remains in progress and may be superseded by this required correction. Preserve that distinction.
+Final [build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542936), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542973), [CodeQL](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542964), [native/package](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542993), and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542986) pass. Full E2E completes 76 tests on each of Windows/macOS/Linux initially, with no skips or independent worker errors; report 104476129387 passes. Build executes 112 Jest/964 native/4 media/23 renderer/51 tooling cases. CodeQL 1780506437 has zero findings/no error. Build and native macOS each require one retained unchanged-head rerun after 20-second capture-cancellation timeouts; no assertion or runtime change, and no proven root cause. TST-006 must investigate rather than silently treat reruns as resolution.
 
-**Functional M4 implementation is accepted at reviewed 41066868; integration merge remains pending.** [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60) passes [build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539680), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539791), [CodeQL](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539568), [all native/package platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539595), and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539616). Linux/macOS complete 76 initially; Windows 75 initially plus one group-member selection retry. The corrected multi-account notification case passes initially on all platforms. Native Windows/Linux pass initially; macOS passes one reviewed unchanged-head rerun after the retained two-second notification-denial timeout. Each native platform passes 24 product cases. Report 104453835081 succeeds; no skipped tests or independent worker errors are reported.
+The Windows false-success version-probe gap is corrected: job 104463987040 logs both actual packaged startups, authenticated proxy success and the mandatory completion gate. Linux and macOS also execute both package smokes. Historical green Windows jobs without execution remain excluded. This does not qualify signing, installers or unmanaged Windows policy transitions.
 
-Build passes 112 Jest/964 native/4 media/23 renderer/51 build tools; fresh hosted coverage is 455/545 changed statements 83.49% and 184/199 tracked security branches 92.46%. CodeQL analysis 1780088232 on exact synthetic merge 19bc0f61 has zero findings/no error. Tested and reviewed tree `a3dd1458` match; review threads are empty. All ten strict core/native/platform/report checks, administrator enforcement, conversation resolution and no force pushes/deletion are verified. The [functional M4 audit](m4-acceptance.md) maps CAP-003/CAP-004 and development TST-005 criteria. PKG-001 and packaged TST-005, real OS/hardware and enterprise QA, signing/installers/updates/migration/rollback and independent release review remain open.
+**Next goal is planned, not executed:** [TST-006 work plan](quality-review.md) defines a complete integrated quality review, baseline-before-refactor audit and maximum practical meaningful coverage, followed by ELC-003, unsigned PKG-001 and packaged TST-005 qualification. See [restart prompt](resume-m4.md). This documentation branch records the requested plan; the new audit has not passed and M4 as a whole remains open. Finish publishing/integrating these documentation changes through normal applicable checks before implementation; never push integration directly.
 
-**Next executable step:** publish the Windows completion correction on the existing PR, require actual execution of both packaged launches and all applicable final-head checks, repeat exact-head review/thread/protection verification, then SHA-guard merge and fast-forward integration. Do not claim integration contains CAP-003 until the merge is verified. The documentation changes no qualified production code. The next implementation work after that accepted merge is PKG-001, beyond the maintainer's current functional-before-packaging scope.
+**Maintainer decision:** signing/notarization and actual signed-package validation are intended for Wire after engineering review, and remain M5 release gates. Prepare reviewed pipeline order and unsigned evidence now. No individual at Wire is assigned yet. Internal TST-006 review is additional to prior PR reviews and is not independent REL-001 review. Live customer Keycloak/E2EI remains downstream QA. The maintainer reports successful manual preview checks, but has not supplied an exact scenario/platform evidence record; do not mark the entire manual matrix passed.
 
-The refreshed [complete Windows preview](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539562/artifacts/10404000902) passes packaged identity and startup/immutable-config/Node-denial smoke at 41066868. It has been delivered with [manual instructions](manual-windows-preview.md). No local GUI testing has resumed. The following execution notes preserve preceding checkpoints and are superseded where this acceptance record gives a final result.
+The [Windows preview](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542942/artifacts/10407101912) has distinct identity/profile, source `d9648c72`, and actual identity/startup smoke evidence. Its finite-retention artifact is not a durable release download; preserve reproducible build instructions. User patch `/tmp/m3-closeout-review/documentation.patch` and MSI work remain untouched. No local GUI testing resumed.
+
+### Earlier execution checkpoints (historical; current status above takes precedence)
 
 **Execution constraint:** the maintainer paused testing because native windows interrupted their work. Do not run GUI/native Electron suites on the shared DISPLAY. Use hosted CI and non-GUI checks until a truly isolated display is available. The maintainer requests a runnable Windows preview alongside installed Wire; a scoped CI-only preview bundle uses a distinct application/protocol identity and explicit separate profile. It is not release packaging acceptance.
 

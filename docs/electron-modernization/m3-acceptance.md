@@ -188,4 +188,4 @@ Strict protection and all required final-head checks were re-read, no unresolved
 
 ## Next work
 
-Complete functional M4: TST-005’s Linux/mandatory-check/artifact/fixture work, qualify the existing CAP-004 account-aware OS integrations, then implement and qualify CAP-003’s consented display capture and PiP lifetime. Live customer SSO/E2EI remains the explicit [QA handoff](qa-sso-e2ei.md). Packaging/signing/installers/updates, released-profile migration/rollback and independent release review remain in their assigned later work. None is reported as completed by this M3 audit.
+M3 and functional M4 are integrated through PR60 at 6e27c614; see [current status](status.md) for exact final evidence. The next goal is [TST-006 integrated quality review and test completeness](quality-review.md), plus ELC-003, unsigned PKG-001 and packaged TST-005. It audits baseline provenance and the entire modernization delta without claiming existing milestone acceptance proves full test coverage. Actual signing validation is intended for Wire after review; live SSO/E2EI, released-installation migration/rollback and independent security review remain later qualifications.

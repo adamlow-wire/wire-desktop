@@ -17,6 +17,8 @@ M3 evidence: [Complete acceptance audit](./m3-acceptance.md), including whole-mi
 
 M4 evidence: [Functional acceptance audit](./m4-acceptance.md), including capture/PiP, OS routes, development CI and the remaining packaging/manual QA obligations.
 
+Next goal: [Integrated quality review and test-completeness plan](quality-review.md), with [copyable restart prompt](resume-m4.md). Signing validation is scheduled for Wire after review; unsigned handoff is not release qualification.
+
 M0 evidence:
 
 - [Fork and integration workflow](./governance.md)
@@ -53,7 +55,7 @@ Do not duplicate status across documents. The plan describes intended work; `sta
 
 ## Resume protocol
 
-For a fresh AI session, use [the M3/M4 restart prompt](./resume-m3.md). It requires revalidation of the current handoff and acceptance gates rather than inheriting an old completion estimate or blocked verdict.
+For a fresh AI session, use [the quality-review and unsigned M4 restart prompt](./resume-m4.md). It requires revalidation of the current handoff and acceptance gates rather than inheriting an old completion estimate or blocked verdict.
 
 When resuming after a gap:
 
