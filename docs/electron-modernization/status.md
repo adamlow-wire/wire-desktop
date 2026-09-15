@@ -2,13 +2,13 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
-active_work_item: PKG-003
+active_work_item: SEC-003
 state: audit-remediation-in-progress
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-003-preserve-settings-migration-2026-09-15
+active_branch: fix/SEC-003-bound-native-save-work-2026-09-15
 next_work_item: TST-006
 blockers: []
 ---
@@ -17,7 +17,9 @@ blockers: []
 
 ## Current execution
 
-**Current remediation:** [PR62](https://github.com/adamlow-wire/wire-desktop/pull/62), queue head `28fbf798`, passes build/lint/CodeQL and native/package checks on Windows/macOS/Linux initially. Full E2E fails Linux and macOS with 58 passes/18 failures each; Windows was cancelled; report remains pending. The PR is not accepted or merged. The first retained Linux trace shows the remote webapp entering its error fallback after the people button, with `TypeError: n.findDOMNode is not a function` from `https://wire-webapp-dev.zinfra.io/min/vendor.js`. This is not evidence for changing the search locator. A controlled unchanged-PR61 Linux comparison is running as job `104570922016`; the original passing attempt remains historical evidence. The maintainer has been asked about access to repair the hosted webapp or a known compatible test URL; other remediation continues, and this is not a gate waiver. The scoped PKG-003 branch is published at `40ff0485`; native/package preflight [run35026361662](https://github.com/adamlow-wire/wire-desktop/actions/runs/35026361662) is in progress on that exact head, so settings filesystem and native callers can be qualified independently while full E2E fails. A PR and merge still require reconciliation with the integration branch and all protected checks; no notification-sending E2E workflow is manually dispatched.
+**Active local work: SEC-003.** The prepared F-003/F-011 candidate is now on its scoped branch above the settings checkpoint. Separate baseline `3bb1e04e` records 11 passes/one expected pending-save failure before implementation. The current weak-key limiter and single-active-save implementation passes all 15 IPC/save/storage contract cases; types and scoped lint pass. A hosted-only native test now exercises two sandboxed renderers, real IPC and the production download path with a controlled Electron dialog result; it type-checks but is unrun. Native qualification, final review and composition remain pending. No crypto format, pinning or privilege policy is changed.
+
+**Current remediation:** [PR62](https://github.com/adamlow-wire/wire-desktop/pull/62), queue head `28fbf798`, passes build/lint/CodeQL and native/package checks on Windows/macOS/Linux initially. Full E2E fails Linux and macOS with 58 passes/18 failures each; Windows was cancelled; report remains pending. The PR is not accepted or merged. The first retained Linux trace shows the remote webapp entering its error fallback after the people button, with `TypeError: n.findDOMNode is not a function` from `https://wire-webapp-dev.zinfra.io/min/vendor.js`. This is not evidence for changing the search locator. A controlled unchanged-PR61 Linux comparison is running as job `104570922016`; the original passing attempt remains historical evidence. The maintainer has been asked about access to repair the hosted webapp or a known compatible test URL; other remediation continues, and this is not a gate waiver. The scoped PKG-003 branch is published at `40ff0485`; native/package preflight [run35026361662](https://github.com/adamlow-wire/wire-desktop/actions/runs/35026361662) passes Linux job `104574229533` and macOS job `104574229199` on that exact head. Windows job `104574229469` fails earlier in native account lifecycle (154 passes/six failures), before the selected settings/product stage; Windows settings qualification remains unrun. The first failure is controller teardown timing, followed by filesystem/view timing failures and an ENOTEMPTY cleanup error. No rerun or root-cause claim is made. A PR and merge still require reconciliation with the integration branch and all protected checks; no notification-sending E2E workflow is manually dispatched.
 
 F-010 is a confirmed settings data-loss/diagnostic finding. Separate migration baseline `b122d801` records three passes/five failing security targets; persistence baseline `f5f8684c` records four passes/three failing targets. Current local remediation preserves current/legacy files, rejects corrupt data, uses private staged writes, reports generic errors and preserves Quit after save failure. All 34 filesystem cases and five EnvironmentUtil cases (including two save-failure cases) pass locally; removing the flush/publication protections causes the expected failure. A fixture correction uses the real `fullscreen`/`bounds` keys and passes against the original source. Native Quit/menu and cross-platform filesystem qualification remain pending. [Recovery and test procedure](settings-recovery.md) defines safe synthetic QA and explicit released-migration limits. This is not PKG-003/M5 completion.
 

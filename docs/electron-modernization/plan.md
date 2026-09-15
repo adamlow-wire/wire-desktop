@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.55
+revision: 1.5.56
 status: draft
 updated: 2026-09-15
 owners:
@@ -355,7 +355,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
@@ -363,8 +363,10 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - No bridge exposes raw `send`, `invoke`, `on`, Electron event objects, or arbitrary channel names.
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
-  - Payload size and rate limits exist where abuse could consume material resources.
+  - Payload size and rate limits exist where abuse could consume material resources. Pending native operations are also bounded independently of quota windows, and limiter state does not retain destroyed views for the binder lifetime.
 - Evidence: [PRs #14–32](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated every inventoried privileged renderer-to-main operation. Each merged slice passed focused allow/deny tests, changed-code coverage, required CI, and all-platform packaging; [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) additionally passed authenticated Windows/macOS E2E after one evidence-based rerun. [PR #32](https://github.com/adamlow-wire/wire-desktop/pull/32) merged as `661e616a` after every required check passed; it replaced the internal About event with a direct main-owned call, removed the unproduced updater listener, and closed the production-source audit with no raw privileged incoming listener remaining. Later capabilities MAY add narrowly authorized contracts with the same SEC-003 controls, as SEC-004 does for the SSO account-limit warning.
+
+- TST-006 follow-up: baseline `3bb1e04e` preserves quotas/identity behavior (11 passes) and exposes pending-save retention (one failure). Current local F-003/F-011 remedy uses weak webContents keys and one active application-owned native picture save, with capacity released on every settlement. Native/composed qualification and the separate DCP-016/F-012 ownership decision remain open.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -959,6 +961,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.56 | 2026-09-15 | Codex | Reopen SEC-003 for bounded pending native saves and rate-limiter lifetime findings; retain encryption ownership decision and native/composed gates | SEC-003, SEC-004, TST-006, DCP-014 |
 | 1.5.55 | 2026-09-15 | Codex | Bring forward PKG-003 settings preservation and recovery fixtures for confirmed F-010; retain full released-migration acceptance in M5 | PKG-003, TST-006, DCP-021 |
 | 1.5.54 | 2026-09-15 | Codex | Start integrated review and record full-delta findings; reopen CAP-001 for sensitive bounded lifecycle queue remediation without changing security invariants | TST-006, CAP-001 |
 | 1.5.53 | 2026-09-15 | Codex | Add TST-006 integrated quality/baseline-provenance/test-completeness gate; define unsigned M4 review handoff and defer actual signing validation to Wire in M5 without weakening INV-009; reconcile merged PR60 | TST-006, TST-005, ELC-003, PKG-001, SEC-011, PKG-002, GOV-002 |
