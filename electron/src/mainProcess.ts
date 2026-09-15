@@ -70,6 +70,7 @@ import {getOpenGraphDataAsync} from './lib/openGraph';
 import {showErrorDialog} from './lib/showDialog';
 import {updateDownloadLocation} from './lib/updateDownloadLocation';
 import * as locale from './locale';
+import {boundLogMessage} from './logging/boundedLogWriter';
 import {runDesktopLogCleanup, writeBoundedLogMessage} from './logging/desktopLogWriter';
 import {ENABLE_LOGGING, getLogger} from './logging/getLogger';
 import {scheduleLogCleanup} from './logging/logCleanupScheduler';
@@ -837,7 +838,7 @@ class ElectronWrapperInit {
       const stylingRegex = /(color:#|font-weight:)[^;]+; /gm;
       const accessTokenRegex = /access_token=[^ &]+/gm;
 
-      contents.on('console-message', async (_event, _level, message) => {
+      contents.on('console-message', (_event, _level, message) => {
         const accountId = Maybe.of(account.id);
 
         if (accountId.isJust) {
@@ -847,14 +848,18 @@ class ElectronWrapperInit {
             logDirectory: getLogDirectory(),
           });
           try {
-            await writeBoundedLogMessage({
+            // Bound remote text before regex work and do not retain the original
+            // message in an async listener while disk writes are pending.
+            void writeBoundedLogMessage({
               logFilePath,
-              message: message.replace(colorCodeRegex, '$1').replace(stylingRegex, '').replace(accessTokenRegex, ''),
-            });
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-
-            logger.error(`Cannot write to log file "${logFilePath}": ${errorMessage}`, error);
+              message: boundLogMessage(message)
+                .replace(colorCodeRegex, '$1')
+                .replace(stylingRegex, '')
+                .replace(accessTokenRegex, ''),
+            }).catch(() => console.error('Cannot write account diagnostics.'));
+          } catch {
+            // Reporting through the file logger can enqueue another failed write.
+            console.error('Cannot write account diagnostics.');
           }
         }
       });

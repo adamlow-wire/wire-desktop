@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.53
+revision: 1.5.59
 status: draft
-updated: 2026-09-15
+updated: 2026-09-16
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -355,7 +355,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
@@ -363,8 +363,10 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - No bridge exposes raw `send`, `invoke`, `on`, Electron event objects, or arbitrary channel names.
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
-  - Payload size and rate limits exist where abuse could consume material resources.
+  - Payload size and rate limits exist where abuse could consume material resources. Pending native operations are also bounded independently of quota windows, and limiter state does not retain destroyed views for the binder lifetime.
 - Evidence: [PRs #14–32](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated every inventoried privileged renderer-to-main operation. Each merged slice passed focused allow/deny tests, changed-code coverage, required CI, and all-platform packaging; [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) additionally passed authenticated Windows/macOS E2E after one evidence-based rerun. [PR #32](https://github.com/adamlow-wire/wire-desktop/pull/32) merged as `661e616a` after every required check passed; it replaced the internal About event with a direct main-owned call, removed the unproduced updater listener, and closed the production-source audit with no raw privileged incoming listener remaining. Later capabilities MAY add narrowly authorized contracts with the same SEC-003 controls, as SEC-004 does for the SSO account-limit warning.
+
+- TST-006 follow-up: baseline `3bb1e04e` preserves quotas/identity behavior (11 passes) and exposes pending-save retention (one failure). Current local F-003/F-011 remedy uses weak webContents keys and one active application-owned native picture save, with capacity released on every settlement. Native/composed qualification and the separate DCP-016/F-012 ownership decision remain open.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -656,7 +658,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### TST-006 — Audit integrated implementation quality and test completeness
 
 - Priority: `P0`
-- Status: `ready`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: SEC-001, TST-001, TST-002, TST-003, TST-004
 - Scope: Review the entire modernization delta from the recorded pre-modernization baseline, including retained code at changed boundaries. Audit baseline-before-refactor provenance, test effectiveness, full changed-code coverage and production quality. This is an internal integrated review, not REL-001 independent security review. Existing CAP/SEC/ELC/PKG items own their implementation fixes; TST-005 owns platform CI, avoiding duplicate work.
@@ -668,14 +670,14 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Critical allow/deny, stale/cross-account, failure/recovery, persistence and teardown contracts are sensitivity-proven. Audit mocks, test-only hooks, collection, skip/quarantine, retries and actual CI execution. Unexplained timing failures are investigated and receive explicit bounded follow-up; a rerun alone is not a root-cause resolution.
   - All findings required for handoff are remediated and re-reviewed; the final composed candidate passes all applicable final-head gates. A reproducible test guide, coverage/gap ledger, internal review report and Wire QA handoff are committed with durable evidence and precise claim limits.
 - Execution: [Review and test-completeness work plan](quality-review.md). Do not claim this item done from earlier per-PR reviews or test counts.
-- Evidence: Not started. Maintainer requested this additional acceptance gate on September 15 after functional M4 integration.
+- Evidence: [Execution ledger](review-findings.md) records verified baseline/full scope, PR61 integration, current coverage/dependency audit and open findings. Module and DCP/INV/IPC traceability remain pending; this item is not accepted.
 
 ### 10.5 Capability migration
 
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
@@ -693,14 +695,19 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 
 - Final startup acceptance: [PR #56](https://github.com/adamlow-wire/wire-desktop/pull/56) merged as `45840fca` with tree equal to reviewed `5c596187`. All native platforms, build/lint/analysis and full 48-case Windows/macOS E2E/report pass. Authorized same-origin replacements finish before startup succeeds; failure, cancellation, stale/foreign ownership and credential-bearing native errors remain denied or sanitized. The [complete M3 acceptance audit](m3-acceptance.md) records source review, sensitive baselines, all acceptance criteria and aggregate validation.
 
+- TST-006 follow-up F-008: reopen for bounded pending lifecycle work behind native environment consent. Baseline `8cd6bd18` fails overload rejection; the local candidate limits active/queued operations to 32, rejects excess without effects and releases capacity after success, cancellation and stale-authority failure. Prior cutover acceptance remains historical evidence; final remediation qualification is pending. See [review ledger](review-findings.md).
+
+- TST-006 follow-up F-013: diagnostic file rotation is insufficient to bound pending work. Preserve per-file ordering, cross-file concurrency, flush-tail snapshots and exclusive account-log deletion while limiting active/queued writes to 256, encoded pending payloads to 1MiB and each UTF-8 entry (including line ending and bounded markers) to 64KiB. Copy admitted path/message values, limit path retention to 32,768 characters and rotation collision lookup to 128 candidates. Overflow is best-effort diagnostic loss with a bounded count on the next admitted entry, never a recursively logged rejection; filesystem failures still reject and release reservations. This explicitly replaces unbounded log admission without changing account authorization. Baselines `aaa7e250` and `cbf24648`, local sensitivity and pending native/composed evidence are in the review ledger.
+
 #### CAP-002 — Migrate enterprise and automated SSO
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: TST-002, SEC-008, CAP-001
 - Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation. Include E2EI enrolment and renewal authentication compatibility explicitly; the webapp/core retain ownership of OIDC, ACME and certificate cryptography. This is distinct from CAP-005 transport certificate verification.
 - Acceptance:
+  - Authentication-page console content and native exceptions containing URLs, cookies or callback secrets never enter desktop diagnostics. Failures retain fixed bounded messages; tests include enabled logging, malformed callbacks, cleanup/cookie failures, external-opening failures and real Electron failed loads.
   - TST-002 passes against the new implementation.
   - Every CAP-002 `security-target` quarantine in the SSO suite is removed and passes.
   - SSO windows use fixed secure preferences and ephemeral sessions.
@@ -712,6 +719,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. The live IdP checkpoint remains required for customer compatibility qualification, separately from M3 automated acceptance under the September 14 maintainer-approved revision.
 
 - Final automated acceptance: [PR #53](https://github.com/adamlow-wire/wire-desktop/pull/53) merged as `3c734cde363f1fcb783762997d247c4995ce6600`, with tree equal to reviewed `43961f6c`. [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989433), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989529), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989484), [all native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989430) and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989437) pass. Both authenticated platforms pass46 cases: Windows43 initial/three login-readiness retries; macOS42 initial/four login or account-action screen-readiness retries. No skips or worker errors. Windows native passed on its third unchanged-head attempt after two fixture-timeout failures; all attempts are retained and no assertion/deadline was changed. Native SSO controls, account limits, one-use/backend verdict/cookie isolation and three sensitivity-proven E2EI transport outcomes are qualified. The approved downstream QA obligation and lack of live customer-compatibility evidence remain explicit.
+
+- TST-006 follow-up F-009: reopen diagnostic confidentiality under INV-010. Baseline `1a1093f5` records nine failing targets before the local fix; present Node-only cases and sensitivity pass. Native and composed qualification remain open. Historical M3 acceptance above is preserved.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
@@ -791,7 +800,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### PKG-001 — Qualify packaging on the target Electron version
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: ELC-002, ELC-003
 - Scope: Build unsigned Windows Squirrel, Windows MSI, macOS, and Linux artifacts using Electron 43.4.0 and reviewed tooling for Wire engineering review. Preserve signed-release pipeline configuration; actual signing/notarization validation is Wire-owned after review under SEC-011/PKG-002/M5, per the September 15 maintainer decision.
@@ -800,7 +809,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - The signing/notarization/fuse/integrity pipeline order is documented and reviewed, with unsigned CI validating applicable build steps and effective settings. Actual signed-binary, notarization and post-sign integrity verification remains mandatory under SEC-011/PKG-002/M5 after Wire review; it is not claimed by unsigned success.
   - Supported OS versions, architectures and artifact formats are explicit; verify existing requirements before requesting missing product decisions. Unsigned artifacts launch and required packaged smoke tests actually execute on every in-scope platform.
   - Artifact identity and environment separation are preserved.
-- Evidence: TBD
+- TST-006 remediation: F-004 restricts packaged inputs; F-005 forbids credential-bearing configuration dumps/native errors in CLI diagnostics; F-006 requires failure propagation, metadata restoration on every outcome and reviewed fuse/signing order. Baseline `7eb299f3` establishes eight passing CLI controls and ten failing targets before the local fix. Actual signing/notarization remains deferred; local mock success never closes that gate.
+- Evidence: See [review findings](review-findings.md); CLI remediation and metadata-backup collision reproduction are local, with full unsigned artifact qualification pending.
 
 #### PKG-002 — Qualify installers and updater behavior
 
@@ -819,7 +829,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### PKG-003 — Validate legacy-to-modernized data migration
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M5`
 - Dependencies: CAP-001, PKG-002
 - Scope: Upgrade representative released installations without losing accounts, settings, managed configuration, or required cached state.
@@ -827,7 +837,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Migration fixtures cover supported legacy versions and install types.
   - Account/session changes have documented recovery and rollback behavior.
   - A failed migration does not silently corrupt or delete user data.
-- Evidence: TBD
+- Evidence: TST-006 F-010 confirms settings migration/persistence data loss. Separate baselines `b122d801` and `f5f8684c`, local recovery tests and [settings recovery procedure](settings-recovery.md) are in progress; final hosted qualification is pending. Unsigned deterministic fixtures are brought forward for M4 handoff; full released-installation/rollback criteria remain M5.
 
 #### REL-001 — Complete independent security review
 
@@ -957,6 +967,12 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.59 | 2026-09-16 | Codex | Start PKG-001 remediation of packaged inputs, secret diagnostics and fail-closed builds; retain unsigned scope and signed-release deferral | PKG-001, SEC-011, INV-010, TST-006 |
+| 1.5.58 | 2026-09-15 | Codex | Extend existing CAP-001 remediation with bounded log admission and immutable queued inputs; preserve cleanup barriers and document diagnostic truncation/loss | CAP-001, INV-010, TST-006 |
+| 1.5.57 | 2026-09-15 | Codex | Reopen CAP-002 for sensitive SSO diagnostics with an explicit safe logging contract and separate failing baseline; preserve authentication and pinning behavior | CAP-002, INV-010, TST-006 |
+| 1.5.56 | 2026-09-15 | Codex | Reopen SEC-003 for bounded pending native saves and rate-limiter lifetime findings; retain encryption ownership decision and native/composed gates | SEC-003, SEC-004, TST-006, DCP-014 |
+| 1.5.55 | 2026-09-15 | Codex | Bring forward PKG-003 settings preservation and recovery fixtures for confirmed F-010; retain full released-migration acceptance in M5 | PKG-003, TST-006, DCP-021 |
+| 1.5.54 | 2026-09-15 | Codex | Start integrated review and record full-delta findings; reopen CAP-001 for sensitive bounded lifecycle queue remediation without changing security invariants | TST-006, CAP-001 |
 | 1.5.53 | 2026-09-15 | Codex | Add TST-006 integrated quality/baseline-provenance/test-completeness gate; define unsigned M4 review handoff and defer actual signing validation to Wire in M5 without weakening INV-009; reconcile merged PR60 | TST-006, TST-005, ELC-003, PKG-001, SEC-011, PKG-002, GOV-002 |
 | 1.5.52 | 2026-09-15 | Codex | Reopen Windows package execution evidence after a false-success version probe; require explicit smoke completion and deterministic managed fixtures without changing application policy or claiming unmanaged Windows QA | TST-005, CAP-005 |
 | 1.5.51 | 2026-09-15 | Codex | Accept reviewed functional CAP-003/CAP-004 and development TST-005 after all-platform qualification; accept DEC-011, reconcile DEC-010 clerical status, retain final documentation-head merge gates and explicit packaging/OS/live-QA limits | CAP-003, CAP-004, TST-005, DEC-011 |

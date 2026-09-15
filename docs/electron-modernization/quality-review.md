@@ -1,6 +1,6 @@
 # Integrated quality review and test-completeness execution plan
 
-Status: **planned; no completed holistic review or full-coverage claim**. Authoritative work item: TST-006 in [plan.md](plan.md). Current accepted runtime: integration `6e27c614`, Electron 43.4.0. This plan adds an internal handoff gate without erasing accepted M3/functional M4 evidence. [Current status](status.md) owns execution progress.
+Status: **in progress; no completed holistic review or full-coverage claim**. See [execution findings](review-findings.md), [module inventory](review-inventory.csv) and [behavioral traceability](review-traceability.csv). Authoritative work item: TST-006 in [plan.md](plan.md). Current accepted runtime: integration `6e27c614`, Electron 43.4.0. This plan adds an internal handoff gate without erasing accepted M3/functional M4 evidence. [Current status](status.md) owns execution progress.
 
 ## Objective for the next goal
 

@@ -1,0 +1,440 @@
+path,change,scope,source_review,test_provenance,coverage_disposition
+.github/workflows/build_test.yml,M,tooling/CI/config,pending,pending,pending
+.github/workflows/codeql-analysis.yml,M,tooling/CI/config,pending,pending,pending
+.github/workflows/e2e-test.yml,M,tooling/CI/config,pending,pending,pending
+.github/workflows/electron-modernization-baseline.yml,A,tooling/CI/config,pending,pending,pending
+.github/workflows/electron-modernization-preview.yml,A,tooling/CI/config,pending,pending,pending
+.github/workflows/jira-lint-and-link.yml,M,tooling/CI/config,pending,pending,pending
+.github/workflows/lint.yml,M,tooling/CI/config,pending,pending,pending
+.nycrc.json,M,tooling/CI/config,pending,pending,pending
+.yarn/patches/playwright-core-npm-1.60.0-3d53a7d2d6.patch,A,tooling/CI/config,pending,pending,pending
+AGENTS.md,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/assets/msi-banner.bmp,A,tooling/CI/config,pending,pending,pending
+bin/build-tools/build-cli.ts,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/build-linux-desktop-file.ts,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/lib/Config.ts,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/lib/build-linux.test.ts,M,test/fixture,pending,pending,pending
+bin/build-tools/lib/build-linux.ts,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/lib/build-windows-installer.test.ts,M,test/fixture,pending,pending,pending
+bin/build-tools/lib/build-windows-installer.ts,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/lib/build-windows-msi.test.ts,A,test/fixture,pending,pending,pending
+bin/build-tools/lib/build-windows-msi.ts,A,tooling/CI/config,pending,pending,pending
+bin/deploy-tools/lib/JenkinsSquirrelPackaging.test.ts,A,test/fixture,pending,pending,pending
+bin/deploy-tools/lib/JenkinsWindowsArtifacts.test.ts,A,test/fixture,pending,pending,pending
+bin/deploy-tools/lib/JenkinsWindowsDeployment.test.ts,A,test/fixture,pending,pending,pending
+bin/deploy-tools/lib/JenkinsWindowsPresignedUrls.test.ts,A,test/fixture,pending,pending,pending
+bin/deploy-tools/lib/S3Deployer.test.ts,M,test/fixture,pending,pending,pending
+bin/deploy-tools/lib/S3Deployer.ts,M,tooling/CI/config,pending,pending,pending
+bin/deploy-tools/s3-cli.ts,M,tooling/CI/config,pending,pending,pending
+bin/test-tools/build-macos-smoke.ts,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/check-diff-coverage.js,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/generate-public-api.test.main.ts,A,test/fixture,pending,pending,pending
+bin/test-tools/generate-public-api.ts,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/packaged-account-smoke.cjs,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/renderer-source-maps.test.ts,A,test/fixture,pending,pending,pending
+bin/test-tools/run-linux-e2e.py,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/run-linux-e2e.test.py,A,test/fixture,pending,pending,pending
+docs/electron-modernization/README.md,M,documentation,pending,pending,pending
+docs/electron-modernization/baseline.md,A,documentation,pending,pending,pending
+docs/electron-modernization/capabilities.md,M,documentation,pending,pending,pending
+docs/electron-modernization/decisions/0001-process-and-view-architecture.md,A,documentation,pending,pending,pending
+docs/electron-modernization/decisions/0002-account-permission-consent.md,A,documentation,pending,pending,pending
+docs/electron-modernization/decisions/0003-local-content-protocol.md,A,documentation,pending,pending,pending
+docs/electron-modernization/decisions/0004-consented-display-capture.md,A,documentation,pending,pending,pending
+docs/electron-modernization/electron-compatibility.md,A,documentation,pending,pending,pending
+docs/electron-modernization/governance.md,A,documentation,pending,pending,pending
+docs/electron-modernization/ipc-inventory.md,A,documentation,pending,pending,pending
+docs/electron-modernization/m3-acceptance.md,A,documentation,pending,pending,pending
+docs/electron-modernization/m4-acceptance.md,A,documentation,pending,pending,pending
+docs/electron-modernization/manual-windows-preview.md,A,documentation,pending,pending,pending
+docs/electron-modernization/plan.md,M,documentation,pending,pending,pending
+docs/electron-modernization/qa-display-capture.md,A,documentation,pending,pending,pending
+docs/electron-modernization/qa-sso-e2ei.md,A,documentation,pending,pending,pending
+docs/electron-modernization/quality-review.md,A,documentation,pending,pending,pending
+docs/electron-modernization/resume-m3.md,A,documentation,pending,pending,pending
+docs/electron-modernization/resume-m4.md,A,documentation,pending,pending,pending
+docs/electron-modernization/review-findings.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/review-inventory.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/review-traceability.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/settings-recovery.md,A,documentation,pending,pending,pending
+docs/electron-modernization/status.md,M,documentation,pending,pending,pending
+docs/electron-modernization/testing.md,M,documentation,pending,pending,pending
+docs/electron-modernization/threat-model.md,A,documentation,pending,pending,pending
+docs/windows-msi.md,A,documentation,pending,pending,pending
+e2e-tests/README.md,M,test/fixture,pending,pending,pending
+e2e-tests/actions/createApp.ts,M,test/fixture,pending,pending,pending
+e2e-tests/actions/createTeam.ts,M,test/fixture,pending,pending,pending
+e2e-tests/actions/createUser.ts,M,test/fixture,pending,pending,pending
+e2e-tests/actions/loginUser.ts,M,test/fixture,pending,pending,pending
+e2e-tests/actions/mockNotifications.ts,M,test/fixture,pending,pending,pending
+e2e-tests/actions/quitApp.ts,A,test/fixture,pending,pending,pending
+e2e-tests/actions/watchActiveAccount.ts,M,test/fixture,pending,pending,pending
+e2e-tests/backend/PublicApiClient.ts,M,test/fixture,pending,pending,pending
+e2e-tests/backend/generated/publicApi.ts,M,test/fixture,pending,pending,pending
+e2e-tests/fixtures.ts,M,test/fixture,pending,pending,pending
+e2e-tests/poms/app/accountsSidebar.page.ts,M,test/fixture,pending,pending,pending
+e2e-tests/poms/app/appIcon.page.ts,M,test/fixture,pending,pending,pending
+e2e-tests/poms/app/menuBar.page.ts,M,test/fixture,pending,pending,pending
+e2e-tests/poms/webapp/login.page.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/criticalFlow/1on1Call.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/criticalFlow/groupCall.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/criticalFlow/logout.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/criticalFlow/register.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/accountLifecycle.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/accountMetadata.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/accountNavigation.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/accountPermissions.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/accountSidebar.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/calling.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/displayCapture.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/e2eiNavigation.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/fixtureCleanup.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/launcherPermissions.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/localization.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/menuBar.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/multipleAccountsSuite.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/notifications.spec.ts,M,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/proxySession.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/regression/rendererSandbox.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/tooling/accountSetup.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/specs/tooling/appLifecycle.spec.ts,A,test/fixture,pending,pending,pending
+e2e-tests/utils/nativeConsent.cjs,A,test/fixture,pending,pending,pending
+e2e-tests/utils/seedLegacyAccountProfile.ts,A,test/fixture,pending,pending,pending
+electron/css/display-capture.css,A,application,pending,pending,pending
+electron/html/display-capture.html,A,application,pending,pending,pending
+electron/renderer/index.html,M,application,pending,pending,pending
+electron/renderer/src/actions/AccountAction.ts,M,application,pending,pending,pending
+electron/renderer/src/actions/__tests__/actions.spec.ts,M,test/fixture,pending,pending,pending
+electron/renderer/src/actions/index.ts,M,application,pending,pending,pending
+electron/renderer/src/components/LoadingSpinner/LoadingSpinner.spec.tsx,A,test/fixture,pending,pending,pending
+electron/renderer/src/components/LoadingSpinner/LoadingSpinner.tsx,M,application,pending,pending,pending
+electron/renderer/src/components/Sidebar/Sidebar.spec.tsx,A,test/fixture,pending,pending,pending
+electron/renderer/src/components/Sidebar/Sidebar.tsx,M,application,pending,pending,pending
+electron/renderer/src/components/WebView/Webview.spec.tsx,A,test/fixture,pending,pending,pending
+electron/renderer/src/components/WebView/Webview.tsx,M,application,pending,pending,pending
+electron/renderer/src/components/WebViewList/WebviewList.tsx,M,application,pending,pending,pending
+electron/renderer/src/configureStore.spec.ts,A,test/fixture,pending,pending,pending
+electron/renderer/src/configureStore.ts,M,application,pending,pending,pending
+electron/renderer/src/index.spec.tsx,A,test/fixture,pending,pending,pending
+electron/renderer/src/index.tsx,M,application,pending,pending,pending
+electron/renderer/src/lib/__tests__/locale.spec.ts,A,test/fixture,pending,pending,pending
+electron/renderer/src/lib/locale.ts,M,application,pending,pending,pending
+electron/renderer/src/reducers/__tests__/accountReducer.spec.ts,M,test/fixture,pending,pending,pending
+electron/renderer/src/reducers/accountReducer.ts,M,application,pending,pending,pending
+electron/renderer/src/types/account.d.ts,M,application,pending,pending,pending
+electron/renderer/src/types/guards.spec.ts,A,test/fixture,pending,pending,pending
+electron/renderer/src/types/guards.ts,M,application,pending,pending,pending
+electron/src/accounts/AccountController.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountController.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/AccountControllerQueue.test.main.ts,A,test/fixture,assertions and sensitivity reviewed; platform qualification pending,pending,pending
+electron/src/accounts/AccountDestination.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountDestination.ts,A,application,pending,pending,pending
+electron/src/accounts/AccountEnvironmentApproval.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountEnvironmentApproval.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/AccountLogCleanup.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountLogCleanup.ts,A,application,pending,pending,pending
+electron/src/accounts/AccountMediaPermission.test.media.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountPermissionBaseline.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountProfile.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountProfile.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/AccountSessionCleanup.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountSessionCleanup.ts,A,application,pending,pending,pending
+electron/src/accounts/AccountState.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountState.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/AccountViews.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountViews.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/loadAccountDestination.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/loadAccountDestination.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/readLegacyAccountState.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/readLegacyAccountState.ts,A,application,pending,pending,pending
+electron/src/auth/ProxyLogin.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/auth/ProxyLogin.ts,A,application,pending,pending,pending
+electron/src/auth/ProxyPromptActions.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/auth/ProxyPromptActions.ts,A,application,pending,pending,pending
+electron/src/auth/ProxyPromptCoordinator.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/auth/ProxyPromptCoordinator.ts,A,application,pending,pending,pending
+electron/src/auth/ProxyPromptRegistration.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/auth/ProxyPromptRegistration.ts,A,application,pending,pending,pending
+electron/src/calling/PictureInPictureCall.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/calling/PictureInPictureCall.ts,M,application,pending,pending,pending
+electron/src/calling/PictureInPictureOwners.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/calling/PictureInPictureOwners.ts,A,application,pending,pending,pending
+electron/src/calling/display/DisplayCaptureAdapter.ts,A,application,pending,pending,pending
+electron/src/calling/display/DisplayCaptureContract.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/calling/display/DisplayCaptureContract.ts,A,application,pending,pending,pending
+electron/src/calling/display/DisplayCaptureCoordinator.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/calling/display/DisplayCaptureCoordinator.ts,A,application,pending,pending,pending
+electron/src/calling/display/DisplayCaptureRenderer.test.renderer.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/CertificateVerifyProcManager.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/CertificateVerifyProcManager.ts,M,application,pending,pending,pending
+electron/src/lib/CoreProtocol.test.main.ts,M,test/fixture,pending,pending,pending
+electron/src/lib/CoreProtocol.ts,M,application,pending,pending,pending
+electron/src/lib/LocalAccountDeletion.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/LocalAccountDeletion.ts,M,application,pending,pending,pending
+electron/src/lib/accountLogDeletion.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/accountLogDeletion.ts,A,application,pending,pending,pending
+electron/src/lib/applicationBootstrap.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/applicationBootstrap.ts,A,application,pending,pending,pending
+electron/src/lib/configureEnforcedDownloads.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/configureEnforcedDownloads.ts,A,application,pending,pending,pending
+electron/src/lib/download.test.main.ts,M,test/fixture,pending,pending,pending
+electron/src/lib/download.ts,M,application,pending,pending,pending
+electron/src/lib/enumerateDesktopSources.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/enumerateDesktopSources.ts,A,application,pending,pending,pending
+electron/src/lib/eventType.ts,M,application,pending,pending,pending
+electron/src/lib/fireAndForgetInvoker.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/fireAndForgetInvoker.ts,A,application,pending,pending,pending
+electron/src/lib/forwardWrapperReloadRequest.test.main.ts,M,test/fixture,pending,pending,pending
+electron/src/lib/openGraph.test.main.ts,M,test/fixture,pending,pending,pending
+electron/src/lib/openGraph.ts,M,application,pending,pending,pending
+electron/src/lib/updateDownloadLocation.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/lib/updateDownloadLocation.ts,A,application,pending,pending,pending
+electron/src/locale/en-US.json,M,application,pending,pending,pending
+electron/src/locale/index.ts,M,application,pending,pending,pending
+electron/src/locale/languages.ts,A,application,pending,pending,pending
+electron/src/locale/systemLocale.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/locale/systemLocale.ts,A,application,pending,pending,pending
+electron/src/logging/boundedLogWriter.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/boundedLogWriter.ts,A,application,local F-013 admission/rotation/lifetime review; native qualification pending,aaa7e250 failing targets before fix; 4bdaffa0 retrospective collision controls; later gap tests disclosed,fresh Node 76/76 statements 34/34 branches 12/12 functions; native/composed pending
+electron/src/logging/desktopLogWriter.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/desktopLogWriter.ts,A,application,pending,pending,pending
+electron/src/logging/getLogger.ts,M,application,initial source pass; final review pending,pending,pending
+electron/src/logging/logCleanup.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logCleanup.ts,A,application,pending,pending,pending
+electron/src/logging/logCleanupScheduler.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logCleanupScheduler.ts,A,application,pending,pending,pending
+electron/src/logging/logDirectoryAncestors.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logDirectoryAncestors.ts,A,application,pending,pending,pending
+electron/src/logging/logDirectoryCleanup.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logDirectoryCleanup.ts,A,application,pending,pending,pending
+electron/src/logging/logExport.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logExport.ts,A,application,pending,pending,pending
+electron/src/logging/logExportDependencies.ts,A,application,pending,pending,pending
+electron/src/logging/logFiles.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logFiles.ts,A,application,pending,pending,pending
+electron/src/logging/logMaintenance.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logMaintenance.ts,A,application,pending,pending,pending
+electron/src/logging/logPaths.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logPaths.ts,A,application,pending,pending,pending
+electron/src/logging/logRetention.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logRetention.ts,A,application,pending,pending,pending
+electron/src/logging/logStartup.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/logging/logStartup.ts,R054,application,pending,pending,pending
+electron/src/logging/loggerUtils.ts,M,application,pending,pending,pending
+electron/src/main.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/main.ts,M,application,pending,pending,pending
+electron/src/mainProcess.ts,A,application,pending,pending,pending
+electron/src/managed/backends/ManagedBackends.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/managed/backends/windows.ts,M,application,pending,pending,pending
+electron/src/menu/AccountContextMenu.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/menu/AccountContextMenu.ts,A,application,pending,pending,pending
+electron/src/menu/AccountTheme.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/menu/AccountTheme.ts,A,application,pending,pending,pending
+electron/src/menu/TrayHandler.test.main.ts,M,test/fixture,pending,pending,pending
+electron/src/menu/TrayHandler.ts,M,application,pending,pending,pending
+electron/src/menu/developer.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/menu/developer.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/menu/system.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/menu/system.ts,M,application,pending,pending,pending
+electron/src/preload/AccountShellBridge.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/AccountShellBridge.ts,A,application,pending,pending,pending
+electron/src/preload/AccountThemeContract.ts,A,application,pending,pending,pending
+electron/src/preload/AccountThemeReceiver.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/AccountThemeReceiver.ts,A,application,pending,pending,pending
+electron/src/preload/ApplicationShellBootstrap.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/ApplicationShellBootstrap.ts,A,application,pending,pending,pending
+electron/src/preload/ApplicationShellBridge.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/ApplicationShellBridge.ts,A,application,pending,pending,pending
+electron/src/preload/ApplicationShellMainWorld.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/ApplicationShellMainWorld.ts,A,application,pending,pending,pending
+electron/src/preload/LegacyPreloadCompatibility.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/LegacyWebviewPreferences.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/LegacyWebviewPreferences.ts,A,application,pending,pending,pending
+electron/src/preload/WebappBridge.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/WebappBridge.ts,A,application,pending,pending,pending
+electron/src/preload/WebappEventBridge.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/WebappEventBridge.ts,A,application,pending,pending,pending
+electron/src/preload/WebappMainWorld.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/WebappMainWorld.ts,A,application,pending,pending,pending
+electron/src/preload/WebappPreloadEvents.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/WebappPreloadEvents.ts,A,application,pending,pending,pending
+electron/src/preload/installWebappPreload.ts,A,application,pending,pending,pending
+electron/src/preload/menu/ContextMenuImageAction.ts,A,application,pending,pending,pending
+electron/src/preload/menu/contextMenuPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/menu/contextMenuPolicy.ts,A,application,pending,pending,pending
+electron/src/preload/menu/preload-about.test.renderer.ts,M,test/fixture,pending,pending,pending
+electron/src/preload/menu/preload-about.ts,M,application,pending,pending,pending
+electron/src/preload/menu/preload-context.ts,M,application,pending,pending,pending
+electron/src/preload/menu/preload-proxy-prompt.test.renderer.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/menu/preload-proxy-prompt.ts,M,application,pending,pending,pending
+electron/src/preload/preload-account.ts,A,application,pending,pending,pending
+electron/src/preload/preload-app.ts,M,application,pending,pending,pending
+electron/src/preload/preload-display-broker.ts,A,application,pending,pending,pending
+electron/src/preload/preload-display-pip.ts,A,application,pending,pending,pending
+electron/src/preload/preload-secure-account.ts,A,application,pending,pending,pending
+electron/src/preload/preload-shell.ts,A,application,pending,pending,pending
+electron/src/preload/preload-webview.ts,M,application,pending,pending,pending
+electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/EnvironmentUtil.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/configurePortableUserData.ts,A,application,pending,pending,pending
+electron/src/runtime/lifecycle.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/lifecycle.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/portableUserData.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/runtime/portableUserData.ts,A,application,pending,pending,pending
+electron/src/runtime/rendererEnvironment.ts,A,application,pending,pending,pending
+electron/src/runtime/rendererRuntimeArguments.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/runtime/rendererRuntimeArguments.ts,A,application,pending,pending,pending
+electron/src/runtime/wallClockLoader.mts,A,application,pending,pending,pending
+electron/src/secureShell/SecureShellController.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/secureShell/SecureShellController.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/secureShell/bootstrap.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/secureShell/bootstrap.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/secureShell/constants.ts,A,application,pending,pending,pending
+electron/src/secureShell/ipc.ts,A,application,pending,pending,pending
+electron/src/secureShell/policy.ts,A,application,pending,pending,pending
+electron/src/secureShell/protocol.ts,A,application,pending,pending,pending
+electron/src/secureShell/securityPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AboutWindowContract.ts,A,application,pending,pending,pending
+electron/src/security/AboutWindowIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AboutWindowIpc.ts,A,application,pending,pending,pending
+electron/src/security/AccountControlContract.ts,A,application,pending,pending,pending
+electron/src/security/AccountControlIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AccountControlIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AccountDataDeletionContract.ts,A,application,pending,pending,pending
+electron/src/security/AccountDataDeletionIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AccountDataDeletionIpc.ts,A,application,pending,pending,pending
+electron/src/security/AccountEventContract.ts,A,application,pending,pending,pending
+electron/src/security/AccountEventIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AccountEventIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AccountPermissionConsent.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AccountPermissionConsent.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AccountPermissionPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AccountPermissionPolicy.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AccountPermissionSession.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AccountPermissionSession.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AccountWindowPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/AccountWindowPolicy.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AuthorizedIpc.test.main.ts,A,test/fixture,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
+electron/src/security/AuthorizedIpc.ts,A,application,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
+electron/src/security/BadgeCountContract.ts,A,application,pending,pending,pending
+electron/src/security/BadgeCountIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/BadgeCountIpc.ts,A,application,pending,pending,pending
+electron/src/security/DeepLinkSubmitContract.ts,A,application,pending,pending,pending
+electron/src/security/DeepLinkSubmitIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/DeepLinkSubmitIpc.ts,A,application,pending,pending,pending
+electron/src/security/DesktopSourcesContract.ts,A,application,pending,pending,pending
+electron/src/security/DesktopSourcesIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/DesktopSourcesIpc.ts,A,application,pending,pending,pending
+electron/src/security/DeveloperToolViewIdentity.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/DeveloperToolViewIdentity.ts,A,application,pending,pending,pending
+electron/src/security/DownloadLocationContract.ts,A,application,pending,pending,pending
+electron/src/security/DownloadLocationIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/DownloadLocationIpc.ts,A,application,pending,pending,pending
+electron/src/security/LegacyAccountViewIdentity.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/LegacyAccountViewIdentity.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/LocalContentPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/LocalContentPolicy.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/LocalContentProtocol.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/LocalContentProtocol.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/ManagedConfigContract.ts,A,application,pending,pending,pending
+electron/src/security/ManagedConfigIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/ManagedConfigIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/NavigationGuard.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/NavigationGuard.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/NavigationPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/NavigationPolicy.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/NotificationActivationContract.ts,A,application,pending,pending,pending
+electron/src/security/NotificationActivationIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/NotificationActivationIpc.ts,A,application,pending,pending,pending
+electron/src/security/OpenGraphContract.ts,A,application,pending,pending,pending
+electron/src/security/OpenGraphIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/OpenGraphIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/PreviewMetadata.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/PreviewMetadata.ts,A,application,pending,pending,pending
+electron/src/security/ProxyPromptContract.ts,A,application,pending,pending,pending
+electron/src/security/ProxyPromptIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/ProxyPromptIpc.ts,A,application,pending,pending,pending
+electron/src/security/PublicNetworkPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/PublicNetworkPolicy.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/PublicResourceFetch.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/PublicResourceFetch.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/SafeStorageContract.ts,A,application,pending,pending,pending
+electron/src/security/SafeStorageIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/SafeStorageIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/SavePictureContract.ts,A,application,pending,pending,pending
+electron/src/security/SavePictureIpc.test.main.ts,A,test/fixture,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
+electron/src/security/SavePictureIpc.ts,A,application,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
+electron/src/security/SavePictureNative.test.main.ts,A,test/fixture,Local review/type/lint; native execution pending,Later F011 native regression; not original baseline,Hosted-only; controlled dialog response; actual OS interaction remains external
+electron/src/security/SsoAccountLimitContract.ts,A,application,pending,pending,pending
+electron/src/security/SsoAccountLimitIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/SsoAccountLimitIpc.ts,A,application,pending,pending,pending
+electron/src/security/SsoWindowControl.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/SsoWindowControlContract.ts,A,application,pending,pending,pending
+electron/src/security/SsoWindowControlIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/SsoWindowControlIpc.ts,A,application,pending,pending,pending
+electron/src/security/SsoWindowCoordinator.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/SsoWindowCoordinator.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/ViewIdentityRegistry.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/WebAppLoadedContract.ts,A,application,pending,pending,pending
+electron/src/security/WebAppLoadedIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/WebAppLoadedIpc.ts,A,application,pending,pending,pending
+electron/src/security/WindowsDownloadPath.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/WindowsDownloadPath.ts,A,application,pending,pending,pending
+electron/src/security/WrapperRelaunchContract.ts,A,application,pending,pending,pending
+electron/src/security/WrapperRelaunchIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/WrapperRelaunchIpc.ts,A,application,pending,pending,pending
+electron/src/security/WrapperReloadContract.ts,A,application,pending,pending,pending
+electron/src/security/WrapperReloadIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/WrapperReloadIpc.ts,A,application,pending,pending,pending
+electron/src/security/deepLinkPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/deepLinkPolicy.ts,A,application,pending,pending,pending
+electron/src/security/externalLinkPolicy.ts,A,application,pending,pending,pending
+electron/src/settings/ConfigurationPersistence.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/ConfigurationPersistence.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/SchemaUpdater.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/SchemaUpdater.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/WindowsMachineDestination.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/settings/WindowsMsiConfiguration.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/settings/WindowsMsiConfiguration.ts,A,application,pending,pending,pending
+electron/src/sso/AutomatedSingleSignOn.ts,M,application,initial source pass; final review pending,pending,pending
+electron/src/sso/SingleSignOn.test.main.ts,M,test/fixture,pending,pending,pending
+electron/src/sso/SingleSignOn.ts,M,application,initial source pass; final review pending,pending,pending
+electron/src/sso/SsoBackendCompletion.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/types/globals.d.ts,M,application,pending,pending,pending
+electron/src/update/squirrel.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/update/squirrel.ts,M,application,pending,pending,pending
+electron/src/update/squirrelInstallation.ts,A,application,pending,pending,pending
+electron/src/window/AboutWindow.ts,M,application,pending,pending,pending
+electron/src/window/AuxiliaryWindowIdentity.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/window/ProxyPromptWindow.ts,M,application,pending,pending,pending
+electron/src/window/WindowManager.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/window/WindowManager.ts,M,application,pending,pending,pending
+electron/src/window/WindowUtil.test.main.ts,M,test/fixture,pending,pending,pending
+electron/src/window/WindowUtil.ts,M,application,initial source pass; final review pending,pending,pending
+electron/test/collect-renderer-coverage.cjs,A,test/fixture,pending,pending,pending
+electron/test/fixtures/account-controller-preload.js,A,test/fixture,pending,pending,pending
+electron/test/fixtures/certificates/README.md,A,test/fixture,pending,pending,pending
+electron/test/fixtures/certificates/untrusted-localhost-cert.pem,A,test/fixture,pending,pending,pending
+electron/test/fixtures/certificates/untrusted-localhost-key.pem,A,test/fixture,pending,pending,pending
+electron/test/fixtures/csp-probe.js,A,test/fixture,pending,pending,pending
+electron/test/fixtures/legacy-account-profile.js,A,test/fixture,pending,pending,pending
+electron/test/fixtures/save-picture-preload.js,A,test/fixture,Local review/type/lint; native execution pending,Later F011 native regression; not original baseline,Hosted-only; controlled dialog response; actual OS interaction remains external
+electron/test/node-settings-context.cjs,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/test/register-local-scheme.cjs,A,test/fixture,pending,pending,pending
+electron/test/withTemporaryDirectory.ts,A,test/fixture,pending,pending,pending
+electron/wire.json,M,application,pending,pending,pending
+jenkins/deployment.groovy,M,tooling/CI/config,pending,pending,pending
+jenkins/windows.groovy,M,tooling/CI/config,pending,pending,pending
+jest.config.js,M,tooling/CI/config,pending,pending,pending
+package.json,M,tooling/CI/config,pending,pending,pending
+playwright.config.ts,M,tooling/CI/config,pending,pending,pending
+tsconfig.bin.json,M,tooling/CI/config,pending,pending,pending
+tsconfig.json,M,tooling/CI/config,pending,pending,pending
+tsconfig.playwright.json,M,tooling/CI/config,pending,pending,pending
+webpack.config.cjs,M,tooling/CI/config,pending,pending,pending
+yarn.lock,M,tooling/CI/config,pending,pending,pending
+electron/src/sso/SingleSignOnDiagnostics.test.main.ts,A,test,local diagnostic boundary review,1a1093f5 nine failing targets then local fix,native and composed qualification pending
+electron/test/node-sso-context.cjs,A,test adapter,Node-only guard and owned objects reviewed,1a1093f5,native tests do not load this adapter
+electron/src/logging/boundedLogAdmission.test.main.ts,A,test,local admission and ownership review,aaa7e250 four controls pass and seven targets fail before correction,native and composed qualification pending
+bin/build-tools/build-cli.test.ts,A,test,CLI parser/routing/diagnostic sink review,7eb299f3 eight controls pass and ten targets fail before fix,18 inert subprocess cases pass; real package boundaries pending
+bin/build-tools/fixtures/build-cli.cjs,A,test adapter,Node-only synthetic configs and inert native builders reviewed,7eb299f3,does not qualify actual builders or signing
