@@ -3,19 +3,27 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
 active_work_item: CAP-003
-state: qualifying-functional-m4
+state: functional-runtime-accepted-awaiting-closure-merge
 integration_branch: integration/electron-modernization
 integration_head_commit: 6930c8cebe379dc7b04c89e1207fbbcefb80f010
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: cap/CAP-003-consented-display-2026-09-15
-next_work_item: CAP-004
+next_work_item: PKG-001
 blockers: []
 ---
 
 # Current project status
 
 ## Current execution
+
+**Functional M4 implementation is accepted at reviewed 41066868; integration merge remains pending.** [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60) passes [build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539680), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539791), [CodeQL](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539568), [all native/package platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539595), and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539616). Linux/macOS complete 76 initially; Windows 75 initially plus one group-member selection retry. The corrected multi-account notification case passes initially on all platforms. Native Windows/Linux pass initially; macOS passes one reviewed unchanged-head rerun after the retained two-second notification-denial timeout. Each native platform passes 24 product cases. Report 104453835081 succeeds; no skipped tests or independent worker errors are reported.
+
+Build passes 112 Jest/964 native/4 media/23 renderer/51 build tools; fresh hosted coverage is 455/545 changed statements 83.49% and 184/199 tracked security branches 92.46%. CodeQL analysis 1780088232 on exact synthetic merge 19bc0f61 has zero findings/no error. Tested and reviewed tree `a3dd1458` match; review threads are empty. All ten strict core/native/platform/report checks, administrator enforcement, conversation resolution and no force pushes/deletion are verified. The [functional M4 audit](m4-acceptance.md) maps CAP-003/CAP-004 and development TST-005 criteria. PKG-001 and packaged TST-005, real OS/hardware and enterprise QA, signing/installers/updates/migration/rollback and independent release review remain open.
+
+**Next executable step:** publish this documentation closeout on the existing PR, require all applicable checks on its final head, repeat exact-head review/thread/protection verification, then SHA-guard merge and fast-forward integration. Do not claim integration contains CAP-003 until the merge is verified. The documentation changes no qualified production code. The next implementation work after that accepted merge is PKG-001, beyond the maintainer's current functional-before-packaging scope.
+
+The refreshed [complete Windows preview](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539562/artifacts/10404000902) passes packaged identity and startup/immutable-config/Node-denial smoke at 41066868. It has been delivered with [manual instructions](manual-windows-preview.md). No local GUI testing has resumed. The following execution notes preserve preceding checkpoints and are superseded where this acceptance record gives a final result.
 
 **Execution constraint:** the maintainer paused testing because native windows interrupted their work. Do not run GUI/native Electron suites on the shared DISPLAY. Use hosted CI and non-GUI checks until a truly isolated display is available. The maintainer requests a runnable Windows preview alongside installed Wire; a scoped CI-only preview bundle uses a distinct application/protocol identity and explicit separate profile. It is not release packaging acceptance.
 

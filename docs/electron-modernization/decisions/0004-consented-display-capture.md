@@ -1,7 +1,7 @@
 ---
 decision_id: DEC-011
 adr: 0004
-status: proposed
+status: accepted
 date: 2026-09-15
 owners: [Desktop maintainer, Security]
 work_items: [CAP-003]
@@ -37,9 +37,11 @@ This preserves the webapp's existing display-media path without exposing native 
 
 ## Validation
 
-Before acceptance, require actual native allow/deny and ownership tests, hostile legacy-request denial, bounded frame validation/backpressure, cancellation/late-answer cleanup, PiP parent-lifetime checks and a real sandboxed product fixture. Synthetic test-owned frames can exercise the modern display handler and complete relay without capturing the host desktop. Supported-platform CI and existing authenticated call E2E must pass on the final head. Real OS capture/privacy/portal behavior remains explicit platform QA evidence, never inferred from a synthetic frame.
+Acceptance requires actual native allow/deny and ownership tests, hostile legacy-request denial, bounded frame validation/backpressure, cancellation/late-answer cleanup, PiP parent-lifetime checks and a real sandboxed product fixture. Synthetic test-owned frames can exercise the modern display handler and complete relay without capturing the host desktop. Supported-platform CI and existing authenticated call E2E must pass on the final head. Real OS capture/privacy/portal behavior remains explicit platform QA evidence, never inferred from a synthetic frame.
 
 Linux preflight on the installed runtime demonstrated modern capture in an exact secure custom-scheme broker, activation through its fixed context bridge, transfer across isolated sessions, native account display denial, and original/clone ending on Stop. Those probes justify implementation; they do not qualify an unimplemented production chooser.
+
+Acceptance checkpoint: reviewed 41066868 in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60) passes all native/package platforms, core checks and full76-case E2E/report per platform. The [functional audit](../m4-acceptance.md) records exact evidence, retained retries, source review and unchanged security invariants. Real OS capture/privacy/portal/performance QA remains open; final documentation-head checks and guarded merge are still mandatory.
 
 ## Revisit conditions
 
