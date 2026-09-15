@@ -181,37 +181,56 @@ describe('consented display capture native boundary', function () {
   });
 
   it('[security-target][CAP-003] requires source choice and relays only the selected synthetic frame until Stop', async () => {
-    const broker = await request();
-    assert.equal(enumerations, 1);
-    assert.equal(await owner.webContents.executeJavaScript('window.captureOutcome'), 'pending');
-    await selectSource(broker);
-    await until(() => owner.webContents.executeJavaScript('window.captureOutcome !== "pending"'));
-    assert.equal(await owner.webContents.executeJavaScript('window.captureOutcome'), 'started');
-    const frame = await owner.webContents.executeJavaScript(`(async()=>{
-      const track=window.capturedStream.getVideoTracks()[0];
-      const reader=new MediaStreamTrackProcessor({track}).readable.getReader();
-      const {value}=await reader.read();const pixels=new Uint8Array(value.allocationSize({format:'RGBA'}));await value.copyTo(pixels,{format:'RGBA'});
-      const result={dimensions:[value.displayWidth,value.displayHeight],pixel:[...pixels.slice(0,4)]};value.close();reader.releaseLock();return result;
-    })()`);
-    assert.ok(
-      frame.dimensions[0] > 0 && frame.dimensions[0] <= 3840 && frame.dimensions[1] > 0 && frame.dimensions[1] <= 2160,
-    );
-    // Native display capture performs a YUV/color-space conversion, so CSS RGB is not lossless.
-    assert.equal(frame.pixel[3], 255);
-    [23, 106, 145].forEach((channel, index) => assert.ok(Math.abs(frame.pixel[index] - channel) <= 16));
-    assert.equal(
-      await owner.webContents.executeJavaScript('window.capturedStream.getVideoTracks()[0].readyState'),
-      'live',
-    );
-    await broker.webContents
-      .executeJavaScript('document.getElementById("stop-capture").click()', true)
-      .catch(() => undefined);
-    await until(() =>
-      owner.webContents.executeJavaScript(
-        'window.capturedStream.getVideoTracks()[0].readyState === "ended" && window.capturedClone.readyState === "ended"',
-      ),
-    );
-    assert.equal(broker.isDestroyed(), true);
+    let stage = 'starting';
+    const warning = setTimeout(() => {
+      // Fixed labels only; no URLs, source identifiers, pixels or native errors.
+      console.error('Native capture Stop fixture pending at:', stage);
+    }, 18_000);
+    try {
+      stage = 'requesting the native chooser';
+      const broker = await request();
+      assert.equal(enumerations, 1);
+      stage = 'reading the pending owner outcome';
+      assert.equal(await owner.webContents.executeJavaScript('window.captureOutcome'), 'pending');
+      stage = 'selecting the synthetic source';
+      await selectSource(broker);
+      stage = 'waiting for stream startup';
+      await until(() => owner.webContents.executeJavaScript('window.captureOutcome !== "pending"'));
+      assert.equal(await owner.webContents.executeJavaScript('window.captureOutcome'), 'started');
+      stage = 'reading the first captured frame';
+      const frame = await owner.webContents.executeJavaScript(`(async()=>{
+        const track=window.capturedStream.getVideoTracks()[0];
+        const reader=new MediaStreamTrackProcessor({track}).readable.getReader();
+        const {value}=await reader.read();const pixels=new Uint8Array(value.allocationSize({format:'RGBA'}));await value.copyTo(pixels,{format:'RGBA'});
+        const result={dimensions:[value.displayWidth,value.displayHeight],pixel:[...pixels.slice(0,4)]};value.close();reader.releaseLock();return result;
+      })()`);
+      assert.ok(
+        frame.dimensions[0] > 0 &&
+          frame.dimensions[0] <= 3840 &&
+          frame.dimensions[1] > 0 &&
+          frame.dimensions[1] <= 2160,
+      );
+      // Native display capture performs a YUV/color-space conversion, so CSS RGB is not lossless.
+      assert.equal(frame.pixel[3], 255);
+      [23, 106, 145].forEach((channel, index) => assert.ok(Math.abs(frame.pixel[index] - channel) <= 16));
+      assert.equal(
+        await owner.webContents.executeJavaScript('window.capturedStream.getVideoTracks()[0].readyState'),
+        'live',
+      );
+      stage = 'waiting for the Stop command reply';
+      await broker.webContents
+        .executeJavaScript('document.getElementById("stop-capture").click()', true)
+        .catch(() => undefined);
+      stage = 'waiting for original and cloned tracks to end';
+      await until(() =>
+        owner.webContents.executeJavaScript(
+          'window.capturedStream.getVideoTracks()[0].readyState === "ended" && window.capturedClone.readyState === "ended"',
+        ),
+      );
+      assert.equal(broker.isDestroyed(), true);
+    } finally {
+      clearTimeout(warning);
+    }
   });
 
   it('[security-target][CAP-003] cancels when ownership changes before source selection', async () => {

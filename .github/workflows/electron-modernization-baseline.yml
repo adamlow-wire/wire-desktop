@@ -107,9 +107,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|log maintenance coordinator'
+            xvfb-run yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|desktop log maintenance coordination'
           else
-            yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|log maintenance coordinator'
+            yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|desktop log maintenance coordination'
           fi
       - name: Test native account lifecycle and cleanup
         shell: bash

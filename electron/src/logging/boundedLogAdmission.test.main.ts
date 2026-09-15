@@ -180,7 +180,7 @@ describe('bounded desktop logging admission', () => {
   it('[security-target][CAP-001][INV-010] rejects oversized path retention without logging the supplied path', async () => {
     const f = fixture();
     await f.writer.write({logFilePath: 'p'.repeat(32769), message: 'oversized path'});
-    assert.deepEqual(f.appended, []);
+    assert.equal(f.appended.length, 0);
     await f.writer.write({logFilePath: 'fixture.log', message: 'recovered'});
     assert.equal(f.appended.length, 1);
     assert.match(f.appended[0].content, /dropped 1 entries/);
