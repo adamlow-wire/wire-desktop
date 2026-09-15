@@ -87,6 +87,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y gnome-keyring dbus-x11 libglib2.0-bin
+          # Electron 43 downloads its binary on first use, after dependency installation.
+          node node_modules/electron/install.js
           sudo chown root:root node_modules/electron/dist/chrome-sandbox
           sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
           python3 bin/test-tools/run-linux-e2e.test.py
