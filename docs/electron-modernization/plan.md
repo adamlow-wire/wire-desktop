@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.46
+revision: 1.5.47
 status: draft
 updated: 2026-09-15
 owners:
@@ -649,14 +649,16 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
 - Managed destination boundary (reconciled September 14): machine-enforced HTTPS configuration constrains saved account destinations and explicit environment-change approval to its canonical origin. Same-origin paths/query/SSO routes remain compatible. Invalid configured policy or a foreign saved destination fails before navigation; a foreign environment request fails before prompting or profile mutation. Preserve saved account records rather than rebinding their identity/session. The main-owned policy snapshot is fixed until restart. Native Windows registry-to-navigation qualification remains under CAP-005; final cutover gates remain required.
 - Test-harness prerequisite (2026-09-08): real fixture renderer termination avoids host crash-dump delays without changing runtime recovery code or test deadlines. Add an explicit pre-replacement revocation assertion; deliberately delayed revocation must fail it. This test-only slice does not close production account migration. Local forced-crash diagnostics stalled before process-loss notification on WSL; non-dumping termination produced notification at 29 ms and completed recovery at 153 ms.
 - Metadata identity prerequisite (2026-09-08): webapp account-info updates must reject desktop-owned identity, session, visibility, lifecycle, badge and arbitrary fields. The existing known metadata fields and separate custom-environment URL update remain compatible. Malformed messages must not throw in the user-ID guard. Characterize targeted reducer updates first and prove the tests detect corruption. This bounded validation does not make production account state main-owned or authorize the remaining programmatic environment-change path; those remain CAP-001/CAP-005 cutover work.
+- Final-audit startup correction (September15): retained PR55 macOS retry and a deterministic native fixture show a same-origin client redirect interrupting pending startup resources. The initial native load rejects ERR_ABORTED and the view is incorrectly destroyed. Preserve a fully completed approved replacement document, with bounded waiting, native lifetime/ownership checks and unchanged foreign-navigation denial; do not blindly ignore native aborts. Existing cap/CAP-001-production-accounts-2026-09-09 owns this correction after diagnostic PR55 qualifies.
 - Acceptance:
+  - Approved same-origin startup redirects preserve the owning view; failed, cancelled, stale or foreign replacements cannot become successful startup.
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
@@ -736,13 +738,13 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-006 — Migrate deep links and single-instance behavior
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: SEC-013, CAP-001
 - Scope: Preserve conversation, user, login, and SSO links while safely routing them to the intended account/window.
 - Current second-instance composition: existing lifecycle PR #51 includes merged protocol18235a5a. Ordinary Windows/Linux lock losers exit without stale settings writes or updater scheduling; exact installed Squirrel lifecycle events retain handling. Preflight7d15a032 passes all three native/package platforms, including real Windows Electron-to-Electron delivery, zero secondary exit, exact selected-account routing and unchanged account count. Final current integration-head gates including authenticated E2E/report pass in PR #51 (see final acceptance below).
 - Execution checkpoint: local candidate `cap/CAP-006-second-instance-2026-09-10` at `6902448a` supplied implementation and local lifecycle tests; native Windows and final-head qualification subsequently pass in PR #51. See final acceptance below.
-- Final-audit correction (September15): INV-010 prohibits diagnostic payloads containing incoming SSO/join credentials or stored proxy credentials. Preserve exact dispatch and settings behavior while removing those payloads; supporting CAP-005 coverage shares this focused correction. Prior lifecycle qualification remains valid, but overall acceptance awaits the corrected final head.
+- Final-audit correction (September15): INV-010 prohibits diagnostic payloads containing incoming SSO/join credentials or stored proxy credentials. Preserve exact dispatch and settings behavior while removing those payloads; supporting CAP-005 coverage shares this focused correction. Reviewed PR55 qualifies this corrected boundary as recorded below.
 - Acceptance:
   - Action, stored-settings and proxy-startup diagnostics contain no credential payloads.
   - Valid links work before and after application readiness.
@@ -751,6 +753,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Evidence: final acceptance below; separate baselinesca1961e3/4a3859dc precede6902448a, with dispatch/activation/installer-deferral mutation failures and restored native/product passes recorded in testing.md.
 
 - Final acceptance: [PR #51](https://github.com/adamlow-wire/wire-desktop/pull/51) merged as `c74d116e` after substantive review of exact head1eaf7fba and successful build/coverage, lint, analysis, all three native/package platforms and authenticated Windows/macOS E2E/report. Existing strict parser/external-link denials and authorized selected-account startup/running dispatch remain intact; actual second-Electron delivery verifies exact routing, zero secondary exit and unchanged account count. [Native34862334704](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862334704) and [E2E/report34862337125](https://github.com/adamlow-wire/wire-desktop/actions/runs/34862337125) provide final platform evidence. macOS43 initial passes; Windows41 initial/two retry passes, no skips or worker errors. No acceptance criterion or security invariant is waived.
+
+- Diagnostic acceptance: [PR55](https://github.com/adamlow-wire/wire-desktop/pull/55) merged4f4cfdaa after exact-head480acb50 review, all native platforms, build/lint/analysis and [47-case E2E/report per platform](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909605643) pass. Sensitive tests verify exact immediate/queued action delivery, settings round trips and real startup proxy configuration while omitting credentials. Whole-M3 coverage at that head passes84.48% changed statements/98.48% tracked security branches. CAP-001 separately owns the startup redirect defect found in retained retry evidence; M3 remains open for that correction.
 
 ### 10.6 Packaging, update, and rollout
 
@@ -920,6 +924,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.47 | 2026-09-15 | Codex | Reopen CAP-001 for a native-reproduced same-origin startup redirect teardown found in retained PR55 retry evidence; require completed authorized replacement and bounded lifetime checks | CAP-001, INV-010 |
 | 1.5.46 | 2026-09-15 | Codex | Integrate qualified retained pinning PR #54; reopen CAP-006 for final-audit action/settings/startup credential diagnostics under INV-010 | CAP-006, CAP-005 |
 | 1.5.45 | 2026-09-14 | Codex | Close CAP-002 automated acceptance after reviewed PR #53 and final native/authenticated/report gates; reconcile retained pinning candidate with actual integration and preserve downstream live QA | CAP-002, CAP-005, Q-011 |
 | 1.5.44 | 2026-09-14 | Maintainer in chat; Codex | Resolve Q-005 by preserving existing pinning product behavior with explicit default/consent/Chromium-denial/reset characterization; retain broad-override concern for independent review | CAP-005, Q-005 |
