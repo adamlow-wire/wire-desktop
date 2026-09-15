@@ -195,10 +195,10 @@ jobs:
             Where-Object { $_.Name -notin @('Squirrel.exe', 'Update.exe') } |
             Select-Object -First 1
           if (-not $app) { throw 'No packaged application executable found.' }
-          & $app.FullName --version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node bin/test-tools/packaged-account-smoke.cjs $app.FullName
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The Node driver waits for actual packaged startup. A GUI --version
+          # invocation can leave LASTEXITCODE unset and exit this step early.
+          # Hosted Windows may be enrolled: use an explicit managed fixture,
+          # without changing enrollment or claiming an unmanaged-device run.
           $policy = 'HKCU:\SOFTWARE\Policies\Wire'
           $existing = Get-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
           if ($null -ne $existing) { throw 'Refusing to replace existing App-lock policy.' }
@@ -206,6 +206,8 @@ jobs:
           try {
             New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
             $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
+            node bin/test-tools/packaged-account-smoke.cjs $app.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Managed package startup smoke failed.' }
             $env:M3_AUTHENTICATED_PROXY = 'true'
             node bin/test-tools/packaged-account-smoke.cjs $app.FullName
             if ($LASTEXITCODE -ne 0) { throw 'Managed package smoke failed.' }

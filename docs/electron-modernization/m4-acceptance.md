@@ -4,6 +4,14 @@
 
 PKG-001 and the packaged-release portion of TST-005 remain open. Signing, installers, updater qualification, released-profile migration/rollback and independent release review are later work. Live enterprise SSO/E2EI remains downstream [QA](qa-sso-e2ei.md).
 
+## Windows package execution correction
+
+The final TST-005 log audit finds that the Windows package step reports success after the GUI `--version` probe but never executes either intended Node-driven smoke. [Native run34991262031](https://github.com/adamlow-wire/wire-desktop/actions/runs/34991262031), Windows job104456212184, has zero package completion observations; requiring both fails (`/tmp/m4-windows-package-completion-baseline.log`). Earlier green Windows job statuses therefore qualify their executed native groups, not the skipped packaged startup/proxy assertions. The separate Windows preview workflow actually executes its managed startup smoke and remains valid evidence for that narrower claim.
+
+Separate baseline02b9ee05 adds an explicit output set only after both smoke runs and a following mandatory completion check. The correction removes the redundant GUI version probe and uses the existing Node driver, which awaits actual packaged startup and asserts immutable managed policy, bridge identity and Node denial. Two fresh launches test ordinary managed startup and authenticated proxy routing. Hosted Windows may be enrolled; a temporary explicit HKCU App-lock policy makes the fixture deterministic without altering enrollment or existing policy. It refuses to replace an existing value and removes only its own value in `finally`. Both launches retain exact `true` policy assertions. This does not claim an unmanaged Windows device or a false-to-true policy transition there; those remain OS/packaging QA, with both backend decisions covered by existing native characterization. macOS/Linux retain their existing policy-transition fixtures.
+
+Before PR #60 merges, the corrected final head must execute both Windows package runs, pass its completion guard and every applicable core/native/full-E2E/report check. This reopens Windows package execution qualification, not application security policy. No assertion, timeout, retry, Electron version, enrollment or pinning behavior is weakened. The final exact-head execution and merge evidence belongs in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60); superseded jobs are not counted as final passes.
+
 ## Criteria and evidence
 
 | Work item / criterion | Implementation and observable evidence |

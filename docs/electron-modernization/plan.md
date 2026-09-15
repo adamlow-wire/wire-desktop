@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.51
+revision: 1.5.52
 status: draft
 updated: 2026-09-15
 owners:
@@ -644,6 +644,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Flaky tests have owners and bounded quarantine rules.
 - Evidence: The functional development/test foundation is integrated through reviewed [PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58), merge `6930c8ce`. All final-head core/native and 69-case Windows/macOS/Linux E2E/report gates pass, with retained bounded retries in status/PR evidence. All ten integration checks are strict and mandatory after protection readback. The [functional M4 audit](m4-acceptance.md) accepts the composed development scope at 41066868 after all 76 E2E cases/platform and core/native/report checks pass. Separate sensitive baselines protect safe registration diagnostics, independent account identities and native Quit inspector-reply handling; the notification fixture establishes its unread-conversation precondition without weakening assertions. Packaged-artifact smoke acceptance remains open under PKG-001; this functional scope does not claim release qualification.
 
+- Windows execution correction: the bd8b054c log audit shows the GUI version probe returns a green step before either intended packaged smoke runs. Withdraw that packaged execution claim while retaining executed native tests. Baseline02b9ee05 requires an explicit completion output; the actual log lacks both smoke observations and fails the baseline check. Remove the redundant GUI probe and require the Node driver to complete ordinary managed startup plus authenticated proxy startup under a temporary explicit HKCU policy. Do not assume the hosted device is unenrolled or claim an unmanaged Windows run. Final corrected-head execution and protected checks remain mandatory before PR #60 merges; see [audit](m4-acceptance.md).
+
 ### 10.5 Capability migration
 
 #### CAP-001 — Migrate account and multi-account lifecycle
@@ -929,6 +931,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.52 | 2026-09-15 | Codex | Reopen Windows package execution evidence after a false-success version probe; require explicit smoke completion and deterministic managed fixtures without changing application policy or claiming unmanaged Windows QA | TST-005, CAP-005 |
 | 1.5.51 | 2026-09-15 | Codex | Accept reviewed functional CAP-003/CAP-004 and development TST-005 after all-platform qualification; accept DEC-011, reconcile DEC-010 clerical status, retain final documentation-head merge gates and explicit packaging/OS/live-QA limits | CAP-003, CAP-004, TST-005, DEC-011 |
 | 1.5.50 | 2026-09-15 | Codex | Reconcile CAP-003 with published fixture corrections; renew whole-milestone coverage and record capture diagnostics/OS QA handoff without claiming final platform acceptance | CAP-003, TST-005 |
 | 1.5.49 | 2026-09-15 | Codex | Restore CAP-001 acceptance after sensitivity-proven queued-log cleanup and reviewed PR #59 final-head qualification; reconcile functional TST-005 with actual integration | CAP-001, TST-005 |
