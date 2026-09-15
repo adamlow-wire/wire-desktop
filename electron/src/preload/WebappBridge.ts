@@ -24,14 +24,13 @@ import type {WebappEventBridge} from './WebappEventBridge';
 import type {DesktopAppConfig} from '../lib/desktopAppConfig';
 import type {RendererEnvironment} from '../runtime/rendererEnvironment';
 
-export const WEBAPP_BRIDGE_VERSION = 1;
+export const WEBAPP_BRIDGE_VERSION = 2;
 
 export interface WebappBridgeDependencies {
   decrypt(encrypted: Uint8Array): Promise<string>;
   encrypt(value: string): Promise<Uint8Array>;
   environment: RendererEnvironment;
   events: Readonly<WebappEventBridge>;
-  getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
   getOpenGraphData(url: string): Promise<OpenGraphResult>;
   desktopAppConfig: DesktopAppConfig;
 }
@@ -39,9 +38,6 @@ export interface WebappBridgeDependencies {
 export interface WebappBridge {
   readonly version: typeof WEBAPP_BRIDGE_VERSION;
   readonly desktopAppConfig: DesktopAppConfig;
-  readonly desktopCapturer: {
-    getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
-  };
   readonly environment: RendererEnvironment;
   readonly events: Readonly<WebappEventBridge>;
   readonly openGraphAsync: (url: string) => Promise<OpenGraphResult>;
@@ -57,7 +53,6 @@ type BridgeExposer = Pick<Electron.ContextBridge, 'exposeInMainWorld'>;
 export const createWebappBridge = (dependencies: WebappBridgeDependencies): Readonly<WebappBridge> =>
   Object.freeze({
     desktopAppConfig: Object.freeze(dependencies.desktopAppConfig),
-    desktopCapturer: Object.freeze({getDesktopSources: dependencies.getDesktopSources}),
     environment: Object.freeze({
       app: dependencies.environment.app,
       platform: dependencies.environment.platform,
@@ -78,7 +73,6 @@ export const exposeWebappBridge = (contextBridge: BridgeExposer, bridge: Readonl
   // Compatibility names consumed by released Wire webapps. New integrations should
   // feature-detect wireDesktopBridge.version and use its namespaced capabilities.
   contextBridge.exposeInMainWorld('desktopAppConfig', bridge.desktopAppConfig);
-  contextBridge.exposeInMainWorld('desktopCapturer', bridge.desktopCapturer);
   contextBridge.exposeInMainWorld('environment', bridge.environment);
   contextBridge.exposeInMainWorld('openGraphAsync', bridge.openGraphAsync);
   contextBridge.exposeInMainWorld('systemCrypto', bridge.systemCrypto);

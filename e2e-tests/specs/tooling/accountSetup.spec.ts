@@ -44,6 +44,24 @@ test('[TST-005] fixture handles remain valid for punctuation and Unicode display
   }
 });
 
+test('[TST-005] registration addresses remain independent when generated display-name emails repeat', () => {
+  const sandbox = createSandbox();
+  try {
+    sandbox.stub(faker.person, 'firstName').returns('Fixture');
+    sandbox.stub(faker.person, 'lastName').returns('User');
+    sandbox.stub(faker.internet, 'email').returns('Fixture.User@wire.engineering');
+    const first = createUser();
+    const second = createUser();
+    expect(first.fullName).toBe(second.fullName);
+    expect(first.email).not.toBe(second.email);
+    for (const user of [first, second]) {
+      expect(user.email).toMatch(/^[a-z0-9_]+@wire\.engineering$/);
+    }
+  } finally {
+    sandbox.restore();
+  }
+});
+
 test.describe('[TST-005] fixture API result handling', () => {
   let server: Server;
   let api: PublicApiClient;
@@ -83,6 +101,13 @@ test.describe('[TST-005] fixture API result handling', () => {
   test.afterEach(async () => {
     server.closeAllConnections();
     await new Promise<void>(resolve => server.close(() => resolve()));
+  });
+
+  test('reports registration HTTP failure without account or response data', async () => {
+    status = 500;
+    await expect(api.registerUser(user)).rejects.toThrow(/^User registration rejected \(HTTP 500\)$/);
+    expect(request.method).toBe('POST');
+    expect(request.path).toBe('/register');
   });
 
   const operations: Array<{name: string; run: (api: PublicApiClient) => Promise<unknown>}> = [

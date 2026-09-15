@@ -4,6 +4,12 @@ M3 is accepted under the maintainer-approved scope at integration `45840fca7eea1
 
 The final source review found and corrected credential-bearing action/settings/proxy diagnostics in [PR #55](https://github.com/adamlow-wire/wire-desktop/pull/55), then a real startup redirect teardown exposed by its retained macOS retry. PR #56 supplies sensitive native/product baselines, bounded authorized replacement completion and non-secret startup errors. The final Windows retry is retained and assigned to TST-005 fixture setup, as detailed below. This is the implementation review; independent release security review remains M5.
 
+## Windows package execution correction
+
+The M4/TST-005 log audit finds that the Windows package step reports success after `--version` but never executes its intended packaged startup/proxy smokes. Earlier green Windows job statuses remain valid for their executed native groups; the missing packaged assertions are withdrawn. The separate Windows preview actually executes its managed startup smoke and retains that narrower evidence.
+
+[PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60) adds a mandatory completion guard and removes the redundant GUI probe. Before merge, it must execute both actual packaged launches and pass all corrected-head checks. The [functional M4 audit](m4-acceptance.md) records the failing execution baseline, temporary explicit managed fixture and remaining unmanaged-device QA. Application invariants, pinning and native/backend characterization are unchanged.
+
 ## Subsequent cleanup correction
 
 The M4 audit reopened CAP-001 after actual queued console writes recreated deleted account logs. Separate baseline `e4cac57f` reproduces it; removing the corrected queue drain reproduces it again. [PR #59](https://github.com/adamlow-wire/wire-desktop/pull/59) drains queued writes after native producer closure and before exclusive maintenance, retaining exact-target/symlink checks, original write failures and account retention on deletion failure.

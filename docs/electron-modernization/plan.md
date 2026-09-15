@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.49
+revision: 1.5.52
 status: draft
 updated: 2026-09-15
 owners:
@@ -642,7 +642,9 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Security-critical smoke tests execute packaged artifacts.
   - Test artifacts, logs, screenshots, and traces are retained on failure.
   - Flaky tests have owners and bounded quarantine rules.
-- Evidence: Functional development-mode work is in local qualification: three-platform scheduling, isolated Linux native storage, retained failure artifacts, checked/cleaned account fixtures and reproducible typed API generation. Separate sensitive fixture baselines are `8ae22780` and `ba2328a2`; local fixture14, generator13 and keyring3 cases pass. Final hosted qualification and mandatory protection readback remain required. Packaged-artifact smoke acceptance remains open for PKG-001; it is not claimed by the functional M4 scope.
+- Evidence: The functional development/test foundation is integrated through reviewed [PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58), merge `6930c8ce`. All final-head core/native and 69-case Windows/macOS/Linux E2E/report gates pass, with retained bounded retries in status/PR evidence. All ten integration checks are strict and mandatory after protection readback. The [functional M4 audit](m4-acceptance.md) accepts the composed development scope at 41066868 after all 76 E2E cases/platform and core/native/report checks pass. Separate sensitive baselines protect safe registration diagnostics, independent account identities and native Quit inspector-reply handling; the notification fixture establishes its unread-conversation precondition without weakening assertions. Packaged-artifact smoke acceptance remains open under PKG-001; this functional scope does not claim release qualification.
+
+- Windows execution correction: the bd8b054c log audit shows the GUI version probe returns a green step before either intended packaged smoke runs. Withdraw that packaged execution claim while retaining executed native tests. Baseline02b9ee05 requires an explicit completion output; the actual log lacks both smoke observations and fails the baseline check. Remove the redundant GUI probe and require the Node driver to complete ordinary managed startup plus authenticated proxy startup under a temporary explicit HKCU policy. Do not assume the hosted device is unenrolled or claim an unmanaged Windows run. Final corrected-head execution and protected checks remain mandatory before PR #60 merges; see [audit](m4-acceptance.md).
 
 ### 10.5 Capability migration
 
@@ -690,7 +692,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `done`
 - Milestone: `M4`
 - Dependencies: SEC-003, SEC-007, SEC-009
 - Scope: Replace legacy global APIs for desktop capture and migrate call/PiP window behavior.
@@ -699,12 +701,13 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Display capture is initiated only by an authorized view and user flow.
   - PiP windows use fixed secure preferences and controlled navigation.
   - Permission-denied behavior is tested.
-- Evidence: TBD
+- Design: Accepted DEC-011 uses an isolated local chooser/broker and bounded approved-stream relay. Bridge version2 intentionally removes the legacy `desktopCapturer` global and production enumeration endpoint, so the released webapp selects its existing `getDisplayMedia` path. Remote native display/legacy permission remains denied.
+- Evidence: [Functional M4 acceptance audit](m4-acceptance.md) maps all four criteria to reviewed 41066868 in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60). Build/types/lint/CodeQL and all native/package platforms pass; [full E2E/report 34986539616](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539616) completes 76 cases/platform. Linux/macOS pass initially; Windows has one group-member selection retry. Native macOS passes one reviewed unchanged-head retry after a retained two-second notification-denial timeout. All capture and corrected notification product cases pass. Coverage is 83.49% changed statements/92.46% tracked security branches; whole-M3/M4 cumulative evidence and sensitive policy checks are recorded in the audit. The documentation closeout still requires final-head checks and SHA-guarded merge. Actual OS capture/privacy/portal/performance checks remain [QA](qa-display-capture.md), and packaged release acceptance remains PKG-001. No invariant or product assertion is waived.
 
 #### CAP-004 — Migrate tray, notification, badge, menu, and shortcut integration
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `done`
 - Milestone: `M4`
 - Dependencies: TST-003, SEC-003, CAP-001
 - Scope: Route OS integration through explicit main-process capabilities and preserve account-aware behavior.
@@ -712,7 +715,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - TST-003 and existing menu/notification E2E pass.
   - Renderer data cannot invoke arbitrary menu commands.
   - Notification activation targets the correct account/conversation.
-- Evidence: TBD
+- Evidence: [Functional M4 acceptance audit](m4-acceptance.md) reviews existing main-owned tray/menu/badge/notification and account-control code; no duplicate implementation is required. TST-003/native contracts and all 76 development E2E cases per platform qualify at 41066868 in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60). Tests deny arbitrary/revoked/wrong-account commands and preserve exact notification account/conversation routing. Notification E2E invokes observed onclick callbacks; it does not click OS toasts. Visible packaged tray/menu/notification behavior remains the existing PKG-001 allocation. Final closure-head checks and merge remain required.
 
 #### CAP-005 — Migrate proxy, certificate, and managed configuration
 
@@ -896,7 +899,8 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
-| DEC-010 | 2026-09-10 | proposed | [Bounded production local content protocol](./decisions/0003-local-content-protocol.md) | Fixed role-specific assets avoid arbitrary filesystem serving while preserving migration and preloads | Asset, session, CSP or legacy-import incompatibility |
+| DEC-010 | 2026-09-10 | accepted | [Bounded production local content protocol](./decisions/0003-local-content-protocol.md) | Fixed role-specific assets avoid arbitrary filesystem serving while preserving migration and preloads | Asset, session, CSP or legacy-import incompatibility |
+| DEC-011 | 2026-09-15 | accepted | [Trusted local display capture](./decisions/0004-consented-display-capture.md) | Main-owned source consent and bounded relay retain native remote capture denial | Native permission separation, transferable tracks, performance or capture capability requirements change |
 | DEC-009 | 2026-09-14 | accepted | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Explicit main-owned document-scoped consent is integrated and qualified; display and thumbnail capture stay denied under CAP-003/M4 | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |
@@ -927,6 +931,9 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.52 | 2026-09-15 | Codex | Reopen Windows package execution evidence after a false-success version probe; require explicit smoke completion and deterministic managed fixtures without changing application policy or claiming unmanaged Windows QA | TST-005, CAP-005 |
+| 1.5.51 | 2026-09-15 | Codex | Accept reviewed functional CAP-003/CAP-004 and development TST-005 after all-platform qualification; accept DEC-011, reconcile DEC-010 clerical status, retain final documentation-head merge gates and explicit packaging/OS/live-QA limits | CAP-003, CAP-004, TST-005, DEC-011 |
+| 1.5.50 | 2026-09-15 | Codex | Reconcile CAP-003 with published fixture corrections; renew whole-milestone coverage and record capture diagnostics/OS QA handoff without claiming final platform acceptance | CAP-003, TST-005 |
 | 1.5.49 | 2026-09-15 | Codex | Restore CAP-001 acceptance after sensitivity-proven queued-log cleanup and reviewed PR #59 final-head qualification; reconcile functional TST-005 with actual integration | CAP-001, TST-005 |
 | 1.5.48 | 2026-09-15 | Codex | Accept all M3 work after reviewed PR #56 and complete final-head/aggregate evidence; clarify the previously accepted TST-003 packaged-smoke allocation and continue functional M4 | CAP-001, TST-003, CAP-003, CAP-004, TST-005 |
 | 1.5.47 | 2026-09-15 | Codex | Reopen CAP-001 for a native-reproduced same-origin startup redirect teardown found in retained PR55 retry evidence; require completed authorized replacement and bounded lifetime checks | CAP-001, INV-010 |

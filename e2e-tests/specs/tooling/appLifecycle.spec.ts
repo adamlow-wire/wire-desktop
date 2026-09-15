@@ -48,6 +48,40 @@ test('[regression][TST-005] shared app fixture supports an intentional restart',
   await expect(reopened.page).toHaveTitle('Fixture restart');
 });
 
+test('[regression][TST-005] restart accepts native zero exit before the inspector replies', async ({app}) => {
+  const child = app.process();
+  let requested = false;
+  const reopened = await app.reopen(async () => {
+    requested = true;
+    await app.evaluate(
+      ({app}) =>
+        new Promise<void>(() => {
+          app.exit(0);
+        }),
+    );
+  });
+  expect(requested).toBe(true);
+  expect(child.exitCode).toBe(0);
+  await expect(reopened.page).toHaveTitle('Fixture restart');
+});
+
+test('[regression][TST-005] restart preserves a rejected quit request and requires native exit', async ({app}) => {
+  const failure = new Error('Synthetic quit request failure');
+  let outcome: unknown;
+  try {
+    await app.reopen(async () => {
+      throw failure;
+    });
+  } catch (error) {
+    outcome = error;
+  }
+  expect(outcome).toBeInstanceOf(AggregateError);
+  const errors = (outcome as AggregateError).errors;
+  expect(errors).toContain(failure);
+  expect(errors.some(error => error.message.includes('Timeout 10000ms exceeded'))).toBe(true);
+  expect(app.page.isClosed()).toBe(true);
+});
+
 test('[regression][TST-005] settings helper resolves the actual platform menu and accelerator', async ({app}) => {
   const menuItem = await menuBar(app).openPreferences();
   const platform = await app.evaluate(() => process.platform);

@@ -22,7 +22,6 @@ import * as path from 'path';
 import {ValidationUtil} from '@wireapp/commons';
 
 import {WEBAPP_VERSIONS_REPORT_CAPABILITY} from './AboutWindowContract';
-import {DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './DesktopSourcesContract';
 import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
 import {NOTIFICATION_ACTIVATION_CAPABILITY} from './NotificationActivationContract';
@@ -39,6 +38,8 @@ import {
 import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
 import {WRAPPER_RELAUNCH_CAPABILITY} from './WrapperRelaunchContract';
 import {WRAPPER_RELOAD_CAPABILITY} from './WrapperReloadContract';
+
+import {DISPLAY_CAPTURE_CAPABILITY} from '../calling/display/DisplayCaptureContract';
 
 export interface LegacyAccountWebContentsIdentity extends WebContentsIdentity {
   once(event: 'destroyed' | 'render-process-gone', listener: () => void): this;
@@ -102,7 +103,7 @@ export const ACCOUNT_CAPABILITIES = Object.freeze([
   WRAPPER_RELAUNCH_CAPABILITY,
   OPEN_GRAPH_FETCH_CAPABILITY,
   DOWNLOAD_LOCATION_UPDATE_CAPABILITY,
-  DESKTOP_SOURCES_ENUMERATE_CAPABILITY,
+  DISPLAY_CAPTURE_CAPABILITY,
   SSO_WINDOW_CLOSE_CAPABILITY,
   SSO_WINDOW_FOCUS_CAPABILITY,
   WEBAPP_VERSIONS_REPORT_CAPABILITY,

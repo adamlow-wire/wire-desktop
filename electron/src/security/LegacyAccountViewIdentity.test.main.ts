@@ -20,7 +20,6 @@
 import {strict as assert} from 'assert';
 
 import {WEBAPP_VERSIONS_REPORT_CAPABILITY} from './AboutWindowContract';
-import {DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './DesktopSourcesContract';
 import {DOWNLOAD_LOCATION_UPDATE_CAPABILITY} from './DownloadLocationContract';
 import {getLegacyAccountPartition, registerLegacyAccountViewIdentity} from './LegacyAccountViewIdentity';
 import {MANAGED_CONFIG_CAPABILITY} from './ManagedConfigContract';
@@ -33,6 +32,8 @@ import {ViewIdentityRegistry} from './ViewIdentityRegistry';
 import {WEBAPP_LOADED_CAPABILITY} from './WebAppLoadedContract';
 import {WRAPPER_RELAUNCH_CAPABILITY} from './WrapperRelaunchContract';
 import {WRAPPER_RELOAD_CAPABILITY} from './WrapperReloadContract';
+
+import {DISPLAY_CAPTURE_CAPABILITY} from '../calling/display/DisplayCaptureContract';
 
 const accountId = '6f350266-15de-4cab-b38c-9f986fdc6b18';
 
@@ -100,7 +101,7 @@ describe('registerLegacyAccountViewIdentity', () => {
       WRAPPER_RELAUNCH_CAPABILITY,
       OPEN_GRAPH_FETCH_CAPABILITY,
       DOWNLOAD_LOCATION_UPDATE_CAPABILITY,
-      DESKTOP_SOURCES_ENUMERATE_CAPABILITY,
+      DISPLAY_CAPTURE_CAPABILITY,
       SSO_WINDOW_CLOSE_CAPABILITY,
       SSO_WINDOW_FOCUS_CAPABILITY,
       WEBAPP_VERSIONS_REPORT_CAPABILITY,

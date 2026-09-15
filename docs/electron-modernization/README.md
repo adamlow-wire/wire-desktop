@@ -15,6 +15,8 @@ Read in this order:
 
 M3 evidence: [Complete acceptance audit](./m3-acceptance.md), including whole-milestone validation and explicit downstream QA limits.
 
+M4 evidence: [Functional acceptance audit](./m4-acceptance.md), including capture/PiP, OS routes, development CI and the remaining packaging/manual QA obligations.
+
 M0 evidence:
 
 - [Fork and integration workflow](./governance.md)

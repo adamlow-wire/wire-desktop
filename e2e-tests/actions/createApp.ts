@@ -22,6 +22,8 @@ import {_electron as electron, expect, Page} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 
+import {quitApp} from './quitApp';
+
 export type App = Awaited<ReturnType<typeof createApp>>;
 
 export const createApp = async (options: {
@@ -194,9 +196,9 @@ export const createApp = async (options: {
     reopen: async (quit?: () => Promise<unknown>) => {
       // Persist this instance's trace before a native Quit can destroy its context.
       await stopTrace();
-      try {
-        await quit?.();
-      } finally {
+      if (quit) {
+        await quitApp(app, quit);
+      } else {
         await nativeClose();
       }
 

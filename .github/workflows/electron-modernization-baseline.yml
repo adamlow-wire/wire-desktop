@@ -131,21 +131,21 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            xvfb-run yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           else
-            yarn test:main --grep 'TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           fi
-      - name: Test product account storage and restart
+      - name: Test product account and calling boundaries
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
             sudo chown root:root node_modules/electron/dist/chrome-sandbox
             sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
-            xvfb-run python3 bin/test-tools/run-linux-e2e.py yarn test:e2e --project=linux specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
+            xvfb-run python3 bin/test-tools/run-linux-e2e.py yarn test:e2e --project=linux specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           elif [[ "$RUNNER_OS" == 'Windows' ]]; then
-            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
+            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           else
-            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
+            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           fi
       - name: Build development package
         shell: bash
@@ -187,6 +187,7 @@ jobs:
           printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
           M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Smoke-test Windows package
+        id: windows_smoke
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -194,10 +195,10 @@ jobs:
             Where-Object { $_.Name -notin @('Squirrel.exe', 'Update.exe') } |
             Select-Object -First 1
           if (-not $app) { throw 'No packaged application executable found.' }
-          & $app.FullName --version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node bin/test-tools/packaged-account-smoke.cjs $app.FullName
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The Node driver waits for actual packaged startup. A GUI --version
+          # invocation can leave LASTEXITCODE unset and exit this step early.
+          # Hosted Windows may be enrolled: use an explicit managed fixture,
+          # without changing enrollment or claiming an unmanaged-device run.
           $policy = 'HKCU:\SOFTWARE\Policies\Wire'
           $existing = Get-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
           if ($null -ne $existing) { throw 'Refusing to replace existing App-lock policy.' }
@@ -205,6 +206,8 @@ jobs:
           try {
             New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
             $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
+            node bin/test-tools/packaged-account-smoke.cjs $app.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Managed package startup smoke failed.' }
             $env:M3_AUTHENTICATED_PROXY = 'true'
             node bin/test-tools/packaged-account-smoke.cjs $app.FullName
             if ($LASTEXITCODE -ne 0) { throw 'Managed package smoke failed.' }
@@ -213,6 +216,11 @@ jobs:
             Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
             Remove-Item Env:M3_AUTHENTICATED_PROXY -ErrorAction SilentlyContinue
           }
+          'completed=true' >> $env:GITHUB_OUTPUT
+      - name: Require Windows package smoke completion
+        if: runner.os == 'Windows'
+        shell: bash
+        run: test '${{ steps.windows_smoke.outputs.completed }}' = 'true'
       - name: Smoke-test macOS package
         if: runner.os == 'macOS'
         shell: bash
