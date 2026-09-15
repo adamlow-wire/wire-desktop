@@ -24,6 +24,9 @@ import {AddressInfo} from 'node:net';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
+import type {AccountShellBridge} from '../../../electron/src/preload/AccountShellBridge';
+import {createApp} from '../../actions/createApp';
+
 test(
   '[security-target][SEC-008] product navigation and main-owned SSO fail closed',
   {tag: ['@regression']},
@@ -247,3 +250,61 @@ test(
     }
   },
 );
+
+test('[CAP-001][security-target] product startup preserves an authorized login redirect with pending resources', async ({}, testInfo) => {
+  let resourceRequested!: () => void;
+  const resource = new Promise<void>(resolve => {
+    resourceRequested = resolve;
+  });
+  let completedRequests = 0;
+  const server = createServer((request, response) => {
+    const url = new URL(request.url ?? '/', 'http://fixture');
+    if (url.pathname === '/held-image') {
+      resourceRequested();
+      return;
+    }
+    if (url.pathname === '/redirect-ready') {
+      void resource.then(() => response.end('ready'));
+      return;
+    }
+    response.setHeader('Content-Type', 'text/html');
+    if (url.pathname === '/auth') {
+      completedRequests++;
+      response.end('<!doctype html><title>Startup login ready</title><body>Login fixture ready</body>');
+      return;
+    }
+    response.end(`<!doctype html><img src="/held-image"><script>
+      fetch('/redirect-ready').then(() => {
+        const destination = new URL('/auth', location.href);
+        destination.search = location.search;
+        location.replace(destination.href);
+      });
+    </script>`);
+  });
+  let app: Awaited<ReturnType<typeof createApp>> | undefined;
+  try {
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    app = await createApp({env: origin, dataDir: testInfo.outputPath('startup-profile')});
+    await expect(app.page).toHaveTitle('Startup login ready');
+    expect(completedRequests).toBe(1);
+    const url = new URL(app.page.url());
+    expect(url.origin).toBe(origin);
+    expect(url.pathname).toBe('/auth');
+    const accountId = url.searchParams.get('id');
+    expect(accountId).toBeTruthy();
+    const accounts = await app.wrapper.evaluate(() =>
+      (window as unknown as {wireAccounts: AccountShellBridge}).wireAccounts.read(),
+    );
+    expect(accounts).toHaveLength(1);
+    expect(accounts[0]).toMatchObject({id: accountId, visible: true});
+    expect(app.page.isClosed()).toBe(false);
+  } finally {
+    try {
+      await app?.close();
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
+});
