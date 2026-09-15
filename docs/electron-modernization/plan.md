@@ -633,7 +633,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### TST-005 — Expand platform E2E and packaged smoke CI
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: BASE-001, PKG-001
 - Scope: Add Linux coverage, make mandatory modernization checks non-optional, and distinguish development-mode E2E from packaged-app smoke tests.
@@ -642,7 +642,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Security-critical smoke tests execute packaged artifacts.
   - Test artifacts, logs, screenshots, and traces are retained on failure.
   - Flaky tests have owners and bounded quarantine rules.
-- Evidence: TBD
+- Evidence: Functional development-mode work is in local qualification: three-platform scheduling, isolated Linux native storage, retained failure artifacts, checked/cleaned account fixtures and reproducible typed API generation. Separate sensitive fixture baselines are `8ae22780` and `ba2328a2`; local fixture14, generator13 and keyring3 cases pass. Final hosted qualification and mandatory protection readback remain required. Packaged-artifact smoke acceptance remains open for PKG-001; it is not claimed by the functional M4 scope.
 
 ### 10.5 Capability migration
 

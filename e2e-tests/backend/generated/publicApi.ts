@@ -59,7 +59,7 @@ export type VersionInfo = {
   federation: boolean;
   supported: VersionNumber[];
 };
-export type AssetSource = unknown;
+export type AssetSource = Blob;
 export type UtcTimeMillis = string;
 export type AssetKey = string;
 export type Asset = {
@@ -365,7 +365,7 @@ export type PubClient = {
   /** A 64-bit unsigned integer, represented as a hexadecimal numeral. Any valid hexadecimal numeral is accepted, but the backend will only produce representations with lowercase digits and no leading zeros */
   id: string;
 };
-export type QualifiedNewOtrMessage = unknown;
+export type QualifiedNewOtrMessage = Blob;
 export type QualifiedUserClients = {
   [key: string]: {
     [key: string]: string[];
@@ -1245,7 +1245,7 @@ export type UpdateMeeting = {
   start_time?: UtcTime;
   title?: string;
 };
-export type CommitBundle = unknown;
+export type CommitBundle = Blob;
 export type MlsMessageSendingStatus = {
   /** A list of events caused by sending the message. */
   events: Event[];
@@ -1273,7 +1273,7 @@ export type KeyPackageUpload = {
 export type OwnKeyPackages = {
   count: number;
 };
-export type MlsMessage = unknown;
+export type MlsMessage = Blob;
 export type SomeKey = unknown;
 export type MlsKeys = {
   ecdsa_secp256r1_sha256: SomeKey;

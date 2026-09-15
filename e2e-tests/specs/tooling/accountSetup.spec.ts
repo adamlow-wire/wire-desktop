@@ -103,7 +103,16 @@ test.describe('[TST-005] fixture API result handling', () => {
   const prepareRegistration = (sandbox: ReturnType<typeof createSandbox>) => {
     const brigApi = new BrigApiClient({baseUrl: 'https://fixture.invalid', basicAuth: 'synthetic'});
     sandbox.stub(brigApi, 'getUserActivationCode').resolves('synthetic-activation');
-    sandbox.stub(api, 'registerUser').resolves({id: user.id, zuidCookie: 'zuid=synthetic-cookie'});
+    sandbox.stub(api, 'registerUser').resolves({
+      id: user.id,
+      zuidCookie: 'zuid=synthetic-cookie',
+      accent_id: 0,
+      locale: 'en',
+      name: user.fullName,
+      qualified_id: {id: user.id, domain: 'fixture.invalid'},
+      status: 'active',
+      type: 'regular',
+    });
     const activation = sandbox.stub(api, 'activateAccount').resolves();
     sandbox.stub(api, 'requestAccessToken').resolves(user.token);
     const username = sandbox.stub(api, 'setUsername').resolves();

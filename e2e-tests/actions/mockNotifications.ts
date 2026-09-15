@@ -25,8 +25,6 @@ declare global {
   interface Window {
     // Declare the custom variable used to store the intercepted notifications on the window object
     __wireNotifications: Notification[];
-    // Declare type of notification repository available globally within the webapps window
-    wire?: {app: {repository: {notification: {notifications?: Notification[]}}}};
   }
 }
 
@@ -36,7 +34,9 @@ const stubNotifications = async (app: App) => {
     app.windows().map(page =>
       // Browser script to intercept all sent notifications and store them in a global variable for later use
       page.evaluate(() => {
-        const notificationRepository = window.wire?.app?.repository?.notification;
+        const notificationRepository = (
+          window as unknown as {wire?: {app?: {repository?: {notification?: {notifications?: Notification[]}}}}}
+        ).wire?.app?.repository?.notification;
         if (notificationRepository?.notifications === undefined) {
           return;
         }

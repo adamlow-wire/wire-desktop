@@ -44,7 +44,7 @@ export type User = {
 export const createUser = (): User => {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
-  const username = `${firstName}${lastName}${faker.string.numeric(4)}`.toLowerCase();
+  const username = `e2e_${faker.string.alphanumeric({length: 24, casing: 'lower'})}`;
 
   return {
     firstName,
@@ -82,22 +82,37 @@ export const registerUser = async (
     throw new Error(`Failed to register user`);
   }
 
-  const activationCode = await runRegistrationStep('activation-code lookup', () =>
-    brigApi.getUserActivationCode(user.email),
-  );
-  await runRegistrationStep('account activation', () => publicApi.activateAccount(user.email, activationCode));
-
-  const accessToken = await runRegistrationStep('access-token request', () => publicApi.requestAccessToken(zuidCookie));
-
-  await runRegistrationStep('username assignment', () => publicApi.setUsername(accessToken, user.username));
-
-  const registeredUser = {...user, id, token: accessToken};
-
-  if (options?.telemetryDataSharing !== undefined) {
-    await runRegistrationStep('telemetry preference update', () =>
-      publicApi.setProperties(registeredUser, {telemetryDataSharing: options.telemetryDataSharing}),
+  let accessToken: string | undefined;
+  try {
+    const activationCode = await runRegistrationStep('activation-code lookup', () =>
+      brigApi.getUserActivationCode(user.email),
     );
-  }
+    await runRegistrationStep('account activation', () => publicApi.activateAccount(user.email, activationCode));
 
-  return registeredUser;
+    const token = await runRegistrationStep('access-token request', () => publicApi.requestAccessToken(zuidCookie));
+    accessToken = token;
+
+    await runRegistrationStep('username assignment', () => publicApi.setUsername(token, user.username));
+
+    const registeredUser = {...user, id, token};
+
+    if (options?.telemetryDataSharing !== undefined) {
+      await runRegistrationStep('telemetry preference update', () =>
+        publicApi.setProperties(registeredUser, {telemetryDataSharing: options.telemetryDataSharing}),
+      );
+    }
+
+    return registeredUser;
+  } catch (setupError) {
+    try {
+      const token = accessToken ?? (await publicApi.requestAccessToken(zuidCookie));
+      await publicApi.deleteUser({...user, id, token});
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [setupError, cleanupError],
+        'User setup failed and its created account could not be removed',
+      );
+    }
+    throw setupError;
+  }
 };

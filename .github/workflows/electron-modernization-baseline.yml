@@ -55,6 +55,13 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: yarn --immutable
+      - name: Prepare isolated Linux native storage
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y gnome-keyring dbus-x11 libglib2.0-bin
+          python3 bin/test-tools/run-linux-e2e.test.py
       - name: Build production preloads
         shell: bash
         run: yarn build:ts && yarn bundle
@@ -124,9 +131,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            xvfb-run yarn test:main --grep 'TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           else
-            yarn test:main --grep 'ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            yarn test:main --grep 'TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           fi
       - name: Test product account storage and restart
         shell: bash
@@ -134,7 +141,7 @@ jobs:
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
             sudo chown root:root node_modules/electron/dist/chrome-sandbox
             sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
-            xvfb-run yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
+            xvfb-run python3 bin/test-tools/run-linux-e2e.py yarn test:e2e --project=linux specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           elif [[ "$RUNNER_OS" == 'Windows' ]]; then
             yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           else

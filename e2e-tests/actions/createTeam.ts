@@ -59,37 +59,67 @@ export const createTeam = async (
     registerUser(createUser(), {publicApi: api.publicApi, brigApi: api.brigApi}, {telemetryDataSharing: false}),
   );
 
-  const {teamId} = await runTeamSetupStep('owner upgrade', () => api.publicApi.upgradeUserToTeamOwner(user, teamName));
-  const owner: TeamOwner = {...user, teamId};
-
-  const addTeamMember: Team['addTeamMember'] = async (member, options) => {
-    const invitationId = await runTeamSetupStep('member invitation', () =>
-      api.publicApi.sendTeamInvitation(owner, member.email, options?.role ?? 'member'),
+  let createdOwner: TeamOwner | undefined;
+  try {
+    const {teamId} = await runTeamSetupStep('owner upgrade', () =>
+      api.publicApi.upgradeUserToTeamOwner(user, teamName),
     );
-    const invitationCode = await runTeamSetupStep('invitation-code lookup', () =>
-      api.brigApi.getTeamActivationCode(owner.teamId, invitationId),
-    );
-    await runTeamSetupStep('invitation acceptance', () => api.publicApi.acceptTeamInvitation(member, invitationCode));
-  };
+    const owner: TeamOwner = {...user, teamId};
+    createdOwner = owner;
 
-  if (options?.users) {
-    await Promise.all(
-      options.users.map(user => {
-        if ('user' in user) {
-          return addTeamMember(user.user, {role: user.role});
-        }
-        return addTeamMember(user);
-      }),
-    );
-  }
+    const addTeamMember: Team['addTeamMember'] = async (member, options) => {
+      const invitationId = await runTeamSetupStep('member invitation', () =>
+        api.publicApi.sendTeamInvitation(owner, member.email, options?.role ?? 'member'),
+      );
+      const invitationCode = await runTeamSetupStep('invitation-code lookup', () =>
+        api.brigApi.getTeamActivationCode(owner.teamId, invitationId),
+      );
+      await runTeamSetupStep('invitation acceptance', () => api.publicApi.acceptTeamInvitation(member, invitationCode));
+    };
 
-  if (options?.features && Object.values(options.features).some(Boolean)) {
-    await runTeamSetupStep('team feature upgrade', () => api.ibisApi.upgradeTeam(owner));
-
-    if (options.features.conferenceCalling) {
-      await runTeamSetupStep('conference-calling unlock', () => api.galleyApi.unlockConferenceCallingFeature(teamId));
+    if (options?.users) {
+      const invitations = await Promise.allSettled(
+        options.users.map(user => {
+          if ('user' in user) {
+            return addTeamMember(user.user, {role: user.role});
+          }
+          return addTeamMember(user);
+        }),
+      );
+      const failures = invitations.filter(result => result.status === 'rejected');
+      if (failures.length === 1) {
+        throw failures[0].reason;
+      }
+      if (failures.length) {
+        throw new AggregateError(
+          failures.map(result => result.reason),
+          'Team member setup failed',
+        );
+      }
     }
-  }
 
-  return {teamId, owner, addTeamMember};
+    if (options?.features && Object.values(options.features).some(Boolean)) {
+      await runTeamSetupStep('team feature upgrade', () => api.ibisApi.upgradeTeam(owner));
+
+      if (options.features.conferenceCalling) {
+        await runTeamSetupStep('conference-calling unlock', () => api.galleyApi.unlockConferenceCallingFeature(teamId));
+      }
+    }
+
+    return {teamId, owner, addTeamMember};
+  } catch (setupError) {
+    try {
+      if (createdOwner) {
+        await api.publicApi.deleteTeam(createdOwner);
+      } else {
+        await api.publicApi.deleteUser(user);
+      }
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [setupError, cleanupError],
+        'Team setup failed and its created resources could not be removed',
+      );
+    }
+    throw setupError;
+  }
 };

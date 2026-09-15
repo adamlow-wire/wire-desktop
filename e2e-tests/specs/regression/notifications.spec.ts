@@ -49,7 +49,7 @@ test.describe('Notifications', () => {
       });
 
       await test.step('User A should have zero unread messages', async () => {
-        await expect.poll(() => appIcon(app).getBadgeCount()).toBe(0);
+        await expect.poll(() => appIcon(app).getUnreadCount()).toBe(0);
       });
 
       const {clickNotification} = await interceptNotifications(app);
@@ -59,8 +59,8 @@ test.describe('Notifications', () => {
         await conversation(userBPage).sendMessage('Test Message 1');
       });
 
-      await test.step('User A should see one unread message on the app icon', async () => {
-        await expect.poll(() => appIcon(app).getBadgeCount()).toBe(1);
+      await test.step('User A should see one unread message', async () => {
+        await expect.poll(() => appIcon(app).getUnreadCount()).toBe(1);
       });
 
       await test.step('User B sends an other message into a group with A', async () => {
@@ -69,14 +69,14 @@ test.describe('Notifications', () => {
         await conversation(userBPage).sendMessage('Test Message 2');
       });
 
-      await test.step('User A should see two unread messages on the app icon', async () => {
-        await expect.poll(() => appIcon(app).getBadgeCount()).toBe(2);
+      await test.step('User A should see two unread messages', async () => {
+        await expect.poll(() => appIcon(app).getUnreadCount()).toBe(2);
       });
 
-      await test.step('The number on the app icon should return to 1 when the message is read', async () => {
+      await test.step('The unread count should return to 1 when the message is read', async () => {
         await clickNotification({body: 'Test Message 1'});
         await expect(conversation(app.page).conversationTitle).toContainText(userB.fullName);
-        await expect.poll(() => appIcon(app).getBadgeCount()).toBe(1);
+        await expect.poll(() => appIcon(app).getUnreadCount()).toBe(1);
       });
     },
   );
@@ -139,7 +139,7 @@ test.describe('Notifications', () => {
         await conversation(userBPage).sendMessage('Test Message 1');
 
         await expect(accountsSidebar(app).getAccount(userA1).notificationDot).toBeVisible();
-        await expect.poll(() => appIcon(app).getBadgeCount()).toBe(1);
+        await expect.poll(() => appIcon(app).getUnreadCount()).toBe(1);
       });
 
       await test.step('B sends a message to user As second account', async () => {
@@ -147,7 +147,7 @@ test.describe('Notifications', () => {
         await conversation(userBPage).sendMessage('Test Message 2');
 
         await expect(accountsSidebar(app).getAccount(userA2).notificationDot).toBeVisible();
-        await expect.poll(() => appIcon(app).getBadgeCount()).toBe(2);
+        await expect.poll(() => appIcon(app).getUnreadCount()).toBe(2);
       });
 
       await test.step('A clicks on the notification of the first message', async () => {
@@ -158,7 +158,7 @@ test.describe('Notifications', () => {
         await expect(accountsSidebar(app).getAccount(userA1).notificationDot).not.toBeVisible();
 
         await expect(conversation(app.page).conversationTitle).toContainText(userB.fullName);
-        await expect.poll(() => appIcon(app).getBadgeCount()).toBe(1);
+        await expect.poll(() => appIcon(app).getUnreadCount()).toBe(1);
       });
     },
   );
