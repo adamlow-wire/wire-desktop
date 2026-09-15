@@ -115,7 +115,7 @@ describe('account startup navigation completion', () => {
         }
         throw aborted();
       };
-      await assert.rejects(fixture.load(), /Navigation superseded/);
+      await assert.rejects(fixture.load(), /Account startup navigation failed \(ERR_ABORTED\)/);
       assert.deepEqual(fixture.eventNames(), []);
     });
   }
@@ -126,7 +126,7 @@ describe('account startup navigation completion', () => {
       fixture.redirect();
       throw new Error('Native load failed');
     };
-    await assert.rejects(fixture.load(), /Native load failed/);
+    await assert.rejects(fixture.load(), /Account startup navigation failed/);
     assert.deepEqual(fixture.eventNames(), []);
   });
 

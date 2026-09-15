@@ -92,7 +92,10 @@ export async function loadAccountDestination(
     } catch (error) {
       const aborted = error as {code?: unknown; errno?: unknown} | null;
       if (aborted?.code !== 'ERR_ABORTED' || aborted.errno !== -3 || !redirected) {
-        throw error;
+        // Electron's native message includes the destination URL, which may carry a login secret.
+        const code =
+          typeof aborted?.code === 'string' && /^ERR_[A-Z_]{1,64}$/.test(aborted.code) ? ` (${aborted.code})` : '';
+        throw new Error(`Account startup navigation failed${code}.`);
       }
       // The native promise rejects when a client redirect interrupts pending resources.
       // Do not merely ignore ERR_ABORTED: require the replacement document to finish.
