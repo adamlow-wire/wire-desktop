@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
-active_work_item: TST-005
-state: qualifying-functional-platform-tests
+active_work_item: CAP-003
+state: implementing-consented-display-capture
 integration_branch: integration/electron-modernization
 integration_head_commit: 45840fca7eea1a4975e5e1f58bd54c6c2d911289
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: test/TST-005-functional-platform-ci-2026-09-15
-next_work_item: CAP-003
+active_branch: cap/CAP-003-consented-display-2026-09-15
+next_work_item: CAP-004
 blockers: []
 ---
 
@@ -27,7 +27,9 @@ The prepared M3 documentation commit `31683711` is local. Automatic approval rev
 
 Functional TST-005 now has local implementation: valid independent fixture handles; checked mutation responses; partial account/team setup cleanup that preserves both setup and cleanup errors; a Linux Playwright project with private native Secret Service; required modernization E2E scheduling; failed-attempt trace retention and reliable native teardown; explicit Linux unread-state observations plus native tray coverage; and a reproducible four-schema binary-client generator with an E2E type gate. Separate baseline commits `8ae22780` and `ba2328a2` demonstrate seven response/handle failures and six partial-cleanup failures before correction. All fourteen fixture cases pass after restoration. The actual generator has thirteen passing cases, the whole build-tool suite has 51, both application/E2E types pass, and the private keyring runner has three passing isolation/failure/termination tests. Local logs: `/tmp/m4-partial-setup-restored.log`, `/tmp/m4-types.log`, `/tmp/m4-bin-tests.log`, `/tmp/m4-linux-runner-repo-tests.log`. Full rebuilt validation passes 112 Jest, 923 main, four media, four renderer and 51 build-tool cases plus both type gates (`/tmp/m4-functional-local-test.log`). All eleven Linux product lifecycle/storage/proxy/navigation/E2EI cases pass initially in25.1 seconds through the new private runner (`/tmp/m4-linux-product-final.log`); fourteen fixture cases also pass under the Linux project. Scoped application/tooling lint and workflow YAML parsing pass. Hosted three-platform qualification is still required. No functional M4 item is marked complete yet.
 
-Next executable work: finish local TST-005 review and validation, publish/qualify scoped PRs once the required publication authorization arrives, qualify existing CAP-004 integration, and implement/qualify CAP-003 consented display capture and PiP lifetime. Draft capture research in `/tmp/m4-functional-preflight.md` and `/tmp/m4-drafts` is not production implementation. Remote native display/legacy capture must stay denied; a trusted local chooser/broker and bounded approved-stream relay have passed synthetic preflight probes. No host display was captured. Packaged-artifact coverage remains the uncompleted packaging portion of TST-005, outside this functional handoff.
+TST-005 local implementation is committed as `3e4c2d26`; no hosted M4 result is claimed. CAP-003 now owns the next scoped branch, stacked on that reviewed local work. [Proposed DEC-011](decisions/0004-consented-display-capture.md) records the intended compatibility change before implementation.
+
+Next executable work: implement and qualify the CAP-003 broker/adapter and parent-bound PiP, publish/qualify scoped PRs once the required publication authorization arrives, qualify existing CAP-004 integration, and implement/qualify CAP-003 consented display capture and PiP lifetime. Draft capture research in `/tmp/m4-functional-preflight.md` and `/tmp/m4-drafts` is not production implementation. Remote native display/legacy capture must stay denied; a trusted local chooser/broker and bounded approved-stream relay have passed synthetic preflight probes. No host display was captured. Packaged-artifact coverage remains the uncompleted packaging portion of TST-005, outside this functional handoff.
 
 ## Historical checkpoints
 

@@ -689,7 +689,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: SEC-003, SEC-007, SEC-009
 - Scope: Replace legacy global APIs for desktop capture and migrate call/PiP window behavior.
@@ -698,7 +698,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Display capture is initiated only by an authorized view and user flow.
   - PiP windows use fixed secure preferences and controlled navigation.
   - Permission-denied behavior is tested.
-- Evidence: TBD
+- Design: Proposed DEC-011 uses an isolated local chooser/broker and bounded approved-stream relay. Bridge version2 intentionally removes the legacy `desktopCapturer` global and production enumeration endpoint, so the released webapp selects its existing `getDisplayMedia` path. Remote native display/legacy permission remains denied.
+- Evidence: Synthetic native preflight proves actual modern capture of an owned test frame, cross-session delivery and original/clone revocation; production implementation and final native/product/platform qualification remain required. No host display capture or live OS privacy/portal qualification is claimed.
 
 #### CAP-004 — Migrate tray, notification, badge, menu, and shortcut integration
 
@@ -896,6 +897,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | Decision ID | Date | Status | Decision | Rationale | Revisit condition |
 | --- | --- | --- | --- | --- | --- |
 | DEC-010 | 2026-09-10 | proposed | [Bounded production local content protocol](./decisions/0003-local-content-protocol.md) | Fixed role-specific assets avoid arbitrary filesystem serving while preserving migration and preloads | Asset, session, CSP or legacy-import incompatibility |
+| DEC-011 | 2026-09-15 | proposed | [Trusted local display capture](./decisions/0004-consented-display-capture.md) | Main-owned source consent and bounded relay retain native remote capture denial | Native permission separation, transferable tracks, performance or capture capability requirements change |
 | DEC-009 | 2026-09-14 | accepted | [Main-owned account permission consent and document-scoped grants](./decisions/0002-account-permission-consent.md) | Explicit main-owned document-scoped consent is integrated and qualified; display and thumbnail capture stay denied under CAP-003/M4 | Missing identity in required notification/media flows, capture bypass or calling incompatibility |
 | DEC-001 | 2026-08-18 | accepted | Modernize through a replacement Electron shell inside a fork rather than rewriting the whole product or only flipping legacy flags | Preserves platform knowledge while allowing a new security boundary | New evidence shows retained code creates more risk than replacement |
 | DEC-002 | 2026-08-18 | accepted | Use a protected integration branch feeding a final upstream PR | Supports staged capability work and final integration testing | Upstream requests a different contribution strategy |

@@ -84,6 +84,15 @@ describe('webapp bridge', () => {
     );
   });
 
+  it('[security-target][CAP-003] selects the consented display path without exposing legacy enumeration', () => {
+    const exposed = new Map<string, unknown>();
+    exposeWebappBridge({exposeInMainWorld: (name, value) => exposed.set(name, value)}, bridge);
+    assert.strictEqual(exposed.has('desktopCapturer'), false);
+    assert.strictEqual('desktopCapturer' in bridge, false);
+    assert.strictEqual(bridge.version, 2);
+    assert.deepStrictEqual(calls, []);
+  });
+
   it('[characterization][SEC-005] preserves capability arguments and results', async () => {
     const encrypted = new Uint8Array([2]);
     assert.strictEqual(await bridge.systemCrypto.decrypt(encrypted), 'plain');
