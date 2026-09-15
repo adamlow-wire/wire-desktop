@@ -81,9 +81,28 @@ for (const entry of ['account', 'picture-in-picture'] as const) {
     expect(await app.page.evaluate(() => window.wireDesktopBridge.version)).toBe(2);
     expect(await app.page.evaluate(() => 'desktopCapturer' in window)).toBe(false);
     // Intercept only test-owned native boundaries. No host source enumeration or display capture occurs.
-    await app.evaluate(({desktopCapturer, nativeImage, session, webContents}, origin) => {
+    await app.evaluate(({app, BrowserWindow, desktopCapturer, nativeImage, session, webContents}, origin) => {
       const source = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(origin))!;
-      const evidence = {enumerations: 0, approvals: 0};
+      const evidence = {enumerations: 0, approvals: 0, windowEvents: [] as string[]};
+      const watch = (window: Electron.BrowserWindow) => {
+        const record = (event: string) => {
+          if (evidence.windowEvents.length < 32) {
+            const role =
+              window.isDestroyed() || window.webContents.isDestroyed()
+                ? 'closed'
+                : window.webContents.getURL().includes('/html/display-capture.html')
+                ? 'broker'
+                : 'owner';
+            evidence.windowEvents.push(`${role}:${event}`);
+          }
+        };
+        window.on('focus', () => record('focus'));
+        window.on('blur', () => record('blur'));
+        window.on('show', () => record('show'));
+        window.on('hide', () => record('hide'));
+      };
+      BrowserWindow.getAllWindows().forEach(watch);
+      app.on('browser-window-created', (_event, window) => watch(window));
       (globalThis as unknown as {syntheticDisplayEvidence: typeof evidence}).syntheticDisplayEvidence = evidence;
       desktopCapturer.getSources = async () => {
         evidence.enumerations++;
@@ -208,14 +227,26 @@ for (const entry of ['account', 'picture-in-picture'] as const) {
       )
       .toBe(true);
     await broker.getByRole('button', {name: 'Synthetic owned account'}).click();
-    await expect
-      .poll(() =>
-        app.evaluate(
-          ({webContents}, id) => webContents.fromId(id)!.executeJavaScript('window.captureState'),
-          receiverId,
-        ),
-      )
-      .toBe('started');
+    try {
+      await expect
+        .poll(() =>
+          app.evaluate(
+            ({webContents}, id) => webContents.fromId(id)!.executeJavaScript('window.captureState'),
+            receiverId,
+          ),
+        )
+        .toBe('started');
+    } catch (error) {
+      // Only synthetic counters and native window events; no source data or URLs.
+      // eslint-disable-next-line no-console
+      console.error(
+        'Synthetic capture startup state',
+        await app
+          .evaluate(() => (globalThis as unknown as {syntheticDisplayEvidence: unknown}).syntheticDisplayEvidence)
+          .catch(() => ({unavailable: true})),
+      );
+      throw error;
+    }
     const video = await app.evaluate(
       ({webContents}, id) =>
         webContents.fromId(id)!.executeJavaScript(`(async()=>{
@@ -246,11 +277,12 @@ for (const entry of ['account', 'picture-in-picture'] as const) {
       .toEqual(['ended', 'ended']);
     await expect.poll(() => broker.isClosed()).toBe(true);
     expect(
-      await app.evaluate(
-        () =>
-          (globalThis as unknown as {syntheticDisplayEvidence: {enumerations: number; approvals: number}})
-            .syntheticDisplayEvidence,
-      ),
+      await app.evaluate(() => {
+        const {enumerations, approvals} = (
+          globalThis as unknown as {syntheticDisplayEvidence: {enumerations: number; approvals: number}}
+        ).syntheticDisplayEvidence;
+        return {enumerations, approvals};
+      }),
     ).toEqual({enumerations: 1, approvals: 1});
   });
 }
