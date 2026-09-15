@@ -187,6 +187,7 @@ jobs:
           printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
           M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Smoke-test Windows package
+        id: windows_smoke
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -213,6 +214,11 @@ jobs:
             Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
             Remove-Item Env:M3_AUTHENTICATED_PROXY -ErrorAction SilentlyContinue
           }
+          'completed=true' >> $env:GITHUB_OUTPUT
+      - name: Require Windows package smoke completion
+        if: runner.os == 'Windows'
+        shell: bash
+        run: test '${{ steps.windows_smoke.outputs.completed }}' = 'true'
       - name: Smoke-test macOS package
         if: runner.os == 'macOS'
         shell: bash
