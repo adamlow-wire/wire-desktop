@@ -103,23 +103,23 @@ export async function buildWindowsWrapper(
   logger.info(`Building ${commonConfig.name} ${commonConfig.version} for Windows ...`);
 
   const backup = await backupFiles([packageJsonResolved, wireJsonResolved]);
-  const packageJsonContent = await fs.readJson(packageJsonResolved);
-
-  await fs.writeJson(
-    packageJsonResolved,
-    {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
-    {spaces: 2},
-  );
-  await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
-
   try {
+    const packageJsonContent = await fs.readJson(packageJsonResolved);
+
+    await fs.writeJson(
+      packageJsonResolved,
+      {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
+      {spaces: 2},
+    );
+    await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
     const [buildDir] = await electronPackager(packagerConfig);
     logger.log(`Built package in "${buildDir}".`);
 
     await flipElectronFuses(path.join(buildDir, `${packagerConfig.name}.exe`));
   } catch (error) {
-    logger.error(error);
+    logger.error('Packaging failed.');
+    throw error;
+  } finally {
+    await restoreFiles(backup);
   }
-
-  await restoreFiles(backup);
 }

@@ -94,7 +94,7 @@ export async function buildMacOSConfig(
     },
     out: commonConfig.buildDir,
     overwrite: true,
-    platform: 'mas', //  Mac App Store 
+    platform: 'mas', //  Mac App Store
     protocols: [{name: `${commonConfig.name} Core Protocol`, schemes: [commonConfig.customProtocolName]}],
     prune: true,
     quiet: false,
@@ -145,16 +145,15 @@ export async function buildMacOSWrapper(
   logger.info(`Building ${commonConfig.name} ${commonConfig.version} for macOS ...`);
 
   const backup = await backupFiles([packageJsonResolved, wireJsonResolved]);
-  const packageJsonContent = await fs.readJson(packageJsonResolved);
-
-  await fs.writeJson(
-    packageJsonResolved,
-    {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
-    {spaces: 2},
-  );
-  await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
-
   try {
+    const packageJsonContent = await fs.readJson(packageJsonResolved);
+
+    await fs.writeJson(
+      packageJsonResolved,
+      {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
+      {spaces: 2},
+    );
+    await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
     const [buildDir] = await electronPackager(packagerConfig);
 
     logger.log(`Built app in "${buildDir}".`);
@@ -180,10 +179,11 @@ export async function buildMacOSWrapper(
       logger.log(`Built installer in "${commonConfig.distDir}".`);
     }
   } catch (error) {
-    logger.error(error);
+    logger.error('Packaging failed.');
+    throw error;
+  } finally {
+    await restoreFiles(backup);
   }
-
-  await restoreFiles(backup);
 }
 
 export async function manualMacOSSign(

@@ -153,16 +153,15 @@ export async function buildLinuxWrapper(
   );
 
   const backup = await backupFiles([packageJsonResolved, wireJsonResolved]);
-  const packageJsonContent = await fs.readJson(packageJsonResolved);
-
-  await fs.writeJson(
-    packageJsonResolved,
-    {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
-    {spaces: 2},
-  );
-  await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
-
   try {
+    const packageJsonContent = await fs.readJson(packageJsonResolved);
+
+    await fs.writeJson(
+      packageJsonResolved,
+      {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
+      {spaces: 2},
+    );
+    await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
     const builtPackages = await build({config: builderConfig, targets});
     builtPackages.forEach(builtPackage => logger.log(`Built package "${builtPackage}".`));
   } finally {

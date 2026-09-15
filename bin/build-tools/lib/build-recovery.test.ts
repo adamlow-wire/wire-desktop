@@ -17,18 +17,19 @@
  *
  */
 
-import {strict as assert} from 'assert';
-import fs from 'fs-extra';
-import os from 'os';
-import path from 'path';
-import {restore, stub} from 'sinon';
+import {Arch} from 'builder-util';
 import type {Options as PackagerOptions} from 'electron-packager';
 import type {Options as InstallerOptions} from 'electron-winstaller';
-import {Arch} from 'builder-util';
+import fs from 'fs-extra';
+import {restore, stub} from 'sinon';
 
-import {buildWindowsWrapper} from './build-windows';
-import {buildMacOSWrapper} from './build-macos';
+import {strict as assert} from 'assert';
+import os from 'os';
+import path from 'path';
+
 import {buildLinuxWrapper} from './build-linux';
+import {buildMacOSWrapper} from './build-macos';
+import {buildWindowsWrapper} from './build-windows';
 import {buildWindowsInstaller} from './build-windows-installer';
 import type {WindowsConfig, MacOSConfig, LinuxConfig} from './Config';
 
@@ -37,8 +38,7 @@ describe('build wrapper partial metadata write recovery', () => {
     for (const phase of platform === 'squirrel' ? ['wire'] : ['package', 'wire']) {
       it(`[security-target][PKG-001] restores original bytes after ${platform} ${phase} write fails`, async () => {
         const root = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-build-recovery-'));
-        const actualMkdtemp = fs.mkdtemp.bind(fs);
-        stub(fs, 'mkdtemp').callsFake((async () => actualMkdtemp(path.join(root, 'backup-'))) as typeof fs.mkdtemp);
+        stub(os, 'tmpdir').returns(root);
         const packageFile = path.join(root, 'package.json');
         const wireFile = path.join(root, 'wire.json');
         const envFile = path.join(root, '.env.defaults');
