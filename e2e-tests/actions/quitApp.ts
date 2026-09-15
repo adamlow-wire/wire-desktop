@@ -19,7 +19,7 @@
 
 import {ElectronApplication, expect} from '@playwright/test';
 
-/** Require normal native exit, then release the automation connection. */
+// Preserve native-exit failures while always releasing the owned application.
 export const quitApp = async (app: ElectronApplication): Promise<void> => {
   const child = app.process();
   // Native Quit may close the inspector before its reply. Exit is authoritative.
@@ -28,6 +28,21 @@ export const quitApp = async (app: ElectronApplication): Promise<void> => {
       setImmediate(() => app.quit());
     })
     .catch(() => undefined);
-  await expect.poll(() => child.exitCode).toBe(0);
-  await app.close();
+  let failure: unknown;
+  try {
+    await expect.poll(() => child.exitCode).toBe(0);
+  } catch (error) {
+    failure = error;
+  }
+  try {
+    await app.close();
+  } catch (error) {
+    if (failure) {
+      throw new AggregateError([failure, error], 'Native exit and application cleanup both failed.');
+    }
+    throw error;
+  }
+  if (failure) {
+    throw failure;
+  }
 };
