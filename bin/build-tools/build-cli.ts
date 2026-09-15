@@ -30,8 +30,6 @@ import {buildWindowsConfig, buildWindowsWrapper} from './lib/build-windows';
 import {buildWindowsInstaller, buildWindowsInstallerConfig} from './lib/build-windows-installer';
 import {buildWindowsMsi, buildWindowsMsiConfig} from './lib/build-windows-msi';
 
-import {logEntries} from '../bin-utils';
-
 const toolName = path.basename(__filename).replace('.ts', '');
 const logger = LogFactory.getLogger(toolName, {forceEnable: true, namespace: '@wireapp/build-tools'});
 const appSource = path.join(__dirname, '../../');
@@ -60,57 +58,48 @@ const platform = (commander.args[0] || '').toLowerCase();
   switch (platform) {
     case 'win':
     case 'windows': {
+      logger.info('Preparing Windows build.');
       const {windowsConfig, packagerConfig} = await buildWindowsConfig(wireJson, envFile, architecture);
-
-      logEntries(windowsConfig, 'windowsConfig', toolName);
-      logEntries(packagerConfig, 'packagerConfig', toolName);
 
       return buildWindowsWrapper(packagerConfig, packageJson, windowsConfig, wireJson, envFile);
     }
 
     case 'windows-installer': {
+      logger.info('Preparing Windows installer build.');
       const {wInstallerOptions} = await buildWindowsInstallerConfig(wireJson, envFile, manualSign, architecture);
-
-      logEntries(wInstallerOptions, 'wInstallerOptions', toolName);
 
       return buildWindowsInstaller(wireJson, envFile, wInstallerOptions);
     }
 
     case 'windows-msi': {
-      const {builderConfig, windowsMsiConfig} = await buildWindowsMsiConfig(wireJson, envFile, manualSign);
+      logger.info('Preparing Windows MSI build.');
+      const {builderConfig} = await buildWindowsMsiConfig(wireJson, envFile, manualSign);
       const msiArchitecture = architecture ? electronBuilder.archFromString(architecture) : undefined;
-
-      logEntries(windowsMsiConfig, 'windowsMsiConfig', toolName);
-      logEntries(builderConfig, 'builderConfig', toolName);
 
       return buildWindowsMsi(builderConfig, packageJson, wireJson, envFile, msiArchitecture);
     }
 
     case 'mac':
     case 'macos': {
+      logger.info('Preparing macOS build.');
       const {macOSConfig, packagerConfig} = await buildMacOSConfig(wireJson, envFile, manualSign, architecture);
-
-      logEntries(macOSConfig, 'macOSConfig', toolName);
-      logEntries(packagerConfig, 'packagerConfig', toolName);
 
       return buildMacOSWrapper(packagerConfig, macOSConfig, packageJson, wireJson, envFile, manualSign);
     }
 
     case 'linux': {
+      logger.info('Preparing Linux build.');
       const {linuxConfig, builderConfig} = await buildLinuxConfig(wireJson, envFile);
-
-      logEntries(linuxConfig, 'linuxConfig', toolName);
-      logEntries(builderConfig, 'builderConfig', toolName);
 
       return buildLinuxWrapper(builderConfig, linuxConfig, packageJson, wireJson, envFile, architecture);
     }
 
     default: {
       logger.error('Invalid or no platform specified.');
-      return commander.help();
+      return commander.help({error: true});
     }
   }
-})().catch(error => {
-  logger.error(error);
+})().catch(() => {
+  logger.error('Build failed; see the preceding build stage.');
   process.exit(1);
 });

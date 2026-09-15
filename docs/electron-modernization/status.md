@@ -1,14 +1,14 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-15
+updated: 2026-09-16
 milestone: M4
-active_work_item: CAP-001
+active_work_item: PKG-001
 state: audit-remediation-in-progress
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/CAP-001-bounded-account-queue-2026-09-15
+active_branch: fix/PKG-001-fail-closed-builds-2026-09-15
 next_work_item: TST-006
 blockers: []
 ---
@@ -17,9 +17,11 @@ blockers: []
 
 ## Current execution
 
-**Active work: CAP-001 / TST-006 F-008 and F-013.** Published PR62 head `a8e0854f` passes lint/CodeQL but Build and Test fails in Electron-test compilation: an empty-array assertion narrowed a later recovery result to `never[]`. The local follow-up preserves the zero-write assertion and passes the dedicated `tsconfig.mocha.json` check plus all 32 Node cases; the earlier application/E2E checks did not cover those test files. Native macOS and Windows finish successfully, while Linux records 526 selected native passes plus the recurring 20-second capture Stop timeout. The logging CI selector initially ran 28 writer/admission cases but omitted four maintenance cases; its exact suite name is now corrected locally. Fixed capture stage labels are added without changing any timeout or assertion. Fresh checks are required after publication.
+**Active work: PKG-001 / TST-006 F-004, F-005 and F-006.** Scoped branch `fix/PKG-001-fail-closed-builds-2026-09-15` starts from the published CAP-001 follow-up. Separate CLI baseline `7eb299f3` records eight passing compatibility controls/ten failing security and exit-status targets. The local CLI fix emits fixed stage/failure diagnostics, removes all nine configuration dumps and their now-unused generic helper, and exits unsuccessfully for unsupported platforms. All 18 inert Node subprocess cases pass; secret-error, missing-stage and false-success perturbations fail before restoration. No real package, installer, signing command or native app is invoked by those tests. Packaging input policy, metadata recovery and signing/fuse order remain open. A new owned-filesystem reproduction confirms same-basename backup paths collide and restore the wrong content to one input; zero project files are changed by the reproduction.
 
-Continue the existing PR62 branch for related account/logging resource limits. Separate logging baseline `aaa7e250` records four passing failure-recovery controls and seven failing admission/ownership targets; hosted application target `cbf24648` is authored but unrun. The local writer now copies queued inputs, bounds active/pending entries to 256 and their encoded payloads to 1MiB, caps each UTF-8 entry at 64KiB including its line ending, and limits rotation collision probes to 128. Overflow resolves without recursively logging an error; the next admitted entry includes a fixed dropped-count notice. The console listener bounds text before regex work and does not retain the original text across an awaited write. All 32 Node-only writer/maintenance tests pass, and six deliberate regressions fail their expected targets before restoration. Full qualification is pending; this is not a completed finding or a full-coverage claim.
+**CAP-001 qualification:** PR62 current published head `da385ecf` corrects the Electron-test typing error and the four omitted maintenance cases. Lint and CodeQL pass. [Native/package run35032607324](https://github.com/adamlow-wire/wire-desktop/actions/runs/35032607324) passes Windows `104594334272` and Linux `104594334306`; macOS `104594334034` passes all 32 logging and 197 account lifecycle cases, then fails three media-permission cases at the existing two-second limit (one media case passes). [Core build35032607286](https://github.com/adamlow-wire/wire-desktop/actions/runs/35032607286) passes test compilation but fails the separate hidden-owner capture Stop case at 20 seconds. The first-frame capture diagnostic does not cover that different Stop invocation, so it provides no cause. No gate, timeout or assertion is waived; full E2E remains running.
+
+The controlled earlier-head [PR61 Linux comparison](https://github.com/adamlow-wire/wire-desktop/actions/runs/35010907346/job/104570922016) completes with 58 passes/18 failures and 42 Search people failure mentions. Report `104594787687` succeeds. Its original passing attempt remains historical evidence; unchanged earlier code failing now supports the external-environment investigation but does not independently prove the exact browser exception without its traces. Prior PR62 traces already establish that exception in ordinary Chromium participants as well as Electron. The requested compatible test environment and F-012 profile-compatibility decision remain pending while independent work continues.
 
 The separate CAP-002 candidate `b58de5a1` passes complete native/package [run35029959416](https://github.com/adamlow-wire/wire-desktop/actions/runs/35029959416) on Linux `104585894919`, Windows `104585895132` and macOS `104585895144`. Its dedicated SSO/WindowUtil step runs the diagnostic targets and real native failed-load case on each platform. This composed candidate includes the settings and IPC fixes, qualifying their previously unrun Windows native steps as well. No PR or integration merge has occurred for these stacked candidates; all protected final-head checks and reconciliation remain required. The preceding timing failures remain F-002; a later successful run does not diagnose them.
 

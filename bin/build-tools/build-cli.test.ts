@@ -14,6 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import {strict as assert} from 'assert';
@@ -64,7 +65,7 @@ describe('build CLI diagnostics and failure status', function () {
     ['macos', 'macos'],
     ['linux', 'linux'],
   ]) {
-    describe(platform, () => {
+    describe(`${platform}`, () => {
       let result: ReturnType<typeof run>;
       before(() => {
         result = run(platform);

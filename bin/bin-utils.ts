@@ -70,20 +70,6 @@ export function checkCommanderOptions(
   });
 }
 
-export function logEntries<T extends Object>(config: T, name: string, callee: string): void {
-  const logger = getLogger(callee, 'build-tools');
-
-  Object.entries(config).forEach(([key, value]) => {
-    if (Array.isArray(value)) {
-      value = value.join(',');
-    } else if (value instanceof Object) {
-      logEntries(value, `${name}.${key}`, callee);
-    } else {
-      logger.info(`${name}.${key} set to "${value}". `);
-    }
-  });
-}
-
 interface ExecResult {
   stderr: string;
   stdout: string;

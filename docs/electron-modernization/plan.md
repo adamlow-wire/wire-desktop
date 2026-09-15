@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.58
+revision: 1.5.59
 status: draft
-updated: 2026-09-15
+updated: 2026-09-16
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -800,7 +800,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### PKG-001 — Qualify packaging on the target Electron version
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: ELC-002, ELC-003
 - Scope: Build unsigned Windows Squirrel, Windows MSI, macOS, and Linux artifacts using Electron 43.4.0 and reviewed tooling for Wire engineering review. Preserve signed-release pipeline configuration; actual signing/notarization validation is Wire-owned after review under SEC-011/PKG-002/M5, per the September 15 maintainer decision.
@@ -809,7 +809,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - The signing/notarization/fuse/integrity pipeline order is documented and reviewed, with unsigned CI validating applicable build steps and effective settings. Actual signed-binary, notarization and post-sign integrity verification remains mandatory under SEC-011/PKG-002/M5 after Wire review; it is not claimed by unsigned success.
   - Supported OS versions, architectures and artifact formats are explicit; verify existing requirements before requesting missing product decisions. Unsigned artifacts launch and required packaged smoke tests actually execute on every in-scope platform.
   - Artifact identity and environment separation are preserved.
-- Evidence: TBD
+- TST-006 remediation: F-004 restricts packaged inputs; F-005 forbids credential-bearing configuration dumps/native errors in CLI diagnostics; F-006 requires failure propagation, metadata restoration on every outcome and reviewed fuse/signing order. Baseline `7eb299f3` establishes eight passing CLI controls and ten failing targets before the local fix. Actual signing/notarization remains deferred; local mock success never closes that gate.
+- Evidence: See [review findings](review-findings.md); CLI remediation and metadata-backup collision reproduction are local, with full unsigned artifact qualification pending.
 
 #### PKG-002 — Qualify installers and updater behavior
 
@@ -966,6 +967,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.59 | 2026-09-16 | Codex | Start PKG-001 remediation of packaged inputs, secret diagnostics and fail-closed builds; retain unsigned scope and signed-release deferral | PKG-001, SEC-011, INV-010, TST-006 |
 | 1.5.58 | 2026-09-15 | Codex | Extend existing CAP-001 remediation with bounded log admission and immutable queued inputs; preserve cleanup barriers and document diagnostic truncation/loss | CAP-001, INV-010, TST-006 |
 | 1.5.57 | 2026-09-15 | Codex | Reopen CAP-002 for sensitive SSO diagnostics with an explicit safe logging contract and separate failing baseline; preserve authentication and pinning behavior | CAP-002, INV-010, TST-006 |
 | 1.5.56 | 2026-09-15 | Codex | Reopen SEC-003 for bounded pending native saves and rate-limiter lifetime findings; retain encryption ownership decision and native/composed gates | SEC-003, SEC-004, TST-006, DCP-014 |
