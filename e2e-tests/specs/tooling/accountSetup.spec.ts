@@ -85,6 +85,13 @@ test.describe('[TST-005] fixture API result handling', () => {
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
+  test('reports registration HTTP failure without account or response data', async () => {
+    status = 500;
+    await expect(api.registerUser(user)).rejects.toThrow(/^User registration rejected \(HTTP 500\)$/);
+    expect(request.method).toBe('POST');
+    expect(request.path).toBe('/register');
+  });
+
   const operations: Array<{name: string; run: (api: PublicApiClient) => Promise<unknown>}> = [
     {name: 'username assignment', run: api => api.setUsername(user.token, user.username)},
     {name: 'account activation', run: api => api.activateAccount(user.email, 'synthetic-activation')},
