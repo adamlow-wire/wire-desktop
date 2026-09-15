@@ -97,8 +97,8 @@ test.describe('Localization', () => {
 
       // We need to manually relaunch the app because by executing the restart from the app itself playwright would loose the reference to it
       app = await test.step('User restarts app', async () => {
-        await menuBar(app).clickItem('Quit WireInternal'); // Close the app via the menu bar. This is necessary because otherwise the config change won't be persisted
-        return await app.reopen();
+        // Native Quit persists configuration; the launcher saves tracing before that context closes.
+        return await app.reopen(() => menuBar(app).clickItem('Quit WireInternal'));
       });
 
       await test.step('Verify German is selected in the menu bar', async () => {

@@ -96,30 +96,36 @@ export const test = baseTest.extend<TestOptions & Fixtures>({
   app: async ({appOptions}, use, testInfo) => {
     // Always use a fresh temporary directory for the user data to ensure test isolation
     const tempUserDataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-desktop-e2e-tests-'));
+    const traceDirectory = path.join(tempUserDataDir, 'app-traces');
     let app: App | undefined;
+    let finished = false;
+    let traceDirectoryCreated = false;
     try {
-      app = await createApp({...appOptions, dataDir: tempUserDataDir});
-      // Electron's context needs explicit tracing separate from the peer browser.
-      await app.page.context().tracing.start({screenshots: true, snapshots: true});
-      try {
-        await use(app);
-      } finally {
-        const tracePath =
-          testInfo.status !== testInfo.expectedStatus ? testInfo.outputPath('app-trace.zip') : undefined;
-        await app.page.context().tracing.stop(tracePath ? {path: tracePath} : {});
-        if (tracePath) {
-          await testInfo.attach('app-trace.zip', {path: tracePath});
-        }
-      }
+      await fs.mkdir(traceDirectory);
+      traceDirectoryCreated = true;
+      app = await createApp({...appOptions, dataDir: tempUserDataDir, traceDirectory});
+      await use(app);
+      finished = true;
     } finally {
+      let closed = false;
       try {
-        // Native shutdown failures are test failures, not optional file cleanup.
+        // Native shutdown and trace failures remain test failures.
         await app?.close();
+        closed = true;
       } finally {
-        // Only removal of our temporary directory tolerates OS file-lock failures.
-        await fs
-          .rm(tempUserDataDir, {recursive: true, force: true, maxRetries: 3, retryDelay: 1_000})
-          .catch(() => undefined);
+        try {
+          if (traceDirectoryCreated && (!finished || !closed || testInfo.status !== testInfo.expectedStatus)) {
+            // Each restart has its own archive; retain every instance on an unexpected outcome.
+            for (const name of await fs.readdir(traceDirectory)) {
+              await testInfo.attach(name, {path: path.join(traceDirectory, name), contentType: 'application/zip'});
+            }
+          }
+        } finally {
+          // Only removal of our temporary directory tolerates OS file-lock failures.
+          await fs
+            .rm(tempUserDataDir, {recursive: true, force: true, maxRetries: 3, retryDelay: 1_000})
+            .catch(() => undefined);
+        }
       }
     }
   },

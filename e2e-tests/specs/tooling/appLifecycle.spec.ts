@@ -17,10 +17,14 @@
  *
  */
 
+import {mkdir, readFile, readdir} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
+import path from 'node:path';
 
+import {createApp} from '../../actions/createApp';
 import {expect, test as fixtureTest} from '../../fixtures';
+import {menuBar} from '../../poms/app/menuBar.page';
 
 const test = fixtureTest.extend({
   appOptions: async ({}, use) => {
@@ -41,4 +45,46 @@ const test = fixtureTest.extend({
 test('[regression][TST-005] shared app fixture supports an intentional restart', async ({app}) => {
   const reopened = await app.reopen();
   await expect(reopened.page).toHaveTitle('Fixture restart');
+});
+
+test('[regression][TST-005] repeated native restart retains every trace and closes the latest instance', async ({
+  app,
+}) => {
+  const directory = path.join(await app.evaluate(({app}) => app.getPath('userData')), 'app-traces');
+  const second = await app.reopen(() => menuBar(app).clickItem('Quit WireInternal'));
+  await expect(second.page).toHaveTitle('Fixture restart');
+  expect(await readdir(directory)).toHaveLength(1);
+  const third = await second.reopen(() => menuBar(second).clickItem('Quit WireInternal'));
+  await expect(third.page).toHaveTitle('Fixture restart');
+  expect(await readdir(directory)).toHaveLength(2);
+  const thirdProcess = third.process();
+  await app.close();
+  expect(third.page.isClosed()).toBe(true);
+  expect(thirdProcess.exitCode).toBe(0);
+  const archives = await readdir(directory);
+  expect(archives).toHaveLength(3);
+  for (const archive of archives) {
+    const contents = await readFile(path.join(directory, archive));
+    expect(contents.subarray(0, 4)).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+    expect(contents.includes(Buffer.from('.trace'))).toBe(true);
+  }
+});
+
+test('[regression][TST-005] trace failure propagates while native teardown still completes', async ({
+  appOptions,
+}, testInfo) => {
+  const traceDirectory = testInfo.outputPath('traces');
+  await mkdir(traceDirectory, {recursive: true});
+  const app = await createApp({...appOptions, dataDir: testInfo.outputPath('profile'), traceDirectory});
+  const nativeProcess = app.process();
+  app.context().tracing.stop = async () => {
+    throw new Error('Synthetic trace failure');
+  };
+  try {
+    await expect(app.close()).rejects.toThrow('Synthetic trace failure');
+    expect(app.page.isClosed()).toBe(true);
+    expect(nativeProcess.exitCode).toBe(0);
+  } finally {
+    await app.close().catch(() => undefined); // The injected failure was asserted above.
+  }
 });
