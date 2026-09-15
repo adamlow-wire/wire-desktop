@@ -20,7 +20,7 @@
 import {strict as assert} from 'assert';
 import {EOL as eol} from 'os';
 
-import {BoundedLogWriterDependencies, createBoundedLogWriter} from './boundedLogWriter';
+import {boundLogMessage, BoundedLogWriterDependencies, createBoundedLogWriter} from './boundedLogWriter';
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 const deferred = () => {
@@ -248,4 +248,59 @@ describe('bounded desktop logging admission', () => {
       assert.equal(f.appended.length, 1);
     });
   }
+  it('[security-target][CAP-001] rejects an entry exceeding the last remaining byte of queued capacity', async () => {
+    const blocked = deferred();
+    let settled = 0;
+    const f = fixture({appendFile: async () => blocked.promise});
+    const pending = Array.from({length: 16}, (_, index) =>
+      f.writer.write({
+        logFilePath: 'fixture.log',
+        message: 'x'.repeat(65536 - eol.length - (index === 15 ? 1 : 0)),
+      }),
+    );
+    const overflow = f.writer.write({logFilePath: 'fixture.log', message: 'x'}).then(() => {
+      settled += 1;
+    });
+    try {
+      await tick();
+      assert.equal(settled, 1);
+    } finally {
+      blocked.resolve();
+      await Promise.all([...pending, overflow]);
+    }
+    const recovered: string[] = [];
+    f.dependencies.appendFile = async (_path, content) => {
+      recovered.push(content);
+    };
+    await f.writer.write({logFilePath: 'fixture.log', message: 'recovered'});
+    assert.match(recovered[0], /dropped 1 entries/);
+  });
+  for (const failure of [
+    new Error('Controlled native failure'),
+    Object.assign(new Error('Controlled filesystem denial'), {code: 'EACCES'}),
+    'controlled rejection',
+  ]) {
+    it(`[characterization][CAP-001] propagates non-collision rotation failure ${
+      typeof failure === 'string' ? 'primitive' : 'code' in failure ? 'denied' : 'error'
+    } and recovers`, async () => {
+      const f = fixture({
+        getFileSize: async () => 100000,
+        moveFile: async () => {
+          throw failure;
+        },
+      });
+      await assert.rejects(f.writer.write({logFilePath: 'fixture.log', message: 'x'}), error => error === failure);
+      assert.deepEqual(f.appended, []);
+      f.dependencies.moveFile = async () => {};
+      await f.writer.write({logFilePath: 'fixture.log', message: 'recovered'});
+      assert.equal(f.appended.length, 1);
+    });
+  }
+  it('[security-target][CAP-001] preserves ordinary console text and bounds multibyte text before formatting', () => {
+    assert.equal(boundLogMessage('ordinary 🧵 text'), 'ordinary 🧵 text');
+    const message = boundLogMessage('é'.repeat(40000));
+    assert.ok(Buffer.byteLength(`${message}${eol}`) <= 65536);
+    assert.ok(message.endsWith(' [desktop log entry truncated]'));
+    assert.equal(message.includes('\ufffd'), false);
+  });
 });

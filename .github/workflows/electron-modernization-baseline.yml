@@ -103,6 +103,14 @@ jobs:
           cp "$original" "$target"
           yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox
 
+      - name: Test bounded logging and maintenance contracts
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|log maintenance coordinator'
+          else
+            yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|log maintenance coordinator'
+          fi
       - name: Test native account lifecycle and cleanup
         shell: bash
         run: |

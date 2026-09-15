@@ -56,6 +56,7 @@ docs/electron-modernization/resume-m4.md,A,documentation,pending,pending,pending
 docs/electron-modernization/review-findings.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-inventory.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-traceability.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/settings-recovery.md,A,documentation,pending,pending,pending
 docs/electron-modernization/status.md,M,documentation,pending,pending,pending
 docs/electron-modernization/testing.md,M,documentation,pending,pending,pending
 docs/electron-modernization/threat-model.md,A,documentation,pending,pending,pending
@@ -194,7 +195,7 @@ electron/src/locale/languages.ts,A,application,pending,pending,pending
 electron/src/locale/systemLocale.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/locale/systemLocale.ts,A,application,pending,pending,pending
 electron/src/logging/boundedLogWriter.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/logging/boundedLogWriter.ts,A,application,pending,pending,pending
+electron/src/logging/boundedLogWriter.ts,A,application,local F-013 admission/rotation/lifetime review; native qualification pending,aaa7e250 failing targets before fix; 4bdaffa0 retrospective collision controls; later gap tests disclosed,fresh Node 76/76 statements 34/34 branches 12/12 functions; native/composed pending
 electron/src/logging/desktopLogWriter.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/logging/desktopLogWriter.ts,A,application,pending,pending,pending
 electron/src/logging/getLogger.ts,M,application,initial source pass; final review pending,pending,pending
@@ -231,8 +232,8 @@ electron/src/menu/AccountTheme.test.main.ts,A,test/fixture,pending,pending,pendi
 electron/src/menu/AccountTheme.ts,A,application,pending,pending,pending
 electron/src/menu/TrayHandler.test.main.ts,M,test/fixture,pending,pending,pending
 electron/src/menu/TrayHandler.ts,M,application,pending,pending,pending
-electron/src/menu/developer.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/menu/developer.ts,M,application,pending,pending,pending
+electron/src/menu/developer.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/menu/developer.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/menu/system.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/menu/system.ts,M,application,pending,pending,pending
 electron/src/preload/AccountShellBridge.test.main.ts,A,test/fixture,pending,pending,pending
@@ -273,11 +274,11 @@ electron/src/preload/preload-display-pip.ts,A,application,pending,pending,pendin
 electron/src/preload/preload-secure-account.ts,A,application,pending,pending,pending
 electron/src/preload/preload-shell.ts,A,application,pending,pending,pending
 electron/src/preload/preload-webview.ts,M,application,pending,pending,pending
-electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/runtime/EnvironmentUtil.ts,M,application,pending,pending,pending
+electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/EnvironmentUtil.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/configurePortableUserData.ts,A,application,pending,pending,pending
-electron/src/runtime/lifecycle.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/runtime/lifecycle.ts,M,application,initial source pass; final review pending,pending,pending
+electron/src/runtime/lifecycle.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/lifecycle.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/portableUserData.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/runtime/portableUserData.ts,A,application,pending,pending,pending
 electron/src/runtime/rendererEnvironment.ts,A,application,pending,pending,pending
@@ -313,8 +314,8 @@ electron/src/security/AccountPermissionSession.test.main.ts,A,test/fixture,pendi
 electron/src/security/AccountPermissionSession.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/AccountWindowPolicy.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/AccountWindowPolicy.ts,A,application,initial source pass; final review pending,pending,pending
-electron/src/security/AuthorizedIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/AuthorizedIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AuthorizedIpc.test.main.ts,A,test/fixture,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
+electron/src/security/AuthorizedIpc.ts,A,application,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
 electron/src/security/BadgeCountContract.ts,A,application,pending,pending,pending
 electron/src/security/BadgeCountIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/BadgeCountIpc.ts,A,application,pending,pending,pending
@@ -361,8 +362,9 @@ electron/src/security/SafeStorageContract.ts,A,application,pending,pending,pendi
 electron/src/security/SafeStorageIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/SafeStorageIpc.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/SavePictureContract.ts,A,application,pending,pending,pending
-electron/src/security/SavePictureIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/SavePictureIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/SavePictureIpc.test.main.ts,A,test/fixture,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
+electron/src/security/SavePictureIpc.ts,A,application,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
+electron/src/security/SavePictureNative.test.main.ts,A,test/fixture,Local review/type/lint; native execution pending,Later F011 native regression; not original baseline,Hosted-only; controlled dialog response; actual OS interaction remains external
 electron/src/security/SsoAccountLimitContract.ts,A,application,pending,pending,pending
 electron/src/security/SsoAccountLimitIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/SsoAccountLimitIpc.ts,A,application,pending,pending,pending
@@ -387,9 +389,10 @@ electron/src/security/WrapperReloadIpc.ts,A,application,pending,pending,pending
 electron/src/security/deepLinkPolicy.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/deepLinkPolicy.ts,A,application,pending,pending,pending
 electron/src/security/externalLinkPolicy.ts,A,application,pending,pending,pending
-electron/src/settings/ConfigurationPersistence.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/settings/ConfigurationPersistence.ts,M,application,pending,pending,pending
-electron/src/settings/SchemaUpdater.ts,M,application,pending,pending,pending
+electron/src/settings/ConfigurationPersistence.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/ConfigurationPersistence.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/SchemaUpdater.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/SchemaUpdater.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/settings/WindowsMachineDestination.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/settings/WindowsMsiConfiguration.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/settings/WindowsMsiConfiguration.ts,A,application,pending,pending,pending
@@ -415,6 +418,8 @@ electron/test/fixtures/certificates/untrusted-localhost-cert.pem,A,test/fixture,
 electron/test/fixtures/certificates/untrusted-localhost-key.pem,A,test/fixture,pending,pending,pending
 electron/test/fixtures/csp-probe.js,A,test/fixture,pending,pending,pending
 electron/test/fixtures/legacy-account-profile.js,A,test/fixture,pending,pending,pending
+electron/test/fixtures/save-picture-preload.js,A,test/fixture,Local review/type/lint; native execution pending,Later F011 native regression; not original baseline,Hosted-only; controlled dialog response; actual OS interaction remains external
+electron/test/node-settings-context.cjs,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/test/register-local-scheme.cjs,A,test/fixture,pending,pending,pending
 electron/test/withTemporaryDirectory.ts,A,test/fixture,pending,pending,pending
 electron/wire.json,M,application,pending,pending,pending
@@ -428,3 +433,6 @@ tsconfig.json,M,tooling/CI/config,pending,pending,pending
 tsconfig.playwright.json,M,tooling/CI/config,pending,pending,pending
 webpack.config.cjs,M,tooling/CI/config,pending,pending,pending
 yarn.lock,M,tooling/CI/config,pending,pending,pending
+electron/src/sso/SingleSignOnDiagnostics.test.main.ts,A,test,local diagnostic boundary review,1a1093f5 nine failing targets then local fix,native and composed qualification pending
+electron/test/node-sso-context.cjs,A,test adapter,Node-only guard and owned objects reviewed,1a1093f5,native tests do not load this adapter
+electron/src/logging/boundedLogAdmission.test.main.ts,A,test,local admission and ownership review,aaa7e250 four controls pass and seven targets fail before correction,native and composed qualification pending
