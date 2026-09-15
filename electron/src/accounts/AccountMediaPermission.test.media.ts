@@ -44,32 +44,53 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
     assert.equal(app.commandLine.hasSwitch('use-fake-ui-for-media-stream'), false);
   });
 
-  beforeEach(async () => {
-    consent = false;
-    prompts = [];
-    server = createServer((_request, response) => response.end('<!doctype html><title>Fake media fixture</title>'));
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-    window = new BrowserWindow({show: false, webPreferences: {sandbox: true, contextIsolation: true}});
-    views = new AccountViews({
-      window,
-      registry: new ViewIdentityRegistry(),
-      preload: path.join(process.cwd(), 'electron/dist/preload/preload-secure-account.js'),
-      additionalArguments: [],
-      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
-      permissionConsent: {
-        canPrompt: () => true,
-        ask: async (_identity, scopes) => {
-          prompts.push([...scopes]);
-          return consent;
+  beforeEach(async function () {
+    // Hosted Windows twice exceeded Mocha's implicit two-second fixture limit
+    // while creating the native account, before requesting any media. Match the
+    // existing native account setup budget; test bodies retain two seconds.
+    this.timeout(10_000);
+    const started = performance.now();
+    let stage = 'starting the fixture server';
+    const warning = setTimeout(() => {
+      console.error('Native fake-media setup pending:', {stage, elapsedMs: Math.round(performance.now() - started)});
+    }, 1_500);
+    try {
+      consent = false;
+      prompts = [];
+      server = createServer((_request, response) => response.end('<!doctype html><title>Fake media fixture</title>'));
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+      const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      stage = 'creating the fixture window';
+      window = new BrowserWindow({show: false, webPreferences: {sandbox: true, contextIsolation: true}});
+      views = new AccountViews({
+        window,
+        registry: new ViewIdentityRegistry(),
+        preload: path.join(process.cwd(), 'electron/dist/preload/preload-secure-account.js'),
+        additionalArguments: [],
+        capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+        permissionConsent: {
+          canPrompt: () => true,
+          ask: async (_identity, scopes) => {
+            prompts.push([...scopes]);
+            return consent;
+          },
         },
-      },
-      configure: async () => undefined,
-      lost: () => undefined,
-    });
-    const account = {id: randomUUID(), sessionID: randomUUID()};
-    contents = await views.create(account, origin);
-    views.select(account.id);
+        configure: async () => undefined,
+        lost: () => undefined,
+      });
+      const account = {id: randomUUID(), sessionID: randomUUID()};
+      stage = 'creating and loading the account view';
+      contents = await views.create(account, origin);
+      views.select(account.id);
+    } finally {
+      clearTimeout(warning);
+      if (performance.now() - started >= 1_500) {
+        console.error('Native fake-media setup settled:', {
+          stage,
+          elapsedMs: Math.round(performance.now() - started),
+        });
+      }
+    }
   });
 
   afterEach(async () => {
