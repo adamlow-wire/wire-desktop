@@ -2,10 +2,10 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
-active_work_item: TST-005
-state: m3-acceptance-documentation-ready
+active_work_item: CAP-001
+state: m3-account-log-cleanup-reopened
 integration_branch: integration/electron-modernization
-integration_head_commit: 45840fca7eea1a4975e5e1f58bd54c6c2d911289
+integration_head_commit: 2fd0d390b0f6f6880c4dcaef316503708125ee08
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: cap/CAP-001-production-accounts-2026-09-09
@@ -16,6 +16,12 @@ blockers: []
 # Current project status
 
 ## Current execution
+
+**Publication checkpoint, 2026-09-15:** M3 documentation PR #57 is merged at `2fd0d390`. Functional M4 follow-up `1a02198c207edb5c786b40227f2f7be20ff69b4f` is published to [PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58), targeting the integration branch. [Full E2E](https://github.com/adamlow-wire/wire-desktop/actions/runs/34955586891) now passes macOS/Linux; Windows has 65 passes and localization restart readiness fails all three attempts. Calling passes on all platforms after explicit hangup. Core/native checks pass. The preceding full E2E run failed calling on all platforms and localization restart on Windows; it does not qualify for merge. CAP-003 remains published separately at `0920ce8558e0faf5a33b1333ac9ad1446e6e1ede`, awaiting dependency integration and final qualification.
+
+**CAP-001 cleanup acceptance is reopened.** The local actual-filesystem regression `drains already queued account log writes before deleting their files` failed against integrated runtime: queued writes recreated the deleted account directory. Command: `env -u ELECTRON_RUN_AS_NODE node .yarn/releases/yarn-3.3.1.cjs test:main --grep 'drains already queued account log writes'` (zero passing, one failing; `/tmp/m3-queued-log-cleanup-baseline.log`). Baseline `e4cac57f` is committed separately. The local correction drains queued writes after native view closure and before exclusive maintenance, preserving all exact-path checks and deletion failure propagation. Removing only the drain reproduces the missing-deletion failure; restoration passes 23 cleanup/writer/maintenance cases, including original write-failure observability, and all 925 native cases. Types, lint and build pass. Evidence: `/tmp/m3-log-cleanup-{sensitivity,restored}.log`, `/tmp/m3-cleanup-{types,lint,build,full-main}.log`. Next executable work is scoped PR publication and final platform qualification before reconfirming M3 completion. No access or product decision is needed.
+
+### Earlier accepted checkpoint (superseded by the cleanup finding above)
 
 **M3 runtime acceptance is complete.** Reviewed [PR #56](https://github.com/adamlow-wire/wire-desktop/pull/56) merged as `45840fca7eea1a4975e5e1f58bd54c6c2d911289`; local integration is clean and tree-equal to fully qualified `5c596187`. The [M3 acceptance audit](m3-acceptance.md) maps all sixteen work items and every criterion to code, review and final-head evidence. This documentation-only closure is prepared for PR publication; its applicable automatic checks must pass before merge. It records the already executed M3 closure checkpoint and reuses the identical qualified runtime’s full E2E.
 

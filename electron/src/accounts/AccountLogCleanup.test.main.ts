@@ -92,6 +92,19 @@ describe('native account log cleanup', () => {
     assert.equal(await readFile(retained, 'utf8'), 'retained');
   });
 
+  it('[regression][CAP-001] cleans up after a failed queued write without hiding the write failure', async () => {
+    const accountDirectory = path.join(logs, '2099-01-01', 'accounts', id);
+    const blockedParent = path.join(accountDirectory, 'file-instead-of-directory');
+    await put(blockedParent);
+    const write = writeBoundedLogMessage({logFilePath: path.join(blockedParent, 'console.log'), message: 'queued'});
+    const cleanup = deleteNativeAccountLogs(id, logs);
+    const [writeOutcome, cleanupOutcome] = await Promise.allSettled([write, cleanup]);
+    assert.equal(writeOutcome.status, 'rejected', 'the original caller must observe its write failure');
+    assert.equal(cleanupOutcome.status, 'fulfilled', 'a settled write failure must not block account cleanup');
+    await assert.rejects(access(accountDirectory), {code: 'ENOENT'});
+    await deleteNativeAccountLogs(id, logs);
+  });
+
   for (const kind of ['root', 'ancestor', 'target'] as const) {
     it(`[security-target][CAP-001] rejects a linked ${kind} without touching its target`, async () => {
       const outside = path.join(directory, 'outside');

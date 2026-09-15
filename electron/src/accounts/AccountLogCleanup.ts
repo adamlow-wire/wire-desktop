@@ -23,6 +23,7 @@ import path from 'node:path';
 import {ValidationUtil} from '@wireapp/commons';
 
 import {parseLegacyAccountLogDirectory} from '../lib/accountLogDeletion';
+import {flushDesktopLogWrites, runDesktopLogMaintenance} from '../logging/desktopLogWriter';
 
 const isMissing = (error: unknown): boolean => error instanceof Error && 'code' in error && error.code === 'ENOENT';
 
@@ -31,6 +32,13 @@ export async function deleteNativeAccountLogs(accountId: string, logDirectory: s
   if (!ValidationUtil.isUUIDv4(accountId)) {
     throw new Error('Invalid account identity for log cleanup.');
   }
+  // AccountController closes the native view before cleanup. Drain its queued
+  // console writes before acquiring maintenance; waiting inside it would deadlock.
+  await flushDesktopLogWrites();
+  await runDesktopLogMaintenance(() => deleteAccountLogFiles(accountId, logDirectory));
+}
+
+async function deleteAccountLogFiles(accountId: string, logDirectory: string): Promise<void> {
   try {
     const metadata = await lstat(logDirectory);
     if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
