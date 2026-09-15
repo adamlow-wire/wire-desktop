@@ -215,7 +215,7 @@
     "test:main:coverage": "nyc electron-mocha --require-main electron/test/register-local-scheme.cjs --require .babel-register.js \"electron/src/**/*.test?(.main).ts\" --no-sandbox",
     "test:media": "electron-mocha --require .babel-register.js \"electron/src/**/*.test.media.ts\" --no-sandbox --use-fake-device-for-media-stream",
     "test:renderer": "electron-mocha --renderer --require .babel-register.js \"electron/src/**/*.test?(.renderer).ts\" --no-sandbox --window-config electron/test/mocha-window-config.json",
-    "test:renderer:coverage": "nyc electron-mocha --renderer --require .babel-register.js \"electron/src/**/*.test?(.renderer).ts\" --no-sandbox --window-config electron/test/mocha-window-config.json",
+    "test:renderer:coverage": "nyc electron-mocha --renderer --require .babel-register.js electron/test/collect-renderer-coverage.cjs \"electron/src/**/*.test?(.renderer).ts\" --no-sandbox --window-config electron/test/mocha-window-config.json",
     "test:types": "tsc --noEmit && yarn test:types:e2e",
     "test:types:e2e": "tsc --noEmit -p tsconfig.playwright.json",
     "test:react": "jest",

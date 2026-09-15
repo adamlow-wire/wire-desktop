@@ -17,7 +17,8 @@
  *
  */
 
-import {BrowserWindow, session} from 'electron';
+import {BrowserWindow, desktopCapturer, nativeImage, session} from 'electron';
+import {stub} from 'sinon';
 
 import {strict as assert} from 'node:assert';
 import {randomUUID} from 'node:crypto';
@@ -43,6 +44,7 @@ describe('consented display capture native boundary', function () {
   this.timeout(20_000);
   let owner: BrowserWindow;
   let coordinator: DisplayCaptureCoordinator;
+  let options: ConstructorParameters<typeof DisplayCaptureCoordinator>[0];
   let registry: ViewIdentityRegistry;
   let enumerations: number;
   let approvedOwner: boolean;
@@ -95,7 +97,7 @@ describe('consented display capture native boundary', function () {
     target.setPermissionCheckHandler((contents, permission, origin, details) =>
       permissions.check(contents, permission, origin, details),
     );
-    coordinator = new DisplayCaptureCoordinator({
+    options = {
       registry,
       directory,
       isEligible: () => !owner.isDestroyed(),
@@ -110,7 +112,8 @@ describe('consented display capture native boundary', function () {
           ]
         );
       },
-    });
+    };
+    coordinator = new DisplayCaptureCoordinator(options);
     owner.focus();
     await until(() => owner.isFocused());
   });
@@ -392,6 +395,84 @@ describe('consented display capture native boundary', function () {
     } finally {
       release([{name: 'Late synthetic source', thumbnail: '', video: owner.webContents.mainFrame}]);
       await new Promise(resolve => setImmediate(resolve));
+    }
+  });
+
+  it('[security-target][CAP-003] revalidates pending approval and active document ownership', async () => {
+    const broker = await request();
+    coordinator.revalidate();
+    assert.equal(broker.isDestroyed(), false);
+    approvedOwner = false;
+    coordinator.revalidate();
+    assert.equal(broker.isDestroyed(), true);
+    await until(() => owner.webContents.executeJavaScript('window.captureOutcome === "NotAllowedError"'));
+  });
+
+  it('[security-target][CAP-003] retains active sharing across background selection but revokes a lost identity', async () => {
+    const broker = await request();
+    await selectSource(broker);
+    await until(() => owner.webContents.executeJavaScript('window.captureOutcome === "started"'));
+    approvedOwner = false;
+    coordinator.revalidate();
+    assert.equal(broker.isDestroyed(), false);
+    registry.unregister(owner.webContents.id);
+    coordinator.revalidate();
+    assert.equal(broker.isDestroyed(), true);
+    await until(() => owner.webContents.executeJavaScript('window.capturedClone.readyState === "ended"'));
+  });
+
+  it('[security-target][CAP-003] keeps same-document navigation but cancels cross-document owner navigation', async () => {
+    const broker = await request();
+    await owner.webContents.executeJavaScript('history.pushState({}, "", "/same-document")');
+    assert.equal(broker.isDestroyed(), false);
+    await owner.loadURL(`${origin}/replacement`);
+    assert.equal(broker.isDestroyed(), true);
+  });
+
+  it('[security-target][CAP-003] cancels pending consent when its parent becomes hidden', async () => {
+    const broker = await request();
+    owner.hide();
+    assert.equal(broker.isDestroyed(), true);
+    await until(() => owner.webContents.executeJavaScript('window.captureOutcome === "NotAllowedError"'));
+  });
+
+  it('[security-target][CAP-003] rejects an invalid native source model without exposing choices', async () => {
+    pendingSourceList = Promise.resolve([{name: 'x'.repeat(2049), thumbnail: '', video: owner.webContents.mainFrame}]);
+    await startRequest();
+    await until(() => owner.webContents.executeJavaScript('window.captureOutcome === "NotAllowedError"'));
+    assert.equal(enumerations, 1);
+    assert.equal(
+      BrowserWindow.getAllWindows().some(window => window.webContents.getURL() === DISPLAY_BROKER_URL),
+      false,
+    );
+  });
+
+  it('[security-target][CAP-003] maps native enumeration only into the local chooser', async () => {
+    coordinator.dispose();
+    const enumerate = stub(desktopCapturer, 'getSources').resolves([
+      {
+        id: 'window:synthetic:0',
+        display_id: '',
+        name: 'Test-owned enumeration',
+        thumbnail: nativeImage.createEmpty(),
+        appIcon: nativeImage.createEmpty(),
+      },
+    ]);
+    coordinator = new DisplayCaptureCoordinator({...options, sources: undefined});
+    try {
+      const broker = await request();
+      assert.equal(enumerate.calledOnce, true);
+      assert.deepEqual(enumerate.firstCall.args, [
+        {types: ['screen', 'window'], thumbnailSize: {width: 320, height: 180}, fetchWindowIcons: false},
+      ]);
+      assert.equal(
+        await broker.webContents.executeJavaScript('document.querySelector("#source-list button").textContent'),
+        'Test-owned enumeration',
+      );
+      assert.equal(await owner.webContents.executeJavaScript('typeof window.desktopCapturer'), 'undefined');
+      broker.close();
+    } finally {
+      enumerate.restore();
     }
   });
 });
