@@ -17,6 +17,7 @@
  *
  */
 
+import {app} from 'electron';
 import fs from 'fs-extra';
 import * as logdown from 'logdown';
 import {stub} from 'sinon';
@@ -27,6 +28,8 @@ import path from 'node:path';
 
 import {SchemaUpdater} from './SchemaUpdater';
 import {SettingsType} from './SettingsType';
+
+import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
 
 describe('[PKG-003][DCP-021][INV-010] settings schema migration', () => {
   let directory: string;
@@ -185,5 +188,52 @@ describe('[PKG-003][DCP-021][INV-010] settings schema migration', () => {
     assert.equal(SchemaUpdater.updateToVersion1(legacy, current), current);
     assert.equal(fs.readFileSync(current, 'utf8'), migrated);
     assert.deepEqual(fs.readdirSync(path.dirname(current)), ['init.json']);
+  });
+
+  it('[regression] retains a complete current file when temporary-file cleanup fails', () => {
+    fs.writeJSONSync(legacy, {customSetting: 'retained'});
+    const unlink = fs.unlinkSync;
+    const cleanup = stub(fs, 'unlinkSync').callsFake(filename => {
+      if (String(filename).endsWith('.tmp')) {
+        throw new Error('synthetic temporary cleanup failure');
+      }
+      return unlink(filename);
+    });
+    try {
+      assert.equal(SchemaUpdater.updateToVersion1(legacy, current), current);
+    } finally {
+      cleanup.restore();
+    }
+    assert.equal(fs.existsSync(legacy), false);
+    assert.deepEqual(fs.readJSONSync(current), {configVersion: 1, customSetting: 'retained'});
+    assert.equal(fs.readdirSync(path.dirname(current)).filter(name => name.endsWith('.tmp')).length, 1);
+    assert.equal(SchemaUpdater.updateToVersion1(legacy, current), current);
+  });
+
+  it('uses the supplied renderer user-data path when the native path is unavailable', () => {
+    const originalArguments = process.argv;
+    const nativePath = stub(app, 'getPath').returns(undefined as never);
+    process.argv = createRendererRuntimeArguments({locale: 'en', userDataPath: directory});
+    fs.writeJSONSync(legacy, {customSetting: 'retained'});
+    try {
+      assert.equal(SchemaUpdater.updateToVersion1(), current);
+      assert.deepEqual(fs.readJSONSync(current), {configVersion: 1, customSetting: 'retained'});
+    } finally {
+      nativePath.restore();
+      process.argv = originalArguments;
+    }
+  });
+
+  it('refuses migration when neither native nor renderer context supplies a user-data path', () => {
+    const originalArguments = process.argv;
+    const nativePath = stub(app, 'getPath').returns(undefined as never);
+    process.argv = [];
+    try {
+      assert.throws(() => SchemaUpdater.updateToVersion1(), /Electron user-data path is unavailable/);
+      assert.deepEqual(fs.readdirSync(directory), []);
+    } finally {
+      nativePath.restore();
+      process.argv = originalArguments;
+    }
   });
 });

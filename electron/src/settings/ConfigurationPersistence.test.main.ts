@@ -26,6 +26,7 @@ import {tmpdir} from 'os';
 import * as path from 'path';
 
 import {settings} from './ConfigurationPersistence';
+import {SchemaUpdater} from './SchemaUpdater';
 import {SettingsType} from './SettingsType';
 
 describe('ConfigurationPersistence diagnostics', () => {
@@ -173,6 +174,48 @@ describe('[PKG-003][DCP-021] settings persistence recovery', () => {
       );
     } finally {
       logdown.transports.splice(logdown.transports.indexOf(capture), 1);
+    }
+  });
+
+  it('[regression] rejects invalid in-memory values without replacing the last valid file', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    for (const value of [null, [], 'invalid']) {
+      global._ConfigurationPersistence = value as unknown as Record<string, unknown>;
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+      assert.deepEqual(fs.readFileSync(filename), previous);
+    }
+    assert.deepEqual(fs.readdirSync(path.dirname(filename)), ['init.json']);
+  });
+
+  it('[regression] ignores a leftover staging file after publication and cleanup both fail', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    const publish = stub(fs, 'renameSync').throws(new Error('synthetic publication failure'));
+    const cleanup = stub(fs, 'unlinkSync').throws(new Error('synthetic cleanup failure'));
+    try {
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+    } finally {
+      publish.restore();
+      cleanup.restore();
+    }
+    assert.deepEqual(fs.readFileSync(filename), previous);
+    assert.deepEqual(settings.readFromFile(), {configVersion: 1, customSetting: 'previous'});
+    assert.equal(fs.readdirSync(path.dirname(filename)).filter(name => name.endsWith('.tmp')).length, 1);
+    settings.persistToFile();
+    assert.deepEqual(settings.readFromFile(), global._ConfigurationPersistence);
+  });
+
+  it('preserves already loaded in-memory settings when another persistence instance is constructed', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'older disk value'});
+    const loaded = global._ConfigurationPersistence;
+    const migration = stub(SchemaUpdater, 'updateToVersion1').returns(filename);
+    try {
+      Reflect.construct(settings.constructor, []);
+      assert.strictEqual(global._ConfigurationPersistence, loaded);
+      assert.strictEqual(settings.restore('customSetting'), 'new value');
+    } finally {
+      migration.restore();
     }
   });
 });
