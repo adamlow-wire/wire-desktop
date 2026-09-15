@@ -431,7 +431,9 @@ describe('consented display capture native boundary', function () {
 
   it('[security-target][CAP-003] cancels pending consent when its parent becomes hidden', async () => {
     const broker = await request();
+    const hidden = new Promise<void>(resolve => owner.once('hide', () => resolve()));
     owner.hide();
+    await hidden;
     assert.equal(broker.isDestroyed(), true);
     await until(() => owner.webContents.executeJavaScript('window.captureOutcome === "NotAllowedError"'));
   });
