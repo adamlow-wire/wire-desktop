@@ -44,6 +44,9 @@ describe('main-owned native account views', function () {
   let server: Server;
   let origin: string;
   let redirectUrl: string;
+  let startupResourceRequested: Promise<void>;
+  let notifyStartupResource: () => void;
+  let failStartupDestination: boolean;
   let window: BrowserWindow;
   let registry: ViewIdentityRegistry;
   let views: AccountViews;
@@ -61,7 +64,34 @@ describe('main-owned native account views', function () {
     window.contentView.children.find(view => (view as WebContentsView).webContents === contents) as WebContentsView;
 
   beforeEach(async () => {
+    startupResourceRequested = new Promise(resolve => {
+      notifyStartupResource = resolve;
+    });
+    failStartupDestination = false;
     server = createServer((request, response) => {
+      if (request.url?.startsWith('/startup-held')) {
+        notifyStartupResource();
+        return;
+      }
+      if (request.url?.startsWith('/startup-trigger')) {
+        void startupResourceRequested.then(() => response.end('redirect'));
+        return;
+      }
+      if (request.url?.startsWith('/startup-begin')) {
+        response.setHeader('Content-Type', 'text/html');
+        response.end(`<!doctype html><img src="/startup-held"><script>
+          fetch('/startup-trigger').then(() => {
+            const destination = new URL('/startup-finish', location.href);
+            destination.search = location.search;
+            location.replace(destination.href);
+          });
+        </script>`);
+        return;
+      }
+      if (request.url?.startsWith('/startup-finish') && failStartupDestination) {
+        response.destroy();
+        return;
+      }
       if (request.url?.startsWith('/redirect')) {
         response.writeHead(302, {Location: redirectUrl});
       }
@@ -84,7 +114,30 @@ describe('main-owned native account views', function () {
     if (!window.isDestroyed()) {
       window.destroy();
     }
+    server.closeAllConnections();
     await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+  });
+
+  it('[regression][CAP-001] preserves a same-origin startup redirect while an initial resource is pending', async () => {
+    const account = record();
+    const contents = await views.create(account, `${origin}/startup-begin`);
+    assert.equal(contents.isDestroyed(), false);
+    assert.equal(views.get(account.id), contents);
+    assert.equal(new URL(contents.getURL()).pathname, '/startup-finish');
+    assert.equal(new URL(contents.getURL()).searchParams.get('id'), account.id);
+    assert.equal(contents.isLoadingMainFrame(), false);
+    assert.equal(
+      registry.authorize({sender: contents, senderFrame: contents.mainFrame}, 'test:account').accountId,
+      account.id,
+    );
+  });
+
+  it('[security-target][CAP-001] rejects a failed same-origin startup redirect and releases its view', async () => {
+    failStartupDestination = true;
+    const account = record();
+    await assert.rejects(views.create(account, `${origin}/startup-begin`));
+    assert.equal(views.has(account.id), false);
+    assert.equal(window.contentView.children.length, 0);
   });
 
   it('[security-target][SEC-009] requires explicit consent and capability for the selected native account', async () => {

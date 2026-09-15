@@ -21,6 +21,8 @@ import {BrowserWindow, session, WebContents, WebContentsView} from 'electron';
 
 import {ValidationUtil} from '@wireapp/commons';
 
+import {loadAccountDestination} from './loadAccountDestination';
+
 import type {Account} from '../../renderer/src/types/account';
 import {EVENT_TYPE} from '../lib/eventType';
 import {
@@ -165,7 +167,11 @@ export class AccountViews {
       }
       this.options.window.contentView.addChildView(view);
       this.layout();
-      await contents.loadURL(url.href);
+      await loadAccountDestination(
+        contents,
+        url.href,
+        () => !this.disposed && !this.options.window.isDestroyed() && this.entries.get(account.id)?.view === view,
+      );
       return contents;
     } catch (error) {
       if (this.entries.get(account.id)?.view === view) {

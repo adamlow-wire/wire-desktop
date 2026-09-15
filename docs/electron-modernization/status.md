@@ -2,13 +2,13 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M3
-active_work_item: CAP-006
-state: correcting-sensitive-diagnostics
+active_work_item: CAP-001
+state: correcting-account-startup-redirect
 integration_branch: integration/electron-modernization
-integration_head_commit: 2ee0be972df4d80b265c7744cf480550b6c6e991
+integration_head_commit: 4f4cfdaa78202f7ba62052f905e499bae2e2eac3
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: cap/CAP-006-second-instance-2026-09-10
+active_branch: cap/CAP-001-production-accounts-2026-09-09
 next_work_item: CAP-003
 blockers: []
 ---
@@ -17,15 +17,19 @@ blockers: []
 
 ## Current execution
 
-Protected integration is `2ee0be972df4d80b265c7744cf480550b6c6e991`, after reviewed [PR #54](https://github.com/adamlow-wire/wire-desktop/pull/54). Its tree equals qualified head e47febe4. [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34905898654), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34905898663), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34905898643), [all three native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34905898638) and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34905928582) pass. Both E2E platforms pass46 cases, each with45 initial passes and one recovered retry: Windows account-limit login target closed; macOS notification setup backend registration failed. No skipped tests or worker teardown errors. These failures remain TST-005 follow-up evidence.
+Protected integration is `4f4cfdaa78202f7ba62052f905e499bae2e2eac3`, after reviewed [diagnostic PR #55](https://github.com/adamlow-wire/wire-desktop/pull/55). Its tree equals qualified480acb50. [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582447), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582429), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582436), [all three native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582486) and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909605643) pass. Native jobs pass on their first attempts, with175 account tests each,472 boundary tests on Linux/macOS and473 on Windows, plus10 product cases each. The intentional Windows registry mutation fails and restoration passes. Full E2E passes47 cases each: macOS45 initial/two recovered cases; Windows44 initial/three recovered cases (one needs two retries). No skipped tests or worker errors. All retries remain in the PR evidence.
 
-**M3 remains open for an INV-010 diagnostic finding from the final source audit.** The existing CAP-006 branch now owns the focused correction, with supporting CAP-005 coverage. Action dispatch logs SSO/join payloads, settings save/read/persist logs configuration values, and startup logs the stored proxy URL. Synthetic credential regressions reproduce the exposure. Remove sensitive payloads while retaining operation diagnostics and exact routing/persistence behavior; qualify the corrected composition before closure. CAP-002 and retained pinning acceptance have passed under the approved scope. Electron remains **43.4.0**.
+**M3 remains open for a reproduced account-startup compatibility defect.** The final diagnostic correction is reviewed, fully qualified and merged as recorded above. One retained macOS retry exposed an actual same-origin startup redirect during pending resource loading: native `loadURL` rejects `ERR_ABORTED`, and `AccountViews.create` destroys the view. A deterministic loopback probe reproduces the failure. The existing CAP-001 branch now owns the separate correction; do not change or reuse PR55 results as qualification for new runtime code.
+
+Native startup acceptance must preserve a completed authorized same-origin redirect while retaining real failure, cancellation, stale-view and foreign-navigation denial. Add sensitive baseline tests first, then qualify the corrected final head. CAP-002 and retained pinning acceptance have passed under the approved scope. Electron remains **43.4.0**. The diagnostic correction removes action/settings/proxy-startup payloads while preserving exact behavior; its successful final hosted qualification does not cover this newly demonstrated startup correction.
 
 Live environment discovery/provisioning is outside current M3 acceptance by the maintainer's September14 instruction. [qa-sso-e2ei.md](qa-sso-e2ei.md) retains live SSO and Keycloak E2EI enrolment, restart, renewal and isolation as downstream QA obligations. Q-011 is a QA prerequisite; customer compatibility remains unqualified. Q-005 preserves existing product policy: built-in pins and an explicit native process-wide override until restart, without bypassing Chromium validation. There is no existing MDM pinning setting. The broad override remains an independent-review concern.
 
-Requested aggregate validation passes112 Jest,901 main, four media, four renderer and38 build-tool cases plus types/build. Fresh whole-M3 coverage from completed-M2fe0b86cb passes3174/3758 changed statements (84.46%, required80%) and840/853 tracked security-policy branches (98.48%, required90%). A bounded16MiB diff-output buffer fixes the collector's reproduced1MiB ENOBUFS limit without changing coverage selection or thresholds. Final integrated-head acceptance audit and validation remain required.
+PR #55 aggregate validation passes 112 Jest, 906 main, four media, four renderer and 38 build-tool cases plus types/build. Whole-M3 coverage from completed-M2 fe0b86cb passes 3178/3762 changed statements (84.48%, required 80%) and840/853 tracked security-policy branches (98.48%, required90%). A bounded16MiB diff-output buffer fixes the collector's reproduced1MiB ENOBUFS limit without changing coverage selection or thresholds. Final integrated-head acceptance audit and validation remain required.
 
-Next executable work: complete and qualify the focused diagnostic correction against actual integration, then close M3 from the full acceptance audit. After M3 is accepted, complete functional CAP-003/CAP-004 and the development/test portion of TST-005. Packaging, installer/update/signing and independent release qualification remain in their assigned later work.
+The startup candidate passes the complete local `yarn test`: 112 Jest, 922 main, four media, four renderer and 38 build-tool cases, including application/Mocha types and rebuilt assets. Scoped lint passes. Rebuilt Linux product navigation/proxy validation passes all six cases in 11.6 seconds with isolated profiles/keyring; the macOS project label is not macOS evidence. Whole-M3 coverage at 81052251 passes 3244/3829 changed statements (84.72%) and 840/853 tracked security branches (98.48%). Final error-path review then reproduced credential-bearing native startup errors; the same PR now sanitizes that message while retaining a bounded native error code. Renew local and hosted final-head qualification for that correction.
+
+Next executable work: complete and qualify the CAP-001 startup redirect correction against actual integration4f4cfdaa, then close M3 from the full acceptance audit. After M3 is accepted, complete functional CAP-003/CAP-004 and the development/test portion of TST-005. Packaging, installer/update/signing and independent release qualification remain in their assigned later work.
 
 ## Completed account cutover
 
@@ -45,9 +49,9 @@ The permission review reproduced unconsented thumbnail enumeration with an inert
 | Open item | Integrated/prepared work | Next acceptance evidence |
 | --- | --- | --- |
 | SEC-008 | Done: PRs #38/#47/#49 integrate navigation/popup/SSO/PiP/external policy and fail-closed managed destination approval. Final49 native/package and authenticated gates pass. | No remaining M3 acceptance; live provider flows remain CAP-002. |
-| CAP-005 | PR #49 integrates registry fail-closed policy and exact challenged-session proxy behavior with all final gates. Existing #52 adds certificate callback/save safety and pending/rejected proxy-state ordering. | Q-005 retained policy is qualified and merged in #54. Supporting configuration/startup diagnostic regressions remain under the focused CAP-006 correction. |
+| CAP-005 | PR #49 integrates registry fail-closed policy and exact challenged-session proxy behavior with all final gates. Existing #52 adds certificate callback/save safety and pending/rejected proxy-state ordering. | Q-005 retained policy is qualified and merged in #54. Supporting configuration/startup diagnostic regressions pass in merged PR #55. |
 | SEC-010 | Done: PR #50 merged18235a5a after reviewed final-head native/package and authenticated E2E/report gates. DEC-010 accepted. | No remaining M3 protocol criterion. |
-| CAP-006 | Done: reviewed PR #51 mergedc74d116e, with actual second-Electron delivery, primary ownership, zero loser exit, no stale writes and preserved exact installed-Squirrel handling. | Lifecycle gates pass. Final source audit reopened non-secret action diagnostics; the focused correction requires new final-head qualification. |
+| CAP-006 | Done: reviewed PR #51 mergedc74d116e, with actual second-Electron delivery, primary ownership, zero loser exit, no stale writes and preserved exact installed-Squirrel handling. | Lifecycle and non-secret action/settings/startup diagnostics pass in merged PR #55; no remaining CAP-006 criterion. |
 | SEC-013 | Done: PRs #39/#38/#47/#51 combine strict parsing/external denials and authorized startup/running/second-instance selected-account dispatch. | Final lifecycle gates pass; no remaining criterion. |
 | CAP-002 | Done: PRs #43/#53 qualify isolated SSO, backend verdicts, one-use/cookie/account isolation and sensitive E2EI transport on supported platforms. | No remaining automated M3 criterion. Live SSO/E2EI remains downstream QA; no live compatibility claim. |
 
