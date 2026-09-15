@@ -649,7 +649,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in-progress`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
@@ -657,6 +657,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Test-harness prerequisite (2026-09-08): real fixture renderer termination avoids host crash-dump delays without changing runtime recovery code or test deadlines. Add an explicit pre-replacement revocation assertion; deliberately delayed revocation must fail it. This test-only slice does not close production account migration. Local forced-crash diagnostics stalled before process-loss notification on WSL; non-dumping termination produced notification at 29 ms and completed recovery at 153 ms.
 - Metadata identity prerequisite (2026-09-08): webapp account-info updates must reject desktop-owned identity, session, visibility, lifecycle, badge and arbitrary fields. The existing known metadata fields and separate custom-environment URL update remain compatible. Malformed messages must not throw in the user-ID guard. Characterize targeted reducer updates first and prove the tests detect corruption. This bounded validation does not make production account state main-owned or authorize the remaining programmatic environment-change path; those remain CAP-001/CAP-005 cutover work.
 - Final-audit startup correction (September15): retained PR55 macOS retry and a deterministic native fixture show a same-origin client redirect interrupting pending startup resources. The initial native load rejects ERR_ABORTED and the view is incorrectly destroyed. Preserve a fully completed approved replacement document, with bounded waiting, native lifetime/ownership checks and unchanged foreign-navigation denial; do not blindly ignore native aborts. Existing cap/CAP-001-production-accounts-2026-09-09 owns this correction after diagnostic PR55 qualifies.
+- Cleanup correction (September15): real queued console writes can recreate account logs after removal. Drain queued writes after closing their native producer, then delete under exclusive log maintenance. Preserve exact-target and symlink checks, surface deletion failures for retry, and retain original write failures for their callers. CAP-001 is reopened until the scoped correction passes final platform qualification.
 - Acceptance:
   - Approved same-origin startup redirects preserve the owning view; failed, cancelled, stale or foreign replacements cannot become successful startup.
   - Existing multi-account critical and regression flows pass.
