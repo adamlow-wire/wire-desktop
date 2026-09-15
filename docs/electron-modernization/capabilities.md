@@ -49,7 +49,7 @@ Confidence values are `none`, `low`, `medium`, or `high`. `High` requires repres
 | DCP-018 | MSI managed deployment | Windows | MSI build-tool tests and release checklist are integrated through PR #9; signed deployment qualification remains open | low | BASE-002 | PKG-001, PKG-002 | Merged baseline plus signed install/upgrade/repair/uninstall and Squirrel coexistence checks |
 | DCP-019 | macOS signing, notarization, and update | macOS | Build path; no end-to-end updater test | low | BASE-002 | PKG-001, PKG-002 | Signed/notarized launch and update on supported macOS |
 | DCP-020 | Linux packaging and desktop integration | Linux | Reviewed PR #58 adds mandatory Linux development E2E with native Secret Service isolation; PR #60 head 41066868 passes 76 Linux cases initially plus native/package boundary smoke. Released package/desktop-environment qualification remains open | low | BASE-002, TST-005 | PKG-001, PKG-002 | Packaged launch, protocol, tray/menu, and representative E2E |
-| DCP-021 | Settings and user-data migration | Windows, macOS, Linux | Partial settings tests; no modernization fixture | low | BASE-002 | PKG-003 | Released-version fixtures, recovery path, no silent loss/corruption |
+| DCP-021 | Settings and user-data migration | Windows, macOS, Linux | F-010 settings migration/persistence fixtures cover preservation, corruption, write failure and recovery locally; native/platform qualification pending | low | BASE-002 | PKG-003 | Released-version fixtures, recovery path, no silent loss/corruption |
 
 ## Acceptance validation
 

@@ -18,11 +18,14 @@
  */
 
 import {app, BrowserWindow, WebPreferences} from 'electron';
+import {restore, stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 
 import {createDeveloperMenu} from './developer';
 
+import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import * as lifecycle from '../runtime/lifecycle';
 import {ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 
 describe('developer menu view identity', () => {
@@ -86,4 +89,28 @@ describe('developer menu view identity', () => {
       assert.strictEqual(prevented, true, name);
     }
   });
+});
+
+describe('[PKG-003] developer environment settings failure', () => {
+  afterEach(() => restore());
+
+  for (const saveFails of [false, true]) {
+    it(`relaunches only after the environment is saved (failure=${saveFails})`, async () => {
+      stub(EnvironmentUtil, 'getAvailableEnvironments').returns([
+        {isActive: false, name: 'Beta', server: EnvironmentUtil.ServerType.BETA, url: 'https://example.test'},
+      ]);
+      const save = stub(EnvironmentUtil, 'setEnvironment');
+      if (saveFails) {
+        save.throws(new Error('synthetic persistence failure'));
+      }
+      const relaunch = stub(lifecycle, 'relaunch').resolves();
+      const menu = createDeveloperMenu(new ViewIdentityRegistry());
+      const item = menu.submenu?.items.find(candidate => candidate.label === 'Beta');
+      assert.ok(item);
+      await item.click(undefined as never, undefined as never, undefined as never);
+      assert.strictEqual(save.callCount, 1);
+      assert.strictEqual(save.firstCall.args[0], EnvironmentUtil.ServerType.BETA);
+      assert.strictEqual(relaunch.callCount, saveFails ? 0 : 1);
+    });
+  }
 });

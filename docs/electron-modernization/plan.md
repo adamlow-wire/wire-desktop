@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.54
+revision: 1.5.55
 status: draft
 updated: 2026-09-15
 owners:
@@ -821,7 +821,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### PKG-003 — Validate legacy-to-modernized data migration
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M5`
 - Dependencies: CAP-001, PKG-002
 - Scope: Upgrade representative released installations without losing accounts, settings, managed configuration, or required cached state.
@@ -829,7 +829,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Migration fixtures cover supported legacy versions and install types.
   - Account/session changes have documented recovery and rollback behavior.
   - A failed migration does not silently corrupt or delete user data.
-- Evidence: TBD
+- Evidence: TST-006 F-010 confirms settings migration/persistence data loss. Separate baselines `b122d801` and `f5f8684c`, local recovery tests and [settings recovery procedure](settings-recovery.md) are in progress; final hosted qualification is pending. Unsigned deterministic fixtures are brought forward for M4 handoff; full released-installation/rollback criteria remain M5.
 
 #### REL-001 — Complete independent security review
 

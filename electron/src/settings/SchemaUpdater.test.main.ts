@@ -19,12 +19,14 @@
 
 import fs from 'fs-extra';
 import * as logdown from 'logdown';
+import {stub} from 'sinon';
 
 import {strict as assert} from 'node:assert';
 import os from 'node:os';
 import path from 'node:path';
 
 import {SchemaUpdater} from './SchemaUpdater';
+import {SettingsType} from './SettingsType';
 
 describe('[PKG-003][DCP-021][INV-010] settings schema migration', () => {
   let directory: string;
@@ -45,7 +47,11 @@ describe('[PKG-003][DCP-021][INV-010] settings schema migration', () => {
   });
 
   it('migrates legacy values and preserves the existing window-state behavior', () => {
-    const original = {customSetting: 'retained', fullScreen: true, windowBounds: {height: 700, width: 1000}};
+    const original = {
+      customSetting: 'retained',
+      [SettingsType.FULL_SCREEN]: true,
+      [SettingsType.WINDOW_BOUNDS]: {height: 700, width: 1000},
+    };
     fs.writeJSONSync(legacy, original);
     assert.equal(SchemaUpdater.updateToVersion1(legacy, current), current);
     assert.deepEqual(fs.readJSONSync(current), {...original, configVersion: 1});
@@ -122,5 +128,62 @@ describe('[PKG-003][DCP-021][INV-010] settings schema migration', () => {
     fs.writeJSONSync(legacy, {customSetting: 'private to this profile'});
     SchemaUpdater.updateToVersion1(legacy, current);
     assert.deepEqual(SchemaUpdater.SCHEMATA, defaults);
+  });
+
+  for (const operation of ['writeFileSync', 'fsyncSync', 'linkSync'] as const) {
+    it(`[regression] preserves legacy bytes and removes staging files after ${operation} failure`, () => {
+      fs.writeJSONSync(legacy, {customSetting: 'must survive'});
+      const original = fs.readFileSync(legacy);
+      const failure = stub(fs, operation).throws(new Error('synthetic filesystem failure'));
+      try {
+        assert.throws(() => SchemaUpdater.updateToVersion1(legacy, current), /^Error: Settings migration failed\.$/);
+      } finally {
+        failure.restore();
+      }
+      assert.deepEqual(fs.readFileSync(legacy), original);
+      assert.equal(fs.existsSync(current), false);
+      assert.deepEqual(fs.readdirSync(path.dirname(current)), []);
+      SchemaUpdater.updateToVersion1(legacy, current);
+      assert.deepEqual(fs.readJSONSync(current), {configVersion: 1, customSetting: 'must survive'});
+    });
+  }
+
+  it('[regression] never replaces a destination created during migration', () => {
+    fs.writeJSONSync(legacy, {customSetting: 'legacy'});
+    const originalLink = fs.linkSync;
+    const concurrent = '{"configVersion":1,"customSetting":"concurrent"}';
+    const publish = stub(fs, 'linkSync').callsFake((source, destination) => {
+      fs.writeFileSync(destination, concurrent);
+      return originalLink(source, destination);
+    });
+    try {
+      assert.throws(() => SchemaUpdater.updateToVersion1(legacy, current), /Settings migration failed/);
+    } finally {
+      publish.restore();
+    }
+    assert.equal(fs.readFileSync(current, 'utf8'), concurrent);
+    assert.deepEqual(fs.readJSONSync(legacy), {customSetting: 'legacy'});
+    assert.deepEqual(fs.readdirSync(path.dirname(current)), ['init.json']);
+  });
+
+  it('[regression] can restart safely after publication succeeds but legacy cleanup fails', () => {
+    fs.writeJSONSync(legacy, {customSetting: 'retained'});
+    const unlink = fs.unlinkSync;
+    const cleanup = stub(fs, 'unlinkSync').callsFake(filename => {
+      if (filename === legacy) {
+        throw new Error('synthetic legacy cleanup failure');
+      }
+      return unlink(filename);
+    });
+    try {
+      assert.throws(() => SchemaUpdater.updateToVersion1(legacy, current), /Settings migration failed/);
+    } finally {
+      cleanup.restore();
+    }
+    const migrated = fs.readFileSync(current, 'utf8');
+    assert.equal(fs.existsSync(legacy), true);
+    assert.equal(SchemaUpdater.updateToVersion1(legacy, current), current);
+    assert.equal(fs.readFileSync(current, 'utf8'), migrated);
+    assert.deepEqual(fs.readdirSync(path.dirname(current)), ['init.json']);
   });
 });

@@ -17,8 +17,9 @@
  *
  */
 
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as logdown from 'logdown';
+import {stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 import {tmpdir} from 'os';
@@ -118,5 +119,60 @@ describe('[PKG-003][DCP-021] settings persistence recovery', () => {
     fs.writeFileSync(path.dirname(filename), 'parent is a file');
     assert.throws(() => settings.persistToFile());
     assert.equal(fs.readFileSync(path.dirname(filename), 'utf8'), 'parent is a file');
+  });
+
+  for (const operation of ['openSync', 'writeFileSync', 'fsyncSync', 'renameSync'] as const) {
+    it(`[regression] preserves the previous file after ${operation} failure and recovers`, () => {
+      const previous = '{ "configVersion": 1, "customSetting": "previous" }\n';
+      fs.outputFileSync(filename, previous);
+      const failure = stub(fs, operation).throws(new Error('fixture-secret-only'));
+      try {
+        assert.throws(() => settings.persistToFile(), /^Error: Settings persistence failed\.$/);
+      } finally {
+        failure.restore();
+      }
+      assert.equal(fs.readFileSync(filename, 'utf8'), previous);
+      assert.deepEqual(fs.readdirSync(path.dirname(filename)), ['init.json']);
+      settings.persistToFile();
+      assert.deepEqual(settings.readFromFile(), global._ConfigurationPersistence);
+    });
+  }
+
+  it('[regression] keeps incomplete write bytes out of the live configuration', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    const write = fs.writeFileSync;
+    const partial = stub(fs, 'writeFileSync').callsFake(file => {
+      write(file, '{"incomplete":');
+      throw new Error('synthetic full disk');
+    });
+    try {
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+    } finally {
+      partial.restore();
+    }
+    assert.deepEqual(fs.readFileSync(filename), previous);
+    assert.deepEqual(fs.readdirSync(path.dirname(filename)), ['init.json']);
+  });
+
+  it('[regression] does not log or return malformed settings contents in errors', () => {
+    const canary = 'fixture-secret-only';
+    fs.outputFileSync(filename, canary);
+    const diagnostics: string[] = [];
+    const capture: logdown.TransportFunction = options => {
+      if (options.instance.includes('ConfigurationPersistence')) {
+        diagnostics.push(String(options.msg), ...options.args.map(value => String(value)));
+      }
+    };
+    logdown.transports.push(capture);
+    try {
+      assert.throws(() => settings.readFromFile(), /^Error: Settings could not be read\.$/);
+      assert.equal(
+        diagnostics.some(message => message.includes(canary)),
+        false,
+      );
+    } finally {
+      logdown.transports.splice(logdown.transports.indexOf(capture), 1);
+    }
   });
 });

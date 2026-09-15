@@ -2,13 +2,13 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
-active_work_item: CAP-001
+active_work_item: PKG-003
 state: audit-remediation-in-progress
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/CAP-001-bounded-account-queue-2026-09-15
+active_branch: fix/PKG-003-preserve-settings-migration-2026-09-15
 next_work_item: TST-006
 blockers: []
 ---
@@ -16,6 +16,10 @@ blockers: []
 # Current project status
 
 ## Current execution
+
+**Current remediation:** [PR62](https://github.com/adamlow-wire/wire-desktop/pull/62), queue head `28fbf798`, passes build/lint/CodeQL and native/package checks on Windows/macOS/Linux initially. Full E2E is still running; the PR is not yet accepted or merged. The next scoped PKG-003 branch is based on this head and will be published only after PR62 integration.
+
+F-010 is a confirmed settings data-loss/diagnostic finding. Separate migration baseline `b122d801` records three passes/five failing security targets; persistence baseline `f5f8684c` records four passes/three failing targets. Current local remediation preserves current/legacy files, rejects corrupt data, uses private staged writes, reports generic errors and preserves Quit after save failure. All 26 filesystem cases and five EnvironmentUtil cases (including two save-failure cases) pass locally; removing the flush/publication protections causes the expected failure. A fixture correction uses the real `fullscreen`/`bounds` keys and passes against the original source. Native Quit/menu and cross-platform filesystem qualification remain pending. [Recovery and test procedure](settings-recovery.md) defines safe synthetic QA and explicit released-migration limits. This is not PKG-003/M5 completion.
 
 **M3 and functional M4 are integrated.** [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60) merged as `6e27c614529c162463d7c5b1d4948bd9fa9fcec9`, reviewed head `adbebedc4f033e63f39a662bc82c4797b5eb5bd9`. Reviewed head, tested synthetic merge `d9648c72` and actual merge share tree `bef4b31e75af640f63c271d1b22bd1687a241700`. All ten strict required checks, admin enforcement, conversation resolution, no unresolved threads and SHA guard were verified before merge. Local integration was fast-forwarded cleanly; protected MSI worktree remains `255bdd54`.
 

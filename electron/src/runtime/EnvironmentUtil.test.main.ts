@@ -17,9 +17,20 @@
  *
  */
 
+import {stub} from 'sinon';
+
 import assert from 'node:assert';
 
-import {reportWindowsMsiConfigurationIssue, resolveWebappUrl} from './EnvironmentUtil';
+import {
+  getAvailableEnvironments,
+  reportWindowsMsiConfigurationIssue,
+  resolveWebappUrl,
+  ServerType,
+  setEnvironment,
+} from './EnvironmentUtil';
+
+import {settings} from '../settings/ConfigurationPersistence';
+import {SettingsType} from '../settings/SettingsType';
 
 describe('EnvironmentUtil managed webapp configuration', () => {
   it('reports configured failures without logging or using the rejected value', () => {
@@ -111,4 +122,27 @@ describe('EnvironmentUtil managed webapp configuration', () => {
       undefined,
     );
   });
+});
+
+describe('[PKG-003] environment settings persistence failure', () => {
+  for (const previous of [undefined, ServerType.PRODUCTION]) {
+    it(`preserves active selection and restores the previous setting (${previous})`, () => {
+      const original = global._ConfigurationPersistence;
+      global._ConfigurationPersistence = previous === undefined ? {} : {[SettingsType.ENV]: previous};
+      const activeBefore = getAvailableEnvironments();
+      const persist = stub(settings, 'persistToFile').throws(new Error('synthetic disk failure'));
+      try {
+        assert.throws(() => setEnvironment(ServerType.BETA), /Environment settings could not be saved/);
+        assert.deepStrictEqual(getAvailableEnvironments(), activeBefore);
+        assert.deepStrictEqual(
+          global._ConfigurationPersistence,
+          previous === undefined ? {} : {[SettingsType.ENV]: previous},
+        );
+        assert.strictEqual(persist.callCount, 1);
+      } finally {
+        persist.restore();
+        global._ConfigurationPersistence = original;
+      }
+    });
+  }
 });

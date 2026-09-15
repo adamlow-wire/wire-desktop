@@ -56,6 +56,7 @@ docs/electron-modernization/resume-m4.md,A,documentation,pending,pending,pending
 docs/electron-modernization/review-findings.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-inventory.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-traceability.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/settings-recovery.md,A,documentation,pending,pending,pending
 docs/electron-modernization/status.md,M,documentation,pending,pending,pending
 docs/electron-modernization/testing.md,M,documentation,pending,pending,pending
 docs/electron-modernization/threat-model.md,A,documentation,pending,pending,pending
@@ -231,8 +232,8 @@ electron/src/menu/AccountTheme.test.main.ts,A,test/fixture,pending,pending,pendi
 electron/src/menu/AccountTheme.ts,A,application,pending,pending,pending
 electron/src/menu/TrayHandler.test.main.ts,M,test/fixture,pending,pending,pending
 electron/src/menu/TrayHandler.ts,M,application,pending,pending,pending
-electron/src/menu/developer.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/menu/developer.ts,M,application,pending,pending,pending
+electron/src/menu/developer.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/menu/developer.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/menu/system.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/menu/system.ts,M,application,pending,pending,pending
 electron/src/preload/AccountShellBridge.test.main.ts,A,test/fixture,pending,pending,pending
@@ -273,11 +274,11 @@ electron/src/preload/preload-display-pip.ts,A,application,pending,pending,pendin
 electron/src/preload/preload-secure-account.ts,A,application,pending,pending,pending
 electron/src/preload/preload-shell.ts,A,application,pending,pending,pending
 electron/src/preload/preload-webview.ts,M,application,pending,pending,pending
-electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/runtime/EnvironmentUtil.ts,M,application,pending,pending,pending
+electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/EnvironmentUtil.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/configurePortableUserData.ts,A,application,pending,pending,pending
-electron/src/runtime/lifecycle.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/runtime/lifecycle.ts,M,application,initial source pass; final review pending,pending,pending
+electron/src/runtime/lifecycle.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/lifecycle.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/portableUserData.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/runtime/portableUserData.ts,A,application,pending,pending,pending
 electron/src/runtime/rendererEnvironment.ts,A,application,pending,pending,pending
@@ -387,9 +388,10 @@ electron/src/security/WrapperReloadIpc.ts,A,application,pending,pending,pending
 electron/src/security/deepLinkPolicy.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/deepLinkPolicy.ts,A,application,pending,pending,pending
 electron/src/security/externalLinkPolicy.ts,A,application,pending,pending,pending
-electron/src/settings/ConfigurationPersistence.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/settings/ConfigurationPersistence.ts,M,application,pending,pending,pending
-electron/src/settings/SchemaUpdater.ts,M,application,pending,pending,pending
+electron/src/settings/ConfigurationPersistence.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/ConfigurationPersistence.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/SchemaUpdater.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/settings/SchemaUpdater.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/settings/WindowsMachineDestination.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/settings/WindowsMsiConfiguration.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/settings/WindowsMsiConfiguration.ts,A,application,pending,pending,pending
@@ -415,6 +417,7 @@ electron/test/fixtures/certificates/untrusted-localhost-cert.pem,A,test/fixture,
 electron/test/fixtures/certificates/untrusted-localhost-key.pem,A,test/fixture,pending,pending,pending
 electron/test/fixtures/csp-probe.js,A,test/fixture,pending,pending,pending
 electron/test/fixtures/legacy-account-profile.js,A,test/fixture,pending,pending,pending
+electron/test/node-settings-context.cjs,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/test/register-local-scheme.cjs,A,test/fixture,pending,pending,pending
 electron/test/withTemporaryDirectory.ts,A,test/fixture,pending,pending,pending
 electron/wire.json,M,application,pending,pending,pending
