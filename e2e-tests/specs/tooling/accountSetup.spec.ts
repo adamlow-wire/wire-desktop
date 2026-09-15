@@ -24,7 +24,11 @@ import {createSandbox} from 'sinon';
 import {createServer, Server} from 'node:http';
 import {AddressInfo} from 'node:net';
 
-import {createUser} from '../../actions/createUser';
+import {createTeam} from '../../actions/createTeam';
+import {createUser, registerUser} from '../../actions/createUser';
+import {BrigApiClient} from '../../backend/BrigApiClient';
+import {GalleyApiClient} from '../../backend/GalleyApiClient';
+import {IbisApiClient} from '../../backend/IbisApiClient';
 import {PublicApiClient, RegisteredUser, TeamOwner} from '../../backend/PublicApiClient';
 
 test('[TST-005] fixture handles remain valid for punctuation and Unicode display names', () => {
@@ -93,6 +97,78 @@ test.describe('[TST-005] fixture API result handling', () => {
     test(`rejects an unsuccessful ${operation.name} response`, async () => {
       await expect(operation.run(api)).rejects.toThrow();
       expect(request.method).toBeTruthy();
+    });
+  }
+
+  const prepareRegistration = (sandbox: ReturnType<typeof createSandbox>) => {
+    const brigApi = new BrigApiClient({baseUrl: 'https://fixture.invalid', basicAuth: 'synthetic'});
+    sandbox.stub(brigApi, 'getUserActivationCode').resolves('synthetic-activation');
+    sandbox.stub(api, 'registerUser').resolves({id: user.id, zuidCookie: 'zuid=synthetic-cookie'});
+    const activation = sandbox.stub(api, 'activateAccount').resolves();
+    sandbox.stub(api, 'requestAccessToken').resolves(user.token);
+    const username = sandbox.stub(api, 'setUsername').resolves();
+    const preference = sandbox.stub(api, 'setProperties').resolves();
+    const cleanup = sandbox.stub(api, 'deleteUser').resolves();
+    return {brigApi, activation, username, preference, cleanup};
+  };
+
+  for (const stage of ['activation', 'username', 'preference'] as const) {
+    test(`cleans the created account when ${stage} setup fails`, async () => {
+      const sandbox = createSandbox();
+      try {
+        const setup = prepareRegistration(sandbox);
+        setup[stage].rejects(new Error('Synthetic setup failure'));
+        await expect(
+          registerUser(user, {publicApi: api, brigApi: setup.brigApi}, {telemetryDataSharing: false}),
+        ).rejects.toThrow('Synthetic setup failure');
+        expect(setup.cleanup.callCount).toBe(1);
+        expect(setup.cleanup.firstCall.args).toEqual([user]);
+      } finally {
+        sandbox.restore();
+      }
+    });
+  }
+
+  test('reports both setup and cleanup failures without claiming that the account was removed', async () => {
+    const sandbox = createSandbox();
+    try {
+      const setup = prepareRegistration(sandbox);
+      setup.username.rejects(new Error('Synthetic setup failure'));
+      setup.cleanup.rejects(new Error('Synthetic cleanup failure'));
+      await expect(registerUser(user, {publicApi: api, brigApi: setup.brigApi})).rejects.toBeInstanceOf(AggregateError);
+      expect(setup.cleanup.callCount).toBe(1);
+    } finally {
+      sandbox.restore();
+    }
+  });
+
+  for (const stage of ['owner upgrade', 'member invitation'] as const) {
+    test(`cleans partial team resources when ${stage} fails`, async () => {
+      const sandbox = createSandbox();
+      try {
+        const setup = prepareRegistration(sandbox);
+        const upgrade = sandbox
+          .stub(api, 'upgradeUserToTeamOwner')
+          .resolves({teamId: owner.teamId, teamName: 'Fixture'});
+        const invitation = sandbox.stub(api, 'sendTeamInvitation').resolves('synthetic-invitation');
+        const teamCleanup = sandbox.stub(api, 'deleteTeam').resolves();
+        (stage === 'owner upgrade' ? upgrade : invitation).rejects(new Error('Synthetic team setup failure'));
+        await expect(
+          createTeam(
+            {
+              publicApi: api,
+              brigApi: setup.brigApi,
+              galleyApi: new GalleyApiClient({baseUrl: 'https://fixture.invalid', basicAuth: 'synthetic'}),
+              ibisApi: new IbisApiClient({baseUrl: 'https://fixture.invalid'}),
+            },
+            'Fixture',
+            {users: [user]},
+          ),
+        ).rejects.toThrow('Synthetic team setup failure');
+        expect(stage === 'owner upgrade' ? setup.cleanup.callCount : teamCleanup.callCount).toBe(1);
+      } finally {
+        sandbox.restore();
+      }
     });
   }
 
