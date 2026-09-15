@@ -86,5 +86,8 @@ export const menuBar = (app: App) => {
     }, label);
   };
 
-  return {getCurrentLanguage, switchLanguage, clickItem};
+  const openPreferences = async () =>
+    clickItem((await app.evaluate(() => process.platform)) === 'win32' ? 'Settings' : 'Preferences');
+
+  return {getCurrentLanguage, switchLanguage, clickItem, openPreferences};
 };

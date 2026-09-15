@@ -141,11 +141,11 @@ jobs:
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
             sudo chown root:root node_modules/electron/dist/chrome-sandbox
             sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
-            xvfb-run python3 bin/test-tools/run-linux-e2e.py yarn test:e2e --project=linux specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
+            xvfb-run python3 bin/test-tools/run-linux-e2e.py yarn test:e2e --project=linux specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           elif [[ "$RUNNER_OS" == 'Windows' ]]; then
-            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
+            yarn test:e2e --project=windows specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           else
-            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
+            yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           fi
       - name: Build development package
         shell: bash
