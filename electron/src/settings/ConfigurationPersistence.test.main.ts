@@ -72,3 +72,51 @@ describe('ConfigurationPersistence diagnostics', () => {
     });
   }
 });
+
+describe('[PKG-003][DCP-021] settings persistence recovery', () => {
+  let directory: string;
+  let filename: string;
+  let originalPath: string;
+  let originalSettings: Record<string, unknown>;
+
+  beforeEach(() => {
+    directory = fs.mkdtempSync(path.join(tmpdir(), 'wire-settings-recovery-'));
+    filename = path.join(directory, 'config', 'init.json');
+    originalPath = Reflect.get(settings, 'configFile');
+    originalSettings = global._ConfigurationPersistence;
+    Reflect.set(settings, 'configFile', filename);
+    global._ConfigurationPersistence = {configVersion: 1, customSetting: 'new value'};
+  });
+
+  afterEach(() => {
+    Reflect.set(settings, 'configFile', originalPath);
+    global._ConfigurationPersistence = originalSettings;
+    fs.removeSync(directory);
+  });
+
+  it('round-trips valid settings and creates a missing config directory', () => {
+    settings.persistToFile();
+    assert.deepEqual(settings.readFromFile(), global._ConfigurationPersistence);
+  });
+
+  it('[security-target] returns independent defaults for a missing file', () => {
+    const first = settings.readFromFile();
+    const second = settings.readFromFile();
+    assert.notEqual(first, second);
+    assert.deepEqual(first, second);
+  });
+
+  it('[security-target] rejects corrupt and non-object files instead of replacing them with defaults', () => {
+    for (const contents of ['broken', 'null', '[]', '"text"']) {
+      fs.outputFileSync(filename, contents);
+      assert.throws(() => settings.readFromFile());
+      assert.equal(fs.readFileSync(filename, 'utf8'), contents);
+    }
+  });
+
+  it('[security-target] reports a persistence failure and preserves an inaccessible destination', () => {
+    fs.writeFileSync(path.dirname(filename), 'parent is a file');
+    assert.throws(() => settings.persistToFile());
+    assert.equal(fs.readFileSync(path.dirname(filename), 'utf8'), 'parent is a file');
+  });
+});
