@@ -3,14 +3,14 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
 milestone: M4
 active_work_item: CAP-003
-state: qualifying-functional-m4-awaiting-publication-approval
+state: qualifying-functional-m4
 integration_branch: integration/electron-modernization
 integration_head_commit: 2fd0d390b0f6f6880c4dcaef316503708125ee08
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: cap/CAP-003-consented-display-2026-09-15
 next_work_item: CAP-004
-blockers: [explicit-m4-publication-authorization]
+blockers: []
 ---
 
 # Current project status
@@ -41,7 +41,9 @@ The secondary account-log fixture error is reproduced locally by a controlled se
 
 Additional call-transport qualification passes: a generated approved stream crosses a real local WebRTC peer connection and produces the selected synthetic pixels at the receiver. The peers use no external ICE servers and no media devices. Replacing frame contents with empty pixels fails the decoded-video assertion; restoration passes. The complete renderer suite now passes23 cases, with application/Mocha test types and scoped lint passing (`/tmp/m4-capture-rtc-{renderer,sensitivity,restored,types,lint}.log`). This adds transport evidence without changing production code or claiming live customer/OS capture compatibility.
 
-Next executable work: obtain the pending explicit M4 publication authorization, then publish/qualify/merge TST-005 `57d8490d`, followed by the existing CAP-003 branch. The main-process capture implementation and tests are preserved; the TST-005 fixture repair is now integrated locally. Require substantive review and all applicable exact-final-head protected/native/full-E2E/report checks, and strengthen/read back mandatory TST-005 platform protection after qualification. Complete CAP-004 functional acceptance from final menu/notification/native results. Automatic approval review rejected the TST-005 push because it considered the previous approval limited to M3 documentation; no M4 branch has been pushed around that rejection. Live OS screen-recording/privacy/portal behavior remains downstream platform QA. Packaged-artifact coverage remains the open packaging portion of TST-005, outside this functional handoff.
+The maintainer has explicitly approved functional M4 publication. Both prepared branches are published; [TST-005 PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58) targets integration. Its first [E2E run](https://github.com/adamlow-wire/wire-desktop/actions/runs/34947030896) exposes a Linux setup-order failure before tests: Electron43 installs its binary on first use, so the sandbox helper does not exist immediately after dependency installation. TST-005 `4ba052a2` explicitly invokes the pinned package’s installer before configuring the helper; sandbox enforcement and all assertions remain unchanged. Linux setup now passes in the new final-head run. The failed attempt is retained, and this capture branch includes the scoped repair.
+
+Next executable work: qualify and merge this scoped TST-005 PR, reconciled with M3 closure integration `2fd0d390`; require all protected/native/full Windows/macOS/Linux E2E/report checks and strengthen/read back mandatory platform protection. CAP-003 implementation and local qualification are preserved on `cap/CAP-003-consented-display-2026-09-15` (`3a851acd`), including sensitive native/renderer/product tests and clean changed-code coverage; integrate that existing work next. CAP-004 functional acceptance uses its reviewed existing account-owned OS integration and final hosted menu/notification results. Packaged-artifact coverage remains the open packaging portion of TST-005, outside the functional handoff.
 
 ## Historical checkpoints
 
