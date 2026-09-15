@@ -67,28 +67,32 @@ export class PublicApiClient {
   }
 
   async deleteUser(user: RegisteredUser) {
-    await publicApiClient.deleteSelf(
-      {
-        deleteUser: {
-          password: user.password,
+    await ok(
+      publicApiClient.deleteSelf(
+        {
+          deleteUser: {
+            password: user.password,
+          },
         },
-      },
-      {
-        ...this.requestOptions,
-        headers: {
-          ...this.requestOptions.headers,
-          Authorization: `Bearer ${user.token}`,
+        {
+          ...this.requestOptions,
+          headers: {
+            ...this.requestOptions.headers,
+            Authorization: `Bearer ${user.token}`,
+          },
         },
-      },
+      ),
     );
   }
 
   async activateAccount(email: string, activationCode: string) {
-    await publicApiClient.postActivate(
-      {
-        activate: {email, code: activationCode, dryrun: false},
-      },
-      this.requestOptions,
+    await ok(
+      publicApiClient.postActivate(
+        {
+          activate: {email, code: activationCode, dryrun: false},
+        },
+        this.requestOptions,
+      ),
     );
   }
 
@@ -109,32 +113,36 @@ export class PublicApiClient {
   }
 
   async setUsername(accessToken: string, username: string) {
-    await publicApiClient.changeHandle(
-      {
-        handleUpdate: {handle: username},
-      },
-      {
-        ...this.requestOptions,
-        headers: {
-          ...this.requestOptions.headers,
-          Authorization: `Bearer ${accessToken}`,
+    await ok(
+      publicApiClient.changeHandle(
+        {
+          handleUpdate: {handle: username},
         },
-      },
+        {
+          ...this.requestOptions,
+          headers: {
+            ...this.requestOptions.headers,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      ),
     );
   }
 
   async setProperties(user: RegisteredUser, properties: {telemetryDataSharing?: boolean}) {
-    await publicApiClient.setProperty(
-      {
-        key: 'webapp',
-        propertyValue: {
-          settings: {privacy: {telemetry_data_sharing: properties.telemetryDataSharing}},
+    await ok(
+      publicApiClient.setProperty(
+        {
+          key: 'webapp',
+          propertyValue: {
+            settings: {privacy: {telemetry_data_sharing: properties.telemetryDataSharing}},
+          },
         },
-      },
-      {
-        ...this.requestOptions,
-        headers: {...this.requestOptions.headers, Authorization: `Bearer ${user.token}`},
-      },
+        {
+          ...this.requestOptions,
+          headers: {...this.requestOptions.headers, Authorization: `Bearer ${user.token}`},
+        },
+      ),
     );
   }
 
@@ -185,38 +193,42 @@ export class PublicApiClient {
   }
 
   async acceptTeamInvitation(user: Pick<RegisteredUser, 'password' | 'token'>, teamInvitationCode: string) {
-    await publicApiClient.acceptTeamInvitation(
-      {
-        acceptTeamInvitation: {
-          code: teamInvitationCode,
-          password: user.password,
+    await ok(
+      publicApiClient.acceptTeamInvitation(
+        {
+          acceptTeamInvitation: {
+            code: teamInvitationCode,
+            password: user.password,
+          },
         },
-      },
-      {
-        ...this.requestOptions,
-        headers: {
-          ...this.requestOptions.headers,
-          Authorization: `Bearer ${user.token}`,
+        {
+          ...this.requestOptions,
+          headers: {
+            ...this.requestOptions.headers,
+            Authorization: `Bearer ${user.token}`,
+          },
         },
-      },
+      ),
     );
   }
 
   async deleteTeam(teamOwner: TeamOwner) {
-    await publicApiClient.deleteTeam(
-      {
-        tid: teamOwner.teamId,
-        teamDeleteData: {
-          password: teamOwner.password,
+    await ok(
+      publicApiClient.deleteTeam(
+        {
+          tid: teamOwner.teamId,
+          teamDeleteData: {
+            password: teamOwner.password,
+          },
         },
-      },
-      {
-        ...this.requestOptions,
-        headers: {
-          ...this.requestOptions.headers,
-          Authorization: `Bearer ${teamOwner.token}`,
+        {
+          ...this.requestOptions,
+          headers: {
+            ...this.requestOptions.headers,
+            Authorization: `Bearer ${teamOwner.token}`,
+          },
         },
-      },
+      ),
     );
   }
 }

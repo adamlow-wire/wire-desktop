@@ -36,12 +36,15 @@ describe('native account log cleanup', () => {
     await writeFile(file, 'retained');
   };
   beforeEach(async () => {
+    directory = '';
     directory = await mkdtemp(path.join(os.tmpdir(), 'wire-account-log-cleanup-'));
     logs = path.join(directory, 'logs');
     await mkdir(logs);
   });
   afterEach(async () => {
-    await rm(directory, {recursive: true, force: true});
+    if (directory) {
+      await rm(directory, {recursive: true, force: true});
+    }
   });
 
   it('[security-target][CAP-001] deletes only exact account layouts and supports repeated cleanup', async () => {

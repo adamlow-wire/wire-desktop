@@ -77,13 +77,20 @@ To regenerate the clients, run all or only selected commands from the following 
 ```bash
 yarn oazapfts --argumentStyle=object --optimistic --useUnknown --futureStripLegacyMethods https://staging-nginz-https.zinfra.io/api-internal/swagger-ui/brig-swagger.json e2e-tests/backend/generated/brigApi.ts
 yarn oazapfts --argumentStyle=object --optimistic --useUnknown --futureStripLegacyMethods https://staging-nginz-https.zinfra.io/api-internal/swagger-ui/galley-swagger.json e2e-tests/backend/generated/galleyApi.ts
-yarn oazapfts --argumentStyle=object --useUnknown --futureStripLegacyMethods https://staging-nginz-https.zinfra.io/v15/api/swagger.json e2e-tests/backend/generated/publicApi.ts
+curl --fail --silent --show-error https://staging-nginz-https.zinfra.io/v15/api/swagger.json --output /tmp/wire-public-api-v15.json
+yarn ts-node -P tsconfig.bin.json bin/test-tools/generate-public-api.ts /tmp/wire-public-api-v15.json e2e-tests/backend/generated/publicApi.ts
 ```
+
+The public-client generator annotates four reviewed binary request schemas before invoking the installed generator. It rejects schema drift instead of guessing new types; unrelated schema types remain unchanged. Run `yarn test:types:e2e` and `yarn test:bin` after regeneration.
 
 If the operation names or parameters changed, update the respective wrapper in: `e2e-tests/backend/*ApiClient.ts`. Also make sure to commit the changes made to the generated files, since some of the APIs are not versioned we don't want to rely on automatic generation e.g. within postinstall.
 
 ### Continuous integration
 
-The E2E tests are executed every night as part of the `e2e-test` workflow. They are executed on both, Windows and MacOS since these are the two main supported operating systems. The results of the test runs are reported to [Testiny](https://app.testiny.io/DESK/testruns) where the status of the tests and regressions over time can be inspected. Please note that the test results are split between Windows and MacOS, as Testiny doesn't support the same test being executed multiple times within one test run.
+Development-mode E2E runs on Windows, macOS and Linux for every modernization PR and integration push, as well as the existing nightly/manual schedule. Other PRs opt in with **run-e2e**. Native/package smoke remains a separate workflow; passing development E2E does not qualify a released installer.
 
-This approach utilizes E2E tests as a tool for monitoring instead of strict guard in front of pull requests. However, it's possible to optionally execute the E2E tests as part of a pull request e.g. if the PR adds new tests or refactors something critical. To do so, just add the label **run-e2e** to the PR and the tests will be executed for the PRs branch.
+Linux requires `gnome-keyring`, `dbus-x11` and `libglib2.0-bin`. Run `python3 bin/test-tools/run-linux-e2e.py yarn test:e2e --project=linux` (under `xvfb-run` on a headless host). The runner creates a private DBus session and native Secret Service with temporary profiles; it never selects plaintext storage. Windows/macOS use their native storage services.
+
+The notification tests read the native numeric app badge on Windows/macOS. Linux reads aggregate unread state from the main-owned account snapshots because numeric dock badges are not consistently supported; separate native tray tests check Linux image transitions.
+
+Failed attempts retain both peer-browser and Electron traces, including failures recovered by retry. CI retains the merged HTML report and per-platform blobs. A recovered retry is reported as such, and requires investigation before milestone acceptance; it is not an initial pass. Scheduled/manual Windows/macOS reports retain their existing Testiny reporting.

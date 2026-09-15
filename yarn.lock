@@ -16499,6 +16499,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"playwright-core@patch:playwright-core@npm%3A1.60.0#./.yarn/patches/playwright-core-npm-1.60.0-3d53a7d2d6.patch::locator=wire-desktop%40workspace%3A.":
+  version: 1.60.0
+  resolution: "playwright-core@patch:playwright-core@npm%3A1.60.0#./.yarn/patches/playwright-core-npm-1.60.0-3d53a7d2d6.patch::version=1.60.0&hash=28e2a3&locator=wire-desktop%40workspace%3A."
+  bin:
+    playwright-core: cli.js
+  checksum: 73762d618bb440419acbae370e17d07f846f4c75dd3a3a32849ab894c5aeb62e3af12aefdf1ec2ce5d0d72d252f31a93a842f59c83e407c45c655e96c362fb8f
+  languageName: node
+  linkType: hard
+
 "playwright@npm:1.60.0":
   version: 1.60.0
   resolution: "playwright@npm:1.60.0"

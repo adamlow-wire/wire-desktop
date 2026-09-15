@@ -19,6 +19,7 @@
 
 import {_electron as electron, expect, Page} from '@playwright/test';
 
+import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 
 export type App = Awaited<ReturnType<typeof createApp>>;
@@ -28,6 +29,7 @@ export const createApp = async (options: {
   lang?: string;
   dataDir: string;
   mediaConsent?: 'allow' | 'deny';
+  traceDirectory?: string;
 }) => {
   if (!options.env) {
     throw new Error(`Can't create app without environment, make sure the env var "WEBAPP_URL" is set`);
@@ -62,7 +64,30 @@ export const createApp = async (options: {
 
   let wrapper: Page | undefined;
   let page: Page | undefined;
+  let selectedId: string | undefined;
+  const nativeClose = app.close.bind(app);
+  let tracing = false;
+  let traceStopped: Promise<void> | undefined;
+  const stopTrace = (): Promise<void> => {
+    if (!tracing) {
+      return Promise.resolve();
+    }
+    return (traceStopped ??= app.context().tracing.stop({
+      path: path.join(options.traceDirectory!, `app-${randomUUID()}.zip`),
+    }));
+  };
+  const close = async (): Promise<void> => {
+    try {
+      await stopTrace();
+    } finally {
+      await nativeClose();
+    }
+  };
   try {
+    if (options.traceDirectory) {
+      await app.context().tracing.start({screenshots: true, snapshots: true});
+      tracing = true;
+    }
     // A fresh profile first opens a temporary migration reader, not the product shell.
     await expect
       .poll(() => {
@@ -76,7 +101,6 @@ export const createApp = async (options: {
         return Boolean(wrapper);
       })
       .toBe(true);
-    let selectedId: string | undefined;
     await expect
       .poll(async () => {
         selectedId = await wrapper!
@@ -93,19 +117,70 @@ export const createApp = async (options: {
       })
       .toBeTruthy();
     await expect
-      .poll(() => {
-        page = app
-          .windows()
-          .find(candidate => !candidate.isClosed() && new URL(candidate.url()).searchParams.get('id') === selectedId);
-        return Boolean(page);
-      })
+      .poll(
+        () => {
+          page = app
+            .windows()
+            .find(candidate => !candidate.isClosed() && new URL(candidate.url()).searchParams.get('id') === selectedId);
+          return Boolean(page);
+        },
+        // Document startup includes a network response, unlike a short UI assertion.
+        // Keep the exact selected-account match and a finite startup deadline.
+        {timeout: 30_000},
+      )
       .toBe(true);
   } catch (error) {
-    await app.close();
+    // Native state distinguishes a pending request, modal dialog and automation
+    // attachment failure. Never include URLs, account IDs or dialog contents.
+    let diagnosticTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const diagnostic = await Promise.race([
+        app.evaluate(
+          ({BrowserWindow, webContents}, expected) => ({
+            windows: BrowserWindow.getAllWindows().map(window => ({
+              visible: window.isVisible(),
+              minimized: window.isMinimized(),
+              focused: window.isFocused(),
+            })),
+            contents: webContents
+              .getAllWebContents()
+              .filter(contents => !contents.isDestroyed())
+              .map(contents => {
+                const url = new URL(contents.getURL() || 'about:blank');
+                return {
+                  type: contents.getType(),
+                  protocol: url.protocol,
+                  expectedOrigin: url.origin === expected.origin,
+                  selectedAccount: url.searchParams.get('id') === expected.id,
+                  loading: contents.isLoading(),
+                  loadingMainFrame: contents.isLoadingMainFrame(),
+                  crashed: contents.isCrashed(),
+                  workers: Object.keys(contents.session.serviceWorkers.getAllRunning()).length,
+                };
+              }),
+            pendingOtherDialogs: (globalThis as unknown as {wireE2EConsent?: {pendingOtherDialogs: number}})
+              .wireE2EConsent?.pendingOtherDialogs,
+          }),
+          {origin: new URL(options.env).origin, id: selectedId},
+        ),
+        new Promise(resolve => {
+          diagnosticTimer = setTimeout(() => resolve({unavailable: true}), 5_000);
+        }),
+      ]);
+      // eslint-disable-next-line no-console
+      console.error('Electron fixture startup state', diagnostic);
+    } catch {
+      // eslint-disable-next-line no-console
+      console.error('Electron fixture startup state unavailable');
+    } finally {
+      clearTimeout(diagnosticTimer);
+    }
+    await close();
     throw error;
   }
 
   return Object.assign(app, {
+    close,
     /* The playwright page for the main electron window wrapping the webapp */
     wrapper: wrapper!,
     /* The playwright page for the currently shown webapp */
@@ -113,17 +188,22 @@ export const createApp = async (options: {
     /**
      * Utility function to re-open the application re-using the existing storage state
      * **Important:** the existing app won't be updated by this, instead the variable needs to be re-assigned
+     * @param {Function} quit Optional native quit operation, invoked after saving the current trace.
      * @returns {App} app
      */
-    reopen: async () => {
-      const closePromise = app.waitForEvent('close');
-      await app.close();
-      await closePromise; // Wait until the app is fully closed before continuing
+    reopen: async (quit?: () => Promise<unknown>) => {
+      // Persist this instance's trace before a native Quit can destroy its context.
+      await stopTrace();
+      try {
+        await quit?.();
+      } finally {
+        await nativeClose();
+      }
 
       // During the re-launch the old instance of the app is closed. However the fixture is still pointing to it, so we set its close function to now close the relaunched instance.
       // This way it's ensured that even after relaunch(es) the app will always be cleaned up.
       const relaunchedApp = await createApp(options);
-      app.close = relaunchedApp.close;
+      app.close = () => relaunchedApp.close();
 
       return relaunchedApp;
     },

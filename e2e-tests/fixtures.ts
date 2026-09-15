@@ -32,7 +32,7 @@ import {IbisApiClient} from './backend/IbisApiClient';
 import {PublicApiClient, RegisteredUser, TeamOwner} from './backend/PublicApiClient';
 
 export type TestOptions = {
-  os: 'windows' | 'macOS';
+  os: 'windows' | 'macOS' | 'linux';
   appOptions: {env?: string; lang?: string; mediaConsent?: 'allow' | 'deny'};
 };
 
@@ -96,25 +96,38 @@ export const test = baseTest.extend<TestOptions & Fixtures>({
   app: async ({appOptions}, use, testInfo) => {
     // Always use a fresh temporary directory for the user data to ensure test isolation
     const tempUserDataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-desktop-e2e-tests-'));
-    const app = await createApp({...appOptions, dataDir: tempUserDataDir});
-
-    // Traces for the electron app need to be collected manually as it uses a non default context
-    await app.page.context().tracing.start({screenshots: true, snapshots: true});
-
-    await use(app);
-
-    // Add the trace of the first run as attachment if it failed
-    if (testInfo.status === 'failed' && testInfo.retry === 0) {
-      const tracePath = testInfo.outputPath('app-trace.zip');
-      await app.page.context().tracing.stop({path: tracePath});
-      await testInfo.attach('app-trace.zip', {path: tracePath});
-    }
-
-    // This block is to clean up the data stored in the temp dir, it's optional and e.g. windows file locking should not cause the test to fail
+    const traceDirectory = path.join(tempUserDataDir, 'app-traces');
+    let app: App | undefined;
+    let finished = false;
+    let traceDirectoryCreated = false;
     try {
-      await app.close();
-      await fs.rm(tempUserDataDir, {recursive: true, force: true, maxRetries: 3, retryDelay: 1_000});
-    } catch {}
+      await fs.mkdir(traceDirectory);
+      traceDirectoryCreated = true;
+      app = await createApp({...appOptions, dataDir: tempUserDataDir, traceDirectory});
+      await use(app);
+      finished = true;
+    } finally {
+      let closed = false;
+      try {
+        // Native shutdown and trace failures remain test failures.
+        await app?.close();
+        closed = true;
+      } finally {
+        try {
+          if (traceDirectoryCreated && (!finished || !closed || testInfo.status !== testInfo.expectedStatus)) {
+            // Each restart has its own archive; retain every instance on an unexpected outcome.
+            for (const name of await fs.readdir(traceDirectory)) {
+              await testInfo.attach(name, {path: path.join(traceDirectory, name), contentType: 'application/zip'});
+            }
+          }
+        } finally {
+          // Only removal of our temporary directory tolerates OS file-lock failures.
+          await fs
+            .rm(tempUserDataDir, {recursive: true, force: true, maxRetries: 3, retryDelay: 1_000})
+            .catch(() => undefined);
+        }
+      }
+    }
   },
 
   createUser: async ({publicApi, brigApi}, use) => {

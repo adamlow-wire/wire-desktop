@@ -1,9 +1,11 @@
 name: E2E Tests
 
 on:
-  # This Workflow can be run by labelling a PR with "run-e2e", in this case reporting is skipped.
+  # Modernization PRs run automatically; other PRs can opt in with run-e2e.
   pull_request:
     types: [labeled, opened, synchronize, reopened]
+  push:
+    branches: [integration/electron-modernization]
   workflow_dispatch:
   schedule:
     # Execute workflow every night throughout the week
@@ -16,17 +18,20 @@ concurrency:
 jobs:
   run_tests:
     name: Run E2E Tests (${{ matrix.project }})
-    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'run-e2e') }}
+    if: ${{ github.event_name != 'pull_request' || github.base_ref == 'integration/electron-modernization' || contains(github.event.pull_request.labels.*.name, 'run-e2e') }}
     strategy:
       fail-fast: false
       matrix:
-        project: [windows, macOS]
+        project: [windows, macOS, linux]
         include:
           - project: windows
             os: windows-2025
           - project: macOS
             os: macos-26
+          - project: linux
+            os: ubuntu-24.04
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -76,13 +81,30 @@ jobs:
             "BACKEND_BASIC_AUTH=$BACKEND_BASIC_AUTH" \
             >e2e-tests/.env
 
+      - name: Prepare isolated Linux native storage
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y gnome-keyring dbus-x11 libglib2.0-bin
+          # Electron 43 downloads its binary on first use, after dependency installation.
+          node node_modules/electron/install.js
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+          python3 bin/test-tools/run-linux-e2e.test.py
+
       - name: Build application
         shell: bash
         run: yarn prestart
 
       - name: Run E2E tests
         shell: bash
-        run: yarn test:e2e --project=${{ matrix.project }} --reporter=blob
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run python3 bin/test-tools/run-linux-e2e.py yarn test:e2e --project=linux --reporter=blob
+          else
+            yarn test:e2e --project=${{ matrix.project }} --reporter=blob
+          fi
         env:
           PLAYWRIGHT_BLOB_OUTPUT_DIR: playwright-blobs
 
@@ -128,7 +150,7 @@ jobs:
           path: playwright-report/html
 
       - name: Upload report to Testiny
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
         continue-on-error: true
         env:
           TESTINY_API_KEY: ${{ secrets.TESTINY_API_KEY }}
@@ -194,7 +216,7 @@ jobs:
           echo "report_message=$MESSAGE" >> $GITHUB_OUTPUT
 
       - name: Notify on Wire about failed tests
-        if: ${{ github.event_name != 'pull_request' && !cancelled() && steps.generate-description.outputs.failed_tests > 0 }}
+        if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && !cancelled() && steps.generate-description.outputs.failed_tests > 0 }}
         uses: 8398a7/action-slack@293f8dc0f9731ac35321056641cdef895f4f65f8
         continue-on-error: true
         env:

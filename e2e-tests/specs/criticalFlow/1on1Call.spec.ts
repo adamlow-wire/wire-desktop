@@ -51,5 +51,11 @@ test(
       await expect(callCell(userAPage).goFullScreen).toBeVisible();
       await expect(callCell(userBPage).goFullScreen).toBeVisible();
     });
+
+    await test.step('User A ends the call and both participants leave it', async () => {
+      await callCell(userAPage).declineButton.click();
+      await expect(callCell(userAPage)).toBeHidden();
+      await expect(callCell(userBPage)).toBeHidden();
+    });
   },
 );

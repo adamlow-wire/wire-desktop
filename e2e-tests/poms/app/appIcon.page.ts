@@ -17,10 +17,22 @@
  *
  */
 
+import type {AccountShellBridge} from '../../../electron/src/preload/AccountShellBridge';
 import {App} from '../../actions/createApp';
 
 export const appIcon = (app: App) => {
   return {
-    getBadgeCount: () => app.evaluate(({app}) => app.getBadgeCount()),
+    getUnreadCount: async () => {
+      const platform = await app.evaluate(() => process.platform);
+      if (platform !== 'linux') {
+        return app.evaluate(({app}) => app.getBadgeCount());
+      }
+      // Linux desktop shells do not consistently support numeric dock badges.
+      // Observe main-owned unread state; native tray transitions have separate tests.
+      return app.wrapper.evaluate(async () => {
+        const accounts = await (window as unknown as {wireAccounts: AccountShellBridge}).wireAccounts.read();
+        return accounts.reduce((count, account) => count + account.badgeCount, 0);
+      });
+    },
   };
 };

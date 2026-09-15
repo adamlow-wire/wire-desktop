@@ -52,7 +52,7 @@ export default defineConfig<TestOptions>({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     // Behavior for tracing the web browser, for traces of the electron app see its fixture in `e2e-tests/fixtures.ts`
-    trace: 'retain-on-first-failure',
+    trace: 'retain-on-failure',
     testIdAttribute: 'data-uie-name',
     baseURL: process.env.WEBAPP_URL,
     permissions: ['camera', 'microphone'],
@@ -78,6 +78,20 @@ export default defineConfig<TestOptions>({
       name: 'macOS',
       use: {
         os: 'macOS',
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            '--use-fake-device-for-media-stream', // Provide fake devices for audio & video device input
+            '--use-fake-ui-for-media-stream', // Bypasses the popup to grant permission and select video / audio input device by automatically selecting the default one
+            '--mute-audio', // Mute all audio output from the test browser because e.g. the ringtone of a call can be annoying during testing
+          ],
+        },
+      },
+    },
+    {
+      name: 'linux',
+      use: {
+        os: 'linux',
         ...devices['Desktop Chrome'],
         launchOptions: {
           args: [

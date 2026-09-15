@@ -216,12 +216,16 @@
     "test:media": "electron-mocha --require .babel-register.js \"electron/src/**/*.test.media.ts\" --no-sandbox --use-fake-device-for-media-stream",
     "test:renderer": "electron-mocha --renderer --require .babel-register.js \"electron/src/**/*.test?(.renderer).ts\" --no-sandbox --window-config electron/test/mocha-window-config.json",
     "test:renderer:coverage": "nyc electron-mocha --renderer --require .babel-register.js \"electron/src/**/*.test?(.renderer).ts\" --no-sandbox --window-config electron/test/mocha-window-config.json",
-    "test:types": "tsc --noEmit",
+    "test:types": "tsc --noEmit && yarn test:types:e2e",
+    "test:types:e2e": "tsc --noEmit -p tsconfig.playwright.json",
     "test:react": "jest",
     "test:react:coverage": "jest --coverage --runInBand",
     "translate:upload": "ts-node -P tsconfig.bin.json ./bin/translations_upload.ts",
     "translate:download": "ts-node -P tsconfig.bin.json ./bin/translations_download.ts"
   },
   "version": "3.44.0",
-  "packageManager": "yarn@3.3.1"
+  "packageManager": "yarn@3.3.1",
+  "resolutions": {
+    "playwright-core@1.60.0": "patch:playwright-core@npm%3A1.60.0#./.yarn/patches/playwright-core-npm-1.60.0-3d53a7d2d6.patch"
+  }
 }

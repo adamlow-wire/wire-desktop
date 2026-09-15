@@ -31,20 +31,16 @@ import {loginPage} from '../../poms/webapp/login.page';
 import {settingsPage} from '../../poms/webapp/settings.page';
 
 test.describe('Menu Bar', () => {
-  test(
-    'Open preferences/settings with menu bar',
-    {tag: ['@TC-11010', '@regression']},
-    async ({os, app, createUser}) => {
-      const user = await createUser();
-      await loginUser(app.page, user);
+  test('Open preferences/settings with menu bar', {tag: ['@TC-11010', '@regression']}, async ({app, createUser}) => {
+    const user = await createUser();
+    await loginUser(app.page, user);
 
-      // Access the native Electron application menu and click the appropriate item
-      const menuItem = await menuBar(app).clickItem(os === 'macOS' ? 'Preferences' : 'Settings');
+    // Access the native Electron application menu and click the appropriate item
+    const menuItem = await menuBar(app).openPreferences();
 
-      expect(menuItem.accelerator).toMatch(/^(Command\+,|Ctrl\+,)$/);
-      await expect(settingsPage(app.page).accountButton).toBeVisible();
-    },
-  );
+    expect(menuItem.accelerator).toMatch(/^(Command\+,|Ctrl\+,)$/);
+    await expect(settingsPage(app.page).accountButton).toBeVisible();
+  });
 
   test(
     'Verify switching to next and previous conversation using menu bar',
