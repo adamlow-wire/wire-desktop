@@ -23,6 +23,7 @@ import type {AddressInfo} from 'node:net';
 import path from 'node:path';
 
 import {createApp} from '../../actions/createApp';
+import {quitApp} from '../../actions/quitApp';
 import {expect, test as fixtureTest} from '../../fixtures';
 import {menuBar} from '../../poms/app/menuBar.page';
 
@@ -181,4 +182,16 @@ test('[regression][TST-005] traced restart restores a service-worker-controlled 
       await new Promise<void>(resolve => server.close(() => resolve()));
     }
   }
+});
+
+test('[regression][TST-005] a failed native quit still closes the owned app and preserves its failure', async ({
+  app,
+}) => {
+  const child = app.process();
+  await app.evaluate(({app}) => {
+    app.once('before-quit', event => event.preventDefault());
+  });
+  await expect(quitApp(app)).rejects.toThrow('Timeout 10000ms exceeded');
+  expect(child.exitCode).toBe(0);
+  expect(app.page.isClosed()).toBe(true);
 });

@@ -33,7 +33,7 @@ The relay admits one bounded RGBA frame awaiting acknowledgement, with explicit 
 
 ## Consequences
 
-This preserves the webapp's existing display-media path without exposing native capture authority to remote content. The broker adds memory/copy cost and must enforce backpressure and bounded resolution. System screen-recording permissions and portal consent remain mandatory. This decision does not add system-audio capture, which the existing webapp screen request does not request.
+This preserves the webapp's existing display-media path without exposing native capture authority to remote content. The broker adds memory/copy cost and must enforce backpressure and bounded resolution. System screen-recording permissions and portal consent remain mandatory. Actual source selection, OS privacy denial, Stop, monitor scaling and resource checks are recorded in the [platform QA handoff](../qa-display-capture.md). This decision does not add system-audio capture, which the existing webapp screen request does not request.
 
 ## Validation
 

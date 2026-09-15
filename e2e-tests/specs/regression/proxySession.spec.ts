@@ -25,6 +25,7 @@ import type {AddressInfo} from 'node:net';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
+import {quitApp} from '../../actions/quitApp';
 import {seedLegacyAccountProfile} from '../../utils/seedLegacyAccountProfile';
 
 for (const systemProxy of ['absent', 'without credentials', 'different proxy credentials'] as const) {
@@ -160,25 +161,22 @@ for (const systemProxy of ['absent', 'without credentials', 'different proxy cre
         'Submitting another account proxy prompt must preserve the unrelated default session',
       ).toBe('DIRECT');
     } finally {
-      if (app) {
-        const process = app.process();
-        // Native quit can close the inspector before its reply arrives. The
-        // process exit assertion below is the authoritative completion signal.
-        void app
-          .evaluate(({app}) => {
-            setImmediate(() => app.quit());
-          })
-          .catch(() => undefined);
-        await expect.poll(() => process.exitCode).toBe(0);
-        await app.close();
+      try {
+        if (app) {
+          await quitApp(app);
+        }
+      } finally {
+        originServer.closeAllConnections();
+        proxyServer.closeAllConnections();
+        try {
+          await Promise.all([
+            new Promise<void>(resolve => originServer.close(() => resolve())),
+            new Promise<void>(resolve => proxyServer.close(() => resolve())),
+          ]);
+        } finally {
+          await rm(profile, {recursive: true, force: true});
+        }
       }
-      originServer.closeAllConnections();
-      proxyServer.closeAllConnections();
-      await Promise.all([
-        new Promise<void>(resolve => originServer.close(() => resolve())),
-        new Promise<void>(resolve => proxyServer.close(() => resolve())),
-      ]);
-      await rm(profile, {recursive: true, force: true});
     }
   });
 }
