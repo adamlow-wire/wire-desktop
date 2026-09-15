@@ -47,6 +47,12 @@ test('[regression][TST-005] shared app fixture supports an intentional restart',
   await expect(reopened.page).toHaveTitle('Fixture restart');
 });
 
+test('[regression][TST-005] settings helper resolves the actual platform menu and accelerator', async ({app}) => {
+  const menuItem = await menuBar(app).openPreferences();
+  const platform = await app.evaluate(() => process.platform);
+  expect(menuItem.accelerator).toBe(platform === 'darwin' ? 'Command+,' : 'Ctrl+,');
+});
+
 test('[regression][TST-005] repeated native restart retains every trace and closes the latest instance', async ({
   app,
 }) => {
