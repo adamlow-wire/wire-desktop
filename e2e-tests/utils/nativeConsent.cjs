@@ -34,13 +34,19 @@ if (
   throw new Error('E2E consent requires an explicit decision and synthetic devices without fake permission UI.');
 }
 
-const fixture = {installedBeforeReady: !app.isReady(), requests: []};
+const fixture = {installedBeforeReady: !app.isReady(), requests: [], pendingOtherDialogs: 0};
 globalThis.wireE2EConsent = fixture;
 const showMessageBox = dialog.showMessageBox.bind(dialog);
 dialog.showMessageBox = (...args) => {
   const options = args.length === 2 ? args[1] : args[0];
   if (options?.message !== 'Allow account permissions?') {
-    return showMessageBox(...args);
+    fixture.pendingOtherDialogs++;
+    try {
+      return Promise.resolve(showMessageBox(...args)).finally(() => fixture.pendingOtherDialogs--);
+    } catch (error) {
+      fixture.pendingOtherDialogs--;
+      throw error;
+    }
   }
   const scopes = options.detail?.split('\n\n')[1]?.split('\n') ?? [];
   const known = scopes.length > 0 && scopes.every(scope => ['Notifications', 'Microphone', 'Camera'].includes(scope));

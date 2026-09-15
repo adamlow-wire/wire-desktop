@@ -224,5 +224,8 @@
     "translate:download": "ts-node -P tsconfig.bin.json ./bin/translations_download.ts"
   },
   "version": "3.44.0",
-  "packageManager": "yarn@3.3.1"
+  "packageManager": "yarn@3.3.1",
+  "resolutions": {
+    "playwright-core@1.60.0": "patch:playwright-core@npm%3A1.60.0#./.yarn/patches/playwright-core-npm-1.60.0-3d53a7d2d6.patch"
+  }
 }

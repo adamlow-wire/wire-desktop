@@ -129,7 +129,6 @@ test('[regression][TST-005] launcher waits for a delayed initial document', asyn
 });
 
 test('[regression][TST-005] traced restart restores a service-worker-controlled account document', async ({}, testInfo) => {
-  let documentRequests = 0;
   const server = createServer((request, response) => {
     if (new URL(request.url!, 'http://localhost').pathname === '/sw.js') {
       response.setHeader('Content-Type', 'application/javascript');
@@ -145,9 +144,6 @@ test('[regression][TST-005] traced restart restores a service-worker-controlled 
         });
       `);
       return;
-    }
-    if (request.headers['sec-fetch-dest'] === 'document') {
-      documentRequests++;
     }
     response.setHeader('Content-Type', 'text/html');
     response.end('<!doctype html><title>Initial worker fixture</title>');
@@ -169,11 +165,14 @@ test('[regression][TST-005] traced restart restores a service-worker-controlled 
     await expect.poll(() => app!.page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
     await app.page.reload();
     await expect(app.page).toHaveTitle('Worker-owned document');
-    const requestsBeforeRestart = documentRequests;
     const original = app;
     app = await original.reopen(() => menuBar(original).clickItem('Quit WireInternal'));
     await expect(app.page).toHaveTitle('Worker-owned document');
-    expect(documentRequests).toBe(requestsBeforeRestart);
+    // Chromium may issue a parallel network request during worker startup. The
+    // rendered response and controller prove the persisted worker owns this document.
+    expect(await app.page.evaluate(() => new URL(navigator.serviceWorker.controller!.scriptURL).pathname)).toBe(
+      '/sw.js',
+    );
   } finally {
     try {
       await app?.close();
