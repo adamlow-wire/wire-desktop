@@ -71,8 +71,8 @@ describe('[security-target][CAP-003] display stream renderer adapter', () => {
     installDisplayMediaAdapter({
       portChannel: 'test-capture-port',
       endedChannel: 'test-capture-ended',
-      width: 2,
-      height: 2,
+      width: 64,
+      height: 64,
       frameTimeoutMs: 100,
       promptTimeoutMs: 200,
     });
@@ -125,6 +125,85 @@ describe('[security-target][CAP-003] display stream renderer adapter', () => {
     assert.deepEqual(stop.firstCall.args, [{flowId}]);
   });
 
+  it('carries the approved generated video through a local WebRTC call', async function () {
+    this.timeout(10_000);
+    const sender = new RTCPeerConnection({iceServers: []});
+    const receiver = new RTCPeerConnection({iceServers: []});
+    const video = document.createElement('video');
+    video.muted = true;
+    let remoteTrack: MediaStreamTrack | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let stream: MediaStream | undefined;
+    let stopped = false;
+    receiver.ontrack = event => {
+      remoteTrack = event.track;
+    };
+    const sendFrame = (): void => {
+      if (stopped) {
+        return;
+      }
+      const pixels = new Uint8Array(64 * 64 * 4);
+      for (let offset = 0; offset < pixels.length; offset += 4) {
+        pixels.set([20, 40, 60, 255], offset);
+      }
+      channel.port2.postMessage({
+        buffer: pixels.buffer,
+        width: 64,
+        height: 64,
+        timestamp: Math.round(performance.now() * 1000),
+      });
+    };
+    // Keep one frame in flight while the peers negotiate; no external STUN or media devices.
+    channel.port2.onmessage = event => {
+      assert.equal(event.data, 'ack');
+      if (!stopped) {
+        timer = setTimeout(sendFrame, 40);
+      }
+    };
+    try {
+      const pending = media.getDisplayMedia({video: true, audio: false});
+      connect();
+      sendFrame();
+      stream = await pending;
+      sender.addTrack(stream.getVideoTracks()[0], stream);
+      await sender.setLocalDescription(await sender.createOffer());
+      await until(() => sender.iceGatheringState === 'complete');
+      await receiver.setRemoteDescription(sender.localDescription!);
+      await receiver.setLocalDescription(await receiver.createAnswer());
+      await until(() => receiver.iceGatheringState === 'complete');
+      await sender.setRemoteDescription(receiver.localDescription!);
+      await until(() => !!remoteTrack && receiver.connectionState === 'connected');
+      video.srcObject = new MediaStream([remoteTrack!]);
+      let playbackError: unknown;
+      void video.play().catch(error => {
+        playbackError = error;
+      });
+      await until(() => video.readyState >= 2 || !!playbackError);
+      assert.equal(playbackError, undefined);
+      assert.equal(video.videoWidth, 64);
+      assert.equal(video.videoHeight, 64);
+      const canvas = new OffscreenCanvas(64, 64);
+      const context = canvas.getContext('2d')!;
+      context.drawImage(video, 0, 0);
+      const pixel = context.getImageData(32, 32, 1, 1).data;
+      for (const [index, expected] of [20, 40, 60].entries()) {
+        assert.ok(
+          Math.abs(pixel[index] - expected) <= 16,
+          'Decoded call video must retain the selected synthetic pixels',
+        );
+      }
+      assert.equal(pixel[3], 255);
+    } finally {
+      stopped = true;
+      clearTimeout(timer);
+      video.pause();
+      video.srcObject = null;
+      sender.close();
+      receiver.close();
+      stream?.getTracks().forEach(track => track.stop());
+    }
+  });
+
   it('requires activation and video-only options before contacting main', async () => {
     stub(navigator.userActivation, 'isActive').get(() => false);
     await assert.rejects(media.getDisplayMedia(), {name: 'NotAllowedError'});
@@ -142,7 +221,7 @@ describe('[security-target][CAP-003] display stream renderer adapter', () => {
   });
 
   for (const invalid of [
-    {...frame(), width: 3, buffer: new ArrayBuffer(12)},
+    {...frame(), width: 65, buffer: new ArrayBuffer(260)},
     {...frame(), timestamp: -1},
     {...frame(), buffer: new ArrayBuffer(3)},
   ]) {
