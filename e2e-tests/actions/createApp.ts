@@ -117,12 +117,17 @@ export const createApp = async (options: {
       })
       .toBeTruthy();
     await expect
-      .poll(() => {
-        page = app
-          .windows()
-          .find(candidate => !candidate.isClosed() && new URL(candidate.url()).searchParams.get('id') === selectedId);
-        return Boolean(page);
-      })
+      .poll(
+        () => {
+          page = app
+            .windows()
+            .find(candidate => !candidate.isClosed() && new URL(candidate.url()).searchParams.get('id') === selectedId);
+          return Boolean(page);
+        },
+        // Document startup includes a network response, unlike a short UI assertion.
+        // Keep the exact selected-account match and a finite startup deadline.
+        {timeout: 30_000},
+      )
       .toBe(true);
   } catch (error) {
     await close();
