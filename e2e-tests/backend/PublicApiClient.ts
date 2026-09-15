@@ -55,7 +55,7 @@ export class PublicApiClient {
     );
 
     if (registerResponse.status !== 201) {
-      throw new Error(`Failed to register user ${user.email}`, {cause: registerResponse.data.message});
+      throw new Error(`User registration rejected (HTTP ${registerResponse.status})`);
     }
 
     const zuidCookie = registerResponse.headers.getSetCookie().find(cookie => cookie.startsWith('zuid='));
