@@ -96,7 +96,7 @@ describe('bounded desktop logging admission', () => {
     await f.writer.write({logFilePath: 'recovery.log', message: 'recovered'});
     assert.equal(recovered.length, 1);
     assert.match(recovered[0], /dropped 144 entries while busy/);
-    assert.ok(recovered[0].endsWith('recovered' + eol));
+    assert.ok(recovered[0].endsWith(`recovered${eol}`));
   });
   it('[security-target][CAP-001][INV-010] bounds encoded pending bytes independently of entry count', async () => {
     const blocked = deferred();
@@ -131,7 +131,7 @@ describe('bounded desktop logging admission', () => {
     assert.ok(Buffer.byteLength(content) <= 65536);
     assert.ok(content.startsWith('🧵'));
     assert.equal(content.includes('\ufffd'), false);
-    assert.ok(content.endsWith(' [desktop log entry truncated]' + eol));
+    assert.ok(content.endsWith(` [desktop log entry truncated]${eol}`));
   });
   it('[security-target][CAP-001][INV-010] copies admitted parameters before asynchronous work can observe caller mutation', async () => {
     const f = fixture();
@@ -140,14 +140,16 @@ describe('bounded desktop logging admission', () => {
     input.logFilePath = 'foreign.log';
     input.message = 'changed';
     await pending;
-    assert.deepEqual(f.appended, [{path: 'fixture.log', content: 'original' + eol}]);
+    assert.deepEqual(f.appended, [{path: 'fixture.log', content: `original${eol}`}]);
   });
   for (const phase of ['ensureDirectory', 'getFileSize', 'appendFile', 'afterWrite'] as const) {
     it(`[characterization][CAP-001] releases pending entry and byte reservations after ${phase} failure`, async () => {
       let fail = true;
       let writes = 0;
       const injected = async () => {
-        if (fail) throw new Error('controlled filesystem failure');
+        if (fail) {
+          throw new Error('controlled filesystem failure');
+        }
       };
       const overrides: Partial<BoundedLogWriterDependencies> =
         phase === 'afterWrite' ? {getFileSize: async () => 100000} : {};
@@ -186,7 +188,7 @@ describe('bounded desktop logging admission', () => {
   });
   it('[security-target][CAP-001][INV-010] preserves leading BOM data when truncating a long entry', async () => {
     const f = fixture();
-    await f.writer.write({logFilePath: 'fixture.log', message: '\ufeff' + 'x'.repeat(80000)});
+    await f.writer.write({logFilePath: 'fixture.log', message: `\ufeff${'x'.repeat(80000)}`});
     assert.equal(f.appended[0].content.charCodeAt(0), 0xfeff);
     assert.ok(Buffer.byteLength(f.appended[0].content) <= 65536);
   });
@@ -197,7 +199,9 @@ describe('bounded desktop logging admission', () => {
       getFileSize: async () => 100000,
       pathExists: async () => {
         probes++;
-        if (probes > 129) throw new Error('fixture stopped unbounded lookup');
+        if (probes > 129) {
+          throw new Error('fixture stopped unbounded lookup');
+        }
         return true;
       },
       moveFile: async () => {
@@ -216,4 +220,32 @@ describe('bounded desktop logging admission', () => {
     assert.equal(moves, 1);
     assert.equal(f.appended.length, 1);
   });
+  for (const code of ['EEXIST', 'ENOTEMPTY']) {
+    it(`[security-target][CAP-001][INV-010] bounds repeated ${code} rotation races and recovers`, async () => {
+      let collisions = true;
+      let moves = 0;
+      const f = fixture({
+        getFileSize: async () => 100000,
+        moveFile: async () => {
+          moves += 1;
+          if (moves > 129) {
+            throw new Error('Fixture stopped unbounded rotation retries.');
+          }
+          if (collisions) {
+            throw Object.assign(new Error('Controlled collision'), {code});
+          }
+        },
+      });
+      await assert.rejects(
+        f.writer.write({logFilePath: 'fixture.log', message: 'x'}),
+        /Log rotation has no available destination/,
+      );
+      assert.equal(moves, 128);
+      assert.deepEqual(f.appended, []);
+      collisions = false;
+      await f.writer.write({logFilePath: 'fixture.log', message: 'recovered'});
+      assert.equal(moves, 129);
+      assert.equal(f.appended.length, 1);
+    });
+  }
 });
