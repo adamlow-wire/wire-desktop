@@ -87,7 +87,7 @@ export const menuBar = (app: App) => {
   };
 
   const openPreferences = async () =>
-    clickItem((await app.evaluate(() => process.platform)) === 'darwin' ? 'Preferences' : 'Settings');
+    clickItem((await app.evaluate(() => process.platform)) === 'win32' ? 'Settings' : 'Preferences');
 
   return {getCurrentLanguage, switchLanguage, clickItem, openPreferences};
 };
