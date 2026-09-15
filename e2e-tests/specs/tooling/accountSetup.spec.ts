@@ -44,6 +44,24 @@ test('[TST-005] fixture handles remain valid for punctuation and Unicode display
   }
 });
 
+test('[TST-005] registration addresses remain independent when generated display-name emails repeat', () => {
+  const sandbox = createSandbox();
+  try {
+    sandbox.stub(faker.person, 'firstName').returns('Fixture');
+    sandbox.stub(faker.person, 'lastName').returns('User');
+    sandbox.stub(faker.internet, 'email').returns('Fixture.User@wire.engineering');
+    const first = createUser();
+    const second = createUser();
+    expect(first.fullName).toBe(second.fullName);
+    expect(first.email).not.toBe(second.email);
+    for (const user of [first, second]) {
+      expect(user.email).toMatch(/^[a-z0-9_]+@wire\.engineering$/);
+    }
+  } finally {
+    sandbox.restore();
+  }
+});
+
 test.describe('[TST-005] fixture API result handling', () => {
   let server: Server;
   let api: PublicApiClient;
