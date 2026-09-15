@@ -151,6 +151,31 @@ describe('[PKG-003][DCP-021][INV-010] settings schema migration', () => {
     });
   }
 
+  it('[regression] preserves a staging path owned by another writer after an exclusive-open collision', () => {
+    fs.writeJSONSync(legacy, {customSetting: 'retained'});
+    const previous = fs.readFileSync(legacy);
+    const open = fs.openSync;
+    let foreignPath = '';
+    const collision = stub(fs, 'openSync').callsFake((file, flags, mode) => {
+      assert.equal(flags, 'wx');
+      assert.equal(mode, 0o600);
+      foreignPath = String(file);
+      const descriptor = open(file, flags, mode);
+      fs.writeFileSync(descriptor, 'other writer');
+      fs.closeSync(descriptor);
+      throw Object.assign(new Error('synthetic exclusive-open collision'), {code: 'EEXIST'});
+    });
+    try {
+      assert.throws(() => SchemaUpdater.updateToVersion1(legacy, current), /Settings migration failed/);
+    } finally {
+      collision.restore();
+    }
+    assert.equal(fs.readFileSync(foreignPath, 'utf8'), 'other writer');
+    assert.deepEqual(fs.readFileSync(legacy), previous);
+    SchemaUpdater.updateToVersion1(legacy, current);
+    assert.equal(fs.readFileSync(foreignPath, 'utf8'), 'other writer');
+  });
+
   it('[regression] never replaces a destination created during migration', () => {
     fs.writeJSONSync(legacy, {customSetting: 'legacy'});
     const originalLink = fs.linkSync;

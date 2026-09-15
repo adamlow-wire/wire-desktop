@@ -30,7 +30,7 @@ Use a fresh temporary output directory for each candidate; do not combine counte
 
 The adapter supplies only an isolated user-data directory and logger for Node. Native CI uses real Electron with no adapter. Both filesystem suites and the Quit/environment/menu failure suites are selected explicitly in `electron-modernization-baseline.yml` for Windows/macOS/Linux. Hosted final-head results are required before acceptance.
 
-Fixtures use synthetic temporary directories. They cover valid migration, actual legacy window keys, current-file precedence, corrupt/non-object data, blocked destination, shared-default isolation, write/flush/publication failure, partial writes, concurrent destination creation and restart after interrupted legacy cleanup. Failure injection is restored before recovery assertions. Separate baseline commits distinguish observed legacy behavior from initially failing security targets.
+Fixtures use synthetic temporary directories. They cover valid migration, actual legacy window keys, current-file precedence, corrupt/non-object data, blocked destination, shared-default isolation, write/flush/publication failure, partial writes, exclusive-open collisions that preserve foreign staging files, concurrent destination creation and restart after interrupted legacy cleanup. Failure injection is restored before recovery assertions. Separate baseline commits distinguish observed legacy behavior from initially failing security targets.
 
 ## Recovery and later QA
 

@@ -139,6 +139,31 @@ describe('[PKG-003][DCP-021] settings persistence recovery', () => {
     });
   }
 
+  it('[regression] preserves a staging path owned by another writer after an exclusive-open collision', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    const open = fs.openSync;
+    let foreignPath = '';
+    const collision = stub(fs, 'openSync').callsFake((file, flags, mode) => {
+      assert.equal(flags, 'wx');
+      assert.equal(mode, 0o600);
+      foreignPath = String(file);
+      const descriptor = open(file, flags, mode);
+      fs.writeFileSync(descriptor, 'other writer');
+      fs.closeSync(descriptor);
+      throw Object.assign(new Error('synthetic exclusive-open collision'), {code: 'EEXIST'});
+    });
+    try {
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+    } finally {
+      collision.restore();
+    }
+    assert.equal(fs.readFileSync(foreignPath, 'utf8'), 'other writer');
+    assert.deepEqual(fs.readFileSync(filename), previous);
+    settings.persistToFile();
+    assert.equal(fs.readFileSync(foreignPath, 'utf8'), 'other writer');
+  });
+
   it('[regression] keeps incomplete write bytes out of the live configuration', () => {
     fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
     const previous = fs.readFileSync(filename);
