@@ -24,6 +24,8 @@ import path from 'node:path';
 
 import {deleteNativeAccountLogs} from './AccountLogCleanup';
 
+import {writeBoundedLogMessage} from '../logging/desktopLogWriter';
+
 describe('native account log cleanup', () => {
   const id = '11111111-1111-4111-8111-111111111111';
   const other = '22222222-2222-4222-8222-222222222222';
@@ -69,6 +71,40 @@ describe('native account log cleanup', () => {
     for (const file of kept) {
       assert.equal(await readFile(file, 'utf8'), 'retained');
     }
+    await deleteNativeAccountLogs(id, logs);
+  });
+
+  it('[regression][CAP-001] drains already queued account log writes before deleting their files', async function () {
+    this.timeout(10_000);
+    const target = path.join(logs, '2099-01-01', 'accounts', id, 'console.log');
+    const retained = path.join(logs, '2099-01-01', 'accounts', other, 'console.log');
+    await put(target);
+    await put(retained);
+    const writes = Array.from({length: 100}, (_, index) =>
+      writeBoundedLogMessage({logFilePath: target, message: `queued-${index}`}),
+    );
+    const cleanup = deleteNativeAccountLogs(id, logs);
+    const outcomes = await Promise.allSettled([...writes, cleanup]);
+    assert.equal(outcomes.at(-1)!.status, 'fulfilled', 'account cleanup must finish after queued writes');
+    assert.equal(
+      outcomes.slice(0, -1).every(result => result.status === 'fulfilled'),
+      true,
+      'queued writes must finish before deletion',
+    );
+    await assert.rejects(access(path.dirname(target)), {code: 'ENOENT'});
+    assert.equal(await readFile(retained, 'utf8'), 'retained');
+  });
+
+  it('[regression][CAP-001] cleans up after a failed queued write without hiding the write failure', async () => {
+    const accountDirectory = path.join(logs, '2099-01-01', 'accounts', id);
+    const blockedParent = path.join(accountDirectory, 'file-instead-of-directory');
+    await put(blockedParent);
+    const write = writeBoundedLogMessage({logFilePath: path.join(blockedParent, 'console.log'), message: 'queued'});
+    const cleanup = deleteNativeAccountLogs(id, logs);
+    const [writeOutcome, cleanupOutcome] = await Promise.allSettled([write, cleanup]);
+    assert.equal(writeOutcome.status, 'rejected', 'the original caller must observe its write failure');
+    assert.equal(cleanupOutcome.status, 'fulfilled', 'a settled write failure must not block account cleanup');
+    await assert.rejects(access(accountDirectory), {code: 'ENOENT'});
     await deleteNativeAccountLogs(id, logs);
   });
 

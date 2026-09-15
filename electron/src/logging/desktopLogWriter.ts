@@ -120,6 +120,10 @@ export async function runDesktopLogCleanup(): Promise<void> {
   await cleanupPromiseWithReset;
 }
 
+export function flushDesktopLogWrites(): Promise<void> {
+  return desktopBoundedLogWriter.flush();
+}
+
 export function runDesktopLogMaintenance<Result>(operation: () => Promise<Result>): Promise<Result> {
   return desktopLogMaintenanceCoordinator.runMaintenance(operation);
 }

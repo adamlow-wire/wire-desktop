@@ -46,6 +46,7 @@ export type WriteLogMessageParameters = {
 };
 
 export type BoundedLogWriter = {
+  flush(): Promise<void>;
   runMaintenance<Result>(operation: () => Promise<Result>): Promise<Result>;
   write: (parameters: WriteLogMessageParameters) => Promise<void>;
 };
@@ -207,6 +208,12 @@ export function createBoundedLogWriter(parameters: CreateBoundedLogWriterParamet
   }
 
   return {
+    async flush(): Promise<void> {
+      // Snapshot each queue's tail: later writes are outside this barrier. Callers
+      // deleting logs must first close their producer and flush before maintenance.
+      // Original write promises retain their failures for their own callers.
+      await Promise.allSettled([...pendingWrites.values()]);
+    },
     runMaintenance: parameters.maintenanceCoordinator.runMaintenance,
     write: writeLogMessage,
   };

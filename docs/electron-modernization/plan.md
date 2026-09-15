@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.48
+revision: 1.5.49
 status: draft
 updated: 2026-09-15
 owners:
@@ -657,6 +657,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Test-harness prerequisite (2026-09-08): real fixture renderer termination avoids host crash-dump delays without changing runtime recovery code or test deadlines. Add an explicit pre-replacement revocation assertion; deliberately delayed revocation must fail it. This test-only slice does not close production account migration. Local forced-crash diagnostics stalled before process-loss notification on WSL; non-dumping termination produced notification at 29 ms and completed recovery at 153 ms.
 - Metadata identity prerequisite (2026-09-08): webapp account-info updates must reject desktop-owned identity, session, visibility, lifecycle, badge and arbitrary fields. The existing known metadata fields and separate custom-environment URL update remain compatible. Malformed messages must not throw in the user-ID guard. Characterize targeted reducer updates first and prove the tests detect corruption. This bounded validation does not make production account state main-owned or authorize the remaining programmatic environment-change path; those remain CAP-001/CAP-005 cutover work.
 - Final-audit startup correction (September15): retained PR55 macOS retry and a deterministic native fixture show a same-origin client redirect interrupting pending startup resources. The initial native load rejects ERR_ABORTED and the view is incorrectly destroyed. Preserve a fully completed approved replacement document, with bounded waiting, native lifetime/ownership checks and unchanged foreign-navigation denial; do not blindly ignore native aborts. Existing cap/CAP-001-production-accounts-2026-09-09 owns this correction after diagnostic PR55 qualifies.
+- Cleanup correction (September15): real queued console writes can recreate account logs after removal. Drain queued writes after closing their native producer, then delete under exclusive log maintenance. Preserve exact-target and symlink checks, surface deletion failures for retry, and retain original write failures for their callers. The correction is accepted through [PR #59](https://github.com/adamlow-wire/wire-desktop/pull/59), merged51d04739 after reviewed7d5c34bb passes all core/native platforms and [48-case E2E/report per platform](https://github.com/adamlow-wire/wire-desktop/actions/runs/34963289067). Baseline e4cac57f and a drain-removal perturbation fail; restoration passes23 focused/925 full native cases. macOS has47 initial/one login retry; Windows46 initial/two post-removal/proxy-readiness retries. No skips, worker errors or ENOTEMPTY failures remain in those runs.
 - Acceptance:
   - Approved same-origin startup redirects preserve the owning view; failed, cancelled, stale or foreign replacements cannot become successful startup.
   - Existing multi-account critical and regression flows pass.
@@ -926,6 +927,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.49 | 2026-09-15 | Codex | Restore CAP-001 acceptance after sensitivity-proven queued-log cleanup and reviewed PR #59 final-head qualification; reconcile functional TST-005 with actual integration | CAP-001, TST-005 |
 | 1.5.48 | 2026-09-15 | Codex | Accept all M3 work after reviewed PR #56 and complete final-head/aggregate evidence; clarify the previously accepted TST-003 packaged-smoke allocation and continue functional M4 | CAP-001, TST-003, CAP-003, CAP-004, TST-005 |
 | 1.5.47 | 2026-09-15 | Codex | Reopen CAP-001 for a native-reproduced same-origin startup redirect teardown found in retained PR55 retry evidence; require completed authorized replacement and bounded lifetime checks | CAP-001, INV-010 |
 | 1.5.46 | 2026-09-15 | Codex | Integrate qualified retained pinning PR #54; reopen CAP-006 for final-audit action/settings/startup credential diagnostics under INV-010 | CAP-006, CAP-005 |
