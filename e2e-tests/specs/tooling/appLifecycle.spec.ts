@@ -127,3 +127,58 @@ test('[regression][TST-005] launcher waits for a delayed initial document', asyn
     }
   }
 });
+
+test('[regression][TST-005] traced restart restores a service-worker-controlled account document', async ({}, testInfo) => {
+  const server = createServer((request, response) => {
+    if (new URL(request.url!, 'http://localhost').pathname === '/sw.js') {
+      response.setHeader('Content-Type', 'application/javascript');
+      response.end(`
+        self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
+        self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
+        self.addEventListener('fetch', event => {
+          if (event.request.mode === 'navigate') {
+            event.respondWith(Promise.resolve(new Response('<!doctype html><title>Worker-owned document</title>', {
+              headers: {'Content-Type': 'text/html'},
+            })));
+          }
+        });
+      `);
+      return;
+    }
+    response.setHeader('Content-Type', 'text/html');
+    response.end('<!doctype html><title>Initial worker fixture</title>');
+  });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const traceDirectory = testInfo.outputPath('worker-traces');
+  let app: Awaited<ReturnType<typeof createApp>> | undefined;
+  try {
+    await mkdir(traceDirectory, {recursive: true});
+    app = await createApp({
+      env: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+      dataDir: testInfo.outputPath('worker-profile'),
+      traceDirectory,
+    });
+    await app.page.evaluate(async () => {
+      await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+    });
+    await expect.poll(() => app!.page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    await app.page.reload();
+    await expect(app.page).toHaveTitle('Worker-owned document');
+    const original = app;
+    app = await original.reopen(() => menuBar(original).clickItem('Quit WireInternal'));
+    await expect(app.page).toHaveTitle('Worker-owned document');
+    // Chromium may issue a parallel network request during worker startup. The
+    // rendered response and controller prove the persisted worker owns this document.
+    expect(await app.page.evaluate(() => new URL(navigator.serviceWorker.controller!.scriptURL).pathname)).toBe(
+      '/sw.js',
+    );
+  } finally {
+    try {
+      await app?.close();
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
+});

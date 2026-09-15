@@ -1,0 +1,15 @@
+diff --git a/lib/coreBundle.js b/lib/coreBundle.js
+index bc601fcf741792e3fc76884a28a3c43f80c6472f..d0f9e63ab04046fa1f4f0a6ff93c54e5f505ed7a 100644
+--- a/lib/coreBundle.js
++++ b/lib/coreBundle.js
+@@ -36366,7 +36366,9 @@ var init_crPage = __esm({
+           this._onExecutionContextDestroyed(contextId4);
+       }
+       _onAttachedToTarget(event) {
+-        if (this._bufferedAttachedToTargetEvents) {
++        // A persisted service worker can gate the initial document/frame tree.
++        // Detach its redundant page session immediately; the browser session owns it.
++        if (this._bufferedAttachedToTargetEvents && event.targetInfo.type !== "service_worker") {
+           this._bufferedAttachedToTargetEvents.push(event);
+           return;
+         }

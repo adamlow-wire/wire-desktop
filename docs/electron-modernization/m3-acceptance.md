@@ -4,6 +4,14 @@ M3 is accepted under the maintainer-approved scope at integration `45840fca7eea1
 
 The final source review found and corrected credential-bearing action/settings/proxy diagnostics in [PR #55](https://github.com/adamlow-wire/wire-desktop/pull/55), then a real startup redirect teardown exposed by its retained macOS retry. PR #56 supplies sensitive native/product baselines, bounded authorized replacement completion and non-secret startup errors. The final Windows retry is retained and assigned to TST-005 fixture setup, as detailed below. This is the implementation review; independent release security review remains M5.
 
+## Subsequent cleanup correction
+
+The M4 audit reopened CAP-001 after actual queued console writes recreated deleted account logs. Separate baseline `e4cac57f` reproduces it; removing the corrected queue drain reproduces it again. [PR #59](https://github.com/adamlow-wire/wire-desktop/pull/59) drains queued writes after native producer closure and before exclusive maintenance, retaining exact-target/symlink checks, original write failures and account retention on deletion failure.
+
+Reviewed head `7d5c34bb0bd80cde4500e6ebccf2c46a299d0fcd` merged as `51d04739ace3b43a3d5201471da750492c1bd536`, with an identical tested tree. All925 native tests and23 focused cleanup/writer/maintenance cases pass locally, plus types/lint/build. [Build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34962941216), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34962941231), [CodeQL](https://github.com/adamlow-wire/wire-desktop/actions/runs/34962941212), [all native/package platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34962941253) and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34963289067) pass. macOS completes47 initial cases/one login-readiness retry; Windows46 initial/two post-removal/proxy-readiness retries, for48 cases each. No skips, worker errors or ENOTEMPTY failures are reported. The initially unlabeled E2E run skipped and is not accepted evidence; the subsequently labeled exact-head run above supplies the required results.
+
+Exact-head source review confirms native view destruction precedes the finite queued-write snapshot, flushing occurs outside the maintenance lock to avoid deadlock, and file deletion retains all strict path checks. CodeQL analyzed the actual PR merge with zero findings/error; no unresolved threads remained at the SHA-guarded merge. CAP-001 acceptance is restored; the other fifteen work-item checkpoints and explicit downstream QA obligations below remain applicable.
+
 ## SEC-002
 
 ViewIdentityRegistry and AuthorizedIpc enforce native contents/session/main-frame/origin identity and immutable main-owned account capabilities. Native registry/IPC tests cover unknown, destroyed, subframe, foreign and payload-forged identities. Integrated in PR #13 and maintained through account cutover PR #47.

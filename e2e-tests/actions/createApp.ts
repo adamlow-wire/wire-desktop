@@ -64,6 +64,7 @@ export const createApp = async (options: {
 
   let wrapper: Page | undefined;
   let page: Page | undefined;
+  let selectedId: string | undefined;
   const nativeClose = app.close.bind(app);
   let tracing = false;
   let traceStopped: Promise<void> | undefined;
@@ -100,7 +101,6 @@ export const createApp = async (options: {
         return Boolean(wrapper);
       })
       .toBe(true);
-    let selectedId: string | undefined;
     await expect
       .poll(async () => {
         selectedId = await wrapper!
@@ -130,6 +130,51 @@ export const createApp = async (options: {
       )
       .toBe(true);
   } catch (error) {
+    // Native state distinguishes a pending request, modal dialog and automation
+    // attachment failure. Never include URLs, account IDs or dialog contents.
+    let diagnosticTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const diagnostic = await Promise.race([
+        app.evaluate(
+          ({BrowserWindow, webContents}, expected) => ({
+            windows: BrowserWindow.getAllWindows().map(window => ({
+              visible: window.isVisible(),
+              minimized: window.isMinimized(),
+              focused: window.isFocused(),
+            })),
+            contents: webContents
+              .getAllWebContents()
+              .filter(contents => !contents.isDestroyed())
+              .map(contents => {
+                const url = new URL(contents.getURL() || 'about:blank');
+                return {
+                  type: contents.getType(),
+                  protocol: url.protocol,
+                  expectedOrigin: url.origin === expected.origin,
+                  selectedAccount: url.searchParams.get('id') === expected.id,
+                  loading: contents.isLoading(),
+                  loadingMainFrame: contents.isLoadingMainFrame(),
+                  crashed: contents.isCrashed(),
+                  workers: Object.keys(contents.session.serviceWorkers.getAllRunning()).length,
+                };
+              }),
+            pendingOtherDialogs: (globalThis as unknown as {wireE2EConsent?: {pendingOtherDialogs: number}})
+              .wireE2EConsent?.pendingOtherDialogs,
+          }),
+          {origin: new URL(options.env).origin, id: selectedId},
+        ),
+        new Promise(resolve => {
+          diagnosticTimer = setTimeout(() => resolve({unavailable: true}), 5_000);
+        }),
+      ]);
+      // eslint-disable-next-line no-console
+      console.error('Electron fixture startup state', diagnostic);
+    } catch {
+      // eslint-disable-next-line no-console
+      console.error('Electron fixture startup state unavailable');
+    } finally {
+      clearTimeout(diagnosticTimer);
+    }
     await close();
     throw error;
   }
