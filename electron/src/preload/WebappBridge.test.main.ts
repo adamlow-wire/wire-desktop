@@ -53,10 +53,6 @@ describe('webapp bridge', () => {
     },
     environment: EnvironmentUtil,
     events,
-    getDesktopSources: async options => {
-      calls.push({args: [options], name: 'sources'});
-      return [];
-    },
     getOpenGraphData: async url => {
       calls.push({args: [url], name: 'open-graph'});
       return {title: 'Example', url};
@@ -71,11 +67,10 @@ describe('webapp bridge', () => {
 
     assert.deepStrictEqual(
       [...exposed.keys()],
-      ['wireDesktopBridge', 'desktopAppConfig', 'desktopCapturer', 'environment', 'openGraphAsync', 'systemCrypto'],
+      ['wireDesktopBridge', 'desktopAppConfig', 'environment', 'openGraphAsync', 'systemCrypto'],
     );
     assert.strictEqual(bridge.version, WEBAPP_BRIDGE_VERSION);
     assert.strictEqual(Object.isFrozen(bridge), true);
-    assert.strictEqual(Object.isFrozen(bridge.desktopCapturer), true);
     assert.strictEqual(Object.isFrozen(EnvironmentUtil), false);
     assert.strictEqual(Object.isFrozen(bridge.systemCrypto), true);
     assert.deepStrictEqual(
@@ -97,7 +92,6 @@ describe('webapp bridge', () => {
     const encrypted = new Uint8Array([2]);
     assert.strictEqual(await bridge.systemCrypto.decrypt(encrypted), 'plain');
     assert.deepStrictEqual(await bridge.systemCrypto.encrypt('value'), new Uint8Array([1]));
-    assert.deepStrictEqual(await bridge.desktopCapturer.getDesktopSources({types: ['screen']}), []);
     assert.deepStrictEqual(await bridge.openGraphAsync('https://example.com'), {
       title: 'Example',
       url: 'https://example.com',
@@ -105,7 +99,6 @@ describe('webapp bridge', () => {
     assert.deepStrictEqual(calls, [
       {args: [encrypted], name: 'decrypt'},
       {args: ['value'], name: 'encrypt'},
-      {args: [{types: ['screen']}], name: 'sources'},
       {args: ['https://example.com'], name: 'open-graph'},
     ]);
   });

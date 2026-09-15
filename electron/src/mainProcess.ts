@@ -27,7 +27,6 @@ import {
   Menu,
   session,
   WebContents,
-  desktopCapturer,
   safeStorage,
 } from 'electron';
 import electronDl from 'electron-dl';
@@ -54,7 +53,9 @@ import {AccountViews} from './accounts/AccountViews';
 import {readLegacyAccountState} from './accounts/readLegacyAccountState';
 import {createProxyLoginHandler} from './auth/ProxyLogin';
 import {ProxyPromptCoordinator} from './auth/ProxyPromptCoordinator';
+import {DisplayCaptureCoordinator} from './calling/display/DisplayCaptureCoordinator';
 import {bindPictureInPictureCallIdentity, isPictureInPictureCallWindow} from './calling/PictureInPictureCall';
+import {PictureInPictureOwners} from './calling/PictureInPictureOwners';
 import {initializeFirstInstance} from './lib/applicationBootstrap';
 import {
   attachTo as attachCertificateVerifyProcManagerTo,
@@ -63,7 +64,6 @@ import {
 import {configureEnforcedDownloads} from './lib/configureEnforcedDownloads';
 import {CustomProtocolHandler} from './lib/CoreProtocol';
 import {downloadImage} from './lib/download';
-import {enumerateDesktopSources} from './lib/enumerateDesktopSources';
 import {EVENT_TYPE} from './lib/eventType';
 import {createFireAndForgetInvoker} from './lib/fireAndForgetInvoker';
 import {getOpenGraphDataAsync} from './lib/openGraph';
@@ -100,7 +100,6 @@ import {ACCOUNT_PERMISSION_CAPABILITY} from './security/AccountPermissionPolicy'
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
-import {bindDesktopSourcesIpc, DESKTOP_SOURCES_ENUMERATE_CAPABILITY} from './security/DesktopSourcesIpc';
 import {bindDownloadLocationIpc} from './security/DownloadLocationIpc';
 import {ACCOUNT_CAPABILITIES} from './security/LegacyAccountViewIdentity';
 import {LOCAL_CONTENT_ORIGIN} from './security/LocalContentPolicy';
@@ -116,6 +115,7 @@ import {bindSavePictureIpc} from './security/SavePictureIpc';
 import {bindSsoAccountLimitIpc, SSO_ACCOUNT_LIMIT_CAPABILITY} from './security/SsoAccountLimitIpc';
 import {bindSsoWindowControlIpc} from './security/SsoWindowControlIpc';
 import {SsoWindowCoordinator} from './security/SsoWindowCoordinator';
+import type {AuthorizedViewIdentity} from './security/ViewIdentityRegistry';
 import {registerApplicationShellIdentity, ViewIdentityRegistry} from './security/ViewIdentityRegistry';
 import {bindWebAppLoadedIpc} from './security/WebAppLoadedIpc';
 import {resolveWindowsDownloadPath} from './security/WindowsDownloadPath';
@@ -153,6 +153,7 @@ const mainProcessFireAndForgetInvoker = createFireAndForgetInvoker({
 });
 const configuredUserDataPath = getConfiguredPortableUserDataPath();
 const viewIdentityRegistry = new ViewIdentityRegistry();
+const pictureInPictureOwners = new PictureInPictureOwners(viewIdentityRegistry);
 const proxyPromptCoordinator = new ProxyPromptCoordinator();
 const developerMenu = createDeveloperMenu(viewIdentityRegistry);
 
@@ -248,6 +249,7 @@ let main: BrowserWindow;
 let wrapperInit: ElectronWrapperInit;
 let accountController: AccountController | undefined;
 let accountViews: AccountViews | undefined;
+let displayCapture: DisplayCaptureCoordinator | undefined;
 
 Object.entries(config).forEach(([key, value]) => {
   if (typeof value === 'undefined' || (typeof value === 'number' && isNaN(value))) {
@@ -411,9 +413,6 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     y: mainWindowState.y,
   };
 
-  bindDesktopSourcesIpc(ipcMain, viewIdentityRegistry, options =>
-    enumerateDesktopSources(options, value => desktopCapturer.getSources(value)),
-  );
   bindSafeStorageIpc(ipcMain, viewIdentityRegistry, safeStorage);
 
   main = new BrowserWindow(options);
@@ -437,12 +436,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     registry: viewIdentityRegistry,
     preload: PRELOAD_RENDERER_JS,
     additionalArguments: getRendererRuntimeArguments(),
-    capabilities: [
-      // Enumeration returns desktop thumbnails too. Keep it denied until source consent is enforced.
-      ...ACCOUNT_CAPABILITIES.filter(capability => capability !== DESKTOP_SOURCES_ENUMERATE_CAPABILITY),
-      ACCOUNT_EVENT_CAPABILITY,
-      ACCOUNT_PERMISSION_CAPABILITY,
-    ],
+    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY, ACCOUNT_PERMISSION_CAPABILITY],
     permissionConsent: createAccountPermissionConsent(main),
     configure: (contents, account, url) => wrapperInit.configureAccountContents(contents, account, url),
     lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),
@@ -469,6 +463,7 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     },
     approveEnvironment: (_account, candidate) => approveAccountEnvironment(main, candidate, managedDestination),
     changed: accounts => {
+      displayCapture?.revalidate();
       if (!main.isDestroyed()) {
         main.webContents.send(ACCOUNT_SNAPSHOTS_CHANNEL, accounts);
       }
@@ -497,6 +492,50 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
       }),
   });
   accountController = controller;
+  const captureParent = (identity: AuthorizedViewIdentity): BrowserWindow | undefined =>
+    identity.viewType === 'account'
+      ? main
+      : BrowserWindow.fromWebContents(identity.webContents as WebContents) ?? undefined;
+  const captureEligible = (identity: AuthorizedViewIdentity): boolean => {
+    if (!identity.accountId || !nativeViews.has(identity.accountId)) {
+      return false;
+    }
+    const accountContents = nativeViews.get(identity.accountId);
+    return identity.viewType === 'account'
+      ? identity.webContents === accountContents
+      : identity.viewType === 'picture-in-picture' &&
+          pictureInPictureOwners.parentFor(identity.webContents as WebContents) === accountContents;
+  };
+  const canApproveCapture = (identity: AuthorizedViewIdentity): boolean => {
+    const parent = captureParent(identity);
+    return (
+      captureEligible(identity) &&
+      !!parent &&
+      !parent.isDestroyed() &&
+      parent.isVisible() &&
+      !parent.isMinimized() &&
+      (identity.viewType === 'picture-in-picture' ||
+        controller.snapshots().some(account => account.id === identity.accountId && account.visible))
+    );
+  };
+  displayCapture = new DisplayCaptureCoordinator({
+    registry: viewIdentityRegistry,
+    directory: APP_PATH,
+    parentWindow: captureParent,
+    requestingOrigin: identity => new URL(nativeViews.get(identity.accountId!).getURL()).origin,
+    isEligible: captureEligible,
+    canApprove: canApproveCapture,
+    isForeground: identity =>
+      canApproveCapture(identity) &&
+      captureParent(identity)!.isFocused() &&
+      (identity.webContents as WebContents).isFocused(),
+  });
+  main.once('closed', () => {
+    displayCapture?.dispose();
+    displayCapture = undefined;
+    pictureInPictureOwners.dispose();
+  });
+
   const disposeActions = WindowManager.bindNativeActions(main.id, (channel, args) =>
     mainProcessFireAndForgetInvoker.fireAndForget(() => controller.desktopAction(channel, args)),
   );
@@ -774,7 +813,7 @@ class ElectronWrapperInit {
         );
       }
 
-      bindPictureInPictureCallIdentity({
+      const bound = bindPictureInPictureCallIdentity({
         allowedUrl: url,
         destroy: () => win.destroy(),
         frameName,
@@ -784,6 +823,14 @@ class ElectronWrapperInit {
         resolveAccountId: () => registeredAccountId,
         webContents: win.webContents,
       });
+      if (bound && isPictureInPictureCallWindow(frameName)) {
+        try {
+          pictureInPictureOwners.bind(contents, win);
+        } catch {
+          win.destroy();
+          logger.warn('Rejected detached call without a current parent account.');
+        }
+      }
     });
     if (ENABLE_LOGGING) {
       const colorCodeRegex = /%c(.+?)%c/gm;

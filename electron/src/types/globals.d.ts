@@ -30,9 +30,6 @@ import type * as EnvironmentUtil from '../runtime/EnvironmentUtil';
 export declare global {
   /* eslint-disable no-var */
   var _ConfigurationPersistence: Record<string, any>;
-  var desktopCapturer: {
-    getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
-  };
   var systemCrypto: {
     decrypt: (payload: Uint8Array) => Promise<string>;
     encrypt: (value: string) => Promise<Uint8Array>;
@@ -83,9 +80,6 @@ export declare global {
   namespace NodeJS {
     interface Global {
       _ConfigurationPersistence: Record<string, any>;
-      desktopCapturer: {
-        getDesktopSources(options: Electron.SourcesOptions): Promise<Electron.DesktopCapturerSource[]>;
-      };
       environment: typeof EnvironmentUtil;
       openGraphAsync(url: string): Promise<OpenGraphResult>;
       systemCrypto?: {

@@ -19,6 +19,7 @@
 
 import * as assert from 'assert';
 
+import {DISPLAY_CAPTURE_CAPABILITY} from './display/DisplayCaptureContract';
 import {bindPictureInPictureCallIdentity, registerPictureInPictureCallIdentity} from './PictureInPictureCall';
 
 import {LifecycleWebContentsIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
@@ -52,7 +53,7 @@ describe('picture-in-picture call identity', () => {
     assert.strictEqual(registered.identity.partition, 'persist:account-a');
     assert.strictEqual(registered.identity.session, session);
     assert.strictEqual(registered.identity.viewType, 'picture-in-picture');
-    assert.deepStrictEqual(registered.identity.capabilities, []);
+    assert.deepStrictEqual(registered.identity.capabilities, [DISPLAY_CAPTURE_CAPABILITY]);
     listeners.get('destroyed')?.();
     assert.strictEqual(registry.has(webContents.id), false);
   });

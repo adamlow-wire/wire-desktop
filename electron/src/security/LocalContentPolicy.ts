@@ -19,7 +19,7 @@
 
 import {SECURE_SHELL_ORIGIN} from '../secureShell/constants';
 
-export type LocalContentRole = 'shell' | 'about' | 'proxy-prompt';
+export type LocalContentRole = 'shell' | 'about' | 'proxy-prompt' | 'display-broker';
 export interface LocalContentResource {
   readonly path: string;
   readonly contentType: string;
@@ -28,6 +28,8 @@ export interface LocalContentResource {
 export const LOCAL_CONTENT_ORIGIN = SECURE_SHELL_ORIGIN;
 
 const resources: readonly (LocalContentResource & {readonly role: LocalContentRole})[] = [
+  {role: 'display-broker', path: 'html/display-capture.html', contentType: 'text/html; charset=utf-8'},
+  {role: 'display-broker', path: 'css/display-capture.css', contentType: 'text/css; charset=utf-8'},
   {role: 'shell', path: 'renderer/index.html', contentType: 'text/html; charset=utf-8'},
   {role: 'shell', path: 'renderer/dist/bundle.js', contentType: 'text/javascript; charset=utf-8'},
   {role: 'about', path: 'html/about.html', contentType: 'text/html; charset=utf-8'},

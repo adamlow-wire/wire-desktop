@@ -117,5 +117,12 @@
   "promptCancel": "Cancel",
   "promptWarning": "Warning",
   "promptError": "Error",
-  "urlBlockedPromptText": "A potentially unsafe URL has been blocked. If you still wish to open it, copy the URL and open the appropriate application."
+  "urlBlockedPromptText": "A potentially unsafe URL has been blocked. If you still wish to open it, copy the URL and open the appropriate application.",
+  "displayCaptureTitle": "Share your screen",
+  "displayCaptureLoading": "Loading available screens and windows\u2026",
+  "displayCaptureChoose": "Choose what to share.",
+  "displayCaptureEmpty": "No screens or windows are available.",
+  "displayCaptureStarting": "Starting screen sharing\u2026",
+  "displayCaptureSharing": "Your screen is being shared.",
+  "displayCaptureStop": "Stop sharing"
 }

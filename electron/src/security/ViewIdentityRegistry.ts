@@ -39,6 +39,7 @@ export type ViewType =
   | 'account'
   | 'application-shell'
   | 'developer-tool'
+  | 'display-broker'
   | 'picture-in-picture'
   | 'proxy-prompt'
   | 'sso';

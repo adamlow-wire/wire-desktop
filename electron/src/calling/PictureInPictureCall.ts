@@ -17,6 +17,10 @@
  *
  */
 
+import path from 'node:path';
+
+import {DISPLAY_CAPTURE_CAPABILITY} from './display/DisplayCaptureContract';
+
 import {
   LifecycleWebContentsIdentity,
   RegisteredViewIdentity,
@@ -32,7 +36,7 @@ export const isPictureInPictureCallWindow = (frameName: string): boolean => {
 };
 
 export const getPictureInPictureCallWindowOptions = (): Electron.BrowserWindowConstructorOptions => {
-  return getNewWindowOptions({
+  const options = getNewWindowOptions({
     autoHideMenuBar: true,
     width: 1026,
     height: 829,
@@ -42,6 +46,14 @@ export const getPictureInPictureCallWindowOptions = (): Electron.BrowserWindowCo
     alwaysOnTop: false,
     minimizable: true,
   });
+  return {
+    ...options,
+    webPreferences: {
+      ...options.webPreferences,
+      preload: path.resolve(__dirname, '../../dist/preload/preload-display-pip.js'),
+      backgroundThrottling: false,
+    },
+  };
 };
 
 export const registerPictureInPictureCallIdentity = ({
@@ -61,7 +73,8 @@ export const registerPictureInPictureCallIdentity = ({
   return registerViewIdentity(registry, {
     accountId,
     allowedOrigin,
-    capabilities: [],
+    ...(allowedUrl === 'about:blank' ? {allowedUrl} : {}),
+    capabilities: [DISPLAY_CAPTURE_CAPABILITY],
     partition,
     session: webContents.session,
     viewType: 'picture-in-picture',

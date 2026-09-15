@@ -699,7 +699,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - PiP windows use fixed secure preferences and controlled navigation.
   - Permission-denied behavior is tested.
 - Design: Proposed DEC-011 uses an isolated local chooser/broker and bounded approved-stream relay. Bridge version2 intentionally removes the legacy `desktopCapturer` global and production enumeration endpoint, so the released webapp selects its existing `getDisplayMedia` path. Remote native display/legacy permission remains denied.
-- Evidence: Synthetic native preflight proves actual modern capture of an owned test frame, cross-session delivery and original/clone revocation; production implementation and final native/product/platform qualification remain required. No host display capture or live OS privacy/portal qualification is claimed.
+- Evidence: Production implementation is locally qualified by 52 focused native boundary cases and three real product cases repeated twice without retries. Full rebuilt validation passes 112 Jest, 956 main, four media, four renderer and 51 build-tool tests plus both type gates. Final sensitivity/coverage, combined product regression and hosted final-head qualification remain required. No host display capture or live OS privacy/portal qualification is claimed.
 
 #### CAP-004 — Migrate tray, notification, badge, menu, and shortcut integration
 

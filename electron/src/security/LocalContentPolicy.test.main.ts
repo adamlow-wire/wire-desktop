@@ -23,6 +23,8 @@ import {LOCAL_CONTENT_ORIGIN, LocalContentRole, resolveLocalContentResource} fro
 
 describe('[security-target][SEC-010] local content resource policy', () => {
   const fixtures: [LocalContentRole, string, string][] = [
+    ['display-broker', 'html/display-capture.html', 'text/html; charset=utf-8'],
+    ['display-broker', 'css/display-capture.css', 'text/css; charset=utf-8'],
     ['shell', 'renderer/index.html', 'text/html; charset=utf-8'],
     ['shell', 'renderer/dist/bundle.js', 'text/javascript; charset=utf-8'],
     ['about', 'html/about.html', 'text/html; charset=utf-8'],
@@ -40,7 +42,7 @@ describe('[security-target][SEC-010] local content resource policy', () => {
           contentType,
         });
       }
-      for (const other of ['shell', 'about', 'proxy-prompt'] as const) {
+      for (const other of ['shell', 'about', 'proxy-prompt', 'display-broker'] as const) {
         if (other !== role) {
           assert.equal(resolveLocalContentResource(other, `${LOCAL_CONTENT_ORIGIN}/${path}`, 'GET'), undefined);
         }

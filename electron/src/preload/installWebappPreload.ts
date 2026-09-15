@@ -26,12 +26,12 @@ import {WebappVersions} from './WebappEventBridge';
 import {createWebappMainWorld} from './WebappMainWorld';
 import {createWebappPreloadEvents} from './WebappPreloadEvents';
 
+import {installDisplayCapturePreload} from '../calling/display/DisplayCaptureAdapter';
 import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import type {ManagedConfig} from '../managed/ManagedConfig';
 import {restoreRendererEnvironment} from '../runtime/rendererEnvironment';
 import {readRendererEnvironment} from '../runtime/rendererRuntimeArguments';
 import {reportWebappVersions as submitWebappVersions} from '../security/AboutWindowIpc';
-import {requestDesktopSources} from '../security/DesktopSourcesIpc';
 import {requestDownloadLocationUpdate} from '../security/DownloadLocationIpc';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
 import {requestNotificationActivation} from '../security/NotificationActivationIpc';
@@ -109,7 +109,6 @@ export const installWebappPreload = (
       encrypt: value => ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value),
       environment,
       events: preloadEvents.events,
-      getDesktopSources: options => requestDesktopSources(ipcRenderer, options),
       getOpenGraphData: getOpenGraphDataViaChannel,
     });
     exposeWebappBridge(contextBridge, webappBridge);
@@ -117,6 +116,7 @@ export const installWebappPreload = (
 
   /* istanbul ignore next -- executed and asserted by LegacyPreloadCompatibility.test.main.ts. */
   initializeWebappBridge();
+  installDisplayCapturePreload();
   mainWorld.install();
   preloadEvents.subscribeToMainProcessEvents();
 

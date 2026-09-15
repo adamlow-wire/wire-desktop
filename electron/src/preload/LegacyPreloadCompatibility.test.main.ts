@@ -248,7 +248,7 @@ describe('legacy preload compatibility surface', () => {
     const surface = await window.webContents.executeJavaScript(`({
       desktopAppConfigVersion: typeof window.desktopAppConfig.version,
       supportsWebViewRefresh: window.desktopAppConfig.supportsWebViewRefresh,
-      desktopCapturer: typeof window.desktopCapturer.getDesktopSources,
+      desktopCapturer: typeof window.desktopCapturer?.getDesktopSources,
       environment: typeof window.environment,
       openGraphAsync: typeof window.openGraphAsync,
       systemCryptoDecrypt: typeof window.systemCrypto.decrypt,
@@ -258,7 +258,7 @@ describe('legacy preload compatibility surface', () => {
 
     assert.deepStrictEqual(surface, {
       desktopAppConfigVersion: 'string',
-      desktopCapturer: 'function',
+      desktopCapturer: 'undefined',
       environment: 'object',
       openGraphAsync: 'function',
       systemCryptoDecrypt: 'function',
@@ -289,9 +289,9 @@ describe('legacy preload compatibility surface', () => {
     })`);
 
     assert.deepStrictEqual(surface, {
-      bridgeVersion: 1,
+      bridgeVersion: 2,
       desktopAppConfigVersion: 'string',
-      desktopCapturer: 'function',
+      desktopCapturer: 'undefined',
       electron: 'undefined',
       environment: 'object',
       openGraphAsync: 'function',

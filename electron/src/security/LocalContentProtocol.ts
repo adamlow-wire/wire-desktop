@@ -40,7 +40,7 @@ export const createLocalContentResponse = async (
       "object-src 'none'",
       role === 'shell' ? "script-src 'self'" : "script-src 'none'",
       role === 'shell' ? "style-src 'self' 'unsafe-inline'" : "style-src 'self'",
-      role === 'shell' ? "img-src 'self' data:" : "img-src 'self'",
+      role === 'shell' || role === 'display-broker' ? "img-src 'self' data:" : "img-src 'self'",
     ].join('; '),
     'Content-Type': 'text/plain; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',

@@ -161,10 +161,12 @@ test(
         const result = await app!.evaluate(async ({webContents}, origin) => {
           const contents = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(origin))!;
           const denied = await contents.executeJavaScript(`(async () => {
+            if (typeof window.desktopCapturer !== 'undefined') return false;
             try {
-              await window.desktopCapturer.getDesktopSources({types: ['screen', 'window']});
+              const stream = await navigator.mediaDevices.getUserMedia({video:{mandatory:{chromeMediaSource:'desktop',chromeMediaSourceId:'screen:999999999:0'}}});
+              stream.getTracks().forEach(track => track.stop());
               return false;
-            } catch { return true; }
+            } catch (error) { return error.name === 'NotAllowedError'; }
           })()`);
           return {
             denied,
