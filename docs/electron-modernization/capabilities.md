@@ -205,3 +205,5 @@ Log admission is best effort at explicit resource limits: at most 256 active/que
 ### TST-006 follow-up: build diagnostics (PKG-001 / INV-010)
 
 Build configuration and original native errors can contain signing credentials. The CLI's diagnostic contract now requires fixed stage/failure messages and a failed exit status for unsupported platforms. Separate baseline `7eb299f3` distinguishes eight retained compatibility controls from ten failing targets; the local correction and sensitivity pass all 18 cases using inert builders. This does not qualify real wrapper failure propagation, metadata recovery, packaged inputs or signing order, which remain PKG-001/SEC-011 work.
+
+PKG-001 package-input candidate (TST-006 F-004): own application payload now has an explicit runtime allowlist for Windows/macOS/Linux, with required native dependency assets preserved. Real copy-filter tests cover secrets/unrelated inputs, default/nested/space-containing application paths and malformed configuration;179 local cases pass, including retained runtime assets and deny paths. Actual archives and startup remain unqualified for this change; the finding stays open.

@@ -25,6 +25,7 @@ import path from 'path';
 import {backupFiles, getLogger, restoreFiles} from '../../bin-utils';
 import {getCommonConfig, flipElectronFuses} from './commonConfig';
 import {LinuxConfig} from './Config';
+import {packageFilePatterns} from './packageInputs';
 
 const libraryName = path.basename(__filename).replace('.ts', '');
 const logger = getLogger('build-tools', libraryName);
@@ -102,7 +103,7 @@ export async function buildLinuxConfig(
     extraMetadata: {
       homepage: commonConfig.websiteUrl,
     },
-    files: ['!**/.yarn', '!**/renderer/src', '!**/electron/src', '!**/bin', '!**/jenkins'],
+    files: packageFilePatterns(commonConfig.electronDirectory),
     linux: {
       artifactName: linuxConfig.artifactName,
       category: platformSpecificConfig.category,

@@ -22,6 +22,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 import {backupFiles, getLogger, restoreFiles} from '../../bin-utils';
+import {createPackageIgnore} from './packageInputs';
 import {flipElectronFuses, getCommonConfig} from './commonConfig';
 import {WindowsConfig} from './Config';
 
@@ -60,13 +61,7 @@ export async function buildWindowsConfig(
     buildVersion: commonConfig.buildNumber,
     dir: '.',
     icon: `${commonConfig.electronDirectory}/img/logo.ico`,
-    ignore: [
-      new RegExp(`${commonConfig.electronDirectory}/renderer/src$`),
-      new RegExp(`${commonConfig.electronDirectory}/src$`),
-      new RegExp(`/\\.yarn$`),
-      new RegExp(`/bin$`),
-      new RegExp(`/jenkins$`),
-    ],
+    ignore: createPackageIgnore(path.resolve('.'), commonConfig.electronDirectory),
     name: commonConfig.name,
     out: commonConfig.buildDir,
     overwrite: true,

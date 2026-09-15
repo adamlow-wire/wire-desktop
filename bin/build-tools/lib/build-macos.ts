@@ -23,6 +23,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 import {backupFiles, execAsync, getLogger, restoreFiles} from '../../bin-utils';
+import {createPackageIgnore} from './packageInputs';
 import {flipElectronFuses, getCommonConfig} from './commonConfig';
 import {CommonConfig, MacOSConfig} from './Config';
 
@@ -87,7 +88,7 @@ export async function buildMacOSConfig(
     extendInfo: plistEntries,
     helperBundleId: `${macOSConfig.bundleId}.helper`,
     icon: 'resources/macos/logo.icns',
-    ignore: [/\/electron\/renderer\/src$/, /\/\.yarn$/, /\$electron\/src$/, /\/bin$/, /\/jenkins$/],
+    ignore: createPackageIgnore(path.resolve('.'), commonConfig.electronDirectory),
     name: commonConfig.name,
     osxUniversal: {
       mergeASARs: true,

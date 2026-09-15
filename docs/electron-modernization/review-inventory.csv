@@ -14,7 +14,7 @@ bin/build-tools/build-cli.ts,M,tooling/CI/config,pending,pending,pending
 bin/build-tools/build-linux-desktop-file.ts,M,tooling/CI/config,pending,pending,pending
 bin/build-tools/lib/Config.ts,M,tooling/CI/config,pending,pending,pending
 bin/build-tools/lib/build-linux.test.ts,M,test/fixture,pending,pending,pending
-bin/build-tools/lib/build-linux.ts,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/lib/build-linux.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending
 bin/build-tools/lib/build-windows-installer.test.ts,M,test/fixture,pending,pending,pending
 bin/build-tools/lib/build-windows-installer.ts,M,tooling/CI/config,pending,pending,pending
 bin/build-tools/lib/build-windows-msi.test.ts,A,test/fixture,pending,pending,pending
@@ -438,3 +438,6 @@ electron/test/node-sso-context.cjs,A,test adapter,Node-only guard and owned obje
 electron/src/logging/boundedLogAdmission.test.main.ts,A,test,local admission and ownership review,aaa7e250 four controls pass and seven targets fail before correction,native and composed qualification pending
 bin/build-tools/build-cli.test.ts,A,test,CLI parser/routing/diagnostic sink review,7eb299f3 eight controls pass and ten targets fail before fix,18 inert subprocess cases pass; real package boundaries pending
 bin/build-tools/fixtures/build-cli.cjs,A,test adapter,Node-only synthetic configs and inert native builders reviewed,7eb299f3,does not qualify actual builders or signing
+bin/build-tools/lib/packageInputs.ts,A,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending
+bin/build-tools/lib/build-windows.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending
+bin/build-tools/lib/build-macos.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending

@@ -27,10 +27,11 @@ import path from 'path';
 import {buildLinuxConfig} from './build-linux';
 import {buildMacOSConfig} from './build-macos';
 import {buildWindowsConfig} from './build-windows';
+import {createPackageIgnore, packageFilePatterns} from './packageInputs';
 
 const requireTool = createRequire(path.resolve('package.json'));
 const {populateIgnoredPaths, userPathFilter} = requireTool('electron-packager/src/copy-filter');
-const {getMainFileMatchers} = requireTool('app-builder-lib/out/fileMatcher');
+const {getMainFileMatchers, getNodeModuleFileMatcher} = requireTool('app-builder-lib/out/fileMatcher');
 const appFiles = [
   'wire.json',
   'dist/main.js',
@@ -73,7 +74,7 @@ const privateAppFiles = [
 ];
 
 for (const platform of ['windows', 'macos', 'linux']) {
-  for (const electronDirectory of ['electron', 'nested/custom-app']) {
+  for (const electronDirectory of ['electron', 'nested/custom-app', 'nested/Custom App']) {
     describe(`[PKG-001] ${platform} packaged inputs at ${electronDirectory}`, () => {
       let root: string;
       let filter: (file: string) => boolean | Promise<boolean>;
@@ -86,6 +87,10 @@ for (const platform of ['windows', 'macos', 'linux']) {
         }
         const configFile = path.join(root, 'fixture-wire.json');
         await fs.writeJson(configFile, {...(await fs.readJson(path.resolve('electron/wire.json'))), electronDirectory});
+        await fs.copy(
+          path.resolve('resources/macos/Info.plist.json'),
+          path.join(root, 'resources/macos/Info.plist.json'),
+        );
         const envFile = path.join(root, 'fixture.env');
         await fs.writeFile(envFile, '');
         if (platform === 'linux') {
@@ -112,13 +117,20 @@ for (const platform of ['windows', 'macos', 'linux']) {
           const nativeFilter = matchers[0].createFilter();
           filter = file => nativeFilter(file, fs.statSync(file));
         } else {
-          const {packagerConfig} =
-            platform === 'windows'
-              ? await buildWindowsConfig(configFile, envFile)
-              : await buildMacOSConfig(configFile, envFile, true);
-          const options = {...packagerConfig, dir: root, out: path.join(root, 'output'), prune: false};
-          populateIgnoredPaths(options);
-          filter = userPathFilter(options);
+          const previousDirectory = process.cwd();
+          try {
+            // Packager config is built from the project directory it will copy.
+            process.chdir(root);
+            const {packagerConfig} =
+              platform === 'windows'
+                ? await buildWindowsConfig(configFile, envFile)
+                : await buildMacOSConfig(configFile, envFile, true);
+            const options = {...packagerConfig, dir: root, out: path.join(root, 'output'), prune: false};
+            populateIgnoredPaths(options);
+            filter = userPathFilter(options);
+          } finally {
+            process.chdir(previousDirectory);
+          }
         }
       });
       after(async () => {
@@ -149,3 +161,62 @@ for (const platform of ['windows', 'macos', 'linux']) {
     });
   }
 }
+
+describe('[PKG-001] package policy configuration and dependency assets', () => {
+  for (const invalid of [
+    '',
+    '../electron',
+    '/electron',
+    'C:/electron',
+    'electron/*',
+    'electron/{a,b}',
+    'a/../electron',
+  ]) {
+    it(`rejects nonliteral or escaping application directory ${JSON.stringify(invalid)}`, () => {
+      assert.throws(() => createPackageIgnore(process.cwd(), invalid), /Invalid application directory/);
+      assert.throws(() => packageFilePatterns(invalid), /Invalid application directory/);
+    });
+  }
+  it('retains dependency runtime assets and preserves default packaging exclusions', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-package-dependencies-'));
+    const required = [
+      'node_modules/example/package.json',
+      'node_modules/example/lib/runtime.js',
+      'node_modules/example/ca.pem',
+      'node_modules/registry-js/build/Release/registry.node',
+    ];
+    const denied = [
+      'node_modules/.bin/tool',
+      'node_modules/example/.git/config',
+      'node_modules/example/node_gyp_bins/python',
+      'node_modules/example/build/temp.obj',
+    ];
+    try {
+      for (const file of [...required, ...denied]) {
+        await fs.outputFile(path.join(root, file), 'synthetic');
+      }
+      const ignore = createPackageIgnore(root, 'electron');
+      const nodeMatcher = getNodeModuleFileMatcher(
+        root,
+        path.join(root, 'output'),
+        (value: string) => value,
+        {},
+        {
+          config: {files: packageFilePatterns('electron')},
+          debugLogger: {isEnabled: false},
+        },
+      ).createFilter();
+      // electron-builder copies dependency modules separately from its main-file traversal.
+      for (const file of required) {
+        assert.equal(ignore(`/${file}`), false, file);
+        assert.equal(nodeMatcher(path.join(root, file), fs.statSync(path.join(root, file))), true, file);
+      }
+      for (const file of denied) {
+        assert.equal(ignore(`/${file}`), true, file);
+        assert.equal(nodeMatcher(path.join(root, file), fs.statSync(path.join(root, file))), false, file);
+      }
+    } finally {
+      await fs.remove(root);
+    }
+  });
+});
