@@ -130,6 +130,19 @@ describe('account startup navigation completion', () => {
     assert.deepEqual(fixture.eventNames(), []);
   });
 
+  it('[security-target][INV-010][CAP-001] omits credential-bearing native load errors from its failure', async () => {
+    const fixture = new NavigationFixture();
+    fixture.navigate = async () => {
+      throw new Error('ERR_CONNECTION_REFUSED loading https://account.example.test/?sso=sensitive-startup-secret');
+    };
+    await assert.rejects(fixture.load(), error => {
+      assert.ok(error instanceof Error);
+      assert.doesNotMatch(String(error), /sensitive-startup-secret|https:/);
+      return true;
+    });
+    assert.deepEqual(fixture.eventNames(), []);
+  });
+
   for (const cancellation of ['lost-owner', 'destroyed', 'crashed', 'foreign-commit', 'load-failure'] as const) {
     it(`[security-target][CAP-001] rejects a pending replacement after ${cancellation}`, async () => {
       const fixture = new NavigationFixture();
