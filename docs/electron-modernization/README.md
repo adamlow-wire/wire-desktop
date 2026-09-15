@@ -13,6 +13,8 @@ Read in this order:
 5. [Privileged IPC inventory](./ipc-inventory.md) — renderer-to-main migration checklist for SEC-003.
 6. [Architecture decisions](./decisions/README.md) — detailed ADRs for choices referenced by the plan.
 
+M3 evidence: [Complete acceptance audit](./m3-acceptance.md), including whole-milestone validation and explicit downstream QA limits.
+
 M0 evidence:
 
 - [Fork and integration workflow](./governance.md)
@@ -49,7 +51,7 @@ Do not duplicate status across documents. The plan describes intended work; `sta
 
 ## Resume protocol
 
-For a fresh AI session, use [the M3 restart prompt](./resume-m3.md). It requires revalidation of the current handoff and acceptance gates rather than inheriting an old completion estimate or blocked verdict.
+For a fresh AI session, use [the M3/M4 restart prompt](./resume-m3.md). It requires revalidation of the current handoff and acceptance gates rather than inheriting an old completion estimate or blocked verdict.
 
 When resuming after a gap:
 
