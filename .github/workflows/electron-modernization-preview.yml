@@ -1,0 +1,75 @@
+name: Electron Modernization Windows Preview
+
+on:
+  pull_request:
+    branches: [integration/electron-modernization]
+    paths:
+      - '.github/workflows/electron-modernization-preview.yml'
+      - 'docs/electron-modernization/manual-windows-preview.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modernization-windows-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Build isolated Windows preview
+    runs-on: windows-2025
+    timeout-minutes: 30
+    env:
+      APP_ENV: production
+      APP_NAME: WireM4Preview
+      APP_NAME_SHORT: WireM4Preview
+      APP_CUSTOM_PROTOCOL_NAME: wire-m4-preview
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version-file: '.node-version'
+          cache: 'yarn'
+      - name: Install dependencies
+        run: yarn --immutable
+      - name: Set preview identity before compiling
+        shell: pwsh
+        run: |
+          $config = Get-Content electron/wire.json -Raw | ConvertFrom-Json
+          $config.name = $env:APP_NAME
+          $config.nameShort = $env:APP_NAME_SHORT
+          $config.customProtocolName = $env:APP_CUSTOM_PROTOCOL_NAME
+          $config.environment = 'production'
+          $config | ConvertTo-Json -Depth 20 | Set-Content electron/wire.json -Encoding utf8NoBOM
+      - name: Build complete Windows application
+        run: yarn build:win
+      - name: Verify and smoke-test the preview
+        shell: pwsh
+        run: |
+          $bundle = 'wrap/build/WireM4Preview-win32-x64'
+          $exe = Join-Path $bundle 'WireM4Preview.exe'
+          foreach ($relative in @('WireM4Preview.exe', 'resources/app.asar', 'icudtl.dat', 'ffmpeg.dll')) {
+            if (-not (Test-Path (Join-Path $bundle $relative))) { throw "Missing preview file: $relative" }
+          }
+          if (Test-Path 'wrap/build/Update.exe') { throw 'Preview must not be a Squirrel installation.' }
+          node bin/test-tools/packaged-account-smoke.cjs $exe
+          if ($LASTEXITCODE -ne 0) { throw 'Preview package smoke failed.' }
+          @'
+          @echo off
+          start "" "%~dp0WireM4Preview.exe" --user-data-dir="%~dp0Data"
+          '@ | Set-Content (Join-Path $bundle 'Start-Wire-M4.cmd') -Encoding ascii
+          Copy-Item docs/electron-modernization/manual-windows-preview.md (Join-Path $bundle 'README.md')
+          $revision = git rev-parse HEAD
+          "Source commit: $revision`nElectron: 43.4.0`nUnsigned manual-test preview; no installer or updater." |
+            Set-Content (Join-Path $bundle 'BUILD.txt') -Encoding utf8NoBOM
+          Get-FileHash $exe, (Join-Path $bundle 'resources/app.asar') -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  $([IO.Path]::GetRelativePath((Resolve-Path $bundle), $_.Path))" } |
+            Set-Content (Join-Path $bundle 'SHA256SUMS.txt') -Encoding ascii
+      - name: Upload complete runnable preview
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: Wire-M4-Preview-Windows-x64
+          path: wrap/build/WireM4Preview-win32-x64/
+          if-no-files-found: error
+          retention-days: 14
