@@ -433,3 +433,5 @@ tsconfig.json,M,tooling/CI/config,pending,pending,pending
 tsconfig.playwright.json,M,tooling/CI/config,pending,pending,pending
 webpack.config.cjs,M,tooling/CI/config,pending,pending,pending
 yarn.lock,M,tooling/CI/config,pending,pending,pending
+electron/src/sso/SingleSignOnDiagnostics.test.main.ts,A,test,local diagnostic boundary review,1a1093f5 nine failing targets then local fix,native and composed qualification pending
+electron/test/node-sso-context.cjs,A,test adapter,Node-only guard and owned objects reviewed,1a1093f5,native tests do not load this adapter

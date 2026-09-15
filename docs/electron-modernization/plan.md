@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.56
+revision: 1.5.57
 status: draft
 updated: 2026-09-15
 owners:
@@ -700,11 +700,12 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### CAP-002 — Migrate enterprise and automated SSO
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: TST-002, SEC-008, CAP-001
 - Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation. Include E2EI enrolment and renewal authentication compatibility explicitly; the webapp/core retain ownership of OIDC, ACME and certificate cryptography. This is distinct from CAP-005 transport certificate verification.
 - Acceptance:
+  - Authentication-page console content and native exceptions containing URLs, cookies or callback secrets never enter desktop diagnostics. Failures retain fixed bounded messages; tests include enabled logging, malformed callbacks, cleanup/cookie failures, external-opening failures and real Electron failed loads.
   - TST-002 passes against the new implementation.
   - Every CAP-002 `security-target` quarantine in the SSO suite is removed and passes.
   - SSO windows use fixed secure preferences and ephemeral sessions.
@@ -716,6 +717,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. The live IdP checkpoint remains required for customer compatibility qualification, separately from M3 automated acceptance under the September 14 maintainer-approved revision.
 
 - Final automated acceptance: [PR #53](https://github.com/adamlow-wire/wire-desktop/pull/53) merged as `3c734cde363f1fcb783762997d247c4995ce6600`, with tree equal to reviewed `43961f6c`. [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989433), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989529), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989484), [all native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989430) and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989437) pass. Both authenticated platforms pass46 cases: Windows43 initial/three login-readiness retries; macOS42 initial/four login or account-action screen-readiness retries. No skips or worker errors. Windows native passed on its third unchanged-head attempt after two fixture-timeout failures; all attempts are retained and no assertion/deadline was changed. Native SSO controls, account limits, one-use/backend verdict/cookie isolation and three sensitivity-proven E2EI transport outcomes are qualified. The approved downstream QA obligation and lack of live customer-compatibility evidence remain explicit.
+
+- TST-006 follow-up F-009: reopen diagnostic confidentiality under INV-010. Baseline `1a1093f5` records nine failing targets before the local fix; present Node-only cases and sensitivity pass. Native and composed qualification remain open. Historical M3 acceptance above is preserved.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
@@ -961,6 +964,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.57 | 2026-09-15 | Codex | Reopen CAP-002 for sensitive SSO diagnostics with an explicit safe logging contract and separate failing baseline; preserve authentication and pinning behavior | CAP-002, INV-010, TST-006 |
 | 1.5.56 | 2026-09-15 | Codex | Reopen SEC-003 for bounded pending native saves and rate-limiter lifetime findings; retain encryption ownership decision and native/composed gates | SEC-003, SEC-004, TST-006, DCP-014 |
 | 1.5.55 | 2026-09-15 | Codex | Bring forward PKG-003 settings preservation and recovery fixtures for confirmed F-010; retain full released-migration acceptance in M5 | PKG-003, TST-006, DCP-021 |
 | 1.5.54 | 2026-09-15 | Codex | Start integrated review and record full-delta findings; reopen CAP-001 for sensitive bounded lifecycle queue remediation without changing security invariants | TST-006, CAP-001 |

@@ -150,7 +150,7 @@ describe('SingleSignOn diagnostic confidentiality', () => {
     f.session.clearStorageData = async () => {
       throw new Error(canary);
     };
-    f.sso.close();
+    assert.doesNotThrow(() => f.sso.close());
     await settle();
     safe();
   });
