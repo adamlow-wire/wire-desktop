@@ -1,5 +1,7 @@
 # Privileged incoming IPC inventory
 
+TST-006 handoff review must account for every operation in this inventory, its actual production registration and all consumers. Link exact sender/frame/session/payload authorization, positive/negative/stale/cross-account assertions and sensitive failure evidence; detect undocumented, dormant and removed registrations through source review. A status of merged or a policy-file coverage percentage is not proof that every boundary path is exercised. See [quality-review.md](quality-review.md) and current [status](status.md).
+
 This is SEC-003's completion checklist for renderer-to-main authority. A row is complete only when the channel has a fixed versioned contract, registered sender capability, origin/view policy, request and response schemas, failure policy, and positive plus deny-path tests.
 
 Main-to-renderer notifications and guest `sendToHost` events are outside this table; their exposed bridges and shell trust decisions remain owned by SEC-005 and SEC-007.

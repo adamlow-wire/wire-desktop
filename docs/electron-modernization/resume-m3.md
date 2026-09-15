@@ -1,9 +1,11 @@
-# Fresh-session prompt
+# Historical M3/functional M4 restart prompt
+
+M3 and functional M4 are integrated through PR60 at 6e27c614. For current work use [resume-m4.md](resume-m4.md) and [quality-review.md](quality-review.md). The prompt below is retained only as historical execution context; it must not restart already completed PR60 qualification. Signing validation is now scheduled for Wire after review under M5.
 
 ```text
 Continue the active goal: complete M3 and functional M4 before release packaging (CAP-003, CAP-004 and development/test TST-005). Do not inherit a percentage or blocked verdict. Read AGENTS.md and its six modernization documents in order, then m3-acceptance.md. Audit actual branches, code, PRs, CI and remaining acceptance criteria.
 
-Integration is PR-only in fork adamlow-wire/wire-desktop. Scoped publication and SHA-guarded self-merge are authorized after substantive exact-head review, every applicable final-head check and no unresolved threads. Never push upstream origin. Preserve user changes, the MSI worktree wrap/worktrees/wpb-5221-deployment-audit at255bdd54 and protected artifacts. No broad cleanup, clear:wrap or local build:prepare. No subagents.
+Integration is PR-only in fork adamlow-wire/wire-desktop. Scoped publication and SHA-guarded self-merge are authorized after substantive exact-head review, every applicable final-head check and no unresolved threads. Never push upstream origin. Preserve user changes, the MSI worktree wrap/worktrees/wpb-5221-deployment-audit at 255bdd54 and protected artifacts. No broad cleanup, clear:wrap or local build:prepare. No subagents.
 
 The maintainer paused testing because GUI windows interrupted their work. Do not run native Electron or application Playwright suites on the shared display. Use hosted CI or genuinely isolated execution. API-only fixtures, types, lint and read-only trace analysis are safe locally. Never bypass sandbox, native secure storage or permission policy to make tests run.
 
@@ -20,7 +22,7 @@ Retain earlier7419 Windows notification failure: all three traces show a new MLS
 
 A runnable isolated Windows preview has been delivered: actions/run34986539562, artifact10404000902, from41066868. The complete ZIP includes WireM4Preview.exe, dependencies and Start-Wire-M4.cmd, with a separate adjacent Data profile and distinct wire-m4-preview protocol. Read manual-windows-preview.md. It is unsigned functional preview scope, not release/installer/update acceptance. Profile separation does not isolate server-side account effects. Use test accounts; ordinary wire:// and browser SSO target installed Wire. The package identity and immutable managed-config/Node-denial smoke passed; no local GUI testing is needed to reproduce this artifact.
 
-Keep Electron43.4.0 and all invariants. Preserve existing built-in pins plus the explicit native process-wide override until restart, always retaining Chromium trust validation. No MDM pinning setting exists; do not invent one. Live Keycloak/SSO/OIDC/ACME enrolment, verified-device persistence/restart/renewal remain downstream QA per maintainer scope, not M3 compatibility claims.
+Keep Electron 43.4.0 and all invariants. Preserve existing built-in pins plus the explicit native process-wide override until restart, always retaining Chromium trust validation. No MDM pinning setting exists; do not invent one. Live Keycloak/SSO/OIDC/ACME enrolment, verified-device persistence/restart/renewal remain downstream QA per maintainer scope, not M3 compatibility claims.
 
 Functional CAP-003/CAP-004 criterion mapping and TST-005 evidence are recorded; finish final documentation-head qualification and integration without reopening completed implementation unnecessarily. Strict integration protection requires ten core/native/Windows/macOS/Linux/full-report checks, with admin enforcement, conversation resolution and no force pushes/deletion. Preserve failed/retried/superseded attempts; report success never qualifies a failed platform. Avoid manual E2E dispatch because it sends external notifications. PR-triggered CI is authorized.
 

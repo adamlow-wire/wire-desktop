@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.52
+revision: 1.5.53
 status: draft
 updated: 2026-09-15
 owners:
@@ -182,7 +182,8 @@ M0 governance and reproducible baseline
   -> M1 current Electron runtime builds and passes baseline tests
   -> M2 secure single-account shell proves all security invariants
   -> M3 multi-account and security-sensitive capabilities migrate
-  -> M4 remaining platform capability parity
+  -> M4 remaining platform parity, unsigned packages and internal quality/test audit
+  -> review handoff to Wire (explicitly not release-qualified)
   -> M5 packaged release qualification and external security review
   -> M6 final upstream PR and controlled rollout
 ```
@@ -201,6 +202,12 @@ M3 work remains one primary work item per PR, but validation is organized around
 
 Each PR still requires its focused tests and protected-branch checks. Authenticated cross-platform E2E runs at behavior-changing PRs and the checkpoints above; schema-only migrations may rely on the next checkpoint when the deferred platform gap is explicit.
 
+### Next execution: internal review and unsigned handoff
+
+Follow [quality-review.md](quality-review.md): establish the full change/behavior ledger under TST-006, close reachable coverage and quality findings through their existing owners, resolve ELC-003, complete unsigned PKG-001 and packaged TST-005, then re-review and qualify the composed candidate. Prepare Wire review material under GOV-002; do not publish upstream or contact Wire without explicit authorization. A review handoff may precede M5, but no production release, signed-update or customer E2EI compatibility claim may do so. Keep Electron 43.4.0 for this goal; later release currency remains ELC-004.
+
+Signing validation is transferred in scheduling/ownership, not waived: Wire is the intended executor after review, with an individual/access still to be arranged. No signing credentials are required to complete the unsigned handoff. INV-009 and all other invariants remain unchanged. Installer/migration fixtures that can be exercised safely without signing should be prepared and run under PKG-002/PKG-003; those M5 items remain open for their full released-installation and signed-platform matrix.
+
 ## 9. Milestones and gates
 
 | Milestone | Exit gate | Mandatory evidence |
@@ -209,7 +216,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 | M1 — Supported runtime | Latest stable Electron builds and baseline tests pass on supported platforms | Version check, breaking-change log, CI runs, packaged smoke results |
 | M2 — Secure shell proof | One opt-in account runs using the new architecture and proves INV-001 through INV-008 and INV-010; production package integrity remains owned by INV-009/M5 | Architecture tests, hostile-renderer tests, IPC/policy tests, security review notes |
 | M3 — Security-critical parity | Multi-account, SSO, certificate, navigation, permissions, and deep links use the new boundary | Capability tests and platform E2E evidence |
-| M4 — Full required parity | All retained P1 capabilities pass their acceptance matrix | Completed capability matrix |
+| M4 — Full required parity and review handoff | Retained functional capabilities, unsigned PKG-001/TST-005 and internal TST-006 audit pass; external qualification gaps are explicit | Capability/coverage ledger, internal review and remediation, all-platform unsigned artifacts and final-head CI |
 | M5 — Release qualified | Packaged upgrade/migration tests, external security review, and rollback exercise pass | Signed artifacts, reports, remediation closure |
 | M6 — Upstream-ready | Integration branch is synchronized, documented, reviewed, and represented by a mergeable final PR | Final PR and release/rollout plan |
 
@@ -477,7 +484,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Acceptance:
   - A documented fuse manifest exists for every platform package.
   - CI verifies effective fuse values in packaged binaries.
-  - Integrity settings and code-signing order are compatible.
+  - Integrity settings and code-signing order are compatible, verified on actual signed artifacts by Wire after engineering review; unsigned CI or source inspection cannot close this criterion.
   - Development packages cannot be confused with production artifacts.
 - Evidence: TBD
 
@@ -644,7 +651,24 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Flaky tests have owners and bounded quarantine rules.
 - Evidence: The functional development/test foundation is integrated through reviewed [PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58), merge `6930c8ce`. All final-head core/native and 69-case Windows/macOS/Linux E2E/report gates pass, with retained bounded retries in status/PR evidence. All ten integration checks are strict and mandatory after protection readback. The [functional M4 audit](m4-acceptance.md) accepts the composed development scope at 41066868 after all 76 E2E cases/platform and core/native/report checks pass. Separate sensitive baselines protect safe registration diagnostics, independent account identities and native Quit inspector-reply handling; the notification fixture establishes its unread-conversation precondition without weakening assertions. Packaged-artifact smoke acceptance remains open under PKG-001; this functional scope does not claim release qualification.
 
-- Windows execution correction: the bd8b054c log audit shows the GUI version probe returns a green step before either intended packaged smoke runs. Withdraw that packaged execution claim while retaining executed native tests. Baseline02b9ee05 requires an explicit completion output; the actual log lacks both smoke observations and fails the baseline check. Remove the redundant GUI probe and require the Node driver to complete ordinary managed startup plus authenticated proxy startup under a temporary explicit HKCU policy. Do not assume the hosted device is unenrolled or claim an unmanaged Windows run. Final corrected-head execution and protected checks remain mandatory before PR #60 merges; see [audit](m4-acceptance.md).
+- Windows execution correction: the bd8b054c log audit shows the GUI version probe returns a green step before either intended packaged smoke runs. Withdraw that packaged execution claim while retaining executed native tests. Baseline02b9ee05 requires an explicit completion output; the actual log lacks both smoke observations and fails the baseline check. Remove the redundant GUI probe and require the Node driver to complete ordinary managed startup plus authenticated proxy startup under a temporary explicit HKCU policy. Do not assume the hosted device is unenrolled or claim an unmanaged Windows run. Final corrected head adbebedc passed both actual Windows smokes and every protected check, then PR #60 merged as 6e27c614; see [audit](m4-acceptance.md) and current status.
+
+#### TST-006 — Audit integrated implementation quality and test completeness
+
+- Priority: `P0`
+- Status: `ready`
+- Milestone: `M4`
+- Dependencies: SEC-001, TST-001, TST-002, TST-003, TST-004
+- Scope: Review the entire modernization delta from the recorded pre-modernization baseline, including retained code at changed boundaries. Audit baseline-before-refactor provenance, test effectiveness, full changed-code coverage and production quality. This is an internal integrated review, not REL-001 independent security review. Existing CAP/SEC/ELC/PKG items own their implementation fixes; TST-005 owns platform CI, avoiding duplicate work.
+- Acceptance:
+  - Every retained DCP capability, INV invariant and privileged IPC operation has a row linking implementation, baseline and implementation commits, actual tests/assertions, sensitivity evidence, platforms, final CI and remaining gaps. Missing historical baselines are disclosed; later regression tests are never relabelled as pre-refactor evidence.
+  - Review covers the complete baseline-to-candidate diff and affected integration paths: security authority, concurrency/lifetime, cleanup, data integrity, error handling, compatibility, dependencies, performance/resource bounds and maintainability. Findings record severity, owner, fix and retest; no unresolved critical/high finding or known reachable untested security/data-loss path is accepted for handoff.
+  - Coverage denominators, collection and exclusions are audited. Report whole instrumentable production scope, full modernization delta, per-module statements/branches/functions and all security-relevant changed modules, not only the existing security-policy subset. Existing 80%/90% CI floors remain minimums, not completion criteria.
+  - Aim for 100% of reachable in-scope behavior and decision paths with meaningful assertions. Add all practical deterministic tests; every residual uncovered path has a specific reviewed disposition, evidence and owner. Reachable automatable gaps are fixed, not waived as inconvenient. Unreachable/generated/third-party and external-environment cases are distinguished; exclusions cannot conceal reachable production behavior.
+  - Critical allow/deny, stale/cross-account, failure/recovery, persistence and teardown contracts are sensitivity-proven. Audit mocks, test-only hooks, collection, skip/quarantine, retries and actual CI execution. Unexplained timing failures are investigated and receive explicit bounded follow-up; a rerun alone is not a root-cause resolution.
+  - All findings required for handoff are remediated and re-reviewed; the final composed candidate passes all applicable final-head gates. A reproducible test guide, coverage/gap ledger, internal review report and Wire QA handoff are committed with durable evidence and precise claim limits.
+- Execution: [Review and test-completeness work plan](quality-review.md). Do not claim this item done from earlier per-PR reviews or test counts.
+- Evidence: Not started. Maintainer requested this additional acceptance gate on September 15 after functional M4 integration.
 
 ### 10.5 Capability migration
 
@@ -702,7 +726,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - PiP windows use fixed secure preferences and controlled navigation.
   - Permission-denied behavior is tested.
 - Design: Accepted DEC-011 uses an isolated local chooser/broker and bounded approved-stream relay. Bridge version2 intentionally removes the legacy `desktopCapturer` global and production enumeration endpoint, so the released webapp selects its existing `getDisplayMedia` path. Remote native display/legacy permission remains denied.
-- Evidence: [Functional M4 acceptance audit](m4-acceptance.md) maps all four criteria to reviewed 41066868 in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60). Build/types/lint/CodeQL and all native/package platforms pass; [full E2E/report 34986539616](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539616) completes 76 cases/platform. Linux/macOS pass initially; Windows has one group-member selection retry. Native macOS passes one reviewed unchanged-head retry after a retained two-second notification-denial timeout. All capture and corrected notification product cases pass. Coverage is 83.49% changed statements/92.46% tracked security branches; whole-M3/M4 cumulative evidence and sensitive policy checks are recorded in the audit. The documentation closeout still requires final-head checks and SHA-guarded merge. Actual OS capture/privacy/portal/performance checks remain [QA](qa-display-capture.md), and packaged release acceptance remains PKG-001. No invariant or product assertion is waived.
+- Evidence: [Functional M4 acceptance audit](m4-acceptance.md) maps all four criteria to reviewed 41066868 in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60). Build/types/lint/CodeQL and all native/package platforms pass; [full E2E/report 34986539616](https://github.com/adamlow-wire/wire-desktop/actions/runs/34986539616) completes 76 cases/platform. Linux/macOS pass initially; Windows has one group-member selection retry. Native macOS passes one reviewed unchanged-head retry after a retained two-second notification-denial timeout. All capture and corrected notification product cases pass. Coverage is 83.49% changed statements/92.46% tracked security branches; whole-M3/M4 cumulative evidence and sensitive policy checks are recorded in the audit. Final head adbebedc passed all required checks and merged through PR60 as 6e27c614; the newer TST-006 handoff audit remains open. Actual OS capture/privacy/portal/performance checks remain [QA](qa-display-capture.md), and packaged release acceptance remains PKG-001. No invariant or product assertion is waived.
 
 #### CAP-004 — Migrate tray, notification, badge, menu, and shortcut integration
 
@@ -715,7 +739,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - TST-003 and existing menu/notification E2E pass.
   - Renderer data cannot invoke arbitrary menu commands.
   - Notification activation targets the correct account/conversation.
-- Evidence: [Functional M4 acceptance audit](m4-acceptance.md) reviews existing main-owned tray/menu/badge/notification and account-control code; no duplicate implementation is required. TST-003/native contracts and all 76 development E2E cases per platform qualify at 41066868 in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60). Tests deny arbitrary/revoked/wrong-account commands and preserve exact notification account/conversation routing. Notification E2E invokes observed onclick callbacks; it does not click OS toasts. Visible packaged tray/menu/notification behavior remains the existing PKG-001 allocation. Final closure-head checks and merge remain required.
+- Evidence: [Functional M4 acceptance audit](m4-acceptance.md) reviews existing main-owned tray/menu/badge/notification and account-control code; no duplicate implementation is required. TST-003/native contracts and all 76 development E2E cases per platform qualify at 41066868 in [PR #60](https://github.com/adamlow-wire/wire-desktop/pull/60). Tests deny arbitrary/revoked/wrong-account commands and preserve exact notification account/conversation routing. Notification E2E invokes observed onclick callbacks; it does not click OS toasts. Visible packaged tray/menu/notification behavior remains the existing PKG-001 allocation. Final closure-head adbebedc passed all required checks and merged through PR60 as 6e27c614; TST-006 now owns the additional integrated handoff review.
 
 #### CAP-005 — Migrate proxy, certificate, and managed configuration
 
@@ -770,10 +794,11 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Status: `proposed`
 - Milestone: `M4`
 - Dependencies: ELC-002, ELC-003
-- Scope: Build Windows Squirrel, Windows MSI, macOS, and Linux artifacts using the target runtime and reviewed tooling.
+- Scope: Build unsigned Windows Squirrel, Windows MSI, macOS, and Linux artifacts using Electron 43.4.0 and reviewed tooling for Wire engineering review. Preserve signed-release pipeline configuration; actual signing/notarization validation is Wire-owned after review under SEC-011/PKG-002/M5, per the September 15 maintainer decision.
 - Acceptance:
   - Every supported artifact builds reproducibly in CI.
-  - Signing, notarization, fuse flipping, and integrity operations occur in the correct order.
+  - The signing/notarization/fuse/integrity pipeline order is documented and reviewed, with unsigned CI validating applicable build steps and effective settings. Actual signed-binary, notarization and post-sign integrity verification remains mandatory under SEC-011/PKG-002/M5 after Wire review; it is not claimed by unsigned success.
+  - Supported OS versions, architectures and artifact formats are explicit; verify existing requirements before requesting missing product decisions. Unsigned artifacts launch and required packaged smoke tests actually execute on every in-scope platform.
   - Artifact identity and environment separation are preserved.
 - Evidence: TBD
 
@@ -822,7 +847,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Priority: `P1`
 - Status: `proposed`
 - Milestone: `M6`
-- Dependencies: GOV-002, ELC-004, TST-005, PKG-003, REL-001
+- Dependencies: GOV-002, ELC-004, TST-005, TST-006, PKG-003, REL-001
 - Scope: Synchronize upstream, prepare final review material, define staged rollout, monitoring, rollback, and legacy-shell removal conditions.
 - Acceptance:
   - All P0 and P1 work items required for first release are `done` or have approved exceptions.
@@ -924,6 +949,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 | Q-006 | Is Linux feature parity equal to Windows/macOS or a defined subset? | BASE-002 | adamlow-wire | Retain the current capability scope on Linux; document unavoidable platform differences explicitly and test them under their owning capability |
 | Q-007 | What staged rollout and telemetry are permissible for this security-sensitive product? | REL-002 | Product/privacy/security | TBD |
 | Q-008 | Who are the accountable technical, security, product, platform, SSO, and release-engineering approvers? | M0 | adamlow-wire | `adamlow-wire` is the accountable solo maintainer for each role; PR merges record self-review, not independent review |
+| Q-012 | Who at Wire will execute signing/notarization and signed-package qualification after engineering review? | M5 / SEC-011 / PKG-002 | Wire contact to be arranged by maintainer | Maintainer defers actual signing validation to Wire; unsigned M4 handoff may proceed. Named executor and access remain unconfirmed; this is not release acceptance. |
 | Q-009 | Which existing Wire CI credentials and runners may be provisioned to the fork for E2E, signing, and package evidence? | M0 | adamlow-wire | Raw E2E values use private `E2E_WEBAPP_URL`, `E2E_BACKEND_URL`, and `E2E_BACKEND_BASIC_AUTH` Actions secrets; unsigned development macOS testing is valid before release qualification; signing is deferred to M5; Jira is not used by the fork |
 | Q-010 | Must the first modernized release retain Windows 32-bit (ia32) packages? | Next Electron upgrade | adamlow-wire | TBD; Electron 44 adoption is deferred until this is resolved |
 
@@ -931,6 +957,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.53 | 2026-09-15 | Codex | Add TST-006 integrated quality/baseline-provenance/test-completeness gate; define unsigned M4 review handoff and defer actual signing validation to Wire in M5 without weakening INV-009; reconcile merged PR60 | TST-006, TST-005, ELC-003, PKG-001, SEC-011, PKG-002, GOV-002 |
 | 1.5.52 | 2026-09-15 | Codex | Reopen Windows package execution evidence after a false-success version probe; require explicit smoke completion and deterministic managed fixtures without changing application policy or claiming unmanaged Windows QA | TST-005, CAP-005 |
 | 1.5.51 | 2026-09-15 | Codex | Accept reviewed functional CAP-003/CAP-004 and development TST-005 after all-platform qualification; accept DEC-011, reconcile DEC-010 clerical status, retain final documentation-head merge gates and explicit packaging/OS/live-QA limits | CAP-003, CAP-004, TST-005, DEC-011 |
 | 1.5.50 | 2026-09-15 | Codex | Reconcile CAP-003 with published fixture corrections; renew whole-milestone coverage and record capture diagnostics/OS QA handoff without claiming final platform acceptance | CAP-003, TST-005 |
