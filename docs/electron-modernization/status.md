@@ -1,11 +1,11 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-15
-milestone: M3
-active_work_item: CAP-001
-state: correcting-account-startup-redirect
+milestone: M4
+active_work_item: TST-005
+state: m3-acceptance-documentation-ready
 integration_branch: integration/electron-modernization
-integration_head_commit: 4f4cfdaa78202f7ba62052f905e499bae2e2eac3
+integration_head_commit: 45840fca7eea1a4975e5e1f58bd54c6c2d911289
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: cap/CAP-001-production-accounts-2026-09-09
@@ -17,19 +17,17 @@ blockers: []
 
 ## Current execution
 
-Protected integration is `4f4cfdaa78202f7ba62052f905e499bae2e2eac3`, after reviewed [diagnostic PR #55](https://github.com/adamlow-wire/wire-desktop/pull/55). Its tree equals qualified480acb50. [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582447), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582429), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582436), [all three native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909582486) and [full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34909605643) pass. Native jobs pass on their first attempts, with175 account tests each,472 boundary tests on Linux/macOS and473 on Windows, plus10 product cases each. The intentional Windows registry mutation fails and restoration passes. Full E2E passes47 cases each: macOS45 initial/two recovered cases; Windows44 initial/three recovered cases (one needs two retries). No skipped tests or worker errors. All retries remain in the PR evidence.
+**M3 runtime acceptance is complete.** Reviewed [PR #56](https://github.com/adamlow-wire/wire-desktop/pull/56) merged as `45840fca7eea1a4975e5e1f58bd54c6c2d911289`; local integration is clean and tree-equal to fully qualified `5c596187`. The [M3 acceptance audit](m3-acceptance.md) maps all sixteen work items and every criterion to code, review and final-head evidence. This documentation-only closure is prepared for PR publication; its applicable automatic checks must pass before merge. It records the already executed M3 closure checkpoint and reuses the identical qualified runtime’s full E2E.
 
-**M3 remains open for a reproduced account-startup compatibility defect.** The final diagnostic correction is reviewed, fully qualified and merged as recorded above. One retained macOS retry exposed an actual same-origin startup redirect during pending resource loading: native `loadURL` rejects `ERR_ABORTED`, and `AccountViews.create` destroys the view. A deterministic loopback probe reproduces the failure. The existing CAP-001 branch now owns the separate correction; do not change or reuse PR55 results as qualification for new runtime code.
+Complete local validation passes 112 Jest, 923 main, four media, four renderer and 38 build-tool cases plus types/build. Whole-M3 coverage from completed M2 passes 3245/3830 changed statements (84.73%) and 840/853 tracked security branches (98.48%). [All native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34913964577) pass initially, including 192 account and 11 product cases each. [Full E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34913964586) passes 48/platform: macOS 48 initial; Windows 47 initial/one retry, no skips or worker errors. The Windows trace exposes missing fixture username setup; TST-005 owns the correction. The startup redirect defect itself is fixed with sensitive native and product tests.
 
-Native startup acceptance must preserve a completed authorized same-origin redirect while retaining real failure, cancellation, stale-view and foreign-navigation denial. Add sensitive baseline tests first, then qualify the corrected final head. CAP-002 and retained pinning acceptance have passed under the approved scope. Electron remains **43.4.0**. The diagnostic correction removes action/settings/proxy-startup payloads while preserving exact behavior; its successful final hosted qualification does not cover this newly demonstrated startup correction.
+Electron remains **43.4.0**. The approved pinning policy remains unchanged: built-in pins, existing explicit native process-wide override until restart and mandatory Chromium validation; no MDM pinning policy exists. Its broad override remains an independent-review concern. Live SSO/Keycloak/OIDC/ACME enrolment, verified-device restart and renewal remain unrun downstream QA in [qa-sso-e2ei.md](qa-sso-e2ei.md), not an M3 compatibility claim. Packaging and independent release review remain later work.
 
-Live environment discovery/provisioning is outside current M3 acceptance by the maintainer's September14 instruction. [qa-sso-e2ei.md](qa-sso-e2ei.md) retains live SSO and Keycloak E2EI enrolment, restart, renewal and isolation as downstream QA obligations. Q-011 is a QA prerequisite; customer compatibility remains unqualified. Q-005 preserves existing product policy: built-in pins and an explicit native process-wide override until restart, without bypassing Chromium validation. There is no existing MDM pinning setting. The broad override remains an independent-review concern.
+Next executable work: merge this reviewed documentation closure after applicable final-head checks, then complete functional TST-005 (Linux E2E/native keyring, mandatory modernization checks, honest platform observations, type/codegen and fixture quality), qualify existing CAP-004 integration, and implement/qualify CAP-003 consented display capture and PiP lifetime. Draft research in `/tmp/m4-functional-preflight.md` and `/tmp/m4-drafts` is not production implementation. Remote native display/legacy capture must stay denied; a trusted local chooser/broker and bounded approved-stream relay have passed synthetic preflight probes. No host display was captured.
 
-PR #55 aggregate validation passes 112 Jest, 906 main, four media, four renderer and 38 build-tool cases plus types/build. Whole-M3 coverage from completed-M2 fe0b86cb passes 3178/3762 changed statements (84.48%, required 80%) and840/853 tracked security-policy branches (98.48%, required90%). A bounded16MiB diff-output buffer fixes the collector's reproduced1MiB ENOBUFS limit without changing coverage selection or thresholds. Final integrated-head acceptance audit and validation remain required.
+## Historical checkpoints
 
-The startup candidate passes the complete local `yarn test`: 112 Jest, 922 main, four media, four renderer and 38 build-tool cases, including application/Mocha types and rebuilt assets. Scoped lint passes. Rebuilt Linux product navigation/proxy validation passes all six cases in 11.6 seconds with isolated profiles/keyring; the macOS project label is not macOS evidence. Whole-M3 coverage at 81052251 passes 3244/3829 changed statements (84.72%) and 840/853 tracked security branches (98.48%). Final error-path review then reproduced credential-bearing native startup errors; the same PR now sanitizes that message while retaining a bounded native error code. Renew local and hosted final-head qualification for that correction.
-
-Next executable work: complete and qualify the CAP-001 startup redirect correction against actual integration4f4cfdaa, then close M3 from the full acceptance audit. After M3 is accepted, complete functional CAP-003/CAP-004 and the development/test portion of TST-005. Packaging, installer/update/signing and independent release qualification remain in their assigned later work.
+The following dated checkpoints retain prior evidence and investigations. They do not override the accepted audit or current execution above.
 
 ## Completed account cutover
 
@@ -44,7 +42,7 @@ The metadata fixture schedules normal native `app.quit()`, requires zero exit/no
 
 The permission review reproduced unconsented thumbnail enumeration with an inert counter and removed its account capability. The target now rejects with zero enumeration before/after device consent. No host screen was captured. Real context-isolation and consent-abort perturbations fail their corresponding targets and are restored. Display enabling belongs to CAP-003/M4 in the authoritative register; later notes had incorrectly promoted a chooser to an M3 blocker. This correction changes no criterion or invariant.
 
-## Remaining acceptance audit
+## Earlier acceptance reconciliation
 
 | Open item | Integrated/prepared work | Next acceptance evidence |
 | --- | --- | --- |
