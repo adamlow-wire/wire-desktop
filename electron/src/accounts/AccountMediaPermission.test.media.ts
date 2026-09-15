@@ -80,11 +80,26 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
-  const capture = (constraints: {
+  const capture = async (constraints: {
     audio?: boolean;
     video?: boolean | {mandatory: {chromeMediaSource: string; chromeMediaSourceId: string}};
-  }) =>
-    contents.executeJavaScript(`(async () => {
+  }) => {
+    const requestor = contents;
+    const currentPrompts = prompts;
+    const priorPromptCount = currentPrompts.length;
+    const started = performance.now();
+    const warning = setTimeout(() => {
+      console.error('Native fake-media request pending:', {
+        elapsedMs: Math.round(performance.now() - started),
+        prompts: currentPrompts.length - priorPromptCount,
+        requestorDestroyed: requestor.isDestroyed(),
+        audioRequested: constraints.audio === true,
+        videoRequested: Boolean(constraints.video),
+        legacyCapture: typeof constraints.video === 'object',
+      });
+    }, 1_500);
+    try {
+      return await requestor.executeJavaScript(`(async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia(${JSON.stringify(constraints)});
         const tracks = stream.getTracks();
@@ -95,6 +110,10 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
         return {error: error.name};
       }
     })()`);
+    } finally {
+      clearTimeout(warning);
+    }
+  };
 
   it('denies real media requests when main-owned consent is cancelled', async () => {
     assert.deepEqual(await capture({audio: true, video: true}), {error: 'NotAllowedError'});

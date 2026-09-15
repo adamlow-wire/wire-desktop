@@ -167,6 +167,24 @@ describe('consented display capture native boundary', function () {
     await broker.webContents.executeJavaScript('document.querySelector("#source-list button").click()', true);
   };
 
+  const clickStop = async (broker: BrowserWindow): Promise<void> => {
+    const requestor = owner;
+    const reply = broker.webContents
+      .executeJavaScript('document.getElementById("stop-capture").click()', true)
+      .catch(() => undefined);
+    const warning = setTimeout(() => {
+      console.error('Native Stop command reply pending:', {
+        brokerDestroyed: broker.isDestroyed(),
+        ownerDestroyed: requestor.isDestroyed(),
+      });
+    }, 1_000);
+    try {
+      await reply;
+    } finally {
+      clearTimeout(warning);
+    }
+  };
+
   it('[security-target][INV-005][CAP-003] denies native modern and legacy remote capture without enumerating', async () => {
     const result = await owner.webContents.executeJavaScript(
       `(async()=>{
@@ -218,9 +236,7 @@ describe('consented display capture native boundary', function () {
         'live',
       );
       stage = 'waiting for the Stop command reply';
-      await broker.webContents
-        .executeJavaScript('document.getElementById("stop-capture").click()', true)
-        .catch(() => undefined);
+      await clickStop(broker);
       stage = 'waiting for original and cloned tracks to end';
       await until(() =>
         owner.webContents.executeJavaScript(
@@ -267,9 +283,7 @@ describe('consented display capture native boundary', function () {
 
   it('[security-target][CAP-003] cancelling the visible chooser never starts a stream', async () => {
     const broker = await request();
-    await broker.webContents
-      .executeJavaScript('document.getElementById("stop-capture").click()', true)
-      .catch(() => undefined);
+    await clickStop(broker);
     await until(() => owner.webContents.executeJavaScript('window.captureOutcome !== "pending"'));
     assert.equal(await owner.webContents.executeJavaScript('window.captureOutcome'), 'NotAllowedError');
     assert.equal(broker.isDestroyed(), true);
@@ -389,9 +403,7 @@ describe('consented display capture native boundary', function () {
     assert.equal(broker.getParentWindow(), null);
     assert.equal(broker.isVisible(), true);
     assert.equal(await owner.webContents.executeJavaScript('window.capturedClone.readyState'), 'live');
-    await broker.webContents
-      .executeJavaScript('document.getElementById("stop-capture").click()', true)
-      .catch(() => undefined);
+    await clickStop(broker);
     await until(() => owner.webContents.executeJavaScript('window.capturedClone.readyState === "ended"'));
   });
   it('[security-target][CAP-003] does not accumulate native enumeration behind cancelled source requests', async () => {
@@ -402,9 +414,7 @@ describe('consented display capture native boundary', function () {
     try {
       const broker = await request(false);
       await until(() => enumerations === 1);
-      await broker.webContents
-        .executeJavaScript('document.getElementById("stop-capture").click()', true)
-        .catch(() => undefined);
+      await clickStop(broker);
       await until(() => owner.webContents.executeJavaScript('window.captureOutcome === "NotAllowedError"'));
       owner.focus();
       await until(() => owner.isFocused());

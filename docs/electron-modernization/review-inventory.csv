@@ -436,3 +436,5 @@ yarn.lock,M,tooling/CI/config,pending,pending,pending
 electron/src/sso/SingleSignOnDiagnostics.test.main.ts,A,test,local diagnostic boundary review,1a1093f5 nine failing targets then local fix,native and composed qualification pending
 electron/test/node-sso-context.cjs,A,test adapter,Node-only guard and owned objects reviewed,1a1093f5,native tests do not load this adapter
 electron/src/logging/boundedLogAdmission.test.main.ts,A,test,local admission and ownership review,aaa7e250 four controls pass and seven targets fail before correction,native and composed qualification pending
+bin/build-tools/build-cli.test.ts,A,test,CLI parser/routing/diagnostic sink review,7eb299f3 eight controls pass and ten targets fail before fix,18 inert subprocess cases pass; real package boundaries pending
+bin/build-tools/fixtures/build-cli.cjs,A,test adapter,Node-only synthetic configs and inert native builders reviewed,7eb299f3,does not qualify actual builders or signing
