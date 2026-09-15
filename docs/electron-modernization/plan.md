@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.47
+revision: 1.5.48
 status: draft
 updated: 2026-09-15
 owners:
@@ -613,7 +613,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 - Acceptance:
   - Platform branches are tested through injectable adapters or platform CI.
   - macOS tests assert `dock.bounce` rather than unconditionally passing.
-  - Packaged smoke tests cover visible platform integration where automation is practical.
+  - Packaged visible tray/menu/tooltip smoke remains required under CAP-004/PKG-001, outside this characterization gate, consistent with accepted PR #12 and the maintainer’s pre-packaging scope.
 - Evidence: [PR #12](https://github.com/adamlow-wire/wire-desktop/pull/12) merged as `37f8b5e3` after build/test, lint, CodeQL, Windows/macOS/Linux package baselines, authenticated Windows/macOS E2E, and the merged report passed. Commit `a0c91987` passes 9/9 focused tray tests and the full Electron main suite (164 passing with 3 owned CAP-002 targets pending). Temporary macOS/non-macOS platform perturbations failed the intended tests and were reverted; visible tray automation remains part of CAP-004's packaged native smoke rather than this characterization gate.
 
 #### TST-004 — Add security-boundary regression tests
@@ -649,7 +649,7 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `done`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
@@ -663,6 +663,8 @@ Each PR still requires its focused tests and protected-branch checks. Authentica
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
 - Evidence: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) merged as `683ac9af672168d48c9154c47f3dc99a2bdd5d66` after reviewed head `78231f74` passed [build/coverage](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701006), lint/analysis, [Windows/macOS/Linux native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34833701114), and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34834177940). Both platforms complete all forty cases with 39 initial passes and one login retry; no skips or worker-teardown errors. No unresolved review threads or security exception. Existing multi-account critical/regression flows, native account/session/IPC isolation, targeted cleanup/retry and cold-restart retention pass. Metadata cannot replace identity or partition. The normal native quit assertion is sensitive to a veto and preserves every storage/restart assertion. Prior #8/#10/#41 baselines remain in history. CAP-005 retains the pre-existing registry/proxy/certificate issues and final enterprise qualification.
+
+- Final startup acceptance: [PR #56](https://github.com/adamlow-wire/wire-desktop/pull/56) merged as `45840fca` with tree equal to reviewed `5c596187`. All native platforms, build/lint/analysis and full 48-case Windows/macOS E2E/report pass. Authorized same-origin replacements finish before startup succeeds; failure, cancellation, stale/foreign ownership and credential-bearing native errors remain denied or sanitized. The [complete M3 acceptance audit](m3-acceptance.md) records source review, sensitive baselines, all acceptance criteria and aggregate validation.
 
 #### CAP-002 — Migrate enterprise and automated SSO
 
@@ -924,6 +926,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.48 | 2026-09-15 | Codex | Accept all M3 work after reviewed PR #56 and complete final-head/aggregate evidence; clarify the previously accepted TST-003 packaged-smoke allocation and continue functional M4 | CAP-001, TST-003, CAP-003, CAP-004, TST-005 |
 | 1.5.47 | 2026-09-15 | Codex | Reopen CAP-001 for a native-reproduced same-origin startup redirect teardown found in retained PR55 retry evidence; require completed authorized replacement and bounded lifetime checks | CAP-001, INV-010 |
 | 1.5.46 | 2026-09-15 | Codex | Integrate qualified retained pinning PR #54; reopen CAP-006 for final-audit action/settings/startup credential diagnostics under INV-010 | CAP-006, CAP-005 |
 | 1.5.45 | 2026-09-14 | Codex | Close CAP-002 automated acceptance after reviewed PR #53 and final native/authenticated/report gates; reconcile retained pinning candidate with actual integration and preserve downstream live QA | CAP-002, CAP-005, Q-011 |
