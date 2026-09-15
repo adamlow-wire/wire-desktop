@@ -94,3 +94,36 @@ test('[regression][TST-005] trace failure propagates while native teardown still
     await app.close().catch(() => undefined); // The injected failure was asserted above.
   }
 });
+
+// A remote document can remain pending longer than a short UI assertion while
+// the native shell is already available. Keep this independent of customer SSO.
+test('[regression][TST-005] launcher waits for a delayed initial document', async ({}, testInfo) => {
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  const server = createServer((_request, response) => {
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      response.setHeader('Content-Type', 'text/html');
+      response.end('<!doctype html><title>Delayed document ready</title>');
+    }, 12_000);
+    timers.add(timer);
+  });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  let app: Awaited<ReturnType<typeof createApp>> | undefined;
+  try {
+    app = await createApp({
+      env: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+      dataDir: testInfo.outputPath('delayed-profile'),
+    });
+    await expect(app.page).toHaveTitle('Delayed document ready');
+  } finally {
+    try {
+      await app?.close();
+    } finally {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+      server.closeAllConnections();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  }
+});
