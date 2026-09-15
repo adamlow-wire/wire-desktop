@@ -129,8 +129,16 @@ test.describe('Notifications', () => {
 
       await accountsSidebar(app).addAccount();
       app.page = await loginUser(app.page, userA2, {timeout: 80_000});
+      // Establish and read the MLS conversation before testing an unread message.
+      // First-time MLS setup can select this conversation after the distraction group opens.
+      await conversationsList(userBPage).getConversation(userA2.fullName, {protocol: 'mls'}).open();
+      await conversationsList(app.page).getConversation(userB.fullName, {protocol: 'mls'}).open();
+      await conversation(userBPage).sendMessage('Notification setup');
+      await expect(conversation(app.page).getMessage({content: 'Notification setup'})).toBeVisible();
       await createGroup(app.page, 'Distraction Group', []);
       await conversationsList(app.page).getConversation('Distraction Group').open();
+      await expect(conversation(app.page).conversationTitle).toHaveText('Distraction Group');
+      await expect.poll(() => appIcon(app).getUnreadCount()).toBe(0);
 
       const {clickNotification} = await interceptNotifications(app);
 
@@ -144,6 +152,7 @@ test.describe('Notifications', () => {
 
       await test.step('B sends a message to user As second account', async () => {
         await conversationsList(userBPage).getConversation(userA2.fullName, {protocol: 'mls'}).open();
+        await expect(conversation(app.page).conversationTitle).toHaveText('Distraction Group');
         await conversation(userBPage).sendMessage('Test Message 2');
 
         await expect(accountsSidebar(app).getAccount(userA2).notificationDot).toBeVisible();
