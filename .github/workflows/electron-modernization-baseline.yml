@@ -43,11 +43,11 @@ jobs:
           - platform: Windows
             os: windows-2025
             build: yarn build:win
-            artifact: wrap/build/**/*.exe
+            artifact: wrap/build/**/*
           - platform: macOS
             os: macos-26
             build: yarn ts-node -P tsconfig.bin.json bin/test-tools/build-macos-smoke.ts
-            artifact: wrap/build/**/*.app
+            artifact: wrap/dist/unsigned-macos-app.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -206,9 +206,15 @@ jobs:
           else
             yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           fi
+      - name: Seed non-secret package exclusion canaries
+        shell: bash
+        run: node bin/test-tools/verify-package-contents.cjs --seed .
       - name: Build development package
         shell: bash
         run: ${{ matrix.build }}
+      - name: Verify actual package archive contents
+        shell: bash
+        run: node bin/test-tools/verify-package-contents.cjs wrap/build wrap/dist > package-contents.json
       - name: Verify claimed artifact exists
         id: artifact
         shell: bash
@@ -230,9 +236,21 @@ jobs:
         run: |
           artifact=$(find wrap/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)
           test -n "$artifact"
+          artifact=$(realpath "$artifact")
           chmod +x "$artifact"
-          xvfb-run "$artifact" --appimage-extract-and-run --no-sandbox --version
-          executable=$(find wrap/dist -maxdepth 2 -type f -name '*-desktop' -print -quit)
+          extract_dir=$(mktemp -d)
+          trap 'rm -rf "$extract_dir"' EXIT
+          (cd "$extract_dir" && "$artifact" --appimage-extract > /dev/null)
+          node bin/test-tools/verify-package-contents.cjs "$extract_dir/squashfs-root" > package-contents-appimage.json
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const built = require('./package-contents.json').archives;
+          const extracted = require('./package-contents-appimage.json').archives;
+          assert.equal(built.length, 1);
+          assert.equal(extracted.length, 1);
+          assert.equal(extracted[0].sha256, built[0].sha256, 'AppImage must contain the verified archive.');
+          NODE
+          executable=$(find "$extract_dir/squashfs-root" -maxdepth 1 -type f -name '*-desktop' -print -quit)
           test -n "$executable"
           helper="$(dirname "$executable")/chrome-sandbox"
           test -f "$helper"
@@ -242,7 +260,7 @@ jobs:
           xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
           test ! -e /etc/wire/managed.json
           sudo mkdir -p /etc/wire
-          trap 'sudo rm -f /etc/wire/managed.json' EXIT
+          trap 'sudo rm -f /etc/wire/managed.json; rm -rf "$extract_dir"' EXIT
           printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
           M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
       - name: Smoke-test Windows package
@@ -298,12 +316,28 @@ jobs:
           trap 'defaults delete "$domain" applockOverride >/dev/null 2>&1' EXIT
           defaults write "$domain" applockOverride -bool true
           M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
+      - name: Preserve macOS bundle permissions in handoff artifact
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bundle=$(find wrap/build -maxdepth 2 -type d -name '*.app' -print -quit)
+          test -n "$bundle"
+          mkdir -p wrap/dist
+          tar -czf wrap/dist/unsigned-macos-app.tar.gz -C "$(dirname "$bundle")" "$(basename "$bundle")"
       - name: Retain native product test failure evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: modernization-native-test-failure-${{ matrix.platform }}
           path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Retain package verification manifests
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: modernization-package-contents-${{ matrix.platform }}
+          path: package-contents*.json
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload development artifact

@@ -1,0 +1,19 @@
+# Unsigned package content verification
+
+Status: candidate tooling; final composed platform qualification remains required. Owner: PKG-001/TST-005, findings TST-006 F-004/F-006. This does not qualify signed integrity, notarization, installers, updates or released-profile migration.
+
+## Reproduce the checks
+
+Run `yarn test:bin` with the repository toolchain/dependencies for Node-only build-tool regressions. The archive verifier tests create small real ASAR files in owned temporary directories; they never start Electron or a packager. They cover required files/dependencies, forbidden inputs, stale ASAR caches, changing archive hashes, wrong entry points, missing output and non-overwriting canary creation.
+
+Run `node bin/test-tools/verify-package-contents.cjs <build-output-directory>` to inspect existing default-layout development packages without executing their applications. It finds `resources/app.asar`, requires22 runtime files (including privileged preloads), checks owned application contents against the finite runtime contract, and emits archive SHA-256/count manifests. Dependency payload contents remain subject to the separate ELC-003 audit; presence is not dependency safety. Copy-filter tests separately cover custom application directories, including nested paths and spaces; full custom-layout package startup is not inferred.
+
+The hosted `electron-modernization-baseline.yml` workflow seeds three non-secret canaries immediately before building. It fails if an archive is missing, includes forbidden content or lacks required runtime files. Do not seed the maintainer's working tree: `--seed` is intended for disposable CI and refuses existing files. Canary names are `.wire-package-canary.env`, `private-keys/wire-package-canary.pem` and `e2e-tests/wire-package-canary.trace.zip`.
+
+Linux qualification extracts the actual AppImage in an owned temporary directory, verifies its ASAR and compares its hash with the build output, then runs the existing sandboxed account/proxy smoke against the extracted executable. The helper permission setup remains required. Windows uploads the complete package directory, including resources and DLLs. macOS uses a tar archive to preserve bundle permissions and symlinks. `modernization-package-contents-<platform>` retains manifests; failed or skipped checks do not qualify artifacts.
+
+## Retained initial Linux evidence
+
+Package preflight [35037409000](https://github.com/adamlow-wire/wire-desktop/actions/runs/35037409000), Linux job104609510387, succeeds at `f7c1c359e1b9cbb2e5b58b14fa0d7ff3ec1de5e4`. Artifact10424091204 contains the unsigned AppImage. Downloaded ZIP SHA-256 matches GitHub's digest: `344e987c10e37478b6b68a8e4df0fdbc5c508be726be0d929f7c877c1cfeecf0`. AppImage SHA-256: `0de352019af9833249468afd67a1ed744f266cf0e74561a46d8ec1736c5c21d1`.
+
+Read-only local inspection uses `unsquashfs` at this artifact's verified filesystem offset188392; no application runs locally. Its ASAR hash is `8d5264832a52efe5367995e8971f81688b8c2a6f29adad3a2473476f4a6e5ac4`, with12449 entries and all22 required files. It passes the candidate verifier. The retained older preview fails forbidden-content verification. This precedes the new hosted verifier/extracted-AppImage smoke wiring and does not qualify that new workflow or Windows/macOS artifacts.
