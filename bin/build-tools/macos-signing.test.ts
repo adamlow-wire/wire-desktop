@@ -38,6 +38,15 @@ function run(mode: string, phase: string) {
 
 describe('[PKG-001][SEC-011] macOS signing order and fail-closed tools', function () {
   this.timeout(15000);
+  for (const mode of ['automatic-missing-team', 'automatic-missing-sign', 'manual-missing-sign']) {
+    it(`[security-target] ${mode} rejects incomplete signing configuration before packaging`, () => {
+      const {result, stderr} = run(mode, 'success');
+      assert.equal(result.rejected, true);
+      assert.deepEqual(result.events, []);
+      assert.equal(result.metadataRestored, true);
+      assert.equal(result.secretLogged || stderr.includes('synthetic-signing-failure-secret'), false);
+    });
+  }
   for (const [mode, phases] of [
     ['unsigned', ['success', 'package', 'fuses']],
     ['automatic', ['success', 'package', 'fuses', 'sign', 'notarize', 'installer']],

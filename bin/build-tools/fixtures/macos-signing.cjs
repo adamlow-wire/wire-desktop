@@ -123,10 +123,12 @@ Module._load = function (request, parent, isMain) {
       process.env.MACOS_NOTARIZE_TEAM_ID = 'FIXTURETEAM';
     }
     const {buildMacOSConfig, buildMacOSWrapper} = require(path.join(repo, 'bin/build-tools/lib/build-macos.ts'));
-    const manual = mode === 'manual';
-    const {packagerConfig, macOSConfig} = await buildMacOSConfig(wireFile, 'unused', manual);
+    if (mode === 'automatic-missing-team') delete process.env.MACOS_NOTARIZE_TEAM_ID;
+    if (mode.endsWith('missing-sign')) delete process.env.MACOS_CERTIFICATE_NAME_APPLICATION;
+    const manual = mode.startsWith('manual');
     let error;
     try {
+      const {packagerConfig, macOSConfig} = await buildMacOSConfig(wireFile, 'unused', manual);
       await buildMacOSWrapper(packagerConfig, macOSConfig, packageFile, wireFile, 'unused', manual);
     } catch (caught) {
       error = caught;
