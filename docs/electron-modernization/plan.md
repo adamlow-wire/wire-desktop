@@ -581,7 +581,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Production dependency audit has no unaccepted high/critical finding.
   - Each replacement preserves required behavior with tests.
   - `@electron/remote` removal is handled by SEC-004, not upgraded in place.
-- Evidence: local protocol-runtime removal starts with numeric availability characterization in both badge consumers; source inventory and graph limits are recorded in [status.md](status.md). Shipped-artifact re-audit and remaining dependency remediation are pending.
+- Evidence: local protocol-runtime removal starts with numeric availability characterization in both badge consumers; source inventory and graph limits are recorded in [status.md](status.md). The certificate-check parser is locally resolved to jsrsasign11.1.1 after RSA/EC pinning characterization and sensitivity; fresh installed-graph advisory matches fall from37 to31. Shipped-artifact re-audit and remaining dependency remediation are pending.
 
 #### ELC-004 — Establish an Electron currency policy
 

@@ -17,12 +17,13 @@
  *
  */
 
+import {DIGICERT_GLOBAL_ROOT_G2, KNOWN_PINS, PinningData} from '@wireapp/certificate-check/lib/pinningData';
+
 import {strict as assert} from 'node:assert';
 import {X509Certificate} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 
 import {buildCert, getFingerprint, hostnameShouldBePinned, verifyPinning} from '@wireapp/certificate-check';
-import {DIGICERT_GLOBAL_ROOT_G2, KNOWN_PINS, PinningData} from '@wireapp/certificate-check/lib/pinningData';
 
 // This suite runs in Node: no Electron session, network or trust-store changes.
 const pem = readFileSync('electron/test/fixtures/certificates/untrusted-localhost-cert.pem', 'utf8');
@@ -42,7 +43,9 @@ describe('[ELC-003][CAP-005] certificate dependency compatibility', () => {
   });
   afterEach(() => {
     const index = KNOWN_PINS.indexOf(fixturePin);
-    if (index >= 0) KNOWN_PINS.splice(index, 1);
+    if (index >= 0) {
+      KNOWN_PINS.splice(index, 1);
+    }
   });
   it('retains the established EC fingerprint and certificate encoding', () => {
     const der = new X509Certificate(pem).raw;
@@ -72,8 +75,11 @@ describe('[ELC-003][CAP-005] certificate dependency compatibility', () => {
   });
   for (const field of ['fingerprints', 'algorithmID', 'algorithmParam'] as const) {
     it(`rejects a mismatched ${field} despite matching remaining fields`, () => {
-      if (field === 'fingerprints') fixturePin.publicKeyInfo[0].fingerprints = ['wrong'];
-      else fixturePin.publicKeyInfo[0][field] = 'wrong';
+      if (field === 'fingerprints') {
+        fixturePin.publicKeyInfo[0].fingerprints = ['wrong'];
+      } else {
+        fixturePin.publicKeyInfo[0][field] = 'wrong';
+      }
       const result = verifyPinning(hostname, certificate);
       assert.equal(result.verifiedPublicKeyInfo, false);
       assert.ok(result.errorMessage);
