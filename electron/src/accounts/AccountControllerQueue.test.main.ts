@@ -151,4 +151,20 @@ describe('[CAP-001][INV-003][INV-010] account lifecycle queue', () => {
     await controller.receive(identity, {type: 'metadata', data: {name: 'recovered'}});
     assert.equal(state.get(id).name, 'recovered');
   });
+
+  it('rejects stale queued registration even when the same native contents is registered again', async () => {
+    const {state, id, sender, registry, register, identity, controller, cancel} = await fixture();
+    const queued = assert.rejects(
+      controller.receive(identity, {type: 'metadata', data: {name: 'stale publication'}}),
+      /stale authority/,
+    );
+    registry.unregister(sender.id);
+    const replacement = register();
+    assert.notEqual(replacement, identity);
+    await cancel();
+    await queued;
+    assert.equal(state.get(id).name, undefined);
+    await controller.receive(replacement, {type: 'metadata', data: {name: 'current registration'}});
+    assert.equal(state.get(id).name, 'current registration');
+  });
 });
