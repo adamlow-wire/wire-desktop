@@ -78,7 +78,21 @@ axios.defaults.adapter = async config => {
     );
     assert.equal(JSON.parse(billing[3].data).planId, 'enterprise');
     assert.equal(billing[0].validateStatus(412), true);
-    console.log(JSON.stringify({github: 2, hockey: 2, ibis: billing.length}));
+    const copyRequire = require('node:module').createRequire(require.resolve('@wireapp/copy-config/package.json'));
+    const copyAxios = copyRequire('axios');
+    const zip = new (require('jszip'))();
+    zip.file('root/fixture.json', '{"fixture":true}');
+    const zipBytes = await zip.generateAsync({type: 'nodebuffer'});
+    copyAxios.defaults.adapter = async config => {
+      assert.equal(config.url, 'https://config.invalid/fixture.zip');
+      assert.equal(config.responseType, 'stream');
+      return {data: require('node:stream').Readable.from(zipBytes), status: 200, statusText: 'OK', headers: {}, config};
+    };
+    const destination = path.join(root, 'config');
+    await copyRequire('./lib/utils').downloadFileAsync('https://config.invalid/fixture.zip', destination);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(destination, 'fixture.json'), 'utf8')), {fixture: true});
+    assert.equal(fs.existsSync(path.join(destination, 'archive.zip')), false);
+    console.log(JSON.stringify({github: 2, hockey: 2, ibis: billing.length, copyConfig: true}));
   } finally {
     fs.rmSync(root, {recursive: true, force: true});
   }

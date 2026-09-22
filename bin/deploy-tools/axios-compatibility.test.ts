@@ -91,7 +91,7 @@ describe('[ELC-003] axios tooling compatibility', function () {
     assert.equal(captured.baseURL, 'https://expected.invalid');
     assert.equal(captured.headers.Authorization, 'Bearer expected');
   });
-  it('[characterization] retains actual GitHub/Hockey/Ibis request contracts with an inert adapter', () => {
+  it('[characterization] retains actual GitHub/Hockey/Ibis/config request contracts with an inert adapter', () => {
     const child = spawnSync(
       process.execPath,
       ['--require', path.resolve('.babel-register.js'), path.resolve('bin/deploy-tools/fixtures/axios-consumers.cjs')],
@@ -103,6 +103,11 @@ describe('[ELC-003] axios tooling compatibility', function () {
     );
     assert.equal(child.error, undefined);
     assert.equal(child.status, 0, child.stderr);
-    assert.deepEqual(JSON.parse(child.stdout.trim().split('\n').at(-1)!), {github: 2, hockey: 2, ibis: 5});
+    assert.deepEqual(JSON.parse(child.stdout.trim().split('\n').at(-1)!), {
+      github: 2,
+      hockey: 2,
+      ibis: 5,
+      copyConfig: true,
+    });
   });
 });
