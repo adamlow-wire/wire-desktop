@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-22
 milestone: M4
-active_work_item: ELC-003
-state: local-dependency-remediation
+active_work_item: PKG-002
+state: local-updater-remediation
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/ELC-003-protocol-runtime-2026-09-22
+active_branch: fix/PKG-002-updater-diagnostics-2026-09-22
 next_work_item: TST-006
 blockers: [fork-publication-approval, profile-compatibility-decision]
 ---
@@ -17,6 +17,12 @@ blockers: [fork-publication-approval, profile-compatibility-decision]
 # Current project status
 
 ## Current execution
+
+**PKG-002/F-007 diagnostics candidate:** isolated branch `fix/PKG-002-updater-diagnostics-2026-09-22`, worktree `/tmp/wire-pkg002-updater-diagnostics`, based on ELC-003 `abae1a66`. Baseline `e0103706` has four passing development/App-Store/feed/user-choice controls and seven failing confidentiality/failure targets. Fixed stage diagnostics replace feed URL/raw error logging; setup failure returns safely; synchronous/rejected checks and dialog/install failures are contained. All11 inert Node cases pass. Reintroducing feed logging, dropping the check rejection handler or omitting the user's install action fails one target each; source is restored. All11 restored cases, root/bin/Playwright/Electron test types, scoped lint and production build/bundle pass. Existing webpack performance warnings remain.
+
+F-007 is **not closed**: the existing second `ready` listener still prevents normal updater startup. Next primary work is a sensitive startup-routing characterization and scoped correction with explicit no-update safeguards for unsigned preview fixtures. Do not fix the routing by silently enabling network updates in unsigned tests. Actual signed install/update/rollback remains M5. This diagnostics slice launches no native application/dialog, contacts no feed and performs no install. Its `node_modules` is a read-only-use symlink to the ELC-003 worktree; do not run dependency installation through it. Logs `/tmp/pkg002-updater-{baseline,patched,restored,sensitivity-feed,sensitivity-check,sensitivity-install,lint,types,build}.log`.
+
+Sibling packaging candidate `641af325` fixes copy-config download settlement/archive ownership and passes356 tooling cases; it is not composed here. Both sibling fixes, final artifact qualification, full review/provenance/coverage and pending publication/profile decisions remain mandatory. Preparing this local candidate does not authorize publishing or contacting Wire.
 
 **ELC-003 Joi migration validated locally:** baseline/disposition `156b601f` precedes replacement of deprecated `@hapi/joi`17.1.1 with `joi`17.13.8. Four imports change; schema definitions and validation options are unchanged. The obsolete external Joi types are removed in favor of packaged types. All40 Node profile/control/event cases and80 renderer tests still pass, alongside root/bin/Playwright/Electron test types, scoped lint, immutable installation and production build/bundle. Existing webpack performance warnings remain. Fresh official npm audit at2026-09-22T16:19:33Z finds354 installed production instances, no old Joi, and one uuid moderate match already assessed as not applicable to current v4-only callers. No high/critical matches remain in this installed graph. This does not qualify the shipped ASAR or complete ELC-003/TST-006.
 

@@ -72,7 +72,9 @@ describe('[PKG-002][F-007] macOS updater diagnostics and async failures', functi
       assert.equal(result.threw, false);
       assert.equal(result.unhandled, false);
       assert.equal(result.leaked, false);
-      if (mode === 'dialog-reject') assert.equal(result.installs, 0);
+      if (mode === 'dialog-reject') {
+        assert.equal(result.installs, 0);
+      }
     });
   }
 });

@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.60
+revision: 1.5.63
 status: draft
 updated: 2026-09-22
 owners:
@@ -830,8 +830,10 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 
 #### PKG-002 — Qualify installers and updater behavior
 
+- Pre-handoff F-007 slice: updater diagnostics must omit credential-bearing feed/error data and contain check/dialog/installation promise failures while preserving user consent. Local Node tests cover this boundary; startup routing with unsigned-fixture safeguards remains open. Actual signed qualification remains M5.
+
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M5`
 - Dependencies: PKG-001, CAP-001
 - Scope: Test fresh install, launch, update/upgrade, repair where applicable, uninstall, protocol registration, auto-launch, and retained user data.
@@ -983,6 +985,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.63 | 2026-09-22 | Codex | Start existing PKG-002 pre-handoff updater failure/diagnostic remediation; retain startup and signed-release gates | PKG-002, F-007, INV-010 |
 | 1.5.60 | 2026-09-22 | Maintainer in chat; Codex | Activate mandatory unsigned review-handoff closeout; make acceptance gates and later release qualifications explicit, retaining existing owners and invariants | PKG-001, TST-005, TST-006, ELC-003, SEC-003, PKG-003, GOV-002 |
 | 1.5.59 | 2026-09-16 | Codex | Start PKG-001 remediation of packaged inputs, secret diagnostics and fail-closed builds; retain unsigned scope and signed-release deferral | PKG-001, SEC-011, INV-010, TST-006 |
 | 1.5.58 | 2026-09-15 | Codex | Extend existing CAP-001 remediation with bounded log admission and immutable queued inputs; preserve cleanup barriers and document diagnostic truncation/loss | CAP-001, INV-010, TST-006 |
