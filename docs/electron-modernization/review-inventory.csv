@@ -105,7 +105,7 @@ electron/html/display-capture.html,A,application,pending,pending,pending
 electron/renderer/index.html,M,application,pending,pending,pending
 electron/renderer/src/actions/AccountAction.ts,M,application,pending,pending,pending
 electron/renderer/src/actions/__tests__/actions.spec.ts,M,test/fixture,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
-electron/renderer/src/actions/index.ts,M,application,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
+electron/renderer/src/actions/index.ts,M,application,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending; ELC-003 Joi import migration preserves schemas/options,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore; 156b601f pre-migration40 Node/80 renderer baseline,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending; unknown-field sensitivity fails3 control/9 renderer tests; patched pass
 electron/renderer/src/components/LoadingSpinner/LoadingSpinner.spec.tsx,A,test/fixture,pending,pending,pending
 electron/renderer/src/components/LoadingSpinner/LoadingSpinner.tsx,M,application,pending,pending,pending
 electron/renderer/src/components/Sidebar/Sidebar.spec.tsx,A,test/fixture,pending,pending,pending
@@ -136,7 +136,7 @@ electron/src/accounts/AccountLogCleanup.ts,A,application,pending,pending,pending
 electron/src/accounts/AccountMediaPermission.test.media.ts,A,test/fixture,pending,pending,pending
 electron/src/accounts/AccountPermissionBaseline.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/accounts/AccountProfile.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/accounts/AccountProfile.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/AccountProfile.ts,A,application,initial source pass; final review pending; ELC-003 Joi import migration preserves schemas/options,pending; 156b601f pre-migration40 Node/80 renderer baseline,pending; unknown-field sensitivity fails3 control/9 renderer tests; patched pass
 electron/src/accounts/AccountSessionCleanup.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/accounts/AccountSessionCleanup.ts,A,application,pending,pending,pending
 electron/src/accounts/AccountState.test.main.ts,A,test/fixture,pending,pending,pending
@@ -299,13 +299,13 @@ electron/src/security/AboutWindowIpc.test.main.ts,A,test/fixture,pending,pending
 electron/src/security/AboutWindowIpc.ts,A,application,pending,pending,pending
 electron/src/security/AccountControlContract.ts,A,application,pending,pending,pending
 electron/src/security/AccountControlIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/AccountControlIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AccountControlIpc.ts,A,application,initial source pass; final review pending; ELC-003 Joi import migration preserves schemas/options,pending; 156b601f pre-migration40 Node/80 renderer baseline,pending; unknown-field sensitivity fails3 control/9 renderer tests; patched pass
 electron/src/security/AccountDataDeletionContract.ts,A,application,pending,pending,pending
 electron/src/security/AccountDataDeletionIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/AccountDataDeletionIpc.ts,A,application,pending,pending,pending
 electron/src/security/AccountEventContract.ts,A,application,pending,pending,pending
 electron/src/security/AccountEventIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/AccountEventIpc.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/security/AccountEventIpc.ts,A,application,initial source pass; final review pending; ELC-003 Joi import migration preserves schemas/options,pending; 156b601f pre-migration40 Node/80 renderer baseline,pending; unknown-field sensitivity fails3 control/9 renderer tests; patched pass
 electron/src/security/AccountPermissionConsent.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/AccountPermissionConsent.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/AccountPermissionPolicy.test.main.ts,A,test/fixture,pending,pending,pending
