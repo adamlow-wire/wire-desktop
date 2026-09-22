@@ -114,8 +114,8 @@ export async function buildMacOSConfig(
     };
   }
 
-  if (signManually && macOSConfig.certNameInstaller && !macOSConfig.certNameApplication) {
-    throw new Error('Manual installer signing requires an application signing identity.');
+  if (macOSConfig.certNameInstaller && !macOSConfig.certNameApplication) {
+    throw new Error('Installer signing requires an application signing identity.');
   }
   if (!signManually) {
     if (macOSConfig.certNameApplication) {
