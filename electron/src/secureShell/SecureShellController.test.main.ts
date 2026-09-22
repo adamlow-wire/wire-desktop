@@ -55,6 +55,7 @@ const getLastWebPreferences = (webContents: WebContents): WebPreferences => {
 };
 
 describe('SecureShellController', () => {
+  let lifecyclePhase: string | undefined;
   let accountUrl: string;
   let disposeIpc: (() => void) | undefined;
   let disposeProtocol: (() => void) | undefined;
@@ -81,7 +82,15 @@ describe('SecureShellController', () => {
     disposeIpc = bindSecureShellIpc(registry);
   });
 
-  afterEach(() => {
+  beforeEach(() => {
+    lifecyclePhase = undefined;
+  });
+
+  afterEach(function () {
+    if (this.currentTest?.state === 'failed' && lifecyclePhase) {
+      // Fixed fixture labels only: never emit page URLs, account data or exception payloads.
+      console.error(`[secure-shell-lifecycle] incomplete phase: ${lifecyclePhase}`);
+    }
     while (controllers.length) {
       controllers.pop()?.dispose();
     }
@@ -119,28 +128,36 @@ describe('SecureShellController', () => {
 
   it('[security-target][INV-003][ARC-002] owns the shell lifecycle and revokes authority on disposal', async function () {
     this.timeout(10_000);
+    lifecyclePhase = 'controller-start';
     const controller = await createController('account-a', true);
+    lifecyclePhase = 'initial-state-assertions';
     const window = controller.getWindowForTest();
     const webContents = controller.getAccountWebContentsForTest();
     assert.ok(window);
     assert.ok(webContents);
     assert.strictEqual(registry.has(window.webContents.id), true);
     assert.strictEqual(window.isVisible(), true);
+    lifecyclePhase = 'duplicate-start-rejection';
     await assert.rejects(controller.start(), /already running/);
 
+    lifecyclePhase = 'popup-denial';
     const shellUrl = window.webContents.getURL();
     assert.strictEqual(await window.webContents.executeJavaScript("window.open('https://example.com')"), null);
+    lifecyclePhase = 'navigation-denial';
     await window.webContents.executeJavaScript("location.href = 'https://example.com/escape'");
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.strictEqual(window.webContents.getURL(), shellUrl);
+    lifecyclePhase = 'resize';
     window.setSize(900, 700);
     await new Promise(resolve => setTimeout(resolve, 100));
 
+    lifecyclePhase = 'visibility';
     window.hide();
     assert.strictEqual(window.isVisible(), false);
     controller.show();
     assert.strictEqual(window.isVisible(), true);
 
+    lifecyclePhase = 'dispose-and-revoke';
     const registeredId = webContents.id;
     const registeredShellId = window.webContents.id;
     controller.dispose();
@@ -150,7 +167,9 @@ describe('SecureShellController', () => {
     assert.strictEqual(controller.getWindowForTest(), undefined);
     assert.strictEqual(controller.getAccountWebContentsForTest(), undefined);
 
+    lifecyclePhase = 'repeat-dispose';
     controller.dispose();
+    lifecyclePhase = undefined;
   });
 
   it('[security-target][INV-001][INV-002][INV-003][ARC-002] exposes only the isolated fixed bridge', async () => {
