@@ -104,8 +104,8 @@ electron/css/display-capture.css,A,application,pending,pending,pending
 electron/html/display-capture.html,A,application,pending,pending,pending
 electron/renderer/index.html,M,application,pending,pending,pending
 electron/renderer/src/actions/AccountAction.ts,M,application,pending,pending,pending
-electron/renderer/src/actions/__tests__/actions.spec.ts,M,test/fixture,pending,pending,pending
-electron/renderer/src/actions/index.ts,M,application,pending,pending,pending
+electron/renderer/src/actions/__tests__/actions.spec.ts,M,test/fixture,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
+electron/renderer/src/actions/index.ts,M,application,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
 electron/renderer/src/components/LoadingSpinner/LoadingSpinner.spec.tsx,A,test/fixture,pending,pending,pending
 electron/renderer/src/components/LoadingSpinner/LoadingSpinner.tsx,M,application,pending,pending,pending
 electron/renderer/src/components/Sidebar/Sidebar.spec.tsx,A,test/fixture,pending,pending,pending
@@ -125,7 +125,7 @@ electron/renderer/src/types/account.d.ts,M,application,pending,pending,pending
 electron/renderer/src/types/guards.spec.ts,A,test/fixture,pending,pending,pending
 electron/renderer/src/types/guards.ts,M,application,pending,pending,pending
 electron/src/accounts/AccountController.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/accounts/AccountController.ts,A,application,initial source pass; final review pending,pending,pending
+electron/src/accounts/AccountController.ts,A,application,initial source pass; final review pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
 electron/src/accounts/AccountControllerQueue.test.main.ts,A,test/fixture,assertions and sensitivity reviewed; platform qualification pending,pending,pending
 electron/src/accounts/AccountDestination.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/accounts/AccountDestination.ts,A,application,pending,pending,pending
@@ -446,3 +446,5 @@ bin/test-tools/package-contents.test.ts,A,tooling/CI/config,local review; hosted
 bin/build-tools/lib/build-macos.test.ts,M,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
 bin/build-tools/macos-signing.test.ts,A,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
 bin/build-tools/fixtures/macos-signing.cjs,A,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
+electron/src/lib/availability.ts,A,production,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
+electron/src/accounts/AccountAvailability.test.main.ts,A,test,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending

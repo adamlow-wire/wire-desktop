@@ -28,8 +28,6 @@ import {AddressInfo} from 'net';
 import os from 'os';
 import path from 'path';
 
-import {Availability} from '@wireapp/protocol-messaging';
-
 import {AccountController, AccountControllerOptions} from './AccountController';
 import {getAccountDestination} from './AccountDestination';
 import {approveAccountEnvironment} from './AccountEnvironmentApproval';
@@ -823,7 +821,7 @@ describe('production account controller integration', function () {
     options.badge = (count, ignoreFlash) => badges.push([count, ignoreFlash]);
     const first = identity(views.get(records[0].id));
     const second = identity(views.get(records[1].id));
-    await controller.receive(first, {type: 'metadata', data: {availability: Availability.Type.BUSY}});
+    await controller.receive(first, {type: 'metadata', data: {availability: 3}});
     await controller.receive(first, {type: 'unread', count: 3});
     await controller.receive(second, {type: 'unread', count: 5});
     await controller.receive(second, {type: 'activate'});

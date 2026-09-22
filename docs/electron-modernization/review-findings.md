@@ -20,6 +20,7 @@ September22 return validation adds **F-014 — aggregate test-runner/type integr
 
 | ID | Severity / owner | Evidence and consequence | State / required follow-up |
 | --- | --- | --- | --- |
+| F-015 | High tooling credential diagnostics / PKG-001, ELC-003, INV-010 | `GitHubDraftDeployer.uploadAsset` passes the token-bearing headers and file buffer to `logDry` in non-CI dry-run mode. Actual method plus real logDry and inert logger/HTTP adapters captures a synthetic token with zero network requests. | Open: repository baseline, safe useful diagnostics and failure-path review/remediation. Raw Axios error logging in deployment callers also needs sensitive fault tests; no real credential incident is claimed. Evidence `/tmp/elc003-deployer-confidentiality.log`, fixture `/tmp/wire-handoff-audit/dry-run-confidentiality.cjs`. |
 | F-001 | Handoff evidence gap / TST-001, TST-006 | Fresh hosted counters omit actual application E2E execution; `mainProcess.ts` has 0/381 statements despite real product tests. Existing diff gate is not a full-baseline/per-module report. | Open: improve collection/reporting, audit exclusions, test reachable gaps and disposition every remainder. |
 | F-002 | Medium test reliability / TST-005, CAP-003, CAP-001 | Repeated native capture cancellation/Stop timeouts and a separate account-startup fixture timeout, including PR61. Waiting for an inspector reply from a closing broker is a hypothesis, not established cause. | Open: bounded stage diagnostics and sensitive regression; preserve actual Stop/track/owner assertions, record all attempts. |
 | F-003 | Medium resource lifetime / SEC-003 | `AuthorizedIpc` rate-limit map retains webContents IDs for binder lifetime without eviction. | Local repository remedy uses weak keys for actual webContents objects; baseline3bb1e04e and re-registration sensitivity pass as described below. Integration/native qualification pending; no privilege bypass established. |
@@ -49,6 +50,24 @@ Verified history examples, not a blanket baseline-first verdict:
 - Current queue baseline `8cd6bd18` is a later security regression, not an original modernization baseline. Before the fix, ordering and stale-authority tests pass and overload rejection fails. An initial test expectation used the wrong authorization error wording; correcting it to the existing registry error produced the recorded two-pass/one-fail result without changing production.
 
 ## Dependency audit
+
+
+### September22 ELC-003 candidate audit
+
+The isolated `fix/ELC-003-protocol-runtime-2026-09-22` candidate removes the protocol-messaging runtime dependency after baseline `c35af26c` protects numeric BUSY=3 behavior in both consumers. Fresh immutable installation without build scripts has no protocol-messaging/protobufjs/protobufjs-cli package; the declared production/optional/peer graph falls from436 to356 installed instances. Six absent optional/peer edges remain explicit. This is not an actual ASAR inventory or proof of exploit reachability. Full build/type, renderer and Node-controller results are recorded in status.md; the first full tooling run lacks generated configuration because postinstall was skipped. Normal `configure` restores it; the subsequent full tooling suite passes318 cases. The initial setup failure is retained.
+
+A fresh official npm bulk-advisory query at2026-09-22T15:17:03Z, filtered against exact installed versions with semver, retains37 matches across six names:18 high, one critical,15 moderate and three low. Matches are advisory/version pairs, not demonstrated vulnerabilities or accepted risks.
+
+| Remaining name/version | Direct consumer or parent | Matches / next investigation |
+| --- | --- | --- |
+| `jsrsasign`11.1.0 | `@wireapp/certificate-check`0.7.27 | Six, including critical/high. The library extracts public-key data from X.509 certificates; distinguish that path from DSA private-key/signing advisories, then qualify a patched compatible dependency. [Advisory](https://github.com/advisories/GHSA-wvqx-v3f6-w8rh). |
+| `axios`0.21.2 | Declared production; source consumers are E2E Ibis and deployment tools |23. Correct production/dev classification and remediate tooling separately; moving the dependency cannot stand in for addressing credential-bearing deployment paths. [Advisory](https://github.com/advisories/GHSA-p92q-9vqr-4j8v). |
+| `js-yaml`4.1.0 | `electron-updater`6.8.3 | Five. Protect update metadata parsing before compatible remediation. [Advisory](https://github.com/advisories/GHSA-2883-xcg3-v3hh). |
+| `builder-util-runtime`9.5.1 | `electron-updater`6.8.3 | One high. Protect credential stripping on cross-origin update redirects. [Advisory](https://github.com/advisories/GHSA-p2f4-r6v6-j797). |
+| `uuid`9.0.1 | Renderer UUIDv4 helper | One moderate involving other UUID variants/buffers; document actual use and qualify maintained replacement. [Advisory](https://github.com/advisories/GHSA-w5hq-g745-h8pq). |
+| `@hapi/joi`17.1.1 | Boundary schemas | One low; maintained Joi migration must preserve all schema contracts. [Advisory](https://github.com/advisories/GHSA-6w3j-5fw6-r9vr). |
+
+Method: follow dependency/optional/peer edges from package.json through actual resolved package manifests, excluding fixture manifests; POST deduplicated public name/version pairs to `https://registry.npmjs.org/-/npm/v1/security/advisories/bulk`, then retain only exact-version range matches. Scratch graphs and response: `/tmp/elc003-clean-graph.json`, `/tmp/elc003-advisory-matches.json`; prior graph `/tmp/wire-handoff-audit/production-graph.json`. Re-audit actual shipped archives after pruning and audit the development/tooling graph separately before ELC-003 acceptance. The older preview audit below remains historical evidence.
 
 The Yarn recursive production audit is incomplete for this purpose: it reports a transitive development Axios version while omitting advisories specific to shipped Axios 0.21.2. The actual [preview artifact](https://github.com/adamlow-wire/wire-desktop/actions/runs/34993542942/artifacts/10407101912) ASAR contains 433 installed package instances/370 distinct names. Querying the official npm bulk advisory endpoint with these exact names/versions returns 16 affected names/76 version-range advisories. These are advisory matches, not 76 demonstrated application vulnerabilities.
 

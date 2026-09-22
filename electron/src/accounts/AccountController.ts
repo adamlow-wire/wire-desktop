@@ -19,13 +19,13 @@
 
 import {Session, WebContents} from 'electron';
 
-import {Availability} from '@wireapp/protocol-messaging';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {AccountState, AccountSnapshot, AccountLimitError} from './AccountState';
 import {AccountViews} from './AccountViews';
 
 import type {Account, ConversationJoinData} from '../../renderer/src/types/account';
+import {BUSY_AVAILABILITY} from '../lib/availability';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
 import {isAccountCommand} from '../security/AccountControlIpc';
@@ -429,7 +429,7 @@ export class AccountController {
   private publishBadge(id: string): void {
     this.options.badge(
       this.snapshots().reduce((sum, account) => sum + account.badgeCount, 0),
-      this.options.state.get(id).availability === Availability.Type.BUSY,
+      this.options.state.get(id).availability === BUSY_AVAILABILITY,
     );
   }
 
