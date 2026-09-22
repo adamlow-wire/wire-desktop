@@ -17,11 +17,12 @@
  *
  */
 
+const asar = require('@electron/asar');
+
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const crypto = require('node:crypto');
-const asar = require('@electron/asar');
 
 const required = [
   'package.json',
@@ -53,7 +54,7 @@ const canaries = [
   'e2e-tests/wire-package-canary.trace.zip',
 ];
 
-async function verifyArchive(archive) {
+async function verifyArchive(archive, {unsignedMacOS = false} = {}) {
   // Inspect current bytes even if this process has previously read this path.
   asar.uncache(archive);
   const entries = asar.listPackage(archive).map(file => file.replace(/^[/\\]/, '').replace(/\\/g, '/'));
@@ -91,8 +92,19 @@ async function verifyArchive(archive) {
   }
   const metadata = JSON.parse(asar.extractFile(archive, 'package.json').toString('utf8'));
   assert.equal(metadata.main, 'electron/dist/main.js', 'Unexpected package entry point.');
+  if (unsignedMacOS) {
+    let wire;
+    try {
+      wire = JSON.parse(asar.extractFile(archive, 'electron/wire.json').toString('utf8'));
+    } catch {
+      throw new Error('Unsigned macOS update policy metadata is invalid.');
+    }
+    assert.equal(wire?.macAutoUpdateEnabled, false, 'Unsigned macOS update policy must explicitly disable updates.');
+  }
   const hash = crypto.createHash('sha256');
-  for await (const chunk of fs.createReadStream(archive)) hash.update(chunk);
+  for await (const chunk of fs.createReadStream(archive)) {
+    hash.update(chunk);
+  }
   return {
     archive: path.relative(process.cwd(), archive),
     sha256: hash.digest('hex'),
@@ -102,13 +114,17 @@ async function verifyArchive(archive) {
 }
 
 function findArchives(directory) {
-  if (!fs.existsSync(directory)) return [];
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
   const result = [];
   for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
     const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) result.push(...findArchives(file));
-    else if (entry.isFile() && entry.name === 'app.asar' && path.basename(directory).toLowerCase() === 'resources')
+    if (entry.isDirectory()) {
+      result.push(...findArchives(file));
+    } else if (entry.isFile() && entry.name === 'app.asar' && path.basename(directory).toLowerCase() === 'resources') {
       result.push(file);
+    }
   }
   return result;
 }
@@ -123,16 +139,27 @@ async function main(args) {
     }
     return;
   }
+  const unsignedMacOS = args[0] === '--unsigned-macos';
+  if (unsignedMacOS) {
+    args = args.slice(1);
+  }
+  assert.ok(
+    args.every(arg => !arg.startsWith('--')),
+    'Unknown package verification option.',
+  );
   assert.ok(args.length > 0, 'Supply build output directories.');
   const archives = [...new Set(args.flatMap(directory => findArchives(directory)))];
   assert.ok(archives.length > 0, 'No packaged app.asar found.');
   const manifests = [];
-  for (const archive of archives) manifests.push(await verifyArchive(archive));
-  process.stdout.write(JSON.stringify({archives: manifests}, null, 2) + '\n');
+  for (const archive of archives) {
+    manifests.push(await verifyArchive(archive, {unsignedMacOS}));
+  }
+  process.stdout.write(`${JSON.stringify({archives: manifests}, null, 2)}\n`);
 }
 module.exports = {required, canaries, verifyArchive, findArchives, main};
-if (require.main === module)
+if (require.main === module) {
   main(process.argv.slice(2)).catch(() => {
     process.stderr.write('Package content verification failed.\n');
     process.exitCode = 1;
   });
+}

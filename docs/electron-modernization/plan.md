@@ -844,7 +844,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - MSI installations do not invoke Squirrel and satisfy `docs/windows-msi.md`.
   - macOS update behavior is verified with signed/notarized artifacts.
   - Linux package launch and desktop integration are verified.
-- Evidence: TBD
+- Local pre-handoff evidence: startup/policy baselines `c96d5795`, `43c88dd7`, `331f79d6`; candidate `1dd68c0c` passes22 runtime/startup and329 tooling cases. ASAR-policy baseline `13456006` precedes26 passing synthetic-ASAR cases and sensitive CLI/enforcement checks. The macOS workflow requires archived literal-false policy; actual composed platform artifacts and all signed acceptance remain pending. See status and review-findings for commands and limitations.
 
 #### PKG-003 — Validate legacy-to-modernized data migration
 
