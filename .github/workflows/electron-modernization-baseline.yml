@@ -162,6 +162,22 @@ jobs:
           else
             yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|desktop log maintenance coordination'
           fi
+      - name: Test bounded native picture saves and IPC quotas
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'native picture save IPC|authorized IPC contract|save-picture IPC contract|safe storage IPC contracts'
+          else
+            yarn test:main --grep 'native picture save IPC|authorized IPC contract|save-picture IPC contract|safe storage IPC contracts'
+          fi
+      - name: Test SSO diagnostics and retained native authentication boundaries
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'SingleSignOn|WindowUtil'
+          else
+            yarn test:main --grep 'SingleSignOn|WindowUtil'
+          fi
       - name: Test native account lifecycle and cleanup
         shell: bash
         run: |
@@ -190,9 +206,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            xvfb-run yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|settings persistence recovery|settings schema migration|quit after settings persistence failure|environment settings persistence failure|developer environment settings failure|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           else
-            yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|settings persistence recovery|settings schema migration|quit after settings persistence failure|environment settings persistence failure|developer environment settings failure|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           fi
       - name: Test product account and calling boundaries
         shell: bash

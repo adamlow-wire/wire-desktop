@@ -96,7 +96,13 @@ export const addRelaunchListeners = (listener: () => void) => {
 
 export const quit = async (clearCache = false): Promise<void> => {
   logger.info('Initiating app quit ...');
-  settings.persistToFile();
+  try {
+    settings.persistToFile();
+  } catch {
+    // A failed save must preserve the previous file and must not trap the user
+    // in the application. Persistence already records a non-sensitive error.
+    logger.error('Exiting after settings persistence failed.');
+  }
 
   if (clearCache) {
     logger.info('Clearing cache ...');

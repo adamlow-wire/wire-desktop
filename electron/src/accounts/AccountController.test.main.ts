@@ -144,17 +144,53 @@ describe('production account controller integration', function () {
     if (initializationPhase !== 'ready') {
       console.error(`Account fixture initialization stopped during: ${initializationPhase}`);
     }
-    restore();
-    disposeControl?.();
-    disposeEvents?.();
-    await views?.dispose();
-    if (window && !window.isDestroyed()) {
-      window.destroy();
+    const started = performance.now();
+    let stage = 'restoring observers';
+    let stageStarted = started;
+    let reported = false;
+    const completed: Array<{stage: string; elapsedMs: number}> = [];
+    const advance = (nextStage: string) => {
+      const now = performance.now();
+      completed.push({stage, elapsedMs: Math.round(now - stageStarted)});
+      stage = nextStage;
+      stageStarted = now;
+    };
+    const report = (state: 'pending' | 'failed' | 'finished') => {
+      reported = true;
+      // Only fixed stage names and durations: never account IDs or native error payloads.
+      console.error('Account fixture cleanup diagnostics:', {
+        state,
+        stage,
+        elapsedMs: Math.round(performance.now() - started),
+        completed,
+      });
+    };
+    const warning = setTimeout(() => report('pending'), 9_000);
+    try {
+      restore();
+      disposeControl?.();
+      disposeEvents?.();
+      advance('destroying account views');
+      await views?.dispose();
+      advance('destroying shell window');
+      if (window && !window.isDestroyed()) {
+        window.destroy();
+      }
+      for (const [index, account] of (records ?? []).entries()) {
+        advance(`clearing session ${index + 1}`);
+        await accountSession(account).clearStorageData();
+      }
+      advance('closing fixture server');
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    } catch (error) {
+      report('failed');
+      throw error;
+    } finally {
+      clearTimeout(warning);
+      if (!reported && performance.now() - started >= 9_000) {
+        report('finished');
+      }
     }
-    for (const account of records ?? []) {
-      await accountSession(account).clearStorageData();
-    }
-    await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
   it('[regression][CAP-001] queues menu commands for their original account until that account is ready', async () => {

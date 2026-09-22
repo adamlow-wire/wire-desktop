@@ -14,7 +14,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:safe-storage:encrypt:v1` | account | OS key-store encryption | merged in PR #15 | SEC-003, DCP-016 |
 | `wire-desktop:safe-storage:decrypt:v1` | account | OS key-store decryption | merged in PR #15 | SEC-003, DCP-016 |
 | `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | merged in PR #16; PR #47 native preload startup uses immutable main-owned App-lock arguments to avoid synchronous reads before origin commitment; legacy entry retains this authorized channel | SEC-003, CAP-005 |
-| `wire-desktop:save-picture:v1` | account context action | Network-sized bytes, native dialog, file write | merged in PR #17 | SEC-003, SEC-004 |
+| `wire-desktop:save-picture:v1` | account context action | Bounded bytes, one active native save across accounts, file write | PR #17 integrated; F-011 bound local and awaiting native/composed qualification | SEC-003, SEC-004 |
 | `wire-desktop:notification:activate:v1` | account | Global window activation | merged in PR #18 | SEC-003, CAP-004 |
 | `wire-desktop:webapp:loaded:v1` | account | Flushes global queued actions | merged in PR #19 | SEC-003, CAP-001 |
 | `wire-desktop:badge-count:update:v1` | application shell | Tray, badge, dock, and flashing state | merged in PR #20 | SEC-003, CAP-004 |
