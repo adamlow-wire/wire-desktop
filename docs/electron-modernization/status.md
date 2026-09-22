@@ -1,9 +1,10 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-16
+updated: 2026-09-22
 milestone: M4
 active_work_item: PKG-001
 state: audit-remediation-in-progress
+current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
@@ -16,6 +17,34 @@ blockers: []
 # Current project status
 
 ## Current execution
+
+**Active goal (maintainer confirmed September 22): close every mandatory gate for the review-ready unsigned Wire engineering handoff in [plan.md, section 8](plan.md#current-goal-close-mandatory-unsigned-review-handoff).** The goal is active and incomplete. Later release qualification and optional improvements are separated explicitly there; no finding or gate is waived by this prioritization.
+
+**First executable task:** continue existing PKG-001 branch at `01fe145a`: fix F-014 aggregate Jest/Mocha/type ownership, then close F-006 fuse/signing order and failure propagation with baseline/sensitivity evidence. Preserve the September22 audit documentation changes. Follow the execution order below, integrating scoped fixes only after their required review and checks. Profile compatibility remains a required product decision; continue independent work while it is unresolved. Preparing the handoff does not authorize contacting Wire or releasing.
+
+### Return audit — September 22
+
+Read-only GitHub verification confirms integration is still `897e3930392fdc9479f9641c8c03f116947d4e95`. The clean starting checkout is `01fe145a` on the existing PKG-001 branch, one unpublished signing-test baseline ahead of remote `55073e83`. PR62 is the only open fork PR. The protected MSI worktree remains at `255bdd54`. Electron is still pinned to43.4.0 under the existing unsigned-handoff scope; this audit does not establish current release currency.
+
+The following completed results supersede the pending CI wording below:
+
+- Archive workflow [35038585587](https://github.com/adamlow-wire/wire-desktop/actions/runs/35038585587) at `974dcfa7` **failed overall**. Linux104613143677 and macOS104613143772 succeeded. [Windows104613143821](https://github.com/adamlow-wire/wire-desktop/actions/runs/35038585587/job/104613143821) stopped before packaging:29 secure-shell passes/one failure, a ten-second timeout in “owns the shell lifecycle and revokes authority on disposal.” No root cause or Windows archive qualification follows from this result.
+- [PR62](https://github.com/adamlow-wire/wire-desktop/pull/62) has passing build/lint/analysis and native/package checks, but its latest [full E2E35035967615](https://github.com/adamlow-wire/wire-desktop/actions/runs/35035967615) failed on Linux, macOS and Windows. Report publication succeeded; the PR is not merge-ready. The older webapp exception remains an investigation lead, not a fresh diagnosis of every latest failure.
+- Repeated capture/media [35036531801](https://github.com/adamlow-wire/wire-desktop/actions/runs/35036531801) finished with Linux/macOS successful and Windows failing native account lifecycle/cleanup, as previously diagnosed. Successful capture iterations do not resolve that separate failure.
+
+Fresh local validation also exposes a test-runner integration gap: `test:react --runInBand` reports28 passing/six failing suites,129 passing tests; Jest collects Mocha build-tool files and fails on their hooks/context or module loading. Root `tsc --noEmit` reports TS2683 at `build-cli.test.ts:58`, `build-wrapper.test.ts:46` and `macos-signing.test.ts:40`; dedicated `build:ts:bin` passes. These are recorded as F-014 under existing PKG-001/TST-005/TST-006. Logs: `/tmp/electron-return-{react,app-types,bin-types}.log`. No shared-display/native Electron tests, packaging, source perturbations, pushes or merges were performed.
+
+Fresh `node .yarn/releases/yarn-3.3.1.cjs test:bin` completes with303 passes/eight failures, all in the new macOS signing security-target suite. The unsigned/package controls pass; automatic ordering and manual failure propagation remain unsatisfied. The manual-success test also asserts a single signing event whereas the current implementation signs multiple components; review that assertion's abstraction before treating it as a separate defect. Evidence: `/tmp/electron-return-test-bin-unrestricted.log`. The first sandboxed attempt failed child spawning with EPERM and is environmental evidence only (`/tmp/electron-return-test-bin.log`); the completed retry permits inert Node children, not native signing or packaging. `git diff --check` passes for this documentation update.
+
+Accepted execution order:
+
+1. Continue PKG-001 on this branch: repair Jest/TypeScript test ownership without losing Mocha execution; complete F-006 signing/fuse order and native-tool failure propagation from baseline `01fe145a`; preserve metadata recovery and confidential diagnostics. Re-run aggregate checks, not only dedicated bin checks.
+2. Diagnose the retained Windows lifecycle failures and latest authenticated E2E failures under TST-005/F-002, then qualify actual Windows/macOS/Linux archives on the resulting head. Do not use blind retries as closure.
+3. Reconcile and review CAP-001 PR62 and the existing settings/IPC/SSO candidates against actual integration, keeping scoped PRs and requiring final-head protected checks. F-012 still needs the existing-profile versus fresh-profile-only compatibility decision before changing ciphertext ownership.
+4. Complete ELC-003's shipped-dependency audit/remediation and TST-006's full review/provenance/coverage ledger. The current inventory has444 rows, including380 with source review exactly `pending`,412 with test provenance `pending`, and423 with coverage disposition `pending`; these are ledger counts, not a completion percentage.
+5. Qualify the final composed unsigned PKG-001/TST-005 candidate and prepare the Wire review handoff. Signing/notarization, released-profile/update/rollback QA, live SSO/E2EI and independent security review remain external release gates under M5; M4 is not complete.
+
+### September 16 checkpoint (retained)
 
 Active goal remains TST-006 review/coverage, ELC-003 dependencies and unsigned PKG-001/TST-005 qualification. Integration remains `897e3930`; no runtime remediation PR has merged. Electron remains43.4.0. Required full E2E and F-012 profile-compatibility decisions remain open; independent work continues.
 

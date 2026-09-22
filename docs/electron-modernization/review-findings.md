@@ -14,6 +14,8 @@ The original modernization baseline is `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a
 
 ## Findings and remediation
 
+September22 return validation adds **F-014 — aggregate test-runner/type integration failure**, owned by PKG-001/TST-005/TST-006. At `01fe145a`, `node .yarn/releases/yarn-3.3.1.cjs test:react --runInBand` has28 passing/six failing suites and129 passing tests: Jest discovers Mocha build-tool tests and fails on `before`, Mocha `this.timeout`, or dependency module loading. `node node_modules/typescript/bin/tsc --noEmit` also fails TS2683 in three build-tool suites (`build-cli`, `build-wrapper`, `macos-signing`), although dedicated `build:ts:bin` passes. This blocks aggregate qualification; fix test ownership/configuration while preserving explicit Mocha collection and typing, then verify both runners and the root compiler. Local evidence: `/tmp/electron-return-react.log`, `/tmp/electron-return-app-types.log`, `/tmp/electron-return-bin-types.log`. No runtime regression or historical integration failure is inferred from this branch-local result.
+
 | ID | Severity / owner | Evidence and consequence | State / required follow-up |
 | --- | --- | --- | --- |
 | F-001 | Handoff evidence gap / TST-001, TST-006 | Fresh hosted counters omit actual application E2E execution; `mainProcess.ts` has 0/381 statements despite real product tests. Existing diff gate is not a full-baseline/per-module report. | Open: improve collection/reporting, audit exclusions, test reachable gaps and disposition every remainder. |

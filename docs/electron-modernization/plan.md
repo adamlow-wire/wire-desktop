@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.59
+revision: 1.5.60
 status: draft
-updated: 2026-09-16
+updated: 2026-09-22
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -202,7 +202,23 @@ M3 work remains one primary work item per PR, but validation is organized around
 
 Each PR still requires its focused tests and protected-branch checks. Authenticated cross-platform E2E runs at behavior-changing PRs and the checkpoints above; schema-only migrations may rely on the next checkpoint when the deferred platform gap is explicit.
 
-### Next execution: internal review and unsigned handoff
+### Current goal: close mandatory unsigned review-handoff work
+
+The maintainer confirmed this as the current goal on September 22. Completion means a **review-ready unsigned engineering handoff**, not merely making the unfinished candidate available for feedback. Use existing work items; unrelated cleanup, UI changes, new features and architectural redesign without an evidenced defect are outside this goal.
+
+All of the following are mandatory before accepting the handoff:
+
+| Gate | Existing owners | Required evidence |
+| --- | --- | --- |
+| Aggregate test and type integration | PKG-001, TST-005 | Correct Jest/Mocha ownership and passing root and dedicated type checks, without omitting tooling tests. |
+| Confirmed security, data-loss and packaging findings | TST-006 and existing CAP/SEC/PKG owners | Reviewed, sensitivity-tested and integrated fixes for diagnostics, settings recovery, resource bounds, package inputs, failure propagation and fuse/signing order; no unresolved high/critical or known security/data-loss finding. |
+| Ciphertext ownership and profile compatibility | SEC-003, PKG-003, DCP-016 | Explicit existing-profile or fresh-profile-only decision and an implemented, tested contract; no silent data loss or cross-account decryption authority. |
+| Shipped-dependency qualification | ELC-003 | Actual shipped graph reviewed, necessary compatible remediation tested, and no unaccepted high/critical finding. |
+| Internal review and test evidence | TST-006 | Completed module, capability/invariant, provenance and coverage ledgers; meaningful tests for reachable automatable paths and specific reviewed dispositions for residual gaps. |
+| Final composed platform qualification | PKG-001, TST-005 | Required build/type/lint/analysis, native, authenticated E2E/report and actual unsigned artifact checks pass on the final composed Windows/macOS/Linux candidate; outstanding failures are investigated, not hidden by retries. |
+| Reproducible handoff | PKG-001, TST-005, TST-006, GOV-002 | Exact source/artifact identity and hashes, build/test/setup instructions, durable CI evidence, known limitations and runnable external QA procedures with intended owners. |
+
+Actual credentialed signing/notarization and post-sign verification, signed updates, released-installation migration/rollback, live SSO/E2EI, remaining real OS/hardware qualification, independent security review and release-time Electron currency remain mandatory later release qualifications. They are not unsigned-handoff prerequisites or optional release work. Deterministic failure/order/migration tests and downstream procedures remain required now. No security invariant or existing acceptance criterion is waived.
 
 Follow [quality-review.md](quality-review.md): establish the full change/behavior ledger under TST-006, close reachable coverage and quality findings through their existing owners, resolve ELC-003, complete unsigned PKG-001 and packaged TST-005, then re-review and qualify the composed candidate. Prepare Wire review material under GOV-002; do not publish upstream or contact Wire without explicit authorization. A review handoff may precede M5, but no production release, signed-update or customer E2EI compatibility claim may do so. Keep Electron 43.4.0 for this goal; later release currency remains ELC-004.
 
@@ -967,6 +983,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.60 | 2026-09-22 | Maintainer in chat; Codex | Activate mandatory unsigned review-handoff closeout; make acceptance gates and later release qualifications explicit, retaining existing owners and invariants | PKG-001, TST-005, TST-006, ELC-003, SEC-003, PKG-003, GOV-002 |
 | 1.5.59 | 2026-09-16 | Codex | Start PKG-001 remediation of packaged inputs, secret diagnostics and fail-closed builds; retain unsigned scope and signed-release deferral | PKG-001, SEC-011, INV-010, TST-006 |
 | 1.5.58 | 2026-09-15 | Codex | Extend existing CAP-001 remediation with bounded log admission and immutable queued inputs; preserve cleanup barriers and document diagnostic truncation/loss | CAP-001, INV-010, TST-006 |
 | 1.5.57 | 2026-09-15 | Codex | Reopen CAP-002 for sensitive SSO diagnostics with an explicit safe logging contract and separate failing baseline; preserve authentication and pinning behavior | CAP-002, INV-010, TST-006 |

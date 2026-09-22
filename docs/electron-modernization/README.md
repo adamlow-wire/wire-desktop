@@ -17,7 +17,7 @@ M3 evidence: [Complete acceptance audit](./m3-acceptance.md), including whole-mi
 
 M4 evidence: [Functional acceptance audit](./m4-acceptance.md), including capture/PiP, OS routes, development CI and the remaining packaging/manual QA obligations.
 
-Next goal: [Integrated quality review and test-completeness plan](quality-review.md), with [copyable restart prompt](resume-m4.md). Signing validation is scheduled for Wire after review; unsigned handoff is not release qualification.
+Current goal: [Close mandatory unsigned review-handoff work](plan.md#current-goal-close-mandatory-unsigned-review-handoff), using the [quality-review execution plan](quality-review.md) and [copyable restart prompt](resume-m4.md). The maintainer activated this goal on September22. Signing validation is scheduled for Wire after review; unsigned handoff is not release qualification.
 
 M0 evidence:
 
