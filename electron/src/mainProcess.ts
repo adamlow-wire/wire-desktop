@@ -717,14 +717,15 @@ function logConfiguredUserDataPath(userDataPath: string): void {
 function handleMissingUserDataPath(): void {}
 
 const applyProxySettings = async (authenticatedProxyDetails: URL, webContents: Electron.WebContents): Promise<void> => {
-  const proxyURL = authenticatedProxyDetails.origin.split('://')[1];
+  const proxyURL = authenticatedProxyDetails.host;
   const proxyProtocol = authenticatedProxyDetails.protocol;
   const isSocksProxy = proxyProtocol === 'socks4:' || proxyProtocol === 'socks5:';
 
   logger.info(`Setting proxy on the window to URL "${proxyURL}" with protocol "${proxyProtocol}"...`);
   webContents.session.allowNTLMCredentialsForDomains(authenticatedProxyDetails.hostname);
 
-  const proxyRules = isSocksProxy ? `socks=${proxyURL}` : `http=${proxyURL};https=${proxyURL}`;
+  const proxyEndpoint = proxyProtocol === 'https:' || isSocksProxy ? `${proxyProtocol}//${proxyURL}` : proxyURL;
+  const proxyRules = isSocksProxy ? `socks=${proxyEndpoint}` : `http=${proxyEndpoint};https=${proxyEndpoint}`;
   await webContents.session.setProxy({pacScript: '', proxyBypassRules: '', proxyRules});
 };
 
