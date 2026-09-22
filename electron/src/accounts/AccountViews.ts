@@ -108,43 +108,43 @@ export class AccountViews {
         webviewTag: false,
       },
     });
-    view.setVisible(false);
     const contents = view.webContents;
-    const registration = registerViewIdentity(this.options.registry, {
-      accountId: account.id,
-      allowedOrigin: url.origin,
-      capabilities: this.options.capabilities,
-      partition: account.sessionID ?? 'default',
-      session: accountSession,
-      viewType: 'account',
-      webContents: contents,
-    });
-    const entry: ViewEntry = {
-      view,
-      contents,
-      partition,
-      identity: registration.identity,
-      ready: false,
-      notificationRequested: false,
-      cancelConsent: () => undefined,
-      revoke: registration.revoke,
-    };
-    this.entries.set(account.id, entry);
-    contents.on('did-start-navigation', details => {
-      if (details.isMainFrame && !details.isSameDocument) {
-        entry.ready = false;
-        entry.notificationRequested = false;
-      }
-    });
-    bindNavigationGuard(contents, target => isAllowedAccountNavigation(target, url.origin));
-    contents.setWindowOpenHandler(() => ({action: 'deny'}));
-    contents.once('render-process-gone', () => {
-      registration.revoke();
-      if (this.entries.get(account.id)?.view === view) {
-        void this.close(account.id).then(() => this.options.lost(account.id));
-      }
-    });
     try {
+      view.setVisible(false);
+      const registration = registerViewIdentity(this.options.registry, {
+        accountId: account.id,
+        allowedOrigin: url.origin,
+        capabilities: this.options.capabilities,
+        partition: account.sessionID ?? 'default',
+        session: accountSession,
+        viewType: 'account',
+        webContents: contents,
+      });
+      const entry: ViewEntry = {
+        view,
+        contents,
+        partition,
+        identity: registration.identity,
+        ready: false,
+        notificationRequested: false,
+        cancelConsent: () => undefined,
+        revoke: registration.revoke,
+      };
+      this.entries.set(account.id, entry);
+      contents.on('did-start-navigation', details => {
+        if (details.isMainFrame && !details.isSameDocument) {
+          entry.ready = false;
+          entry.notificationRequested = false;
+        }
+      });
+      bindNavigationGuard(contents, target => isAllowedAccountNavigation(target, url.origin));
+      contents.setWindowOpenHandler(() => ({action: 'deny'}));
+      contents.once('render-process-gone', () => {
+        registration.revoke();
+        if (this.entries.get(account.id)?.view === view) {
+          void this.close(account.id).then(() => this.options.lost(account.id));
+        }
+      });
       const consent = this.options.permissionConsent;
       const permissions = new AccountPermissionPolicy(this.options.registry, registration.identity, {
         canPrompt: identity => view.getVisible() && consent?.canPrompt(identity) === true,
@@ -176,6 +176,16 @@ export class AccountViews {
     } catch (error) {
       if (this.entries.get(account.id)?.view === view) {
         await this.close(account.id);
+      } else if (!contents.isDestroyed()) {
+        // Setup can fail before an entry exists; the allocated contents are still ours.
+        const destroyed = new Promise<void>(resolve => contents.once('destroyed', () => resolve()));
+        this.closing.set(account.id, {partition, done: destroyed});
+        try {
+          contents.close({waitForBeforeUnload: false});
+          await destroyed;
+        } finally {
+          this.closing.delete(account.id);
+        }
       }
       throw error;
     }
