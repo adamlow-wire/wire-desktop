@@ -88,7 +88,7 @@ Module._load = function (request, parent, isMain) {
       getCommonConfig: async () => ({
         commonConfig: {name: 'Owned', version: '1.0.0', distDir: root, electronDirectory: 'electron',
           environment: mode === 'automatic-app-store' ? 'production' : 'internal',
-          macAutoUpdateEnabled: mode === 'unsigned' || mode === 'automatic-app-store'},
+          macAutoUpdateEnabled: mode === 'unsigned' || mode === 'automatic-app-store' || mode === 'automatic-disabled-sign' || mode === 'manual-ad-hoc'},
       }),
       flipElectronFuses: async () => step('fuses'),
     };
@@ -138,10 +138,16 @@ Module._load = function (request, parent, isMain) {
     }
     if (mode.endsWith('application-only')) delete process.env.MACOS_CERTIFICATE_NAME_INSTALLER;
     if (mode === 'automatic-installer-only') delete process.env.MACOS_CERTIFICATE_NAME_APPLICATION;
+    if (mode === 'manual-ad-hoc') process.env.MACOS_CERTIFICATE_NAME_APPLICATION = '-';
     const manual = mode.startsWith('manual');
     let error;
     try {
       const {packagerConfig, macOSConfig} = await buildMacOSConfig(wireFile, 'unused', manual);
+      if (mode === 'automatic-disabled-sign') {
+        delete packagerConfig.osxSign;
+        delete packagerConfig.osxNotarize;
+        macOSConfig.certNameInstaller = null;
+      }
       await buildMacOSWrapper(packagerConfig, macOSConfig, packageFile, wireFile, 'unused', manual);
     } catch (caught) {
       error = caught;

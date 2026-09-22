@@ -38,7 +38,14 @@ function run(mode: string, phase: string) {
 
 describe('[PKG-001][SEC-011] macOS signing order and fail-closed tools', function () {
   this.timeout(15000);
-  for (const mode of ['unsigned', 'automatic', 'manual', 'automatic-app-store']) {
+  for (const mode of [
+    'unsigned',
+    'automatic',
+    'manual',
+    'automatic-app-store',
+    'automatic-disabled-sign',
+    'manual-ad-hoc',
+  ]) {
     it(`[security-target] ${mode} writes the build-owned update policy`, () => {
       const {result} = run(mode, 'success');
       assert.equal(result.rejected, false);
