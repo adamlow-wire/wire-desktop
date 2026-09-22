@@ -31,6 +31,23 @@ const secret = 'synthetic-signing-failure-secret';
 const failure = new Error(secret);
 const events = [];
 const diagnostics = [];
+const signingOptions = [];
+const notaryOptions = [];
+const installerOptions = [];
+const sign = async options => {
+  signingOptions.push({
+    app: options.app,
+    identity: options.identity,
+    platform: options.platform,
+    parent: options.optionsForFile?.(appFile)?.entitlements,
+    child: options.optionsForFile?.(path.join(appFile, 'Contents/Frameworks/Owned Helper.app'))?.entitlements,
+  });
+  await step('sign');
+};
+const installer = async options => {
+  installerOptions.push({app: options.app, identity: options.identity, platform: options.platform});
+  await step('installer');
+};
 const packageFile = path.join(root, 'package.json');
 const wireFile = path.join(root, 'wire.json');
 const appFile = path.join(root, 'Owned.app');
@@ -51,12 +68,18 @@ Module._load = function (request, parent, isMain) {
   if (request === '@wireapp/commons') return {LogFactory: {getLogger: () => logger}};
   if (request === '@electron/osx-sign')
     return {
-      signApp: async () => step('sign'),
-      signAsync: async () => step('sign'),
-      flatAsync: async () => step('installer'),
-      buildPkg: async () => step('installer'),
+      signApp: sign,
+      signAsync: sign,
+      flatAsync: installer,
+      buildPkg: installer,
     };
-  if (request === '@electron/notarize') return {notarize: async () => step('notarize')};
+  if (request === '@electron/notarize')
+    return {
+      notarize: async options => {
+        notaryOptions.push({appPath: options.appPath, teamId: options.teamId, tool: options.tool});
+        await step('notarize');
+      },
+    };
   if (request === './commonConfig')
     return {
       getCommonConfig: async () => ({
@@ -111,6 +134,10 @@ Module._load = function (request, parent, isMain) {
     process.stdout.write(
       JSON.stringify({
         events,
+        signingOptions,
+        notaryOptions,
+        installerOptions,
+        appFile,
         rejected: Boolean(error),
         exactFailure: error === failure,
         secretLogged: diagnostics.some(text => text.includes(secret)),

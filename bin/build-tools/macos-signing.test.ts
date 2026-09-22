@@ -60,6 +60,39 @@ describe('[PKG-001][SEC-011] macOS signing order and fail-closed tools', functio
         assert.equal(result.metadataRestored, true);
         assert.equal(result.secretLogged || stderr.includes('synthetic-signing-failure-secret'), false);
         assert.deepEqual(result.events, expected);
+        if (phase === 'success' && mode !== 'unsigned') {
+          assert.deepEqual(result.signingOptions, [
+            {
+              app: result.appFile,
+              identity: "Fixture ' application identity",
+              platform: 'mas',
+              parent: 'resources/macos/entitlements/parent.plist',
+              child:
+                mode === 'manual'
+                  ? 'resources/macos/entitlements/child.plist'
+                  : 'resources/macos/entitlements/parent.plist',
+            },
+          ]);
+          assert.deepEqual(result.installerOptions, [
+            {
+              app: result.appFile,
+              identity: "Fixture ' installer identity",
+              platform: 'mas',
+            },
+          ]);
+          assert.deepEqual(
+            result.notaryOptions,
+            mode === 'manual'
+              ? []
+              : [
+                  {
+                    appPath: result.appFile,
+                    teamId: 'FIXTURETEAM',
+                    tool: 'notarytool',
+                  },
+                ],
+          );
+        }
       });
     }
   }
