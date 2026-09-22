@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-22
 milestone: M4
-active_work_item: PKG-001
-state: audit-remediation-in-progress
+active_work_item: ELC-003
+state: local-dependency-remediation
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-001-fail-closed-builds-2026-09-15
+active_branch: fix/ELC-003-protocol-runtime-2026-09-22
 next_work_item: TST-006
 blockers: [fork-publication-approval, profile-compatibility-decision]
 ---
@@ -17,6 +17,9 @@ blockers: [fork-publication-approval, profile-compatibility-decision]
 # Current project status
 
 ## Current execution
+
+**ELC-003 active local slice:** isolated worktree `/tmp/wire-elc003-protocol-runtime`, branch `fix/ELC-003-protocol-runtime-2026-09-22`, based on packaging candidate `1df502a5`. Publication approval remains pending; no remote write is authorized by elapsed time. Remove the production protocol-messaging dependency used only for BUSY=3 after characterizing both consumers. The unchanged implementation passes34 renderer-action tests and six real-controller/registry Node cases. Changing BUSY to AWAY separately fails two exact assertions per consumer, then source is restored. Next: commit the restored baseline, replace the runtime enum dependency with a shared wire value, regenerate the dependency lock graph, and validate types/tests/bundles and actual package pruning before claiming artifact improvement. Broader ELC-003 advisories remain open. No native windows are created. Logs: `/tmp/elc003-{renderer,controller}-{baseline,sensitivity,restored}.log`.
+
 
 **Active goal (maintainer confirmed September 22): close every mandatory gate for the review-ready unsigned Wire engineering handoff in [plan.md, section 8](plan.md#current-goal-close-mandatory-unsigned-review-handoff).** The goal is active and incomplete. Later release qualification and optional improvements are separated explicitly there; no finding or gate is waived by this prioritization.
 
