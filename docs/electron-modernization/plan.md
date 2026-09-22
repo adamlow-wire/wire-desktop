@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.64
+revision: 1.5.65
 status: draft
 updated: 2026-09-22
 owners:
@@ -756,10 +756,11 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### CAP-004 — Migrate tray, notification, badge, menu, and shortcut integration
 
 - Priority: `P1`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: TST-003, SEC-003, CAP-001
 - Scope: Route OS integration through explicit main-process capabilities and preserve account-aware behavior.
+- F-017 TST-006 follow-up: failed log archive creation/write/publication must preserve an existing user-selected destination. Stage privately on the destination filesystem and publish only a complete archive; retain successful approved replacement and owned cleanup. The September15 functional acceptance below remains historical, not acceptance of this finding.
 - Acceptance:
   - TST-003 and existing menu/notification E2E pass.
   - Renderer data cannot invoke arbitrary menu commands.
@@ -987,6 +988,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.65 | 2026-09-22 | Codex | Reopen existing CAP-004 for reproduced log-export destination data loss and separate baseline | CAP-004, DCP-005, F-017, TST-006 |
 | 1.5.64 | 2026-09-22 | Codex | Define build-owned unsigned-update policy and repair F-007 startup routing with separate baseline targets | PKG-002, F-007 |
 | 1.5.63 | 2026-09-22 | Codex | Start existing PKG-002 pre-handoff updater failure/diagnostic remediation; retain startup and signed-release gates | PKG-002, F-007, INV-010 |
 | 1.5.60 | 2026-09-22 | Maintainer in chat; Codex | Activate mandatory unsigned review-handoff closeout; make acceptance gates and later release qualifications explicit, retaining existing owners and invariants | PKG-001, TST-005, TST-006, ELC-003, SEC-003, PKG-003, GOV-002 |

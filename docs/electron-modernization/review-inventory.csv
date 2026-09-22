@@ -208,8 +208,8 @@ electron/src/logging/logDirectoryAncestors.ts,A,application,pending,pending,pend
 electron/src/logging/logDirectoryCleanup.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/logging/logDirectoryCleanup.ts,A,application,pending,pending,pending
 electron/src/logging/logExport.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/logging/logExport.ts,A,application,pending,pending,pending
-electron/src/logging/logExportDependencies.ts,A,application,pending,pending,pending
+electron/src/logging/logExport.ts,A,application,F-017 confirmed destination truncation before success; remaining log-export review pending,Separate destination-preservation baseline: one new control pass/two failures; nine existing tests pass,New control sensitive to missing ZIP entries; preservation fix and native qualification pending
+electron/src/logging/logExportDependencies.ts,A,application,F-017 confirmed destination truncation before success; remaining log-export review pending,Separate destination-preservation baseline: one new control pass/two failures; nine existing tests pass,New control sensitive to missing ZIP entries; preservation fix and native qualification pending
 electron/src/logging/logFiles.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/logging/logFiles.ts,A,application,pending,pending,pending
 electron/src/logging/logMaintenance.test.main.ts,A,test/fixture,pending,pending,pending
@@ -458,3 +458,4 @@ electron/src/update/updaterStartup.test.main.ts,A,main/security,Reviewed single 
 electron/test/fixtures/updater-startup.cjs,A,main/security,Reviewed structural extraction of actual callback and inert ports,Pre-fix Node composition fixture,No native lifecycle or update claim; nested listener retained under test
 electron/src/settings/config.ts,M,main/security,Reviewed optional build-owned update policy field; other configuration review pending,43c88dd7 runtime policy targets,Missing/non-boolean flag denied; native artifact inspection pending
 electron/src/update/macosAutoUpdater.ts,M,main/security,F-007 local diagnostic and policy review,e0103706 diagnostics; 43c88dd7 runtime policy targets,15 inert Node cases; failure and gate sensitivity; signed qualification pending
+electron/src/logging/logExportRecovery.test.main.ts,A,test/fixture,Reviewed owned real-file and actual ZIP/stream failure scope,One success control pass/two preservation targets fail before fix,Omitted archive entries fail success control; restored baseline; no native execution
