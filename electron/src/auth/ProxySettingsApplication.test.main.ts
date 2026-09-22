@@ -17,30 +17,9 @@
  *
  */
 
-import * as ts from 'typescript';
-
 import {strict as assert} from 'assert';
-import {readFileSync} from 'fs';
-import * as path from 'path';
-import {runInNewContext} from 'vm';
 
-function loadApplication(logs: unknown[][]): (proxy: URL, contents: unknown) => Promise<void> {
-  const filename = path.resolve('electron/src/mainProcess.ts');
-  const source = ts.createSourceFile(filename, readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true);
-  const initializers: ts.Expression[] = [];
-  const visit = (node: ts.Node) => {
-    if (ts.isVariableDeclaration(node) && node.name.getText(source) === 'applyProxySettings' && node.initializer) {
-      initializers.push(node.initializer);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  assert.equal(initializers.length, 1, 'one actual production proxy application function');
-  const compiled = ts.transpileModule(`const apply = ${initializers[0].getText(source)}; apply;`, {
-    compilerOptions: {target: ts.ScriptTarget.ES2022},
-  }).outputText;
-  return runInNewContext(compiled, {logger: {info: (...args: unknown[]) => logs.push(args)}});
-}
+import {loadProxySettingsApplication} from '../../test/proxySettingsApplicationFixture';
 
 const cases = [
   ['http', '[::1]:8080', 'http=[::1]:8080;https=[::1]:8080'],
@@ -60,7 +39,7 @@ describe('[CAP-005] production proxy rule application (inert session)', () => {
       const configured: unknown[] = [];
       const domains: string[] = [];
       const proxy = new URL(`${protocol}://fixture-user:fixture-password@${host}/?private=fixture-query`);
-      const apply = loadApplication(logs);
+      const apply = loadProxySettingsApplication(logs);
       await apply(proxy, {
         session: {
           allowNTLMCredentialsForDomains: (domain: string) => domains.push(domain),
@@ -77,7 +56,7 @@ describe('[CAP-005] production proxy rule application (inert session)', () => {
   }
 
   it('awaits native proxy application and preserves its rejection for the caller', async () => {
-    const apply = loadApplication([]);
+    const apply = loadProxySettingsApplication([]);
     let reject!: (error: Error) => void;
     const pending = new Promise<void>((_resolve, rejectPromise) => {
       reject = rejectPromise;
