@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.60
+revision: 1.5.61
 status: draft
 updated: 2026-09-22
 owners:
@@ -826,6 +826,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Supported OS versions, architectures and artifact formats are explicit; verify existing requirements before requesting missing product decisions. Unsigned artifacts launch and required packaged smoke tests actually execute on every in-scope platform.
   - Artifact identity and environment separation are preserved.
 - TST-006 remediation: F-004 restricts packaged inputs; F-005 forbids credential-bearing configuration dumps/native errors in CLI diagnostics; F-006 requires failure propagation, metadata restoration on every outcome and reviewed fuse/signing order. Baseline `7eb299f3` establishes eight passing CLI controls and ten failing targets before the local fix. Actual signing/notarization remains deferred; local mock success never closes that gate.
+- TST-006 deployment follow-up F-015: dry-run and failure diagnostics must omit request/configuration objects, credentials, bodies and asset buffers. Preserve nonzero CLI exit and rejected upload promises, including offline and rollback failures. GitHub rollback targets the failed draft ID; Hockey dry runs open no asset stream, and stream errors reject the upload with a fixed diagnostic and close the stream. Baselines and sensitivity evidence are in the review ledger; local inert tests do not authorize or qualify real deployment.
 - Evidence: See [review findings](review-findings.md); CLI remediation and metadata-backup collision reproduction are local, with full unsigned artifact qualification pending.
 
 #### PKG-002 — Qualify installers and updater behavior
@@ -983,6 +984,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.61 | 2026-09-22 | Codex | Record deployment diagnostic and stream failure contract under existing PKG-001 remediation | PKG-001, F-015, INV-010 |
 | 1.5.60 | 2026-09-22 | Maintainer in chat; Codex | Activate mandatory unsigned review-handoff closeout; make acceptance gates and later release qualifications explicit, retaining existing owners and invariants | PKG-001, TST-005, TST-006, ELC-003, SEC-003, PKG-003, GOV-002 |
 | 1.5.59 | 2026-09-16 | Codex | Start PKG-001 remediation of packaged inputs, secret diagnostics and fail-closed builds; retain unsigned scope and signed-release deferral | PKG-001, SEC-011, INV-010, TST-006 |
 | 1.5.58 | 2026-09-15 | Codex | Extend existing CAP-001 remediation with bounded log admission and immutable queued inputs; preserve cleanup barriers and document diagnostic truncation/loss | CAP-001, INV-010, TST-006 |

@@ -144,29 +144,27 @@ export class HockeyDeployer {
       status: 2,
     };
 
-    const readStream = fs.createReadStream(resolvedFile).on('error', error => {
-      throw error;
-    });
-    const formData = new FormData();
-
-    Object.entries(postData).forEach(([key, value]) => formData.append(key, value));
-    formData.append('files', readStream);
-
-    const headers = {
-      ...formData.getHeaders(),
-      'X-HockeyAppToken': hockeyToken,
-    };
-
     if (this.options.dryRun) {
-      logDry('uploadVersion', {hockeyUrl, postData});
+      logDry('uploadVersion');
       return;
     }
 
+    let readStream: ReturnType<typeof fs.createReadStream> | undefined;
     try {
+      readStream = fs.createReadStream(resolvedFile);
+      const formData = new FormData();
+      Object.entries(postData).forEach(([key, value]) => formData.append(key, value));
+      formData.append('files', readStream);
+      const headers = {
+        ...formData.getHeaders(),
+        'X-HockeyAppToken': hockeyToken,
+      };
       await axios.put<void>(hockeyUrl, formData, {headers, maxContentLength: THREE_HUNDRED_MB_IN_BYTES});
     } catch {
       this.logger.error('Hockey version upload failed');
       throw new Error('Hockey version upload failed');
+    } finally {
+      readStream?.destroy();
     }
   }
 }

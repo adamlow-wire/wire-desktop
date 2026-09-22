@@ -23,7 +23,7 @@ import path from 'path';
 
 describe('[PKG-001][F-015] Hockey asset stream lifetime', function () {
   this.timeout(15000);
-  for (const mode of ['success', 'missing', 'dry']) {
+  for (const mode of ['success', 'missing', 'dry', 'transport']) {
     it(`${mode} keeps stream failures inside the upload promise and closes assets`, () => {
       const child = spawnSync(
         process.execPath,
@@ -36,9 +36,10 @@ describe('[PKG-001][F-015] Hockey asset stream lifetime', function () {
       );
       assert.equal(child.error, undefined);
       assert.equal(child.status, 0, child.stderr);
+      assert.ok(child.stdout.trim(), 'Fixture must observe stream closure and report completion');
       const result = JSON.parse(child.stdout.trim().split('\n').at(-1)!);
       assert.equal(result.uncaught, false);
-      assert.equal(result.rejected, mode === 'missing');
+      assert.equal(result.rejected, mode === 'missing' || mode === 'transport');
       assert.equal(result.requests, mode === 'dry' ? 0 : 1);
       assert.equal(result.reads, mode === 'dry' ? 0 : 1);
       assert.equal(result.closed, true);

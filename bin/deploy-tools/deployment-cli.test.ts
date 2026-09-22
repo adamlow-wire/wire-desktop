@@ -63,10 +63,12 @@ describe('[PKG-001][F-015] deployment CLI failure boundary', function () {
             record => record.kind === 'step' && record.stage === (mode === 'preparation' ? 'preparation' : 'operation'),
           ),
         );
-        if (mode !== 'preparation')
+        if (mode !== 'preparation') {
           assert.ok(records.some(record => record.kind === 'config' && record.dryRun === true));
-        if (mode !== 'success')
+        }
+        if (mode !== 'success') {
           assert.ok(records.some(record => record.kind === 'diagnostic' && record.level === 'error'));
+        }
         assert.equal(`${child.stdout}${child.stderr}`.includes('synthetic-cli-secret'), false);
       });
     }

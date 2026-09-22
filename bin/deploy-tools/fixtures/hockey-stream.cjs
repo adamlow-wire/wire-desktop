@@ -24,7 +24,7 @@ const path = require('node:path');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wire-hockey-stream-'));
 const mode = process.env.HOCKEY_STREAM_MODE;
 const asset = path.join(root, 'synthetic-private-path');
-if (mode === 'success') fs.writeFileSync(asset, 'synthetic asset');
+if (['success', 'transport'].includes(mode)) fs.writeFileSync(asset, 'synthetic asset');
 const emit = result => process.stdout.write(JSON.stringify(result) + '\n');
 let reads = 0,
   requests = 0,
@@ -54,6 +54,7 @@ Module._load = function (name, parent, isMain) {
     return {
       put: async (url, data) => {
         requests++;
+        if (mode === 'transport') throw new Error('synthetic-private-path');
         await new Promise((resolve, reject) => {
           data.on('error', reject);
           data.on('end', resolve);
