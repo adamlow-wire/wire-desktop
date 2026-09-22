@@ -208,8 +208,8 @@ electron/src/logging/logDirectoryAncestors.ts,A,application,pending,pending,pend
 electron/src/logging/logDirectoryCleanup.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/logging/logDirectoryCleanup.ts,A,application,pending,pending,pending
 electron/src/logging/logExport.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/logging/logExport.ts,A,application,pending,pending,pending
-electron/src/logging/logExportDependencies.ts,A,application,pending,pending,pending
+electron/src/logging/logExport.ts,A,application,F-017 adjacent private staging/publication and failure ownership reviewed; broader log-export review pending,5367256f ten controls pass/two failures; later staging/publication/permission regressions,17 filesystem/ZIP cases; bypass/publication/cleanup sensitivity fails2/1/1; native filesystem/ACL/chooser pending
+electron/src/logging/logExportDependencies.ts,A,application,F-017 adjacent private staging/publication and failure ownership reviewed; broader log-export review pending,5367256f ten controls pass/two failures; later staging/publication/permission regressions,17 filesystem/ZIP cases; bypass/publication/cleanup sensitivity fails2/1/1; native filesystem/ACL/chooser pending
 electron/src/logging/logFiles.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/logging/logFiles.ts,A,application,pending,pending,pending
 electron/src/logging/logMaintenance.test.main.ts,A,test/fixture,pending,pending,pending
@@ -220,7 +220,7 @@ electron/src/logging/logRetention.test.main.ts,A,test/fixture,pending,pending,pe
 electron/src/logging/logRetention.ts,A,application,pending,pending,pending
 electron/src/logging/logStartup.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/logging/logStartup.ts,R054,application,pending,pending,pending
-electron/src/logging/loggerUtils.ts,M,application,pending,pending,pending
+electron/src/logging/loggerUtils.ts,M,application,F-017 production staging-port forwarding reviewed; diagnostic and broader composition review pending,pending,pending
 electron/src/main.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/main.ts,M,application,pending,pending,pending
 electron/src/mainProcess.ts,A,application,F-007 ready callback reviewed locally; remaining composition review pending,c96d5795 six startup controls pass/one route target fails,Seven Node callback contracts; second-ready mutation fails; native and full composition coverage pending
@@ -458,3 +458,4 @@ electron/src/update/updaterStartup.test.main.ts,A,main/security,Reviewed single 
 electron/test/fixtures/updater-startup.cjs,A,main/security,Reviewed structural extraction of actual callback and inert ports,Pre-fix Node composition fixture,No native lifecycle or update claim; nested listener retained under test
 electron/src/settings/config.ts,M,main/security,Reviewed optional build-owned update policy field; other configuration review pending,43c88dd7 runtime policy targets,Missing/non-boolean flag denied; native artifact inspection pending
 electron/src/update/macosAutoUpdater.ts,M,main/security,F-007 local diagnostic and policy review,e0103706 diagnostics; 43c88dd7 runtime policy targets,15 inert Node cases; failure and gate sensitivity; signed qualification pending
+electron/src/logging/logExportRecovery.test.main.ts,A,test/fixture,F-017 adjacent private staging/publication and failure ownership reviewed; broader log-export review pending,5367256f ten controls pass/two failures; later staging/publication/permission regressions,17 filesystem/ZIP cases; bypass/publication/cleanup sensitivity fails2/1/1; native filesystem/ACL/chooser pending
