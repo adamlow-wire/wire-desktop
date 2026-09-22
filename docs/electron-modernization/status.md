@@ -24,6 +24,8 @@ blockers: []
 
 ### Return audit — September 22
 
+**F-014 implementation checkpoint:** Jest now excludes Node-only `bin/` suites, which remain mandatory under `test:bin`; root typing delegates tooling tests to `tsconfig.bin.json`, and `test:types` explicitly runs that compiler before Playwright typing. Root/tooling/Playwright types pass together; Jest passes all74 renderer tests in12 suites. Prior129 counted additional tooling tests under the wrong runner. The complete Mocha run is in progress; eight known signing-target failures remain expected until F-006 remediation. Evidence: `/tmp/pkg001-f014-{jest,types,bin}.log`. Configuration formatting and JS syntax pass. An attempted direct Mocha import exposed competing global declarations and was reverted before these passing results.
+
 Read-only GitHub verification confirms integration is still `897e3930392fdc9479f9641c8c03f116947d4e95`. The clean starting checkout is `01fe145a` on the existing PKG-001 branch, one unpublished signing-test baseline ahead of remote `55073e83`. PR62 is the only open fork PR. The protected MSI worktree remains at `255bdd54`. Electron is still pinned to43.4.0 under the existing unsigned-handoff scope; this audit does not establish current release currency.
 
 The following completed results supersede the pending CI wording below:
