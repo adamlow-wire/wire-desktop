@@ -83,4 +83,98 @@ describe('[CAP-004][F-017] log export destination recovery', () => {
       assert.deepEqual(await fs.readdir(root), ['previous.zip']);
     });
   }
+  it('[regression] publishes only a complete private adjacent archive', async () => {
+    const dependencies = createLogArchiveDependencies(() => {});
+    let published = false;
+    await streamLogFilesToZip({
+      ...dependencies,
+      destinationPath,
+      snapshotFiles: [],
+      publishArchive: async (stagedPath, target) => {
+        assert.equal(target, destinationPath);
+        assert.equal(path.dirname(path.dirname(stagedPath)), root);
+        assert.notEqual(path.dirname(stagedPath), root);
+        if (process.platform !== 'win32') {
+          assert.equal((await fs.stat(path.dirname(stagedPath))).mode & 0o077, 0);
+          assert.equal((await fs.stat(stagedPath)).mode & 0o077, 0);
+        }
+        assert.deepEqual(await fs.readFile(destinationPath), previous);
+        assert.deepEqual(new AdmZip(stagedPath).getEntries(), []);
+        await dependencies.publishArchive(stagedPath, target);
+        published = true;
+      },
+    });
+    assert.equal(published, true);
+    assert.deepEqual(await fs.readdir(root), ['previous.zip']);
+    assert.deepEqual(new AdmZip(destinationPath).getEntries(), []);
+    if (process.platform !== 'win32') {
+      assert.equal((await fs.stat(destinationPath)).mode & 0o077, 0);
+    }
+  });
+  for (const phase of ['staging-creation', 'publication']) {
+    it(`[regression] ${phase} failure preserves destination and cleans owned staging`, async () => {
+      const dependencies = createLogArchiveDependencies(() => {});
+      const failure = new Error('synthetic publication failure');
+      await assert.rejects(
+        streamLogFilesToZip({
+          ...dependencies,
+          destinationPath,
+          snapshotFiles: [],
+          createStagingDirectory:
+            phase === 'staging-creation'
+              ? async () => {
+                  throw failure;
+                }
+              : dependencies.createStagingDirectory,
+          publishArchive: async () => {
+            throw failure;
+          },
+        }),
+        error => error === failure,
+      );
+      assert.deepEqual(await fs.readFile(destinationPath), previous);
+      assert.deepEqual(await fs.readdir(root), ['previous.zip']);
+    });
+  }
+  it('[regression] failed new export leaves no destination or staging archive', async () => {
+    await fs.remove(destinationPath);
+    const failure = new Error('synthetic archive failure');
+    await assert.rejects(
+      streamLogFilesToZip({
+        ...createLogArchiveDependencies(() => {}),
+        destinationPath,
+        snapshotFiles: [],
+        createArchive: () => {
+          throw failure;
+        },
+      }),
+      error => error === failure,
+    );
+    assert.deepEqual(await fs.readdir(root), []);
+  });
+  it('[regression] reports cleanup failure without hiding publication failure or losing prior bytes', async () => {
+    const failure = new Error('synthetic publication failure');
+    const cleanupFailure = new Error('synthetic cleanup failure');
+    const reports: unknown[] = [];
+    await assert.rejects(
+      streamLogFilesToZip({
+        ...createLogArchiveDependencies((message, error) => reports.push({message, error})),
+        destinationPath,
+        snapshotFiles: [],
+        publishArchive: async () => {
+          throw failure;
+        },
+        removeStagingDirectory: async () => {
+          throw cleanupFailure;
+        },
+      }),
+      error => error === failure,
+    );
+    assert.deepEqual(await fs.readFile(destinationPath), previous);
+    assert.equal(reports.length, 1);
+    assert.deepEqual(reports[0], {
+      message: 'Failed to remove temporary log archive staging directory',
+      error: cleanupFailure,
+    });
+  });
 });

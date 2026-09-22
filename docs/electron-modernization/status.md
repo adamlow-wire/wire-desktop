@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-22
 milestone: M4
 active_work_item: CAP-004
-state: log-export-recovery-baseline
+state: log-export-recovery-candidate
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -17,6 +17,12 @@ blockers: [fork-publication-approval, profile-compatibility-decision]
 # Current project status
 
 ## Current execution
+
+**CAP-004/F-017 preservation candidate:** baseline `5367256f` precedes adjacent private staging and atomic rename publication. The existing destination is never opened for writing; only a fully completed archive is published. The output file uses0600 permissions so publication does not expose previously private archive data through default umask permissions. A POSIX mode target fails before that explicit mode, then passes. Staging/stream/publication failure preserves old bytes; cleanup attempts are limited to the owned staging directory, and cleanup errors cannot hide a publication failure.
+
+All17 owned-filesystem/actual-ZIP cases pass, including successful replacement, original-byte preservation, valid private staging, new-destination failure, publication failure and cleanup reporting. Bypassing staging fails two preservation targets; omitting publication or cleanup fails one target each; all mutations are restored. Existing snapshot/stream assertions stay intact; one custom failing stream now writes to its supplied output path because the implementation stages it. Root/bin/Playwright/Electron types and scoped lint pass. Final production build/bundle after the0600 change and final Electron-test typing pass (`/tmp/cap004-log-export-final-build.log`, `/tmp/cap004-log-export-final-test-types.log`); existing bundle warnings remain.
+
+No final composed/native Windows/macOS filesystem or menu qualification is claimed. The branch still uses a read-only dependency symlink; no install, native app, real user file, upstream contact or push occurred. Next: compose this scoped fix into the validation stack, re-review logging diagnostic/resource paths, and qualify actual menu/export replacement on supported platforms. Full handoff/profile/publication gates remain open. Logs `/tmp/cap004-log-export-{preservation-sensitivity,cleanup-sensitivity,publication-sensitivity,permissions-baseline,final,all-types,final-lint,final-build}.log`.
 
 **CAP-004/F-017 log-export data-loss baseline:** review of the composed logging path confirms `streamLogFilesToZip` opens the chosen existing destination with truncation before archive creation succeeds. An owned-temp reproduction turns27 prior bytes into zero when the archive factory throws. Repository tests preserve the existing valid-archive overwrite control and add archive-creation/output-write failure targets; all nine prior export tests plus the new success control pass, while both byte-preservation targets fail. Omitting archive content fails the new success control; production source is restored and the10-pass/two-failure baseline reproduced. Scoped lint and Electron test types pass.
 

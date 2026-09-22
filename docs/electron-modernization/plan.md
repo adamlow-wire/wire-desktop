@@ -760,7 +760,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Milestone: `M4`
 - Dependencies: TST-003, SEC-003, CAP-001
 - Scope: Route OS integration through explicit main-process capabilities and preserve account-aware behavior.
-- F-017 TST-006 follow-up: failed log archive creation/write/publication must preserve an existing user-selected destination. Stage privately on the destination filesystem and publish only a complete archive; retain successful approved replacement and owned cleanup. The September15 functional acceptance below remains historical, not acceptance of this finding.
+- F-017 TST-006 follow-up: failed log archive creation/write/publication must preserve an existing user-selected destination. Stage privately on the destination filesystem with private output permissions and publish only a complete archive by rename; retain successful approved replacement and owned cleanup. The September15 functional acceptance below remains historical, not acceptance of this finding.
 - Acceptance:
   - TST-003 and existing menu/notification E2E pass.
   - Renderer data cannot invoke arbitrary menu commands.
