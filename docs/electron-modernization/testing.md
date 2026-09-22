@@ -20,6 +20,8 @@ Existing behavior is not automatically correct. Security invariants describe the
 
 ## Test classifications
 
+Jest owns renderer tests; Node build-tool contracts beneath `bin/` run with Mocha through `test:bin`. Root TypeScript excludes those tooling test files to avoid competing Jest/Mocha globals; aggregate `test:types` explicitly includes the dedicated `build:ts:bin` compiler before Playwright typing. Keep both tooling execution and typing mandatory when changing discovery. A lower Jest count caused by removing duplicate tooling collection is not lost coverage if the complete Mocha collection remains evidenced.
+
 Every added modernization test MUST be classified in its name, enclosing suite, or PR evidence as one of:
 
 - `characterization`: Captures required existing product behavior and initially passes.

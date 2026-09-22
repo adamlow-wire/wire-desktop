@@ -38,6 +38,12 @@ function run(mode: string, phase: string) {
 
 describe('[PKG-001][SEC-011] macOS signing order and fail-closed tools', function () {
   this.timeout(15000);
+  it('[regression] relative build output preserves main executable entitlements', () => {
+    const {result} = run('manual', 'relative');
+    assert.equal(result.rejected, false);
+    assert.equal(result.metadataRestored, true);
+    assert.equal(result.mainEntitlements, 'resources/macos/entitlements/parent.plist');
+  });
   for (const mode of ['automatic-missing-team', 'automatic-missing-sign', 'manual-missing-sign']) {
     it(`[security-target] ${mode} rejects incomplete signing configuration before packaging`, () => {
       const {result, stderr} = run(mode, 'success');

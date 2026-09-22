@@ -12,7 +12,7 @@ AGENTS.md,M,tooling/CI/config,pending,pending,pending
 bin/build-tools/assets/msi-banner.bmp,A,tooling/CI/config,pending,pending,pending
 bin/build-tools/build-cli.ts,M,tooling/CI/config,pending,pending,pending
 bin/build-tools/build-linux-desktop-file.ts,M,tooling/CI/config,pending,pending,pending
-bin/build-tools/lib/Config.ts,M,tooling/CI/config,pending,pending,pending
+bin/build-tools/lib/Config.ts,M,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
 bin/build-tools/lib/build-linux.test.ts,M,test/fixture,pending,pending,pending
 bin/build-tools/lib/build-linux.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending
 bin/build-tools/lib/build-windows-installer.test.ts,M,test/fixture,pending,pending,pending
@@ -425,11 +425,11 @@ electron/test/withTemporaryDirectory.ts,A,test/fixture,pending,pending,pending
 electron/wire.json,M,application,pending,pending,pending
 jenkins/deployment.groovy,M,tooling/CI/config,pending,pending,pending
 jenkins/windows.groovy,M,tooling/CI/config,pending,pending,pending
-jest.config.js,M,tooling/CI/config,pending,pending,pending
+jest.config.js,M,tooling/CI/config,F-014 scoped test-ownership fix reviewed locally; integration pending,September22 root/Jest failures precede 96219916; renderer74 and root/bin/Playwright types restored,Tooling remains explicitly compiled and executed by aggregate test commands; final CI pending
 package.json,M,tooling/CI/config,pending,pending,pending
 playwright.config.ts,M,tooling/CI/config,pending,pending,pending
 tsconfig.bin.json,M,tooling/CI/config,pending,pending,pending
-tsconfig.json,M,tooling/CI/config,pending,pending,pending
+tsconfig.json,M,tooling/CI/config,F-014 scoped test-ownership fix reviewed locally; integration pending,September22 root/Jest failures precede 96219916; renderer74 and root/bin/Playwright types restored,Tooling remains explicitly compiled and executed by aggregate test commands; final CI pending
 tsconfig.playwright.json,M,tooling/CI/config,pending,pending,pending
 webpack.config.cjs,M,tooling/CI/config,pending,pending,pending
 yarn.lock,M,tooling/CI/config,pending,pending,pending
@@ -440,6 +440,9 @@ bin/build-tools/build-cli.test.ts,A,test,CLI parser/routing/diagnostic sink revi
 bin/build-tools/fixtures/build-cli.cjs,A,test adapter,Node-only synthetic configs and inert native builders reviewed,7eb299f3,does not qualify actual builders or signing
 bin/build-tools/lib/packageInputs.ts,A,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending
 bin/build-tools/lib/build-windows.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending
-bin/build-tools/lib/build-macos.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; dependency/artifact and full denominator review pending
+bin/build-tools/lib/build-macos.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending; F-006 local signing-order/API review; native signed qualification remains open,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,179 current policy cases; dependency/artifact and full denominator review pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
 bin/test-tools/verify-package-contents.cjs,A,tooling/CI/config,local review; hosted qualification pending,17 real-ASAR tests; content/cache perturbations fail,actual Linux artifact passes; final-platform wiring pending
 bin/test-tools/package-contents.test.ts,A,tooling/CI/config,local review; hosted qualification pending,17 real-ASAR tests; content/cache perturbations fail,actual Linux artifact passes; final-platform wiring pending
+bin/build-tools/lib/build-macos.test.ts,M,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
+bin/build-tools/macos-signing.test.ts,A,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
+bin/build-tools/fixtures/macos-signing.cjs,A,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail

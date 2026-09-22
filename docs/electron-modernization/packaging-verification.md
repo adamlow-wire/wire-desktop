@@ -12,7 +12,15 @@ The hosted `electron-modernization-baseline.yml` workflow seeds three non-secret
 
 Linux qualification extracts the actual AppImage in an owned temporary directory, verifies its ASAR and compares its hash with the build output, then runs the existing sandboxed account/proxy smoke against the extracted executable. The helper permission setup remains required. Windows uploads the complete package directory, including resources and DLLs. macOS uses a tar archive to preserve bundle permissions and symlinks. `modernization-package-contents-<platform>` retains manifests; failed or skipped checks do not qualify artifacts.
 
-## Retained initial Linux evidence
+## macOS signing order and downstream qualification
+
+The F-006 candidate explicitly packages without the packager's signing/notarization options, then applies fuses before signing. The automatic sequence is package → fuses → application sign/verify → optional notarization/stapling → optional signed installer. Signing failures reject instead of being swallowed by electron-packager. The manual MAS route uses the promise-based `@electron/osx-sign` API to discover nested code and verify its signature, replacing the obsolete hard-coded helper list and shell commands. It preserves parent entitlements for the app/main executable and child entitlements for nested code; automatic options retain their existing entitlement contract. Native failures stop later stages, restore metadata and produce fixed wrapper/CLI diagnostics.
+
+Automatic notarization uses directly pinned `@electron/notarize`2.5.0, already present in the lockfile, with `notarytool`. Configure `MACOS_NOTARIZE_APPLE_ID`, `MACOS_NOTARIZE_APPLE_PASSWORD` (an app-specific password), `MACOS_NOTARIZE_TEAM_ID` and the application signing identity together; incomplete configuration rejects. The manual MAS route does not submit notarization and cannot build a signed installer without an application identity. Unsigned fixtures require neither identities nor notarization credentials.
+
+Node fixtures use synthetic identities (including quotes) and inert native tools. Their ordering, failure, argument/entitlement and metadata assertions are not native signing evidence. Wire's downstream procedure must use the actual distribution identity/profile and artifact: verify the entire application signature and entitlements, compare fuse bytes before/after signing, validate notarization/stapling where applicable to the distribution channel, verify the installer signature, and exercise clean installation, Gatekeeper launch, updates and rollback on disposable supported machines. Record exact source/artifact hashes and platform/toolchain results; a generated `.pkg` alone does not qualify these steps. MAS submission and direct-download notarization are distinct distribution qualifications.
+
+## Retained initial Linux evidence (historical)
 
 Package preflight [35037409000](https://github.com/adamlow-wire/wire-desktop/actions/runs/35037409000), Linux job104609510387, succeeds at `f7c1c359e1b9cbb2e5b58b14fa0d7ff3ec1de5e4`. Artifact10424091204 contains the unsigned AppImage. Downloaded ZIP SHA-256 matches GitHub's digest: `344e987c10e37478b6b68a8e4df0fdbc5c508be726be0d929f7c877c1cfeecf0`. AppImage SHA-256: `0de352019af9833249468afd67a1ed744f266cf0e74561a46d8ec1736c5c21d1`.
 

@@ -32,9 +32,11 @@ const failure = new Error(secret);
 const events = [];
 const diagnostics = [];
 const signingOptions = [];
+let mainEntitlements;
 const notaryOptions = [];
 const installerOptions = [];
 const sign = async options => {
+  mainEntitlements = options.optionsForFile?.(path.join(appFile, 'Contents/MacOS/Owned'))?.entitlements;
   signingOptions.push({
     app: options.app,
     identity: options.identity,
@@ -108,7 +110,7 @@ Module._load = function (request, parent, isMain) {
       const context = {opts: {...options, electronVersion: '43.4.0'}, renamedAppPath: appFile, bundleName: 'Owned'};
       await MacApp.prototype.signAppIfSpecified.call(context);
       await MacApp.prototype.notarizeAppIfSpecified.call(context);
-      return [root];
+      return [phase === 'relative' ? path.relative(repo, root) : root];
     };
   return load.call(this, request, parent, isMain);
 };
@@ -137,6 +139,7 @@ Module._load = function (request, parent, isMain) {
       JSON.stringify({
         events,
         signingOptions,
+        mainEntitlements,
         notaryOptions,
         installerOptions,
         appFile,
