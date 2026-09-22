@@ -38,6 +38,14 @@ function run(mode: string, phase: string) {
 
 describe('[PKG-001][SEC-011] macOS signing order and fail-closed tools', function () {
   this.timeout(15000);
+  for (const mode of ['unsigned', 'automatic', 'manual', 'automatic-app-store']) {
+    it(`[security-target] ${mode} writes the build-owned update policy`, () => {
+      const {result} = run(mode, 'success');
+      assert.equal(result.rejected, false);
+      assert.equal(result.metadataRestored, true);
+      assert.equal(result.packagedUpdatePolicy, mode === 'automatic' || mode === 'manual');
+    });
+  }
   it('[regression] relative build output preserves main executable entitlements', () => {
     const {result} = run('manual', 'relative');
     assert.equal(result.rejected, false);

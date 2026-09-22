@@ -33,6 +33,7 @@ const events = [];
 const diagnostics = [];
 const signingOptions = [];
 let mainEntitlements;
+let packagedUpdatePolicy;
 const notaryOptions = [];
 const installerOptions = [];
 const sign = async options => {
@@ -85,7 +86,9 @@ Module._load = function (request, parent, isMain) {
   if (request === './commonConfig')
     return {
       getCommonConfig: async () => ({
-        commonConfig: {name: 'Owned', version: '1.0.0', distDir: root, electronDirectory: 'electron'},
+        commonConfig: {name: 'Owned', version: '1.0.0', distDir: root, electronDirectory: 'electron',
+          environment: mode === 'automatic-app-store' ? 'production' : 'internal',
+          macAutoUpdateEnabled: mode === 'unsigned' || mode === 'automatic-app-store'},
       }),
       flipElectronFuses: async () => step('fuses'),
     };
@@ -105,6 +108,7 @@ Module._load = function (request, parent, isMain) {
   }
   if (request === 'electron-packager')
     return async options => {
+      packagedUpdatePolicy = fs.readJsonSync(wireFile).macAutoUpdateEnabled;
       await step('package');
       // Use the installed packager's real sign-error handling; only native tools are inert.
       const context = {opts: {...options, electronVersion: '43.4.0'}, renamedAppPath: appFile, bundleName: 'Owned'};
@@ -147,6 +151,7 @@ Module._load = function (request, parent, isMain) {
         events,
         signingOptions,
         mainEntitlements,
+        packagedUpdatePolicy,
         notaryOptions,
         installerOptions,
         appFile,

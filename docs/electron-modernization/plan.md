@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.63
+revision: 1.5.64
 status: draft
 updated: 2026-09-22
 owners:
@@ -831,6 +831,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### PKG-002 — Qualify installers and updater behavior
 
 - Pre-handoff F-007 slice: updater diagnostics must omit credential-bearing feed/error data and contain check/dialog/installation promise failures while preserving user consent. Local Node tests cover this boundary; startup routing with unsigned-fixture safeguards remains open. Actual signed qualification remains M5.
+- F-007 unsigned safeguard contract: macOS packaging must overwrite `macAutoUpdateEnabled` from build-owned facts: true only for internal distribution with an application signing identity configured; false for unsigned and App Store builds regardless of input metadata. Runtime requires a packaged app, literal true policy, internal distribution and non-development execution before configuring a feed. Missing/invalid policy fails closed. The flag records build intent, not cryptographic verification; failed signing must fail packaging, and actual signed/update qualification remains M5. No environment feed override may bypass this gate. The updater is routed once after successful main-window initialization, without a second `ready` registration.
+
 
 - Priority: `P1`
 - Status: `in_progress`

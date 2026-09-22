@@ -38,8 +38,10 @@ function run(mode: string) {
 
 describe('[PKG-002][F-007] macOS updater diagnostics and async failures', function () {
   this.timeout(15000);
-  for (const mode of ['development', 'app-store']) {
-    it(`[characterization] ${mode} starts no checks or dialogs`, () => {
+  for (const mode of ['development', 'app-store', 'unsigned', 'missing-policy', 'invalid-policy', 'unpackaged']) {
+    it(`${
+      ['development', 'app-store'].includes(mode) ? '[characterization]' : '[security-target]'
+    } ${mode} starts no checks or dialogs`, () => {
       const result = run(mode);
       assert.equal(result.checks, 0);
       assert.equal(result.feeds, 0);

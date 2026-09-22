@@ -47,6 +47,7 @@ const original = Module._load;
 Module._load = function (name, parent, isMain) {
   if (name === 'electron')
     return {
+      app: {isPackaged: mode !== 'unpackaged'},
       dialog: {
         showMessageBox: async () => {
           result.dialogs++;
@@ -56,7 +57,8 @@ Module._load = function (name, parent, isMain) {
       },
     };
   if (name === 'electron-updater') return {autoUpdater: updater};
-  if (name === '../settings/config') return {config: {environment: mode === 'app-store' ? 'production' : 'internal'}};
+  if (name === '../settings/config') return {config: {environment: mode === 'app-store' ? 'production' : 'internal',
+      macAutoUpdateEnabled: mode === 'unsigned' ? false : mode === 'missing-policy' ? undefined : mode === 'invalid-policy' ? 'true' : true}};
   if (name === '../logging/getLogger') return {getLogger: () => logger};
   return original.call(this, name, parent, isMain);
 };
