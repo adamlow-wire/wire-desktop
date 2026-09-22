@@ -221,20 +221,18 @@ logger.info(`Initializing ${config.name} v${config.version} ...`);
 
 if (argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig) {
   try {
-    proxyInfoArg = new URL(argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig);
+    const configuredProxy = new URL(argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig);
+    if (!/^(https?|socks[45]):$/.test(configuredProxy.protocol) || !configuredProxy.hostname) {
+      throw new Error('Invalid proxy server endpoint.');
+    }
+    proxyInfoArg = configuredProxy;
     if (!argv[config.ARGUMENT.PROXY_SERVER] && fileBasedProxyConfig) {
       logger.info('Using proxy server URL from "init.json"');
       app.commandLine.appendSwitch('proxy-server', fileBasedProxyConfig);
     }
-    if (!/^(https?|socks[45]):$/.test(proxyInfoArg.protocol)) {
-      throw new Error('Invalid protocol for the proxy server specified.');
-    }
-    if (proxyInfoArg.origin === 'null') {
-      proxyInfoArg = undefined;
-      throw new Error('No protocol for the proxy server specified.');
-    }
-  } catch (error) {
-    logger.error(`Could not parse authenticated proxy URL: "${(error as any).message}"`);
+  } catch {
+    proxyInfoArg = undefined;
+    logger.error('Could not parse authenticated proxy URL.');
   }
 }
 
