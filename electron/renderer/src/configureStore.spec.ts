@@ -20,6 +20,7 @@
 import {configureStore} from './configureStore';
 
 import type {AccountSnapshot} from '../../src/accounts/AccountState';
+import {createAccountShellBridge} from '../../src/preload/AccountShellBridge';
 
 describe('[security-target][CAP-001] main-owned account display store', () => {
   const account: AccountSnapshot = {
@@ -34,10 +35,12 @@ describe('[security-target][CAP-001] main-owned account display store', () => {
   };
   let read: jest.Mock;
   let subscribe: jest.Mock;
+  let unsubscribe: jest.Mock;
 
   beforeEach(() => {
     read = jest.fn().mockResolvedValue(Object.freeze([Object.freeze({...account})]));
-    subscribe = jest.fn();
+    unsubscribe = jest.fn();
+    subscribe = jest.fn().mockReturnValue(unsubscribe);
     Object.defineProperty(window, 'wireAccounts', {configurable: true, value: {read, subscribe}});
     localStorage.setItem('state', JSON.stringify({accounts: [{...account, id: 'renderer-selected-identity'}]}));
   });
@@ -64,6 +67,44 @@ describe('[security-target][CAP-001] main-owned account display store', () => {
   it('rejects failed bootstrap instead of falling back to stale renderer-owned accounts', async () => {
     read.mockRejectedValue(new Error('Account profile unavailable'));
     await expect(configureStore({})).rejects.toThrow('Account profile unavailable');
-    expect(subscribe).not.toHaveBeenCalled();
+    expect(subscribe).toHaveBeenCalledTimes(1);
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+  it('keeps a main push arriving between read completion and store initialization', async () => {
+    let resolve!: (accounts: readonly AccountSnapshot[]) => void;
+    let push!: (event: unknown, accounts: readonly AccountSnapshot[]) => void;
+    const bridge = createAccountShellBridge({
+      invoke: () =>
+        new Promise<readonly AccountSnapshot[]>(done => {
+          resolve = done;
+        }),
+      on: (_channel, listener) => {
+        push = listener;
+      },
+    });
+    Object.defineProperty(window, 'wireAccounts', {configurable: true, value: bridge});
+    const initializing = configureStore({});
+    resolve([account]);
+    const newer = [{...account, name: 'Latest main state', badgeCount: 7}];
+    queueMicrotask(() => push({}, newer));
+    const store = await initializing;
+    expect(store.getState().accounts).toEqual(newer);
+    const subsequent = [{...account, name: 'Next main state', badgeCount: 8}];
+    push({}, subsequent);
+    expect(store.getState().accounts).toEqual(subsequent);
+  });
+  it('still rejects a failed bootstrap after receiving an update and releases its subscription', async () => {
+    let reject!: (error: Error) => void;
+    read.mockReturnValue(
+      new Promise((_resolve, fail) => {
+        reject = fail;
+      }),
+    );
+    const initializing = configureStore({});
+    subscribe.mock.calls[0][0]([{...account, name: 'An update does not excuse a failed read'}]);
+    const failure = new Error('Owned bootstrap failure.');
+    reject(failure);
+    await expect(initializing).rejects.toBe(failure);
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
