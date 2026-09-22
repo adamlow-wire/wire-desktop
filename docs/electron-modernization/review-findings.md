@@ -1,5 +1,7 @@
 # TST-006 execution ledger
 
+September22 **F-015 — deployment diagnostics disclose credentials**, high, PKG-001/ELC-003, INV-010. Repository baseline `bin/deploy-tools/dry-run-confidentiality.test.ts` calls the real GitHub dry-run methods with synthetic credentials and inert HTTP/logger substitutes: one characterization passes (draft id0, zero requests, operation names retained), one security target fails on the synthetic token. Shared `logDry` dumps arbitrary arguments, including Authorization and asset buffers. Raw Axios response/error logging in GitHub/Hockey is a separate source-confirmed path awaiting repository regressions and remediation. No real credential exposure incident is asserted. Baseline command: `node node_modules/mocha/bin/mocha.js --require .babel-register.js bin/deploy-tools/dry-run-confidentiality.test.ts`; output `/tmp/pkg001-dry-run-baseline.log`.
+
 This is an open internal review, not acceptance or independent REL-001 review. Follow [the execution plan](quality-review.md). No completion percentage or full-coverage claim is made.
 
 ## Verified scope and checkpoint
