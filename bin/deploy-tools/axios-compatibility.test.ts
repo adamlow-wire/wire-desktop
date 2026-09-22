@@ -17,8 +17,9 @@
  *
  */
 
-import {strict as assert} from 'assert';
 import axios from 'axios';
+
+import {strict as assert} from 'assert';
 import {spawnSync} from 'child_process';
 import {createServer, Server} from 'http';
 import type {AddressInfo} from 'net';
