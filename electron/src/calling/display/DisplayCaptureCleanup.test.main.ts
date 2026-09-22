@@ -35,10 +35,13 @@ interface Flow {
   selected?: object;
   cleanup: Array<() => void>;
   reject(error: Error): void;
+  resolve(value: unknown): void;
+  displayUsed?: boolean;
 }
 interface Coordinator {
   options: object;
   flows: Map<string, Flow>;
+  select(flow: Flow, choiceId: string): Promise<void>;
   revalidate(): void;
   dispose(): void;
   begin(identity: Flow['identity'], request: {requestId: string}): unknown;
@@ -66,8 +69,27 @@ const fixture = (failureStage?: string) => {
     },
   ).outputText;
   const diagnostics: unknown[][] = [];
+  const ports = [0, 1].map(() => ({
+    transferred: false,
+    closed: false,
+    close() {
+      assert.equal(this.transferred, false, 'Main must not close a transferred endpoint.');
+      this.closed = true;
+    },
+  }));
   const Constructor = runInNewContext(compiled, {
     clearTimeout: () => undefined,
+    setTimeout: () => 1,
+    DISPLAY_CAPTURE_LIMITS: {frameTimeoutMs: 1000},
+    DISPLAY_BROKER_PORT_CHANNEL: 'broker-port-fixture',
+    DISPLAY_CAPTURE_PORT_CHANNEL: 'owner-port-fixture',
+    MessageChannelMain: class {
+      port1 = ports[0];
+      port2 = ports[1];
+      constructor() {
+        check('channel');
+      }
+    },
     DISPLAY_CAPTURE_ENDED_CHANNEL: 'ended-fixture',
     DISPLAY_CAPTURE_CAPABILITY: 'capture-fixture',
     console: {warn: (...args: unknown[]) => diagnostics.push(args)},
@@ -89,7 +111,16 @@ const fixture = (failureStage?: string) => {
       throw failure;
     }
   };
-  const frame = {postMessage: () => check('notify')};
+  const frame = {
+    postMessage: (channel: string) => {
+      if (channel === 'owner-port-fixture') {
+        check('owner-transfer');
+        ports[1].transferred = true;
+      } else {
+        check('notify');
+      }
+    },
+  };
   const identity = {accountId: 'owned-account', mainFrame: frame};
   const flow: Flow = {
     id: 'owned-flow',
@@ -111,7 +142,27 @@ const fixture = (failureStage?: string) => {
       assert.equal(error.message, 'Display capture was cancelled or ended.');
       calls.push('denied');
     },
+    resolve: () => {
+      calls.push('started');
+    },
   };
+  Object.assign(flow.window, {
+    isFocused: () => true,
+    setParentWindow: () => check('detach-parent'),
+    webContents: {
+      mainFrame: {
+        postMessage: () => {
+          check('broker-transfer');
+          ports[0].transferred = true;
+        },
+      },
+      executeJavaScript: async () => {
+        check('start');
+        flow.displayUsed = true;
+        return true;
+      },
+    },
+  });
   coordinator.options = {
     registry: {authorize: () => identity},
     isEligible: () => true,
@@ -125,6 +176,7 @@ const fixture = (failureStage?: string) => {
     flow,
     calls,
     diagnostics,
+    ports,
     destroyed: () => destroyed,
     recover: () => {
       stage = undefined;
@@ -220,5 +272,53 @@ describe('[CAP-003][INV-006][INV-010] capture teardown ownership with inert nati
     assert.equal(calls, 1);
     assert.equal(f.calls.filter(value => value === 'denied').length, 1);
     assert.deepEqual(f.diagnostics, []);
+  });
+  for (const stage of ['broker-transfer', 'owner-transfer', 'start']) {
+    it(`closes only main-owned message ports after ${stage} failure`, async () => {
+      const f = fixture(stage);
+      Object.assign(f.coordinator.options, {canApprove: () => true});
+      await assert.rejects(f.coordinator.select(f.flow, 'source'), /Display source did not start/);
+      assert.equal(f.flow.phase, 'ended');
+      assert.equal(f.calls.filter(value => value === 'denied').length, 1);
+      assert.equal(f.ports[0].transferred, stage !== 'broker-transfer');
+      assert.equal(f.ports[1].transferred, stage === 'start');
+      assert.equal(f.ports[0].closed, stage === 'broker-transfer');
+      assert.equal(f.ports[1].closed, stage !== 'start');
+      assert.deepEqual(f.diagnostics, []);
+    });
+  }
+  it('leaves both successfully transferred message ports with their receiving renderers', async () => {
+    const f = fixture();
+    Object.assign(f.coordinator.options, {canApprove: () => true});
+    await f.coordinator.select(f.flow, 'source');
+    assert.equal(f.flow.phase, 'active');
+    assert.equal(f.calls.filter(value => value === 'started').length, 1);
+    f.coordinator.dispose();
+    assert.deepEqual(
+      f.ports.map(port => [port.transferred, port.closed]),
+      [
+        [true, false],
+        [true, false],
+      ],
+    );
+    assert.deepEqual(f.diagnostics, []);
+  });
+  it('retains failed main-owned port closure for retry without repeating cancellation', async () => {
+    const f = fixture('owner-transfer');
+    Object.assign(f.coordinator.options, {canApprove: () => true});
+    const close = f.ports[1].close.bind(f.ports[1]);
+    f.ports[1].close = () => {
+      throw new Error('Owned port close failure.');
+    };
+    await assert.rejects(f.coordinator.select(f.flow, 'source'), /Display source did not start/);
+    assert.deepEqual(f.diagnostics, [['Display capture cleanup failed.']]);
+    assert.equal(f.ports[1].closed, false);
+    assert.throws(() => f.coordinator.begin(f.flow.identity, {requestId: 'replacement'}), /not available/);
+    f.ports[1].close = close;
+    f.recover();
+    f.coordinator.dispose();
+    assert.equal(f.ports[1].closed, true);
+    assert.equal(f.calls.filter(value => value === 'denied').length, 1);
+    assert.equal(f.flow.cleanup.length, 0);
   });
 });

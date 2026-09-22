@@ -454,10 +454,21 @@ export class DisplayCaptureCoordinator {
     flow.timer = setTimeout(() => this.end(flow), DISPLAY_CAPTURE_LIMITS.frameTimeoutMs);
     try {
       const channel = new MessageChannelMain();
+      const ownedPorts = new Set([channel.port1, channel.port2]);
+      for (const port of ownedPorts) {
+        flow.cleanup.push(() => {
+          if (ownedPorts.has(port)) {
+            port.close();
+            ownedPorts.delete(port);
+          }
+        });
+      }
       flow.window.webContents.mainFrame.postMessage(DISPLAY_BROKER_PORT_CHANNEL, undefined, [channel.port1]);
+      ownedPorts.delete(channel.port1);
       flow.owner.mainFrame.postMessage(DISPLAY_CAPTURE_PORT_CHANNEL, {requestId: flow.requestId, flowId: flow.id}, [
         channel.port2,
       ]);
+      ownedPorts.delete(channel.port2);
       const started = await flow.window.webContents.executeJavaScript('window.wireCaptureBroker.start()', true);
       if (started !== true || flow.phase !== 'starting' || !this.current(flow) || !flow.displayUsed) {
         throw new Error('Display source did not start.');
