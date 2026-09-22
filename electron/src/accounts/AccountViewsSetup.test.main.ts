@@ -33,6 +33,9 @@ import {ViewIdentityRegistry, registerViewIdentity} from '../security/ViewIdenti
 const fixture = (failAt?: string) => {
   const failure = new Error('Controlled account view setup failure.');
   let stage = failAt;
+  let cleanupStage: string | undefined;
+  let closeCalls = 0;
+  const diagnostics: unknown[][] = [];
   let nextId = 0;
   let loads = 0;
   let delayClose = false;
@@ -40,7 +43,7 @@ const fixture = (failAt?: string) => {
   const registry = new ViewIdentityRegistry();
   const account = {id: '11111111-1111-4111-8111-111111111111', sessionID: '22222222-2222-4222-8222-222222222222'};
   const check = (name: string) => {
-    if (stage === name) {
+    if (stage === name || cleanupStage === name) {
       throw failure;
     }
   };
@@ -63,6 +66,8 @@ const fixture = (failAt?: string) => {
           check('popup');
         },
         close: () => {
+          closeCalls++;
+          check('close');
           const complete = () => {
             destroyed = true;
             this.webContents.emit('destroyed');
@@ -86,7 +91,7 @@ const fixture = (failAt?: string) => {
   const window = Object.assign(new EventEmitter(), {
     isDestroyed: () => false,
     getContentBounds: () => ({width: 800, height: 600}),
-    contentView: {addChildView: () => check('attach'), removeChildView: () => undefined},
+    contentView: {addChildView: () => check('attach'), removeChildView: () => check('detach')},
   });
   const filename = path.resolve('electron/src/accounts/AccountViews.ts');
   const source = ts.createSourceFile(filename, readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true);
@@ -97,6 +102,7 @@ const fixture = (failAt?: string) => {
   }).outputText;
   const ActualViews = runInNewContext(compiled, {
     URL,
+    console: {error: (...args: unknown[]) => diagnostics.push(args)},
     ValidationUtil: {
       isUUIDv4: (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value),
     },
@@ -112,7 +118,7 @@ const fixture = (failAt?: string) => {
     AccountPermissionPolicy: class {
       cancelPending() {}
     },
-    bindAccountPermissionSession: () => () => undefined,
+    bindAccountPermissionSession: () => () => check('revoke'),
     loadAccountDestination: async () => {
       loads++;
       check('load');
@@ -125,10 +131,12 @@ const fixture = (failAt?: string) => {
     additionalArguments: [],
     capabilities: [],
     configure: async () => check('configure'),
-    lost: () => undefined,
+    lost: () => check('lost'),
   });
   return {
     views,
+    window,
+    diagnostics,
     registry,
     account,
     allocated,
@@ -137,6 +145,10 @@ const fixture = (failAt?: string) => {
       stage = undefined;
     },
     loads: () => loads,
+    closeCalls: () => closeCalls,
+    failCleanup: (value?: string) => {
+      cleanupStage = value;
+    },
     delayClose: () => {
       delayClose = true;
     },
@@ -203,4 +215,89 @@ describe('[CAP-001][INV-001][INV-005] account view setup ownership', () => {
       assert.equal(replacement.isDestroyed(), true);
     });
   }
+  for (const stage of ['revoke', 'detach', 'close']) {
+    it(`retains ownership for retry when ${stage} fails during teardown`, async () => {
+      const f = fixture();
+      const contents = await f.views.create(f.account, 'https://account.example.test/');
+      f.failCleanup(stage);
+      await assert.rejects(f.views.close(f.account.id), error => error === f.failure);
+      assert.equal(f.registry.has(contents.id), false);
+      assert.equal(f.closeCalls(), 1, 'Earlier cleanup failure must not skip native close.');
+      assert.equal(contents.isDestroyed(), stage !== 'close');
+      assert.equal(f.views.has(f.account.id), false);
+      await assert.rejects(f.views.create(f.account, 'https://account.example.test/'), /cannot be created/);
+      await assert.rejects(
+        f.views.create({...f.account, id: '33333333-3333-4333-8333-333333333333'}, 'https://account.example.test/'),
+        /cannot be created/,
+      );
+      f.failCleanup();
+      await f.views.close(f.account.id);
+      assert.equal(contents.isDestroyed(), true);
+      const replacement = await f.views.create(f.account, 'https://account.example.test/');
+      await f.views.close(f.account.id);
+      assert.equal(replacement.isDestroyed(), true);
+    });
+  }
+  it('retries failed live teardown during owner disposal', async () => {
+    const f = fixture();
+    const contents = await f.views.create(f.account, 'https://account.example.test/');
+    f.failCleanup('close');
+    await assert.rejects(f.views.close(f.account.id), error => error === f.failure);
+    f.failCleanup();
+    await f.views.dispose();
+    assert.equal(contents.isDestroyed(), true);
+    assert.equal(f.closeCalls(), 2);
+  });
+  it('retains a pre-registration allocation when its cleanup close throws', async () => {
+    const f = fixture('register');
+    f.failCleanup('close');
+    await assert.rejects(f.views.create(f.account, 'https://account.example.test/'));
+    f.recover();
+    await assert.rejects(f.views.create(f.account, 'https://account.example.test/'), /cannot be created/);
+    f.failCleanup();
+    await f.views.close(f.account.id);
+    assert.equal(f.allocated[0].contents.isDestroyed(), true);
+    const replacement = await f.views.create(f.account, 'https://account.example.test/');
+    await f.views.close(f.account.id);
+    assert.equal(replacement.isDestroyed(), true);
+  });
+  it('shares pending destruction and its failure with every close caller', async () => {
+    const f = fixture();
+    const contents = await f.views.create(f.account, 'https://account.example.test/');
+    f.failCleanup('detach');
+    f.delayClose();
+    const first = assert.rejects(f.views.close(f.account.id), error => error === f.failure);
+    const second = assert.rejects(f.views.close(f.account.id), error => error === f.failure);
+    f.finishClose();
+    await Promise.all([first, second]);
+    assert.equal(f.closeCalls(), 1);
+    assert.equal(contents.isDestroyed(), true);
+    f.failCleanup();
+    await f.views.close(f.account.id);
+  });
+  for (const stage of ['detach', 'lost']) {
+    it(`contains and sanitizes crash callback ${stage} failure`, async () => {
+      const f = fixture();
+      await f.views.create(f.account, 'https://account.example.test/');
+      f.failCleanup(stage);
+      f.allocated[0].contents.emit('render-process-gone');
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assert.deepEqual(f.diagnostics, [['Account view lifecycle cleanup failed.']]);
+      assert.equal(f.registry.has(f.allocated[0].contents.id), false);
+      f.failCleanup();
+      await f.views.dispose();
+    });
+  }
+  it('contains native window-close teardown rejection and permits explicit retry', async () => {
+    const f = fixture();
+    const contents = await f.views.create(f.account, 'https://account.example.test/');
+    f.failCleanup('close');
+    f.window.emit('closed');
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.deepEqual(f.diagnostics, [['Account view lifecycle cleanup failed.']]);
+    assert.equal(contents.isDestroyed(), false);
+    f.failCleanup();
+    await f.views.dispose();
+    assert.equal(contents.isDestroyed(), true);
+  });
 });
