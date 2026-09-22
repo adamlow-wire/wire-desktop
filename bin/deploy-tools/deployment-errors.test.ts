@@ -59,7 +59,9 @@ describe('[PKG-001][F-015] deployment failure diagnostics', function () {
         assert.ok(result.calls.every(call => call.authorized));
         if (outcome === 'success') {
           assert.equal(result.calls.length, 1);
-          if (operation.endsWith('create')) assert.deepEqual(result.value, {id: 42});
+          if (operation.endsWith('create')) {
+            assert.deepEqual(result.value, {id: 42});
+          }
         } else {
           assert.match(result.message, /failed/i);
           if (operation.startsWith('github') && operation !== 'github-create') {
