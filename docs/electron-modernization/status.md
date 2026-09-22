@@ -11,7 +11,7 @@ upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: fix/PKG-001-fail-closed-builds-2026-09-15
 next_work_item: TST-006
-blockers: []
+blockers: [fork-publication-approval, profile-compatibility-decision]
 ---
 
 # Current project status
@@ -21,6 +21,10 @@ blockers: []
 **Active goal (maintainer confirmed September 22): close every mandatory gate for the review-ready unsigned Wire engineering handoff in [plan.md, section 8](plan.md#current-goal-close-mandatory-unsigned-review-handoff).** The goal is active and incomplete. Later release qualification and optional improvements are separated explicitly there; no finding or gate is waived by this prioritization.
 
 **Current PKG-001 task:** F-014 is corrected locally in `96219916`; signing baselines `01fe145a`, `2e2e3a69` and `faa4bb5a` precede the F-006 candidate below. Finish candidate validation/publication and actual platform preflight, then diagnose retained Windows lifecycle failures and reconcile the branch with its CAP-001 dependency before scoped PR integration. Profile compatibility remains a required product decision; the maintainer was asked on September22 and independent work continues. Preparing the handoff does not authorize contacting Wire or releasing.
+
+**Publication checkpoint:** local candidate `b725d784` is committed, with a clean worktree before this status update. Automatic approval review rejected the push to `fork` (`adamlow-wire/wire-desktop`) as an unverified external destination requiring explicit user authorization to export source/documentation. A specific fork-push/native-package-CI approval question is pending; no push or workflow dispatch occurred and no workaround is authorized. Local commits and read-only failure investigation continued. This is a publication dependency, not a claim that the whole goal is blocked or complete.
+
+Read-only inspection of the latest PR62 Linux [E2E job104605123525](https://github.com/adamlow-wire/wire-desktop/actions/runs/35035967615/job/104605123525) confirms58 passes/18 failures, with repeated `Search people` waits. The job log does not itself contain the previously observed `findDOMNode` browser exception; fresh trace diagnosis remains open. Linux blob artifact10425526364 is4.57GB and was not downloaded wholesale. Evidence: `/tmp/handoff-pr62-latest-linux-e2e.log`. Do not change locators or waive E2E based on these logs alone.
 
 ### Return audit — September 22
 
