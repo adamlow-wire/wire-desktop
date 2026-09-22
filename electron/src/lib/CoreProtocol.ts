@@ -65,8 +65,8 @@ export class CustomProtocolHandler {
           });
           break;
       }
-    } catch (error: unknown) {
-      logger.error('Failed to dispatch deep link', error);
+    } catch {
+      logger.error('Failed to dispatch deep link.');
     }
   }
 
