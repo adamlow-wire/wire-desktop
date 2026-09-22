@@ -73,6 +73,30 @@ describe('[PKG-001] actual archive content verification', () => {
       await assert.rejects(verifyArchive(archive), /Package contains/);
     });
   }
+  it('[PKG-002][characterization] accepts disabled updates from an actual unsigned macOS ASAR', async () => {
+    await fs.writeJson(path.join(input, 'electron/wire.json'), {macAutoUpdateEnabled: false});
+    await createPackage(input, archive);
+    assert.match((await verifyArchive(archive, {unsignedMacOS: true})).sha256, /^[a-f0-9]{64}$/);
+  });
+  for (const policy of [undefined, true, 'false', null, 0, {}]) {
+    it(`[PKG-002][security-target] rejects unsigned macOS policy ${JSON.stringify(policy)}`, async () => {
+      await fs.writeJson(path.join(input, 'electron/wire.json'), {macAutoUpdateEnabled: policy});
+      await createPackage(input, archive);
+      await assert.rejects(verifyArchive(archive, {unsignedMacOS: true}), /Unsigned macOS update policy/);
+      await assert.rejects(main(['--unsigned-macos', path.join(root, 'build')]), /Unsigned macOS update policy/);
+    });
+  }
+  it('[PKG-002][security-target] rejects malformed unsigned macOS metadata', async () => {
+    await fs.writeFile(path.join(input, 'electron/wire.json'), '{synthetic-invalid-json');
+    await createPackage(input, archive);
+    await assert.rejects(verifyArchive(archive, {unsignedMacOS: true}), /Unsigned macOS update policy/);
+  });
+  it('[PKG-002][security-target] reads archived policy rather than changed source metadata', async () => {
+    await fs.writeJson(path.join(input, 'electron/wire.json'), {macAutoUpdateEnabled: true});
+    await createPackage(input, archive);
+    await fs.writeJson(path.join(input, 'electron/wire.json'), {macAutoUpdateEnabled: false});
+    await assert.rejects(verifyArchive(archive, {unsignedMacOS: true}), /Unsigned macOS update policy/);
+  });
   it('rejects missing privileged preload instead of accepting any valid ASAR', async () => {
     await fs.remove(path.join(input, 'electron/dist/preload/preload-secure-account.js'));
     await createPackage(input, archive);
