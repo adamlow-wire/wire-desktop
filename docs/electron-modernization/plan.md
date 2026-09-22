@@ -830,8 +830,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 
 #### PKG-002 — Qualify installers and updater behavior
 
-- Pre-handoff F-007 slice: updater diagnostics must omit credential-bearing feed/error data and contain check/dialog/installation promise failures while preserving user consent. Local Node tests cover this boundary; startup routing with unsigned-fixture safeguards remains open. Actual signed qualification remains M5.
-- F-007 unsigned safeguard contract: macOS packaging must overwrite `macAutoUpdateEnabled` from build-owned facts: true only for internal distribution with an application signing identity configured; false for unsigned and App Store builds regardless of input metadata. Runtime requires a packaged app, literal true policy, internal distribution and non-development execution before configuring a feed. Missing/invalid policy fails closed. The flag records build intent, not cryptographic verification; failed signing must fail packaging, and actual signed/update qualification remains M5. No environment feed override may bypass this gate. The updater is routed once after successful main-window initialization, without a second `ready` registration.
+- Pre-handoff F-007 slice: updater diagnostics must omit credential-bearing feed/error data and contain check/dialog/installation promise failures while preserving user consent. Local Node tests cover this boundary; startup routing and unsigned package policy have a local candidate requiring final composed/native qualification. Actual signed qualification remains M5.
+- F-007 unsigned safeguard contract: macOS packaging must overwrite `macAutoUpdateEnabled` from build-owned facts: true only for internal distribution with a non-ad-hoc application signing identity configured and the corresponding signing step enabled; false for unsigned and App Store builds regardless of input metadata. Runtime requires a packaged app, literal true policy, internal distribution and non-development execution before configuring a feed. Missing/invalid policy fails closed. The flag records build intent, not cryptographic verification; failed signing must fail packaging, and actual signed/update qualification remains M5. No environment feed override may bypass this gate. The updater is routed once after successful main-window initialization, without a second `ready` registration.
 
 
 - Priority: `P1`
@@ -987,6 +987,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.64 | 2026-09-22 | Codex | Define build-owned unsigned-update policy and repair F-007 startup routing with separate baseline targets | PKG-002, F-007 |
 | 1.5.63 | 2026-09-22 | Codex | Start existing PKG-002 pre-handoff updater failure/diagnostic remediation; retain startup and signed-release gates | PKG-002, F-007, INV-010 |
 | 1.5.60 | 2026-09-22 | Maintainer in chat; Codex | Activate mandatory unsigned review-handoff closeout; make acceptance gates and later release qualifications explicit, retaining existing owners and invariants | PKG-001, TST-005, TST-006, ELC-003, SEC-003, PKG-003, GOV-002 |
 | 1.5.59 | 2026-09-16 | Codex | Start PKG-001 remediation of packaged inputs, secret diagnostics and fail-closed builds; retain unsigned scope and signed-release deferral | PKG-001, SEC-011, INV-010, TST-006 |

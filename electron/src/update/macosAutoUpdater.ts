@@ -17,7 +17,7 @@
  *
  */
 
-import {BrowserWindow, dialog} from 'electron';
+import {app, BrowserWindow, dialog} from 'electron';
 import {autoUpdater} from 'electron-updater';
 
 import {getLogger} from '../logging/getLogger';
@@ -36,6 +36,11 @@ export function initMacAutoUpdater(mainWindow: BrowserWindow): void {
   // Only run for internal builds (production = App Store -> handled by Apple)
   if (!isInternalBuild()) {
     logger.log('Skipping auto-update: not an internal build');
+    return;
+  }
+
+  if (!app.isPackaged || config.macAutoUpdateEnabled !== true) {
+    logger.log('Skipping auto-update: package policy disabled');
     return;
   }
 

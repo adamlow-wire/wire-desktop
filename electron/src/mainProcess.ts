@@ -682,27 +682,9 @@ const handleAppEvents = (): void => {
     }
     await showMainWindow(mainWindowState);
 
-    /* istanbul ignore next -- composition root */
-    app.on('ready', async () => {
-      const mainWindowState = initWindowStateKeeper();
-      const appMenu = systemMenu.createMenu(isFullScreen, wallClock, () => {
-        void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
-      });
-      if (EnvironmentUtil.app.IS_DEVELOPMENT) {
-        appMenu.append(developerMenu);
-      }
-
-      Menu.setApplicationMenu(appMenu);
-      tray = new TrayHandler();
-      if (!EnvironmentUtil.platform.IS_MAC_OS) {
-        tray.initTray();
-      }
-      await showMainWindow(mainWindowState);
-
-      if (EnvironmentUtil.platform.IS_MAC_OS && isInternalBuild()) {
-        initMacAutoUpdater(main);
-      }
-    });
+    if (EnvironmentUtil.platform.IS_MAC_OS && isInternalBuild()) {
+      initMacAutoUpdater(main);
+    }
   });
 };
 

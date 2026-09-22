@@ -168,7 +168,14 @@ export async function buildMacOSWrapper(
       {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
       {spaces: 2},
     );
-    await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
+    // Source configuration cannot enable updates in an unsigned review package.
+    // Signing failures below must prevent this candidate from being published.
+    const macAutoUpdateEnabled =
+      commonConfig.environment === 'internal' &&
+      Boolean(macOSConfig.certNameApplication) &&
+      macOSConfig.certNameApplication !== '-' &&
+      Boolean(signManually || packagerConfig.osxSign);
+    await fs.writeJson(wireJsonResolved, {...commonConfig, macAutoUpdateEnabled}, {spaces: 2});
     // Packager signs before returning and swallows signing rejection. Keep all
     // native signing under our control, after the final fuse mutation.
     const {osxSign, osxNotarize, ...unsignedConfig} = packagerConfig;
