@@ -44,7 +44,24 @@ describe('[PKG-001][SEC-011] macOS signing order and fail-closed tools', functio
     assert.equal(result.metadataRestored, true);
     assert.equal(result.mainEntitlements, 'resources/macos/entitlements/parent.plist');
   });
-  for (const mode of ['automatic-missing-team', 'automatic-missing-sign', 'manual-missing-sign']) {
+  for (const mode of ['automatic-application-only', 'manual-application-only']) {
+    it(`[characterization] ${mode} signs the application without requesting an installer`, () => {
+      const {result} = run(mode, 'success');
+      assert.equal(result.rejected, false);
+      assert.equal(result.metadataRestored, true);
+      assert.deepEqual(result.events, ['package', 'fuses', 'sign']);
+      assert.equal(result.signingOptions.length, 1);
+      assert.equal(result.signingOptions[0].identity, "Fixture ' application identity");
+      assert.deepEqual(result.installerOptions, []);
+      assert.deepEqual(result.notaryOptions, []);
+    });
+  }
+  for (const mode of [
+    'automatic-missing-team',
+    'automatic-missing-sign',
+    'manual-missing-sign',
+    'automatic-installer-only',
+  ]) {
     it(`[security-target] ${mode} rejects incomplete signing configuration before packaging`, () => {
       const {result, stderr} = run(mode, 'success');
       assert.equal(result.rejected, true);

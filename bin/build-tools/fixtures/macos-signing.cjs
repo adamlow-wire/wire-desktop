@@ -127,6 +127,13 @@ Module._load = function (request, parent, isMain) {
     const {buildMacOSConfig, buildMacOSWrapper} = require(path.join(repo, 'bin/build-tools/lib/build-macos.ts'));
     if (mode === 'automatic-missing-team') delete process.env.MACOS_NOTARIZE_TEAM_ID;
     if (mode.endsWith('missing-sign')) delete process.env.MACOS_CERTIFICATE_NAME_APPLICATION;
+    if (mode.endsWith('application-only') || mode === 'automatic-installer-only') {
+      delete process.env.MACOS_NOTARIZE_APPLE_ID;
+      delete process.env.MACOS_NOTARIZE_APPLE_PASSWORD;
+      delete process.env.MACOS_NOTARIZE_TEAM_ID;
+    }
+    if (mode.endsWith('application-only')) delete process.env.MACOS_CERTIFICATE_NAME_INSTALLER;
+    if (mode === 'automatic-installer-only') delete process.env.MACOS_CERTIFICATE_NAME_APPLICATION;
     const manual = mode.startsWith('manual');
     let error;
     try {
