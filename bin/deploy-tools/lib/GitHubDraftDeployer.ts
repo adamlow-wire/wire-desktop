@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,9 +14,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
-import axios, {AxiosError, AxiosRequestConfig} from 'axios';
+import axios, {AxiosRequestConfig} from 'axios';
 import fs from 'fs-extra';
 import logdown from 'logdown';
 
@@ -132,11 +133,8 @@ export class GitHubDraftDeployer {
     try {
       const draftResponse = await axios.post<GitHubAPIDraftData>(draftUrl, draftData, {headers: AuthorizationHeaders});
       return draftResponse.data;
-    } catch (error: any) {
-      this.logger.error('Error response from GitHub:', error.response.data);
-      throw new Error(
-        `Draft creation failed with status code "${error.response.status}": "${error.response.statusText}"`,
-      );
+    } catch {
+      throw new Error('Draft creation failed');
     }
   }
 
@@ -144,7 +142,7 @@ export class GitHubDraftDeployer {
     const {draftId, fileName, filePath} = options;
     const {repoSlug, githubToken} = this.options;
 
-    const draftUrl = `${GITHUB_API_URL}/repos/${repoSlug}/releases`;
+    const draftUrl = `${GITHUB_API_URL}/repos/${repoSlug}/releases/${draftId}`;
     const uploadUrl = `${GITHUB_UPLOADS_URL}/repos/${repoSlug}/releases/${draftId}/assets`;
 
     const AuthorizationHeaders = {
@@ -170,30 +168,16 @@ export class GitHubDraftDeployer {
         maxContentLength: THREE_HUNDRED_MB_IN_BYTES,
       };
       await axios.post(url, file, requestConfig);
-    } catch (uploadError: any) {
-      if ((uploadError as AxiosError).isAxiosError && uploadError.response) {
-        this.logger.error('Error response from GitHub:', uploadError.response.data);
-        this.logger.error(
-          `Upload failed with status code "${uploadError.response.status}": ${uploadError.response.statusText}"`,
-        );
-      } else {
-        this.logger.error(uploadError);
-      }
+    } catch {
+      this.logger.error('Uploading asset failed');
 
       this.logger.info('Deleting draft because upload failed ...');
 
       try {
         await axios.delete(draftUrl, {headers: AuthorizationHeaders});
         this.logger.info('Draft deleted');
-      } catch (deleteError: any) {
-        if ((deleteError as AxiosError).isAxiosError && deleteError.response) {
-          this.logger.error('Error response from GitHub:', deleteError.response);
-          throw new Error(
-            `Deletion failed with status code "${deleteError.response.status}: ${deleteError.response.statusText}"`,
-          );
-        } else {
-          throw deleteError;
-        }
+      } catch {
+        throw new Error('Uploading asset failed; draft deletion failed');
       }
 
       throw new Error('Uploading asset failed');

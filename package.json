@@ -229,6 +229,7 @@
     "jsrsasign@11.1.0": "11.1.1",
     "builder-util-runtime@9.5.1": "9.7.0",
     "js-yaml@^4.1.0": "4.3.2",
-    "axios@1.13.3": "1.20.0"
+    "axios@1.13.3": "1.20.0",
+    "@wireapp/copy-config@2.3.13": "patch:@wireapp/copy-config@npm%3A2.3.13#./.yarn/patches/@wireapp-copy-config-npm-2.3.13-d9dcaa56d1.patch"
   }
 }
