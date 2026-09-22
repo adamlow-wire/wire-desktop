@@ -27,7 +27,7 @@ const updaterRequire = createRequire(rootRequire.resolve('electron-updater/packa
 const {HttpExecutor}: typeof import('builder-util-runtime') = updaterRequire('builder-util-runtime');
 const {parseUpdateInfo, resolveFiles}: typeof import('electron-updater/out/providers/Provider') =
   updaterRequire('./out/providers/Provider');
-const channelUrl = 'https://updates.invalid/latest-mac.yml';
+const channelUrl = new URL('https://updates.invalid/latest-mac.yml');
 const sha512 = Buffer.alloc(64, 1).toString('base64');
 const raw = `version: 1.2.3\nfiles:\n  - url: WireInternal-1.2.3.zip\n    sha512: ${sha512}\n    size: 1234\nreleaseDate: '2026-09-22T00:00:00.000Z'\n`;
 
@@ -58,6 +58,14 @@ describe('[ELC-003][PKG-002] updater dependencies', () => {
     );
     assert.equal(Object.getPrototypeOf(info), Object.prototype);
     assert.equal('poison' in info, false);
+  });
+  it('[security-target] bounds repeated empty YAML merge sources', () => {
+    const aliases = Array(100).fill('*empty').join(',');
+    const mappings = Array.from({length: 101}, (_, index) => `m${index}: {<<: [${aliases}]}`).join('\n');
+    const repeated = `empty: &empty {}\n${mappings}\nversion: 1.2.3`;
+    assert.throws(() => parseUpdateInfo(repeated, 'latest-mac.yml', channelUrl), {
+      code: 'ERR_UPDATER_INVALID_UPDATE_INFO',
+    });
   });
   const sensitive = ['authorization', 'Authorization', 'PRIVATE-TOKEN', 'Cookie', 'Proxy-Authorization', 'X-Api-Key'];
   it('[characterization] retains credentials on a same-origin redirect', () => {
