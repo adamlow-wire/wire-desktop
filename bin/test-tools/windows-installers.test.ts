@@ -37,6 +37,10 @@ describe('unsigned Windows installer CI gate', () => {
     assert.ok(workflow.includes('package-contents-windows-msi.json'), 'Windows job must compare the MSI payload');
   });
 
+  it('runs installed-app smoke from both Windows installer families', () => {
+    assert.ok(workflow.includes('smoke-windows-installers.ps1'), 'Installer package job must run installed-app smoke');
+  });
+
   async function withPackages(check: (dist: string, build: string) => void | Promise<void>): Promise<void> {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wire-windows-installer-gate-'));
     const dist = path.join(root, 'dist');
