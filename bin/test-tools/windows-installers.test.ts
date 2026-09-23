@@ -37,6 +37,22 @@ describe('unsigned Windows installer CI gate', () => {
     assert.ok(workflow.includes('package-contents-windows-msi.json'), 'Windows job must compare the MSI payload');
   });
 
+  it('bounds each installer command and terminates a stalled direct process', () => {
+    const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
+    const processHelper = smoke
+      .split('function Invoke-CheckedProcess(')[1]
+      ?.split('function Assert-InstalledArchive(')[0];
+    assert.ok(processHelper, 'Installed-app smoke must own a process helper.');
+    assert.match(processHelper, /\.WaitForExit\(180000\)/, 'Each installer process needs a three-minute deadline.');
+    assert.match(processHelper, /\.Kill\(\$true\)/, 'A timed-out process tree must be terminated.');
+    assert.match(processHelper, /throw .*did not complete within three minutes/, 'Timeout must fail the package gate.');
+    assert.doesNotMatch(
+      processHelper,
+      /Start-Process[^\n]*-Wait/,
+      'Unbounded process-tree waits hide the failing phase.',
+    );
+  });
+
   it('runs installed-app smoke from both Windows installer families', () => {
     assert.ok(workflow.includes('smoke-windows-installers.ps1'), 'Installer package job must run installed-app smoke');
   });
