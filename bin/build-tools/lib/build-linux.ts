@@ -88,6 +88,8 @@ export async function buildLinuxConfig(
       artifactName: linuxConfig.artifactName,
       category: platformSpecificConfig.category,
       desktop: {entry: linuxDesktopConfig},
+      // electron-builder otherwise adds --no-sandbox to the legacy AppImage desktop entry.
+      executableArgs: [],
       publish: null,
     },
     asar: commonConfig.enableAsar,
