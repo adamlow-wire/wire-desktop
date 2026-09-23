@@ -65,6 +65,9 @@ describe('production account controller integration', function () {
   let disposeEvents: () => void;
   let records: ReturnType<typeof parseLegacyAccounts>;
   const preload = path.join(process.cwd(), 'electron/test/fixtures/account-controller-preload.js');
+  // Reuse two distinct persistent partitions across cases; teardown clears their data.
+  // Creating fresh native sessions for every case can accumulate Chromium resources on Windows.
+  const fixtureSessionIds = [randomUUID(), randomUUID()];
   const accountSession = (account: {sessionID?: string}) =>
     account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession;
   let initializationPhase: string;
@@ -88,8 +91,8 @@ describe('production account controller integration', function () {
     records = parseLegacyAccounts(
       JSON.stringify({
         accounts: [
-          {id: randomUUID(), sessionID: randomUUID(), userID: 'first', visible: true},
-          {id: randomUUID(), sessionID: randomUUID(), userID: 'second'},
+          {id: randomUUID(), sessionID: fixtureSessionIds[0], userID: 'first', visible: true},
+          {id: randomUUID(), sessionID: fixtureSessionIds[1], userID: 'second'},
         ],
       }),
       3,
