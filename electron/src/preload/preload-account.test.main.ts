@@ -14,6 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import {ModuleKind, ScriptTarget, transpileModule} from 'typescript';
@@ -71,6 +72,6 @@ describe('account preload event diagnostics (inert Node ports)', () => {
     emit({type: 'account-event'});
     await settle();
     assert.deepEqual(warnings, [['Account event rejected.']]);
-    assert.ok(!warnings.flat().includes(privateError));
+    assert.ok(!(warnings as unknown[][]).flat().includes(privateError));
   });
 });
