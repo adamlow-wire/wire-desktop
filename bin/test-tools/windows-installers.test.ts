@@ -82,6 +82,19 @@ describe('unsigned Windows installer CI gate', () => {
     );
   });
 
+  it('bounds each installed packaged account child before cleanup can hold the CI step', () => {
+    const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
+    const packaged = smoke
+      .split('function Invoke-PackagedSmoke(')[1]
+      ?.split('function Invoke-ManagedPackagedSmoke(')[0];
+    assert.ok(packaged, 'Installed package smoke must own its Node child lifecycle.');
+    assert.match(packaged, /Start-Process -FilePath 'node'[^\n]*-NoNewWindow[^\n]*-PassThru/);
+    assert.match(packaged, /\.WaitForExit\(90000\)/, 'A stuck fixture child needs a 90-second deadline.');
+    assert.match(packaged, /\.Kill\(\$true\)/, 'Timeout must terminate the packaged fixture process tree.');
+    assert.match(packaged, /throw .*did not complete within 90 seconds/, 'Timeout must fail the installer gate.');
+    assert.doesNotMatch(packaged, /\bnode bin\/test-tools\/packaged-account-smoke\.cjs \$executable/);
+  });
+
   it('runs installed-app smoke from both Windows installer families', () => {
     assert.ok(workflow.includes('smoke-windows-installers.ps1'), 'Installer package job must run installed-app smoke');
   });
