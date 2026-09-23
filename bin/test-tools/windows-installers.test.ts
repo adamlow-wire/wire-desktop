@@ -41,6 +41,20 @@ describe('unsigned Windows installer CI gate', () => {
     assert.ok(workflow.includes('smoke-windows-installers.ps1'), 'Installer package job must run installed-app smoke');
   });
 
+  it('requires an explicit managed policy for each installed Windows startup', () => {
+    const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
+    assert.match(smoke, /function Invoke-ManagedPackagedSmoke\(/);
+    assert.match(smoke, /if \(\$null -ne \$existing\) \{ throw 'Refusing to replace existing managed policy\.'; \}/);
+    assert.match(smoke, /New-ItemProperty -Path \$policy -Name applockOverride -PropertyType DWord -Value 1/);
+    assert.match(smoke, /\$env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'/);
+    assert.match(smoke, /Remove-ItemProperty -Path \$policy -Name applockOverride -ErrorAction SilentlyContinue/);
+    assert.match(smoke, /Invoke-ManagedPackagedSmoke \$applications\[0\] 'Squirrel installed'/);
+    assert.match(smoke, /Invoke-ManagedPackagedSmoke \$application 'MSI installed'/);
+    assert.match(smoke, /Invoke-ManagedPackagedSmoke \$application 'MSI installed managed\/proxy'/);
+    assert.doesNotMatch(smoke, /Invoke-PackagedSmoke \$applications\[0\] 'Squirrel installed'/);
+    assert.doesNotMatch(smoke, /Invoke-PackagedSmoke \$application 'MSI installed'/);
+  });
+
   async function withPackages(check: (dist: string, build: string) => void | Promise<void>): Promise<void> {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wire-windows-installer-gate-'));
     const dist = path.join(root, 'dist');
