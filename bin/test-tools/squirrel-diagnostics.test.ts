@@ -146,6 +146,30 @@ describe('Squirrel updater diagnostic boundary', () => {
     );
   });
 
+  it('rejects synchronous and native spawn errors without logging their contents', async () => {
+    const token = 'synthetic-spawn-secret';
+    for (const mode of ['throw', 'event']) {
+      const diagnostics: string[] = [];
+      const {installUpdate} = loadProductionUpdater({
+        feed: 'https://updates.invalid/feed',
+        diagnostics,
+        onSpawn: () => {
+          if (mode === 'throw') {
+            throw new Error(token);
+          }
+          const child = Object.assign(new EventEmitter(), {stdout: new EventEmitter(), stderr: new EventEmitter()});
+          queueMicrotask(() => {
+            child.emit('error', new Error(token));
+            child.emit('close', 1, null);
+          });
+          return child;
+        },
+      });
+      await assert.rejects(installUpdate(), /could not start/i);
+      assert.equal(diagnostics.join('\n').includes(token), false);
+    }
+  });
+
   it('rejects a nonzero Update.exe exit instead of reporting success', async () => {
     const diagnostics: string[] = [];
     const {installUpdate} = loadProductionUpdater({

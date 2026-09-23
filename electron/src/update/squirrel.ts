@@ -62,55 +62,41 @@ export function isSquirrelInstallation(updaterPath: string = updateDotExe): bool
 }
 
 function spawn(command: string, args: string[]): Promise<void> {
-  const commandFile = path.basename(command);
+  return new Promise((resolve, reject) => {
+    let spawnedProcess: childProcess.ChildProcess;
+    try {
+      spawnedProcess = childProcess.spawn(command, args);
+    } catch {
+      reject(new Error('Windows updater could not start.'));
+      return;
+    }
 
-  return new Promise(resolve => {
-    const spawnedProcess = childProcess
-      .spawn(command, args)
-      .on('error', error => logger.error(error))
-      .on('close', (code, signal) => {
-        if (code !== 0) {
-          const exitReason = signal || `exit code ${code}`;
-          logger.error(`Running command "${command}" failed: received ${exitReason}`);
-        }
+    // Update.exe output can contain the configured feed or native diagnostics.
+    // Drain both pipes without retaining their untrusted contents in app logs.
+    spawnedProcess.stdout?.on('data', () => undefined);
+    spawnedProcess.stderr?.on('data', () => undefined);
+    spawnedProcess.once('error', () => reject(new Error('Windows updater could not start.')));
+    spawnedProcess.once('close', code => {
+      if (code === 0) {
         resolve();
-      });
-
-    if (spawnedProcess.stdout) {
-      spawnedProcess.stdout.on('data', (data: Buffer) => {
-        const stringifiedData = data.toString().trim();
-        if (stringifiedData) {
-          logger.info(`${commandFile}: ${stringifiedData}`);
-        }
-      });
-    }
-    if (spawnedProcess.stderr) {
-      spawnedProcess.stderr.on('data', (data: Buffer) => {
-        const stringifiedData = data.toString().trim();
-        if (stringifiedData) {
-          logger.error(`${commandFile}: ${stringifiedData}`);
-        }
-      });
-    }
+      } else {
+        reject(new Error('Windows updater exited unsuccessfully.'));
+      }
+    });
   });
 }
 
 async function spawnUpdate(args: string[]): Promise<void> {
-  logger.info(`Running updater with args ${JSON.stringify(args)} ...`);
   if (!isSquirrelInstallation()) {
-    logger.info(`Could not find updater in "${updateDotExe}".`);
+    logger.info('Windows updater is not installed.');
     return;
   }
 
-  try {
-    await spawn(updateDotExe, args);
-  } catch (error) {
-    logger.error(error);
-  }
+  await spawn(updateDotExe, args);
 }
 
 export async function installUpdate(): Promise<void> {
-  logger.info(`Checking for Windows updates at "${EnvironmentUtil.app.UPDATE_URL_WIN}" ...`);
+  logger.info('Checking for Windows updates.');
   await spawnUpdate(['--update', EnvironmentUtil.app.UPDATE_URL_WIN]);
 }
 
@@ -123,8 +109,11 @@ async function scheduleUpdate(): Promise<void> {
   const readableRegularCheck = `${regularCheck} ${StringUtil.pluralize('hour', regularCheck)}`;
   logger.info(`Scheduling Windows update to check in "${readableNextCheck}" and every "${readableRegularCheck}" ...`);
 
-  setTimeout(installUpdate, squirrelDelay);
-  setInterval(installUpdate, squirrelInterval);
+  const runScheduledUpdate = () => {
+    void installUpdate().catch(() => logger.error('Windows updater check failed.'));
+  };
+  setTimeout(runScheduledUpdate, squirrelDelay);
+  setInterval(runScheduledUpdate, squirrelInterval);
 }
 
 export async function handleSquirrelArgs(): Promise<void> {
