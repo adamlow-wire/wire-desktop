@@ -2,12 +2,13 @@ path,change,scope,source_review,test_provenance,coverage_disposition
 .github/workflows/build_test.yml,M,tooling/CI/config,pending,pending,pending
 .github/workflows/codeql-analysis.yml,M,tooling/CI/config,pending,pending,pending
 .github/workflows/e2e-test.yml,M,tooling/CI/config,pending,pending,pending
-.github/workflows/electron-modernization-baseline.yml,A,tooling/CI/config,Composed workflow review pending; logging/IPC/SSO/ASAR steps retained once in 09214ca9; this is not hosted execution,pending,Parsed composition retains four required steps; whole workflow execution and remaining coverage pending
+.github/workflows/electron-modernization-baseline.yml,A,tooling/CI/config,F-021/F-023 Linux sandbox/desktop gates and all-format build/static/native smoke authored through 32b31c2d; YAML/Bash/static scripts pass locally; hosted workflow unrun,F-021 old actual AppRun and F-023 old actual AppImage fail new static checks; corrected artifacts pass locally,AppImage/deb/rpm all-format hosted and extracted native smoke requested but unrun; actual installed desktop/protocol remains open
 .github/workflows/electron-modernization-preview.yml,A,tooling/CI/config,pending,pending,pending
 .github/workflows/jira-lint-and-link.yml,M,tooling/CI/config,pending,pending,pending
 .github/workflows/lint.yml,M,tooling/CI/config,pending,pending,pending
 .nycrc.json,M,tooling/CI/config,pending,pending,pending
 .yarn/patches/@wireapp-copy-config-npm-2.3.13-d9dcaa56d1.patch,A,tooling/CI/config,Reviewed promise propagation and exclusive archive ownership,4e7f98b2 baseline,Five direct installed-module cases; branch composition and hosted checks pending
+.yarn/patches/app-builder-lib-npm-26.15.3-1764854cd0.patch,A,tooling/CI/config,F-021 scoped AppRun fail-closed generator patch reviewed; hosted/native launcher behavior pending,84ac22aa baseline: three controls pass/two sandbox targets fail; 45f45f4f patch; 7771a714 generated-launcher fixture,Old actual AppRun forwards --no-sandbox when namespace probe fails; corrected one does not; final static AppImage safe; effective OS sandbox unrun
 .yarn/patches/playwright-core-npm-1.60.0-3d53a7d2d6.patch,A,tooling/CI/config,pending,pending,pending
 AGENTS.md,M,tooling/CI/config,pending,pending,pending
 bin/bin-utils.test.ts,A,test/fixture,Reviewed real filesystem ownership and delayed-copy sensitivity; fixture cleanup restores stubs,5efc93d8 two controls pass/three failures before c70432e5,Five cases; basename collision and pending-copy cleanup assertions; included in composed376
@@ -21,8 +22,8 @@ bin/build-tools/fixtures/build-cli.cjs,A,test adapter,Node-only synthetic config
 bin/build-tools/fixtures/build-wrapper.cjs,A,test/fixture,Reviewed inert native adapters and owned real-filesystem recovery; no real builder invocation,1df0ce00 separate fixture baseline,Actual wrappers and backup helpers exercised; config/native ports substituted; actual artifacts not qualified
 bin/build-tools/fixtures/macos-signing.cjs,A,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
 bin/build-tools/lib/Config.ts,M,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
-bin/build-tools/lib/build-linux.test.ts,M,test/fixture,pending,pending,pending
-bin/build-tools/lib/build-linux.ts,M,tooling/CI/config,F-004 local allowlist review; static Linux contents/fuses pass; F-021 AppImage launch defaults disable sandbox; packaged startup and hosted qualification pending,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures,179 current policy cases; actual AppImage/deb/rpm ASAR/inventory/fuse static checks pass; packaged native and full denominator review pending
+bin/build-tools/lib/build-linux.test.ts,M,test/fixture,F-021 sandbox policy and F-022/F-023 icon/desktop configuration targets reviewed; broader builder tests pending,84ac22aa 3 controls/2 failures; c5e1aaab 6/1 icon; 30716e1f 7/1 desktop; fixes follow separately,Eight final focused Linux builder cases pass; actual static trio checked; native install and hosted execution pending
+bin/build-tools/lib/build-linux.ts,M,tooling/CI/config,F-021 AppImage sandbox defaults corrected by 45f45f4f; F-022 Wire icon b8a10744 and F-023 desktop identity 196145ef checked in extracted trio; remaining builder review pending,Existing 9de6fb4a copy-filter baseline and targeted 84ac22aa/c5e1aaab/30716e1f failures precede fixes,Final AppImage/deb/rpm content/icon/desktop/fuse checks pass; full native and hosted qualification pending
 bin/build-tools/lib/build-macos.test.ts,M,tooling/CI/config,pending; F-006 local signing-order/API review; native signed qualification remains open,pending; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation,pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail
 bin/build-tools/lib/build-macos.ts,M,tooling/CI/config,F-004 local allowlist review; artifact qualification pending; F-006 local signing-order/API review; native signed qualification remains open; F-007 build-owned update flag review,9de6fb4a original copy-filter baseline; sensitivity restores 98 failures; 01fe145a/2e2e3a69 signing baseline:4 pass/8 fail; faa4bb5a incomplete-config targets fail before validation; 43c88dd7 contradictory policy baseline four failures; 331f79d6 disabled/ad-hoc signing two failures,179 current policy cases; dependency/artifact and full denominator review pending; inert native tools only; omitted-fuse and swallowed-sign-error perturbations fail; unsigned/App Store constant-true sensitivity fails two
 bin/build-tools/lib/build-recovery.test.ts,A,test/fixture,Reviewed write-then-reject fault injection with exact original bytes and owned metadata paths,03e1666e seven failures before 12ecd796,Seven platform/write-phase cases; omitted Windows restoration fails two; composed376 pass
@@ -63,36 +64,63 @@ bin/test-tools/build-macos-smoke.ts,A,tooling/CI/config,pending,pending,pending
 bin/test-tools/check-diff-coverage.js,A,tooling/CI/config,pending,pending,pending
 bin/test-tools/generate-public-api.test.main.ts,A,test/fixture,pending,pending,pending
 bin/test-tools/generate-public-api.ts,A,tooling/CI/config,pending,pending,pending
-bin/test-tools/package-contents.test.ts,A,tooling/CI/config,local review; hosted qualification pending; reviewed archived unsigned mac policy gate,17 real-ASAR tests; content/cache perturbations fail; 13456006 18 pass/eight policy failures,actual Linux artifact passes; final-platform wiring pending; 26 actual synthetic-ASAR cases; enforcement/CLI mutations fail eight/six; actual platform artifact pending
+bin/test-tools/inventory-shipped-asar.cjs,A,tooling/CI/config,Actual ASAR package-root inventory extraction and semver validation reviewed; dynamic/peer reachability not inferred,Created for ELC-003 shipped graph audit; no pre-existing application behavior changed,Final Linux trio each has identical 407-instance inventory; Windows/macOS graphs and final accepted head pending
+bin/test-tools/package-contents.test.ts,A,tooling/CI/config,F-022 eight required runtime-image regression targets reviewed; PKG-002 archived mac policy gate retained; hosted qualification pending,7b532d29 26 controls pass/8 image targets fail before 49ccd76b; 34 focused image cases pass,Full 388 tooling cases after image fix; 42 final Linux/archive focused cases; native tray/About and Windows dialog unrun
 bin/test-tools/packaged-account-smoke.cjs,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/query-shipped-advisories.cjs,A,tooling/CI/config,Explicit opt-in metadata-only npm bulk query reviewed; no automatic network request,Created for ELC-003 shipped advisory audit; initial 423-instance query explicitly approved; 407 subset already queried,Zero high/critical for exact Linux 407 graph at query time; residual moderate/low call paths reviewed; final all-platform graphs pending
 bin/test-tools/renderer-source-maps.test.ts,A,test/fixture,pending,pending,pending
 bin/test-tools/run-linux-e2e.py,A,tooling/CI/config,pending,pending,pending
 bin/test-tools/run-linux-e2e.test.py,A,test/fixture,pending,pending,pending
-bin/test-tools/verify-package-contents.cjs,A,tooling/CI/config,local review; hosted qualification pending; reviewed archived unsigned mac policy gate,17 real-ASAR tests; content/cache perturbations fail; 13456006 18 pass/eight policy failures,actual Linux AppImage/deb/rpm ASAR content passes; final-platform wiring pending; 26 actual synthetic-ASAR cases; enforcement/CLI mutations fail eight/six; packaged native and Windows/macOS artifacts pending
+bin/test-tools/verify-package-contents.cjs,A,tooling/CI/config,F-022 eight runtime images now required; prior 22-file check accepted actual broken installers; hosted qualification pending,7b532d29 actual synthetic ASAR baseline 26 pass/8 failures; 49ccd76b fixes; actual old AppImage rejected,Final Linux trio 7373 entries/30 required images and no forbidden own input; Windows/macOS and native behavior pending
 docs/electron-modernization/README.md,M,documentation,pending,pending,pending
+docs/electron-modernization/account-controller-queue-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/account-controller-removal-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/account-deletion-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/account-display-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/account-ipc-wiring-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/account-profile-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/baseline.md,A,documentation,pending,pending,pending
+docs/electron-modernization/candidate-reconciliation.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/cap001-store-bootstrap-recovery.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/cap001-view-setup-cleanup.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/cap001-view-teardown-recovery.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/cap003-capture-cleanup-recovery.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/cap005-proxy-protocol-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/capabilities.md,M,documentation,pending,pending,pending
+docs/electron-modernization/common-ipc-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/decisions/0001-process-and-view-architecture.md,A,documentation,pending,pending,pending
 docs/electron-modernization/decisions/0002-account-permission-consent.md,A,documentation,pending,pending,pending
 docs/electron-modernization/decisions/0003-local-content-protocol.md,A,documentation,pending,pending,pending
 docs/electron-modernization/decisions/0004-consented-display-capture.md,A,documentation,pending,pending,pending
 docs/electron-modernization/electron-compatibility.md,A,documentation,pending,pending,pending
 docs/electron-modernization/governance.md,A,documentation,pending,pending,pending
+docs/electron-modernization/inventory-reconciliation.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/ipc-inventory.md,A,documentation,pending,pending,pending
+docs/electron-modernization/logging-boundary-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/logging-diagnostic-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/logging-path-writer-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/m3-acceptance.md,A,documentation,pending,pending,pending
 docs/electron-modernization/m4-acceptance.md,A,documentation,pending,pending,pending
 docs/electron-modernization/manual-windows-preview.md,A,documentation,pending,pending,pending
 docs/electron-modernization/packaging-verification.md,A,documentation,pending,pending,pending
+docs/electron-modernization/permission-session-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/plan.md,M,documentation,pending,pending,pending
+docs/electron-modernization/proxy-authentication-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/proxy-ipc-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/qa-display-capture.md,A,documentation,pending,pending,pending
 docs/electron-modernization/qa-sso-e2ei.md,A,documentation,pending,pending,pending
 docs/electron-modernization/quality-review.md,A,documentation,pending,pending,pending
+docs/electron-modernization/recovered-candidate-qualification.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/renderer-account-routing-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/renderer-rejection-confidentiality-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/resume-m3.md,A,documentation,pending,pending,pending
 docs/electron-modernization/resume-m4.md,A,documentation,pending,pending,pending
 docs/electron-modernization/review-findings.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-inventory.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-traceability.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/sec013-dispatch-diagnostics.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/settings-recovery.md,A,documentation,pending,pending,pending
+docs/electron-modernization/shipped-linux-asar-audit.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/status.md,M,documentation,pending,pending,pending
 docs/electron-modernization/testing.md,M,documentation,pending,pending,pending
 docs/electron-modernization/threat-model.md,A,documentation,pending,pending,pending
@@ -276,7 +304,7 @@ electron/src/logging/logStartup.ts,A,application,Reviewed await-cleanup/report/s
 electron/src/logging/loggerUtils.ts,M,application,F-017 production staging-port forwarding reviewed; diagnostic and broader composition review pending,pending,pending
 electron/src/main.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/main.ts,M,application,pending,pending,pending
-electron/src/mainProcess.ts,A,application,"Partial F-007/F-019 review: ready callback, proxy application and startup validation. d5e32f55 accepts valid SOCKS and refuses invalid config before assignment/file switch. Remaining diagnostic/composition review pending.",c96d5795 startup controls6 pass/1 target fails; d49d3bf3 proxy controls3 pass/6 targets fail before1381a854. Scope-specific later evidence retained. Startup baseline6c41d6f9 passes6/fails10 befored5e32f55; validation/order sensitivities2/4/7.,F-019 startup/application included in47 composed06b58f50 Node proxy cases; same-block overlay types/lint pass. F-007 earlier contracts retained. Native startup/resolution and remaining module coverage open.
+electron/src/mainProcess.ts,A,application,Partial F-007/F-019 review retained; F-022 Windows download-complete icon now uses packaged logo. Remaining diagnostics/composition review pending,F-007/F-019 baselines retained; F-022 archive image baseline 7b532d29 preceded 8cb97698 icon-path correction,Required logo present in final Linux ASAR; actual Windows download dialog/native startup and broader module review pending
 electron/src/managed/backends/ManagedBackends.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/managed/backends/windows.ts,M,application,pending,pending,pending
 electron/src/menu/AccountContextMenu.test.main.ts,A,test/fixture,pending,pending,pending

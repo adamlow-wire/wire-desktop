@@ -687,7 +687,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Critical allow/deny, stale/cross-account, failure/recovery, persistence and teardown contracts are sensitivity-proven. Audit mocks, test-only hooks, collection, skip/quarantine, retries and actual CI execution. Unexplained timing failures are investigated and receive explicit bounded follow-up; a rerun alone is not a root-cause resolution.
   - All findings required for handoff are remediated and re-reviewed; the final composed candidate passes all applicable final-head gates. A reproducible test guide, coverage/gap ledger, internal review report and Wire QA handoff are committed with durable evidence and precise claim limits.
 - Execution: [Review and test-completeness work plan](quality-review.md). Do not claim this item done from earlier per-PR reviews or test counts.
-- Evidence: [Execution ledger](review-findings.md) records verified baseline/full scope, PR61 integration, current coverage/dependency audit and open findings. Module and DCP/INV/IPC traceability remain pending; this item is not accepted.
+- Evidence: [Execution ledger](review-findings.md) records verified baseline/full scope, PR61 integration, current coverage/dependency audit and open findings. The [latest inventory reconciliation](inventory-reconciliation.md#latest-appimageruntime-imagedesktop-and-advisory-recomposition) accounts for all 528 original-baseline-to-scoped-candidate paths and partially maps F-021/F-022/F-023 to DCP-005/DCP-020/INV-001. Exact source/provenance/coverage placeholders remain 296/317/328 plus populated partial rows. Complete module and DCP/INV/IPC review, final-head re-accounting and platform qualification remain pending; this item is not accepted.
 
 ### 10.5 Capability migration
 
@@ -991,6 +991,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.73 | 2026-09-23 | Codex | Refresh TST-006 changed-path accounting to 528 current candidate paths and bound F-021/F-022/F-023 capability/invariant traces without claiming review completion | TST-006, PKG-001, DCP-005, DCP-020, INV-001 |
 | 1.5.72 | 2026-09-23 | Codex | Disposition the two non-high/critical matches in the exact final scoped Linux shipped graph by advisory trigger and reviewed call path; retain final-platform graph gates | ELC-003, PKG-001 |
 | 1.5.71 | 2026-09-23 | Codex | Record missing packaged runtime images and Linux branding/desktop identity findings, scoped fixes and static all-format evidence; retain hosted/native/final-head gates | PKG-001, TST-006, F-022, F-023, DCP-005, DCP-020 |
 | 1.5.70 | 2026-09-23 | Codex | Record scoped AppImage sandbox-launch correction and environment-correct static artifact evidence while retaining native/final-head gates | PKG-001, TST-006, INV-001, DCP-020 |

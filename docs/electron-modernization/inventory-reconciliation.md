@@ -1,14 +1,18 @@
 # Review inventory reconciliation — September 23
 
-TST-006's inventory is now scoped to the exact original-baseline-to-composed-source delta. This is file-accounting and evidence reconciliation, not completed source review or coverage acceptance.
+TST-006's inventory is scoped to the exact original-baseline-to-current-scoped-candidate delta. This is file-accounting and evidence reconciliation, not completed source review or coverage acceptance.
 
 - Original baseline: `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a`.
-- Local source validation target: `725efb5c7767dc6ec1d05d8a3f9f2970a1c5bff7`, tree `2e77b6c36eae6bae8d67c25bc71c8dbab51db02b`.
+- Local source validation target: `46465040e2d783d29712e4a5cdafc14a4d1a2aa4` (PKG-001 F-021/F-022/F-023 plus scoped ELC-003 Linux disposition).
 - Scope: `git diff --no-renames --name-status <baseline> <target>`; additions and deletions are separate rows, including removed source.
-- Result: 500 changed paths, 500 unique CSV rows, no missing/extra paths or change-status mismatches.
+- Result: 528 changed paths, 528 unique CSV rows, no missing/extra paths or change-status mismatches.
 - Limits: the target is a local composed source candidate, not accepted integration. Later documentation changes on this report branch are not part of that frozen source target. Refresh the inventory against the actual final composed head before acceptance.
 
-## Package-input and account-preload recomposition
+## Latest AppImage/runtime-image/desktop and advisory recomposition
+
+Relative to the historical `725efb5c` target below, the current `46465040` baseline delta adds 28 paths: one version-pinned AppRun patch, two ASAR audit utilities and 25 review/evidence documents. No prior inventory path disappears or changes add/modify/delete status. The patched launcher and audit utility rows record partial F-021/ELC-003 review evidence; new documentation rows retain explicit final-review limits. Existing Linux builder, package-verifier, workflow and main-entry rows now identify F-021/F-022/F-023 failing baselines, fixes and static artifacts without treating unrun native behavior as accepted. DCP-005, DCP-020 and INV-001 traceability rows have similarly bounded mappings; all other DCP/INV/IPC rows remain to review. Exact `pending` cells are **296 source / 317 provenance / 328 coverage**, plus many populated but partial rows. These are counts of exact placeholder text, not completion percentages. The all-format hosted workflow, final Windows/macOS artifacts, profile contract and final composed platform evidence are still open.
+
+## Historical package-input and account-preload recomposition
 
 The source target `725efb5c` adds exact `dda2cc6b`/`7280d5d9` package-filter characterization/fix and `f655d236`/`3bfa7434` account-preload diagnostic characterization/fix on top of `2ba7ade3`. The only new path relative to the prior499-row target is `electron/src/preload/preload-account.test.main.ts`; package policy and preload source paths already existed. The ledger now has500 exact rows. Scoped source/provenance/coverage notes are partial, not a whole-module review. The package test detects the original top-level tar inclusion and a temporary overbroad exclusion of nested semver; the preload test detects raw rejected-Error logging. Both perturbations were restored. Combined focused182 cases, relevant types/lint, production build, local unsigned Linux directory and actual AppImage/deb/rpm static artifact verification pass. [Artifact evidence](shipped-linux-asar-audit.md#actual-unsigned-linux-installers-from-the-composed-candidate). Source review has297 exact pending cells, provenance319, and coverage329; partial cells and behavior traceability still require review.
 
@@ -131,7 +135,7 @@ import csv
 import subprocess
 
 baseline = '1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a'
-target = '725efb5c7767dc6ec1d05d8a3f9f2970a1c5bff7'
+target = '46465040e2d783d29712e4a5cdafc14a4d1a2aa4'
 with open('docs/electron-modernization/review-inventory.csv', newline='') as source:
     rows = list(csv.DictReader(source))
 actual = {row['path']: row['change'] for row in rows}

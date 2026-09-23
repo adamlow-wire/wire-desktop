@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
-active_work_item: ELC-003
-state: linux-residual-advisories-reviewed
+active_work_item: TST-006
+state: exact-candidate-inventory-refreshed
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: review/ELC-003-final-linux-residual-2026-09-23
+active_branch: review/TST-006-final-candidate-inventory-2026-09-23
 next_work_item: TST-006
 blockers: [fork-publication-approval, profile-compatibility-decision, hosted-platform-qualification]
 ---
@@ -17,6 +17,8 @@ blockers: [fork-publication-approval, profile-compatibility-decision, hosted-pla
 # Current project status
 
 ## Current execution
+
+**TST-006 latest scoped inventory:** the original baseline `1b82b085` to local candidate `46465040` now has an exact 528-path ledger: 528 unique rows, no missing/extra paths and no change-status mismatch. The 28 new paths since source `725efb5c` are one pinned AppRun patch, two ASAR audit tools and 25 review documents. F-021/F-022/F-023 source/test/workflow rows and DCP-005/DCP-020/INV-001 traceability now have bounded static evidence; none is marked accepted from a test count alone. Exact placeholders remain 296 source, 317 provenance and 328 coverage, plus populated partial reviews and broader untraced behavior. This is file accounting, not the full source/provenance/coverage or platform audit. [Exact guard and limits](inventory-reconciliation.md#latest-appimageruntime-imagedesktop-and-advisory-recomposition). Next: work the security/data-loss/resource-bound rows and capability paths, reconcile scoped fixes, then run final all-platform gates after profile decision and authorized PR-only integration.
 
 **ELC-003 current Linux residual review:** the final scoped AppImage/deb/rpm all have the exact approved 407-package inventory. Two retained range matches are now disposed for the *reviewed Linux call paths*: `uuid` 9.0.1 moderate affects only v3/v5/v6 caller-buffer writes, while the two first-party uses call argument-free v4; `@tootallnate/once` 2.0.0 low needs an `AbortSignal` third argument, but its sole literal shipped consumer `http-proxy-agent/dist/agent.js` calls it with only an emitter and event name, and no declared/first-party parent of that agent was found. These are accepted, call-path-limited residuals, not patched versions or proof about dynamic loads. The graph, ASAR and advisory response were read locally; no new npm metadata was sent. [Detailed evidence](shipped-linux-asar-audit.md#elc-003-residual-advisory-call-path-disposition-on-the-final-linux-graph). Final Windows/macOS artifact graphs, accepted-head composition, native/platform checks and full TST-006 review remain mandatory.
 
