@@ -111,6 +111,7 @@ export async function buildLinuxConfig(
     linux: {
       artifactName: linuxConfig.artifactName,
       category: platformSpecificConfig.category,
+      icon: 'resources/icons',
       executableName: linuxConfig.executableName,
       target: linuxConfig.targets,
     },
