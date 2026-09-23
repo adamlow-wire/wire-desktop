@@ -452,6 +452,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: test '${{ steps.windows_smoke.outputs.completed }}' = 'true'
+      - name: Smoke-test applications installed by both Windows installers
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./bin/test-tools/smoke-windows-installers.ps1
       - name: Smoke-test macOS package
         if: runner.os == 'macOS'
         shell: bash
