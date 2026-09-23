@@ -96,7 +96,7 @@ const fixture = (failureStage?: string) => {
   let window!: FakeWindow;
   class FakeWindow extends EventEmitter {
     destroyed = false;
-    webContents = Object.assign(new EventEmitter(), {setWindowOpenHandler: () => undefined});
+    webContents = Object.assign(new EventEmitter(), {setWindowOpenHandler: () => check('window-open')});
     constructor() {
       super();
       window = this;
@@ -120,17 +120,20 @@ const fixture = (failureStage?: string) => {
     }
   }
   const target = Object.assign(new EventEmitter(), {
-    setPermissionCheckHandler: () => undefined,
-    setPermissionRequestHandler: () => undefined,
-    setDisplayMediaRequestHandler: () => undefined,
+    setPermissionCheckHandler: () => check('permission-check'),
+    setPermissionRequestHandler: () => check('permission-request'),
+    setDisplayMediaRequestHandler: () => check('permission-display'),
   });
   let nextId = 0;
   const Constructor = runInNewContext(compiled, {
     BrowserWindow: FakeWindow,
     session: {fromPartition: () => target},
     installLocalContentProtocol: () => () => calls.push('uninstall'),
-    registerViewIdentity: () => ({revoke: () => calls.push('revoke')}),
-    bindNavigationGuard: () => undefined,
+    registerViewIdentity: () => {
+      check('registration');
+      return {revoke: () => calls.push('revoke')};
+    },
+    bindNavigationGuard: () => check('navigation'),
     randomUUID: () => `owned-${++nextId}`,
     locale: {getText: () => 'Test capture'},
     path,
@@ -194,6 +197,38 @@ describe('[CAP-003][INV-010] broker startup promise ownership with inert windows
       } finally {
         f.coordinator.dispose();
       }
+    });
+  }
+  for (const stage of [
+    'registration',
+    'permission-check',
+    'permission-request',
+    'permission-display',
+    'window-open',
+    'navigation',
+  ]) {
+    it(`cancels and releases acquired resources after synchronous ${stage} setup failure`, async () => {
+      const f = fixture(stage);
+      try {
+        await Promise.resolve();
+        assert.equal(f.settled(), true);
+        assert.equal((f.outcome() as Error).message, 'Display capture was cancelled or ended.');
+        assert.equal(f.window.destroyed, true);
+        assert.equal(f.calls.filter(value => value === 'destroy').length, 1);
+        assert.equal(f.calls.filter(value => value === 'uninstall').length, 1);
+        assert.equal(f.calls.filter(value => value === 'revoke').length, stage === 'registration' ? 0 : 1);
+        assert.equal(f.parent.listenerCount('hide'), 0);
+        assert.equal(f.owner.listenerCount('destroyed'), 0);
+        assert.equal(f.calls.includes('show'), false);
+        assert.equal(
+          f.calls.some(value => value.includes('Synthetic private')),
+          false,
+        );
+      } finally {
+        f.coordinator.dispose();
+      }
+      assert.equal(f.calls.filter(value => value === 'destroy').length, 1);
+      assert.equal(f.calls.filter(value => value === 'uninstall').length, 1);
     });
   }
   it('keeps a successfully shown chooser pending until explicit cancellation', async () => {
