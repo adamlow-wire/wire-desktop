@@ -34,6 +34,11 @@ describe('effective packaged Electron fuse wire', () => {
     assert.equal(assertConfiguredFuses(wire('010001011')), '010001011');
   });
 
+  it('[security-target][SEC-011][PKG-001] rejects disabling the required legacy file-origin bit', () => {
+    const {assertConfiguredFuses} = requireCjs('./bin/test-tools/verify-effective-fuses.cjs');
+    assert.throws(() => assertConfiguredFuses(wire('010001001')), /fuse/i);
+  });
+
   it('rejects each changed configured security bit and incomplete wires', () => {
     const {assertConfiguredFuses} = requireCjs('./bin/test-tools/verify-effective-fuses.cjs');
     for (const index of [0, 1, 2, 3, 4, 5]) {
