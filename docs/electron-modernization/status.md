@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
 active_work_item: PKG-001
-state: third-run-installer-policy-fixture-correction-pending
+state: fifth-run-unqualified-process-bound-candidate
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -11,12 +11,14 @@ upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
 next_work_item: PKG-001
-blockers: [profile-compatibility-decision, hosted-platform-qualification]
+blockers: [profile-compatibility-decision, hosted-platform-qualification, complete-review-and-coverage-ledger]
 ---
 
 # Current project status
 
 ## Current execution
+
+**PR #63 fifth hosted checkpoint and next candidate:** On head `c9faa074`, [generic Build and Test](https://github.com/adamlow-wire/wire-desktop/actions/runs/35877930568) passes all 1,280 main and 23 renderer tests but fails selected security branches at 25/32 (78.13%) against 90%. Seven missing outcomes are in the capture coordinator. Separately characterized TST-006 tests now import that production class under instrumentation and locally cover six of the seven; the maintained `.mts` wall-clock adapter now emits a real 1/1 source statement in focused NYC. [Package Baseline](https://github.com/adamlow-wire/wire-desktop/actions/runs/35877930630) passes Linux deb/rpm/AppImage smoke, fails one macOS secure-shell bridge case at Mocha's two-second default, and reaches Windows installed Squirrel/MSI smoke after passing all four installer outputs, Squirrel/MSI archive identity and unpacked managed/proxy smoke. The Windows step stayed in progress over 20 minutes despite a 15-minute workflow bound; normal cancellation did not settle, so the approved fork run was force-cancelled. Its Windows step log was unavailable, so installed Squirrel/MSI startup and cleanup remain **unqualified**. [Hosted E2E](https://github.com/adamlow-wire/wire-desktop/actions/runs/35877930615) passes Windows/macOS/Linux and merged report on that earlier head. The local follow-up gives the bridge case a bounded ten-second budget and fixed safe phase labels, replaces each install/uninstall `Start-Process -Wait` with a three-minute direct-process wait and timeout termination, and composes the sensitive `.mts` diff collector plus two direct-source coverage fixtures. Nine focused installer cases, three direct-source cases, test/bin types, scoped lint and formatting pass; the new per-process bound had a separate failing baseline. These changes have **not yet received hosted results**. Next: publish this scoped candidate to the existing draft fork PR, require fresh final-head generic/package/E2E checks, inspect installed Windows phase and artifact hashes, then continue the full TST-006 review and profile contract decision.
 
 **Third hosted package/test checkpoint:** [package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/35872062149) reaches Windows MSI administrative extraction and unpacked Windows managed/proxy smoke after F-027. The installed Squirrel executable and ASAR identity passed, but its account smoke reported `applockOverride=true` against the test driver default `false`; MSI installation was not reached. The disposable Windows runner can be enrolled independently of the removed HKCU test policy, so absence of that value is not an unmanaged-device fixture. F-024 baseline `08668b8c` fails an installed-policy ownership target; the local correction supplies a temporary explicit managed policy and exact `true` expectation to each installed Squirrel/MSI smoke, with cleanup and sensitivity. Hosted execution of the correction and both MSI smoke paths is still required. Linux passes extracted deb and rpm packaged-account startup, immutable managed configuration and page Node denial. Its AppImage step still had the old `*-desktop` suffix selector; failing test delta `ec42fcc4` and local `5245dd16` now route that step through the archived-identity resolver, with restoration sensitivity. The generic [Build and Test run](https://github.com/adamlow-wire/wire-desktop/actions/runs/35872062230) now reaches main tests: 1,258 pass, 22 updater subprocess cases fail because their minimal child environment drops Xvfb `DISPLAY`/`XAUTHORITY`. F-028 failing baseline `3664f570` precedes test-only helper `5245dd16`, which retains only the safe display authority and the caller's fixture mode; two focused cases, types and lint pass, and omitting `DISPLAY` fails the intended target. Neither fix is yet published or hosted qualified on this checkpoint.
 
