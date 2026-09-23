@@ -365,11 +365,7 @@ jobs:
           });
           NODE
           for format in deb rpm; do
-            executable=$(find "$extract_dir/$format/opt" -maxdepth 2 -type f -name '*-desktop' -print -quit)
-            if [[ -z "$executable" ]]; then
-              echo "No $format desktop executable found under extracted opt directory." >&2
-              exit 1
-            fi
+            executable=$(node bin/test-tools/resolve-linux-installer-executable.cjs "$extract_dir/$format")
             helper="$(dirname "$executable")/chrome-sandbox"
             if [[ ! -f "$helper" || -L "$helper" ]]; then
               echo "$format sandbox helper is missing or a symlink." >&2

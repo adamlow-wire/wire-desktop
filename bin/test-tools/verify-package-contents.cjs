@@ -69,7 +69,11 @@ async function verifyArchive(archive, {unsignedMacOS = false} = {}) {
   const names = new Set(entries);
   for (const name of required) {
     assert.ok(names.has(name), `Required package file missing: ${name}`);
-    assert.equal(Boolean(asar.statFile(archive, name).files), false, `Required package file is a directory: ${name}`);
+    assert.equal(
+      Boolean(asar.statFile(archive, name.split('/').join(path.sep)).files),
+      false,
+      `Required package file is a directory: ${name}`,
+    );
   }
   assert.ok(
     entries.some(name => name.startsWith('node_modules/') && name.endsWith('/package.json')),
@@ -79,7 +83,7 @@ async function verifyArchive(archive, {unsignedMacOS = false} = {}) {
     const own = !name.startsWith('node_modules/');
     const allowedRoot =
       ['package.json', 'LICENSE', 'electron', 'node_modules'].includes(name) || name.startsWith('electron/') || !own;
-    const ownFile = own && !asar.statFile(archive, name).files;
+    const ownFile = own && !asar.statFile(archive, name.split('/').join(path.sep)).files;
     const runtimeFile =
       required.includes(name) ||
       name === 'electron/renderer/dist/bundle.js.LICENSE.txt' ||
