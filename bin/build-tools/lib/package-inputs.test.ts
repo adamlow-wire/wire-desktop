@@ -262,6 +262,8 @@ describe('[PKG-001][ELC-003] advisory-affected incidental package roots', () => 
         assert.equal(ignore(`/${file}`), true, file);
         assert.equal(nodeMatcher(path.join(root, file), fs.statSync(path.join(root, file))), false, file);
       }
+      assert.equal(ignore(String.raw`\node_modules\tar\package.json`), true);
+      assert.equal(ignore(String.raw`\node_modules\electron-updater\node_modules\semver\package.json`), false);
     } finally {
       await fs.remove(root);
     }

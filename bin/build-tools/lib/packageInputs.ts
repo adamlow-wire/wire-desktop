@@ -21,6 +21,21 @@ import fs from 'fs-extra';
 
 import path from 'path';
 
+// These top-level installed packages are outside the declared runtime dependency
+// closure of the audited app ASAR. Nested runtime versions remain eligible.
+const incidentalPackageRoots = new Set([
+  'tar',
+  'node-gyp',
+  'cacache',
+  'make-fetch-happen',
+  'glob',
+  'minimatch',
+  'brace-expansion',
+  'semver',
+  'ip',
+  'socks',
+]);
+
 const assets = [
   'wire.json',
   'renderer/index.html',
@@ -63,7 +78,7 @@ function applicationDirectory(value: string): string {
 export function createPackageIgnore(root: string, electronDirectory: string): (file: string) => boolean {
   const directory = applicationDirectory(electronDirectory);
   return file => {
-    const relative = file.replace(/^\//, '');
+    const relative = file.replace(/^[\/\\]/, '').replace(/\\/g, '/');
     if (!relative) {
       return false;
     }
@@ -71,7 +86,7 @@ export function createPackageIgnore(root: string, electronDirectory: string): (f
       return true;
     }
     if (relative === 'node_modules' || relative.startsWith('node_modules/')) {
-      return /\.(?:o|obj)$/.test(relative);
+      return incidentalPackageRoots.has(relative.split('/')[1]) || /\.(?:o|obj)$/.test(relative);
     }
     const isDirectory = fs.statSync(path.join(root, relative)).isDirectory();
     if (relative === 'package.json' || relative === 'LICENSE') {
@@ -129,5 +144,6 @@ export function packageFilePatterns(electronDirectory: string): string[] {
     '!**/.bin{,/**/*}',
     '!**/node_gyp_bins{,/**/*}',
     '!**/*.{o,obj}',
+    ...[...incidentalPackageRoots].map(name => `!node_modules/${name}/**`),
   ];
 }
