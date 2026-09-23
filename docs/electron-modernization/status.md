@@ -2,21 +2,23 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
-active_work_item: PKG-001
-state: scoped-linux-static-qualified
+active_work_item: ELC-003
+state: linux-residual-advisories-reviewed
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-001-runtime-icons-2026-09-23
-next_work_item: PKG-001
+active_branch: review/ELC-003-final-linux-residual-2026-09-23
+next_work_item: TST-006
 blockers: [fork-publication-approval, profile-compatibility-decision, hosted-platform-qualification]
 ---
 
 # Current project status
 
 ## Current execution
+
+**ELC-003 current Linux residual review:** the final scoped AppImage/deb/rpm all have the exact approved 407-package inventory. Two retained range matches are now disposed for the *reviewed Linux call paths*: `uuid` 9.0.1 moderate affects only v3/v5/v6 caller-buffer writes, while the two first-party uses call argument-free v4; `@tootallnate/once` 2.0.0 low needs an `AbortSignal` third argument, but its sole literal shipped consumer `http-proxy-agent/dist/agent.js` calls it with only an emitter and event name, and no declared/first-party parent of that agent was found. These are accepted, call-path-limited residuals, not patched versions or proof about dynamic loads. The graph, ASAR and advisory response were read locally; no new npm metadata was sent. [Detailed evidence](shipped-linux-asar-audit.md#elc-003-residual-advisory-call-path-disposition-on-the-final-linux-graph). Final Windows/macOS artifact graphs, accepted-head composition, native/platform checks and full TST-006 review remain mandatory.
 
 **PKG-001 F-021/F-022/F-023 scoped Linux candidate:** the earlier 22-file archive gate accepted real AppImage/deb/rpm payloads that lacked the About logo and tray/badge PNGs used by runtime, while Linux installer icons fell back to Electron's default and `desktopName` did not align with the installed desktop entry. F-021 had already removed the AppImage `--no-sandbox` desktop/launcher paths. F-022 adds eight image requirements to the archive verifier, redirects the Windows download-complete icon to the packaged Wire logo and sets the Wire Linux installer icon. F-023 aligns archived `desktopName`, desktop filename and `StartupWMClass`; the proposed hosted gate rejects an actual prior AppImage when executed locally for the missing identity. Separate failing baselines precede each scoped correction. The real wrapper then built environment-correct internal AppImage, deb and rpm at source `9e058e73`: their extracted ASAR is identical (7,373 entries/30 required files, SHA-256 `a8048d50734cc5b56f3cceb70d6c8df2590dfb07f226b9e2ecff663faab1eaa9`), with matching Wire installer icons, desktop identities, safe AppImage launcher, and configured fuse wire `010001`. All three 407-package inventories hash to the previously approved queried input `a9cabd94678d377220da6f05d4ee7fd2ae84dba9443920d87b99b1c434eebca5`; no new npm metadata was sent. Local immutable install, production TypeScript/webpack, root/bin/Electron-test types, scoped lint, 388 tooling cases before the final desktop-only changes and 42 focused Linux builder/archive cases after test classification pass. CI `32b31c2d` now builds and inspects all three formats and requests extracted deb/rpm native smoke; YAML, shell and its actual static script pass locally, but the hosted workflow has not run. Local native launch, actual installation/desktop integration, Windows/macOS artifacts and final composed all-platform qualification remain mandatory. See [findings](review-findings.md) and [exact artifact evidence](shipped-linux-asar-audit.md#f-022f-023-branded-linux-installer-rebuild).
 

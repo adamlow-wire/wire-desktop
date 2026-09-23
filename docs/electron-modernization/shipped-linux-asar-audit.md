@@ -82,3 +82,36 @@ Each archived `wire.json` is `WireInternal`/`internal`, and `package.json` conta
 Reproduce content and inventory inspection from the ignored extracted directories with `node bin/test-tools/verify-package-contents.cjs wrap/recovery-artifacts/final-appimage wrap/recovery-artifacts/final-deb wrap/recovery-artifacts/final-rpm` and `node bin/test-tools/inventory-shipped-asar.cjs <each app.asar> <owned ignored inventory path>`. A clean disposable CI checkout uses `yarn --immutable` to run public `configure`, then `yarn build:linux` with `LINUX_TARGET=AppImage,deb,rpm`; on this shared worktree do not run `build:prepare`, which clears `wrap` and its protected worktrees. Local type, forced scoped lint, production build, 388 full tooling tests after the image-verifier correction and 42 focused Linux builder/archive cases after test classification pass. Local logs include `/tmp/pkg001-runtime-icons-bin.log`, `/tmp/pkg001-linux-icon-{baseline,fixed}.log`, `/tmp/pkg001-desktop-name-{baseline,fixed}.log`, `/tmp/pkg001-desktop-final-{focused,bin-types,mocha-types,lint}.log` and ignored build/extraction manifests.
 
 **Gate:** this closes a *scoped local static* Linux artifact-content/identity check. Hosted CI on the changed workflow, native packaged startup, actual installed desktop/protocol/tray behavior and supported Linux distributions remain unqualified. The final composed source still needs Windows Squirrel/MSI and macOS unsigned artifacts, full platform native/authenticated E2E, complete TST-006 source/provenance/coverage review, profile-compatibility decision, residual advisory disposition and PR-only integration. Signed and released-installation validation remains downstream; no release claim follows from these artifacts.
+
+
+## ELC-003 residual advisory call-path disposition on the final Linux graph
+
+The `9e058e73` internal installer trio's byte-identical 407-instance inventory is SHA-256 `a9cabd94678d377220da6f05d4ee7fd2ae84dba9443920d87b99b1c434eebca5`, exactly the already approved npm query input. The retained private response lists two version-range matches: `uuid` 9.0.1 [GHSA-w5hq-g745-h8pq](https://github.com/advisories/GHSA-w5hq-g745-h8pq) (moderate) and `@tootallnate/once` 2.0.0 [GHSA-vpq2-c234-7xj6](https://github.com/advisories/GHSA-vpq2-c234-7xj6) (low). No new metadata query was made for this disposition. Both packages occur once, at top-level `node_modules/uuid/package.json` and `node_modules/@tootallnate/once/package.json`; the same package paths and versions are present in all three extracted installers.
+
+The `uuid` advisory concerns **v3/v5/v6 with a caller-provided output buffer and invalid bounds**. The two first-party imports are `bin/bin-utils.ts` (build-time, excluded from the app ASAR) and `electron/renderer/src/lib/util.ts` (bundled renderer); each calls only argument-free `v4()`. A search of `electron`/`bin` production source finds no v3/v5/v6 call. Shipped `joi` UUID strings are validation-version labels, `@wireapp/commons` uses regex/byte conversion, and `builder-util-runtime` contains its own UUID implementation; these observations are not evidence of a vulnerable `uuid` buffer call. The renderer bundle's literal `uuidv3/v5/v6` strings were checked and occur in Joi's GUID validator map, not as calls. On the reviewed application paths, the advisory's trigger is absent. The package remains version-matched, so this is a call-path disposition rather than a claim that 9.0.1 is patched.
+
+The `@tootallnate/once` advisory concerns an `AbortSignal` supplied as the third argument: abort can leave its promise pending. The actual ASAR's one literal external import of this package is `node_modules/http-proxy-agent/dist/agent.js`; that consumer calls `once(socket, 'connect')` with two arguments. No first-party production source imports `http-proxy-agent`, and the shipped manifest scan finds no declared parent dependency on it; it appears incidental. Even if the agent were loaded dynamically, its reviewed call does not supply the advisory's `signal` option. A static scan of 3,992 shipped third-party JavaScript files (under 1 MiB each) finds no other literal `@tootallnate/once` reference. This supports non-applicability to the reviewed shipped call path, not a universal proof against arbitrary dynamic code.
+
+Run this static call-site check from the PKG-001 scoped worktree containing the ignored extracted final AppImage, without contacting any registry:
+
+```sh
+rg -n 'uuidv4|from .uuid.' bin/bin-utils.ts electron/renderer/src/lib/util.ts
+node - <<'NODE'
+const asar = require('@electron/asar');
+const archive = 'wrap/recovery-artifacts/final-appimage/resources/app.asar';
+const terms = ['@tootallnate/once', 'http-proxy-agent'];
+const hits = Object.fromEntries(terms.map(term => [term, []]));
+let inspected = 0;
+for (const entry of asar.listPackage(archive)) {
+  const name = entry.replace(/^\//, '');
+  if (!name.startsWith('node_modules/') || !/\.(?:js|mjs|cjs)$/.test(name)) continue;
+  const bytes = asar.extractFile(archive, name);
+  if (bytes.length > 1_000_000) continue;
+  inspected++;
+  for (const term of terms) if (bytes.toString('utf8').includes(term)) hits[term].push(name);
+}
+console.log({inspected, hits});
+NODE
+```
+
+For the current **Linux scoped candidate**, both non-high/critical matches are recorded as **accepted, call-path-limited residuals**; no dependency upgrade is needed solely to change the advisory count. Reproduce the inventory with `node bin/test-tools/inventory-shipped-asar.cjs <extracted app.asar> <owned ignored output>` and compare its SHA-256 with the value above; inspect the exact source/call files cited here. Reassess the disposition if imports, dependency graph, build configuration or final Windows/macOS shipped inventories differ. The final composed and all-platform ELC-003 gate remains open until every shipped artifact graph is reviewed on the accepted head. This decision does not waive a high/critical finding or certify native runtime behavior.
