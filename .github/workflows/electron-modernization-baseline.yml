@@ -47,7 +47,6 @@ jobs:
             os: windows-2025
             build: yarn build:win && yarn build:win:installers:manual
             artifact: |
-              wrap/build/**/*
               wrap/dist/*-Setup.exe
               wrap/dist/*-full.nupkg
               wrap/dist/RELEASES
@@ -518,5 +517,5 @@ jobs:
         with:
           name: modernization-baseline-${{ matrix.platform }}
           path: ${{ matrix.artifact }}
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
