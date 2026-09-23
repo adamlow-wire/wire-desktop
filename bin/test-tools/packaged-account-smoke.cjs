@@ -38,6 +38,8 @@ async function main() {
   const directory = await mkdtemp(path.join(tmpdir(), 'wire-package-smoke-'));
   const token = randomUUID();
   const authenticatedProxy = process.env.M3_AUTHENTICATED_PROXY === 'true';
+  const legacyProfile = process.env.M3_LEGACY_PROFILE === 'true';
+  const legacyAccountId = legacyProfile ? randomUUID() : undefined;
   const proxyAuthorization = `Basic ${Buffer.from('fixture-user:fixture-password').toString('base64')}`;
   let proxyChallenges = 0;
   let proxyAuthenticated = 0;
@@ -84,6 +86,7 @@ async function main() {
         try { if (policy) policy.applockOverride = !original; } catch {}
         const result = {
           account: /^[a-f0-9-]{36}$/i.test(new URL(location).searchParams.get('id') || ''),
+          legacyAccount: new URL(location).searchParams.get('id') === ${JSON.stringify(legacyAccountId)},
           bridge: typeof window.wireDesktopBridge?.events?.loaded === 'function',
           version: typeof window.desktopAppConfig?.version,
           policy: typeof original,
@@ -99,21 +102,61 @@ async function main() {
   try {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const localServer = `http://127.0.0.1:${server.address().port}`;
-    const origin = authenticatedProxy ? 'http://m3-package.invalid' : localServer;
     const env = {...process.env};
     delete env.ELECTRON_RUN_AS_NODE;
-    const proxyArgs = [];
-    if (authenticatedProxy) {
-      // Synthetic credentials exist only in this child environment, never CLI arguments.
-      env.HTTP_PROXY = env.HTTPS_PROXY = `http://fixture-user:fixture-password@127.0.0.1:${server.address().port}`;
-      proxyArgs.push(`--proxy-server=${localServer}`);
-    }
-    // Keep Linux protocol/configuration side effects inside this fixture's XDG roots.
+    // Both the legacy seeder and packaged app use only this fixture's Linux state roots.
     if (process.platform === 'linux') {
       for (const name of ['XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_RUNTIME_DIR']) {
         env[name] = path.join(directory, name);
         await mkdir(env[name], {mode: 0o700});
       }
+    }
+    const origin = authenticatedProxy ? 'http://m3-package.invalid' : localServer;
+    if (legacyAccountId) {
+      const {_electron} = require('@playwright/test');
+      const seed = await _electron.launch({
+        chromiumSandbox: true,
+        env,
+        args: [path.resolve('electron/test/fixtures/legacy-account-profile.js'), path.join(directory, 'profile')],
+      });
+      try {
+        const shell = await seed.firstWindow();
+        await shell.waitForLoadState();
+        await shell.evaluate(
+          ({id, webappUrl}) =>
+            localStorage.setItem(
+              'state',
+              JSON.stringify({
+                accounts: [
+                  {
+                    id,
+                    userID: id,
+                    accountIndex: 0,
+                    badgeCount: 0,
+                    darkMode: true,
+                    isAdding: false,
+                    name: 'Packaged legacy account',
+                    teamRole: 'member',
+                    visible: true,
+                    webappUrl,
+                  },
+                ],
+              }),
+            ),
+          {id: legacyAccountId, webappUrl: origin},
+        );
+        await seed.evaluate(({BrowserWindow}) =>
+          BrowserWindow.getAllWindows()[0].webContents.session.flushStorageData(),
+        );
+      } finally {
+        await seed.close();
+      }
+    }
+    const proxyArgs = [];
+    if (authenticatedProxy) {
+      // Synthetic credentials exist only in this child environment, never CLI arguments.
+      env.HTTP_PROXY = env.HTTPS_PROXY = `http://fixture-user:fixture-password@127.0.0.1:${server.address().port}`;
+      proxyArgs.push(`--proxy-server=${localServer}`);
     }
     child = spawn(
       executable,
@@ -139,6 +182,7 @@ async function main() {
     const result = await Promise.race([reported, prematureExit, timeout]);
     assert.deepEqual(result, {
       account: true,
+      legacyAccount: legacyProfile,
       bridge: true,
       version: 'string',
       policy: 'boolean',

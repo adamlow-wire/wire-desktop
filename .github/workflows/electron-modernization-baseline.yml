@@ -425,6 +425,7 @@ jobs:
           sudo chown root:root "$helper"
           sudo chmod 4755 "$helper"
           xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$extract_dir/squashfs-root/AppRun"
+          M3_LEGACY_PROFILE=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$extract_dir/squashfs-root/AppRun"
           test ! -e /etc/wire/managed.json
           sudo mkdir -p /etc/wire
           trap 'sudo rm -f /etc/wire/managed.json; rm -rf "$extract_dir"' EXIT
@@ -452,6 +453,10 @@ jobs:
             $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
             node bin/test-tools/packaged-account-smoke.cjs $app.FullName
             if ($LASTEXITCODE -ne 0) { throw 'Managed package startup smoke failed.' }
+            $env:M3_LEGACY_PROFILE = 'true'
+            node bin/test-tools/packaged-account-smoke.cjs $app.FullName
+            if ($LASTEXITCODE -ne 0) { throw 'Managed package legacy-profile smoke failed.' }
+            Remove-Item Env:M3_LEGACY_PROFILE
             $env:M3_AUTHENTICATED_PROXY = 'true'
             node bin/test-tools/packaged-account-smoke.cjs $app.FullName
             if ($LASTEXITCODE -ne 0) { throw 'Managed package smoke failed.' }
@@ -459,6 +464,7 @@ jobs:
             Remove-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
             Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
             Remove-Item Env:M3_AUTHENTICATED_PROXY -ErrorAction SilentlyContinue
+            Remove-Item Env:M3_LEGACY_PROFILE -ErrorAction SilentlyContinue
           }
           'completed=true' >> $env:GITHUB_OUTPUT
       - name: Require Windows package smoke completion
@@ -478,6 +484,7 @@ jobs:
           test -n "$executable"
           "$executable" --version
           node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          M3_LEGACY_PROFILE=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
           bundle="${executable%/Contents/MacOS/*}"
           domain=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$bundle/Contents/Info.plist")
           test -n "$domain"
