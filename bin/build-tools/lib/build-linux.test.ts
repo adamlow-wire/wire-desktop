@@ -88,6 +88,16 @@ describe('build-linux', () => {
   });
 
   describe('buildLinuxConfig', () => {
+    it('keeps the installed desktop entry and Electron window identity aligned', async () => {
+      const {builderConfig, linuxConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+
+      assert.strictEqual(builderConfig.extraMetadata?.desktopName, linuxConfig.executableName);
+      assert.strictEqual(builderConfig.linux?.syncDesktopName, true);
+      assert.strictEqual(builderConfig.appImage?.desktop?.entry?.StartupWMClass, linuxConfig.executableName);
+      assert.strictEqual(builderConfig.deb?.desktop?.entry?.StartupWMClass, linuxConfig.executableName);
+      assert.strictEqual(builderConfig.rpm?.desktop?.entry?.StartupWMClass, linuxConfig.executableName);
+    });
+
     it('uses the supplied Wire Linux icons for installer and desktop integration', async () => {
       const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
 
