@@ -31,13 +31,13 @@ const wire = (raw: string) => ({
 describe('effective packaged Electron fuse wire', () => {
   it('accepts the complete reviewed unsigned wire and reports every bit', () => {
     const {assertConfiguredFuses} = requireCjs('./bin/test-tools/verify-effective-fuses.cjs');
-    assert.equal(assertConfiguredFuses(wire('010001011')), '010001011');
+    assert.equal(assertConfiguredFuses(wire('010001001')), '010001001');
   });
 
   it('rejects each changed configured security bit and incomplete wires', () => {
     const {assertConfiguredFuses} = requireCjs('./bin/test-tools/verify-effective-fuses.cjs');
-    for (const index of [0, 1, 2, 3, 4, 5]) {
-      const changed = [...'010001011'];
+    for (const index of [0, 1, 2, 3, 4, 5, 7]) {
+      const changed = [...'010001001'];
       changed[index] = changed[index] === '1' ? '0' : '1';
       assert.throws(() => assertConfiguredFuses(wire(changed.join(''))), /fuse/i);
     }
