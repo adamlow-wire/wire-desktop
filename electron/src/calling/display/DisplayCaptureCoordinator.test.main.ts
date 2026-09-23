@@ -243,7 +243,8 @@ describe('consented display capture native boundary', function () {
   it('[security-target][CAP-003] cancels when ownership changes before source selection', async () => {
     const broker = await request();
     approvedOwner = false;
-    await broker.webContents
+    // Ownership denial closes this renderer before its click reply may settle.
+    void broker.webContents
       .executeJavaScript('document.querySelector("#source-list button").click()', true)
       .catch(() => undefined);
     await until(() => owner.webContents.executeJavaScript('window.captureOutcome !== "pending"'));
