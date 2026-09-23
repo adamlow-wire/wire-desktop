@@ -14,14 +14,16 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
+
+import AdmZip from 'adm-zip';
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
-import {createRequire} from 'node:module';
-import AdmZip from 'adm-zip';
 
 const requireCjs = createRequire(path.resolve('package.json'));
 const workflow = fs.readFileSync(path.resolve('.github/workflows/electron-modernization-baseline.yml'), 'utf8');
@@ -29,7 +31,10 @@ const workflow = fs.readFileSync(path.resolve('.github/workflows/electron-modern
 describe('unsigned Windows installer CI gate', () => {
   it('builds both installer families and validates their outputs', () => {
     assert.ok(workflow.includes('build:win:installers:manual'), 'Windows matrix must build Squirrel and MSI');
+    assert.ok(workflow.includes('APP_ENV: internal'), 'Package job must build a coherent internal product');
     assert.ok(workflow.includes('verify-windows-installers.cjs'), 'Windows job must inspect installer deliverables');
+    assert.ok(workflow.includes('msiexec.exe -ArgumentList'), 'Windows job must extract the built MSI');
+    assert.ok(workflow.includes('package-contents-windows-msi.json'), 'Windows job must compare the MSI payload');
   });
 
   async function withPackages(check: (dist: string, build: string) => void | Promise<void>): Promise<void> {

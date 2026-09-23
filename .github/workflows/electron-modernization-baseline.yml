@@ -45,13 +45,21 @@ jobs:
               wrap/dist/*.rpm
           - platform: Windows
             os: windows-2025
-            build: yarn build:win
-            artifact: wrap/build/**/*
+            build: yarn build:win && yarn build:win:installers:manual
+            artifact: |
+              wrap/build/**/*
+              wrap/dist/*-Setup.exe
+              wrap/dist/*-full.nupkg
+              wrap/dist/RELEASES
+              wrap/dist/*.msi
           - platform: macOS
             os: macos-26
             build: yarn ts-node -P tsconfig.bin.json bin/test-tools/build-macos-smoke.ts
             artifact: wrap/dist/unsigned-macos-app.tar.gz
     runs-on: ${{ matrix.os }}
+    env:
+      # Keep generated public config assets and archived wire.json in the same product environment.
+      APP_ENV: internal
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -239,6 +247,34 @@ jobs:
           else
             node bin/test-tools/verify-package-contents.cjs wrap/build wrap/dist > package-contents.json
           fi
+      - name: Require both unsigned Windows installer families and Squirrel payload identity
+        if: runner.os == 'Windows'
+        shell: bash
+        run: node bin/test-tools/verify-windows-installers.cjs wrap/dist wrap/build > package-contents-windows-installers.json
+      - name: Inspect actual unsigned Windows MSI payload
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $msi = @(Get-ChildItem wrap/dist -File -Filter *.msi)
+          if ($msi.Count -ne 1) { throw 'Expected exactly one Windows MSI.' }
+          $extract = Join-Path $env:RUNNER_TEMP ('wire-msi-admin-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $extract | Out-Null
+          New-Item -ItemType Directory -Path test-results -Force | Out-Null
+          try {
+            $log = Join-Path (Resolve-Path test-results) 'windows-msi-admin.log'
+            $arguments = @('/a', ('"' + $msi[0].FullName + '"'), ('TARGETDIR="' + $extract + '"'), '/qn', '/norestart', '/l*v', ('"' + $log + '"'))
+            $process = Start-Process msiexec.exe -ArgumentList $arguments -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw "MSI administrative extraction failed with exit code $($process.ExitCode)." }
+            node bin/test-tools/verify-package-contents.cjs $extract > package-contents-windows-msi.json
+            if ($LASTEXITCODE -ne 0) { throw 'MSI payload content verification failed.' }
+            $built = @((Get-Content package-contents.json -Raw | ConvertFrom-Json).archives)
+            $installed = @((Get-Content package-contents-windows-msi.json -Raw | ConvertFrom-Json).archives)
+            if ($built.Count -ne 1 -or $installed.Count -ne 1 -or $built[0].sha256 -ne $installed[0].sha256) {
+              throw 'MSI payload archive differs from the verified unpacked application.'
+            }
+          } finally {
+            Remove-Item -Path $extract -Recurse -Force -ErrorAction SilentlyContinue
+          }
       - name: Verify claimed artifact exists
         id: artifact
         shell: bash
