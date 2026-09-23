@@ -23,6 +23,7 @@ import * as path from 'path';
 
 import {Arch} from 'builder-util';
 import type {Configuration, Platform} from 'electron-builder';
+import {generateAppRunScript} from 'app-builder-lib/out/targets/appimage/appImageUtil';
 
 import {buildLinuxConfig, buildLinuxWrapper} from './build-linux';
 import {generateUUID} from '../../bin-utils';
@@ -31,6 +32,26 @@ const wireJsonPath = path.join(__dirname, '../../../electron/wire.json');
 const envFilePath = path.join(__dirname, '../../../.env.defaults');
 
 describe('build-linux', () => {
+  describe('AppImage sandbox launch policy', () => {
+    it('does not request --no-sandbox from the desktop entry', async () => {
+      const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+
+      assert.deepStrictEqual(builderConfig.appImage?.executableArgs, []);
+    });
+
+    it('does not add --no-sandbox when user namespaces are unavailable', () => {
+      const appRun = generateAppRunScript({
+        DesktopFileName: 'WireInternal-desktop',
+        ExecutableName: 'WireInternal-desktop',
+        ProductFilename: 'WireInternal',
+        ProductName: 'WireInternal',
+        ResourceName: 'wireinternal',
+      });
+
+      assert.ok(!appRun.includes('--no-sandbox'), 'AppRun must fail closed instead of disabling the Chromium sandbox.');
+    });
+  });
+
   describe('buildLinuxConfig', () => {
     it('does not rebuild the Windows-only registry module on Linux', async () => {
       const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
