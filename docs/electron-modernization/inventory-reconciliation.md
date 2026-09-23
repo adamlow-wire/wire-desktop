@@ -1,16 +1,16 @@
-# Review inventory reconciliation — September 22
+# Review inventory reconciliation — September 23
 
 TST-006's inventory is now scoped to the exact original-baseline-to-composed-source delta. This is file-accounting and evidence reconciliation, not completed source review or coverage acceptance.
 
 - Original baseline: `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a`.
-- Local validation target: `2ba7ade3`, tree `484448fee75fc5d311f3d73b9b35fff9f206d635`.
+- Local source validation target: `725efb5c7767dc6ec1d05d8a3f9f2970a1c5bff7`, tree `2e77b6c36eae6bae8d67c25bc71c8dbab51db02b`.
 - Scope: `git diff --no-renames --name-status <baseline> <target>`; additions and deletions are separate rows, including removed source.
 - Result: 500 changed paths, 500 unique CSV rows, no missing/extra paths or change-status mismatches.
-- Limits: the target is the detached validation snapshot in [candidate reconciliation](candidate-reconciliation.md), not accepted integration. Later documentation changes on this report branch are not part of that frozen target. Refresh the inventory against the actual final composed head before acceptance.
+- Limits: the target is a local composed source candidate, not accepted integration. Later documentation changes on this report branch are not part of that frozen source target. Refresh the inventory against the actual final composed head before acceptance.
 
 ## Package-input and account-preload recomposition
 
-The source target `725efb5c` adds exact `dda2cc6b`/`7280d5d9` package-filter characterization/fix and `f655d236`/`3bfa7434` account-preload diagnostic characterization/fix on top of `2ba7ade3`. The only new path relative to the prior499-row target is `electron/src/preload/preload-account.test.main.ts`; package policy and preload source paths already existed. The ledger now has500 exact rows. Scoped source/provenance/coverage notes are partial, not a whole-module review. The package test detects the original top-level tar inclusion and a temporary overbroad exclusion of nested semver; the preload test detects raw rejected-Error logging. Both perturbations were restored. Combined focused182 cases, relevant types/lint, production build and local unsigned Linux ASAR verification pass. [Artifact evidence](shipped-linux-asar-audit.md#scoped-package-input-correction-and-composed-linux-check). Source review has297 exact pending cells, provenance319, and coverage329; partial cells and behavior traceability still require review.
+The source target `725efb5c` adds exact `dda2cc6b`/`7280d5d9` package-filter characterization/fix and `f655d236`/`3bfa7434` account-preload diagnostic characterization/fix on top of `2ba7ade3`. The only new path relative to the prior499-row target is `electron/src/preload/preload-account.test.main.ts`; package policy and preload source paths already existed. The ledger now has500 exact rows. Scoped source/provenance/coverage notes are partial, not a whole-module review. The package test detects the original top-level tar inclusion and a temporary overbroad exclusion of nested semver; the preload test detects raw rejected-Error logging. Both perturbations were restored. Combined focused182 cases, relevant types/lint, production build, local unsigned Linux directory and actual AppImage/deb/rpm static artifact verification pass. [Artifact evidence](shipped-linux-asar-audit.md#actual-unsigned-linux-installers-from-the-composed-candidate). Source review has297 exact pending cells, provenance319, and coverage329; partial cells and behavior traceability still require review.
 
 ## Capture cleanup recovery recomposition
 
@@ -131,7 +131,7 @@ import csv
 import subprocess
 
 baseline = '1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a'
-target = '2ba7ade3'
+target = '725efb5c7767dc6ec1d05d8a3f9f2970a1c5bff7'
 with open('docs/electron-modernization/review-inventory.csv', newline='') as source:
     rows = list(csv.DictReader(source))
 actual = {row['path']: row['change'] for row in rows}
