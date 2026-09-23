@@ -72,6 +72,34 @@ const childThatCloses = (code: number, output = ''): Child => {
   return child;
 };
 
+const loadProductionScheduler = (diagnostics: string[], checks: Array<() => Promise<void>>) => {
+  const filename = path.resolve('electron/src/update/squirrel.ts');
+  const source = ts.createSourceFile(filename, fs.readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true);
+  const declaration = source.statements.find(
+    (statement): statement is ts.FunctionDeclaration =>
+      ts.isFunctionDeclaration(statement) && statement.name?.text === 'scheduleUpdate',
+  );
+  assert.ok(declaration, 'Execute the actual Squirrel scheduling function.');
+  const compiled = ts.transpileModule(`${declaration.getText(source)}\n scheduleUpdate;`, {
+    compilerOptions: {module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2022},
+  }).outputText;
+  const registered: Array<() => Promise<void>> = [];
+  const scheduleUpdate = vm.runInNewContext(compiled, {
+    HOUR_IN_MILLIS: 3_600_000,
+    MINUTE_IN_MILLIS: 60_000,
+    StringUtil: {pluralize: (word: string) => word},
+    config: {squirrelUpdateInterval: {DELAY: 60_000, INTERVAL: 3_600_000}},
+    installUpdate: () => checks.shift()?.(),
+    logger: {
+      info: (...values: unknown[]) => diagnostics.push(values.map(String).join(' ')),
+      error: (...values: unknown[]) => diagnostics.push(values.map(String).join(' ')),
+    },
+    setInterval: (callback: () => Promise<void>) => registered.push(callback),
+    setTimeout: (callback: () => Promise<void>) => registered.push(callback),
+  }) as () => Promise<void>;
+  return {scheduleUpdate, registered};
+};
+
 describe('Squirrel updater diagnostic boundary', () => {
   it('passes the configured feed to Update.exe without logging credential-bearing arguments or process output', async () => {
     const token = 'synthetic-updater-token';
@@ -95,6 +123,26 @@ describe('Squirrel updater diagnostic boundary', () => {
       diagnostics.join('\n').includes(token),
       false,
       'Updater diagnostics must not retain feed or child secrets.',
+    );
+  });
+
+  it('contains a scheduled updater rejection without leaking its native cause', async () => {
+    const token = 'synthetic-updater-error';
+    const diagnostics: string[] = [];
+    const {scheduleUpdate, registered} = loadProductionScheduler(diagnostics, [
+      () => Promise.reject(new Error(token)),
+      () => Promise.reject(new Error(token)),
+    ]);
+    await scheduleUpdate();
+    assert.equal(registered.length, 2);
+    for (const check of registered) {
+      await assert.doesNotReject(() => Promise.resolve(check()));
+    }
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(diagnostics.join('\n').includes(token), false);
+    assert.ok(
+      diagnostics.some(message => /failed/i.test(message)),
+      'Scheduled failure needs a safe diagnostic.',
     );
   });
 
