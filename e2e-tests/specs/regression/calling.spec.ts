@@ -102,6 +102,18 @@ test.describe('Calling - Negative Scenarios / Permissions', () => {
       await conversationsList(userAPage).getConversation(userB.fullName, {protocol: 'mls'}).open();
       await conversation(userAPage).startCallButton.click();
 
+      const nativeMediaDenied = await app.evaluate(() => {
+        const fixture = (
+          globalThis as unknown as {
+            wireE2EConsent?: {requests: Array<{detail?: string; response: number}>};
+          }
+        ).wireE2EConsent;
+        return fixture?.requests.some(
+          request => request.response === 0 && /Microphone|Camera/.test(request.detail ?? ''),
+        );
+      });
+      expect(nativeMediaDenied).toBe(true);
+      await expect(callCell(userAPage)).not.toBeVisible();
       await expect(app.page.getByText('No camera access')).toBeVisible();
     },
   );
