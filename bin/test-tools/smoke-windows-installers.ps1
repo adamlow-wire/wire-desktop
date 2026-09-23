@@ -37,8 +37,17 @@ function Assert-InstalledArchive($executable, $expectedHash, $label) {
 
 function Invoke-PackagedSmoke($executable, $label) {
   Write-Output "Starting $label packaged account smoke."
-  node bin/test-tools/packaged-account-smoke.cjs $executable
-  if ($LASTEXITCODE -ne 0) { throw "$label packaged account smoke failed." }
+  $arguments = @('bin/test-tools/packaged-account-smoke.cjs', ('"' + $executable + '"'))
+  $process = Start-Process -FilePath 'node' -ArgumentList $arguments -NoNewWindow -PassThru
+  try {
+    if (-not $process.WaitForExit(90000)) {
+      try { $process.Kill($true) } catch { Write-Warning "$label packaged account smoke termination failed." }
+      throw "$label packaged account smoke did not complete within 90 seconds."
+    }
+    if ($process.ExitCode -ne 0) { throw "$label packaged account smoke failed." }
+  } finally {
+    $process.Dispose()
+  }
   Write-Output "$label packaged account smoke completed."
 }
 
