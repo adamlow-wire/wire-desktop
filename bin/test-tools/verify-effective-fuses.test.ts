@@ -23,10 +23,15 @@ import path from 'node:path';
 
 const requireCjs = createRequire(path.resolve('package.json'));
 
+const wire = (raw: string) => ({
+  version: '1',
+  ...Object.fromEntries([...raw].map((state, index) => [index, state.charCodeAt(0)])),
+});
+
 describe('effective packaged Electron fuse wire', () => {
   it('accepts the complete reviewed unsigned wire and reports every bit', () => {
     const {assertConfiguredFuses} = requireCjs('./bin/test-tools/verify-effective-fuses.cjs');
-    assert.equal(assertConfiguredFuses(Buffer.from('010001011', 'ascii')), '010001011');
+    assert.equal(assertConfiguredFuses(wire('010001011')), '010001011');
   });
 
   it('rejects each changed configured security bit and incomplete wires', () => {
@@ -34,8 +39,8 @@ describe('effective packaged Electron fuse wire', () => {
     for (const index of [0, 1, 2, 3, 4, 5]) {
       const changed = [...'010001011'];
       changed[index] = changed[index] === '1' ? '0' : '1';
-      assert.throws(() => assertConfiguredFuses(Buffer.from(changed.join(''), 'ascii')), /fuse/i);
+      assert.throws(() => assertConfiguredFuses(wire(changed.join(''))), /fuse/i);
     }
-    assert.throws(() => assertConfiguredFuses(Buffer.from('01000101', 'ascii')), /fuse/i);
+    assert.throws(() => assertConfiguredFuses(wire('01000101')), /fuse/i);
   });
 });

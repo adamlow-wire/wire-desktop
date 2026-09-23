@@ -31,6 +31,8 @@ function Assert-InstalledArchive($executable, $expectedHash, $label) {
   if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw "$label application archive missing." }
   $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
   if ($actualHash -ne $expectedHash) { throw "$label archive differs from the verified build." }
+  node bin/test-tools/verify-effective-fuses.cjs $executable
+  if ($LASTEXITCODE -ne 0) { throw "$label effective Electron fuses differ from the unsigned build contract." }
 }
 
 function Invoke-PackagedSmoke($executable, $label) {
