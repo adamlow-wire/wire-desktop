@@ -82,6 +82,20 @@ describe('S3Deployer', () => {
       ]);
     });
 
+    it('selects the requested Squirrel package version when an older full package is present', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-version-deployer-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Wire-Setup.exe'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.122-full.nupkg'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-full.nupkg'));
+      await fs.writeFile(path.join(basePath, 'RELEASES'), 'Wire-3.42.123-full.nupkg');
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel');
+
+      assert.strictEqual(files[0].fileName, 'Wire-3.42.123-full.nupkg');
+    });
+
     it('rejects ambiguous automatic selection when both Windows installer families are present', async () => {
       const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-ambiguous-deployer-'));
       temporaryDirectories.push(basePath);
