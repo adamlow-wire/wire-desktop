@@ -58,6 +58,31 @@ describe('[PKG-001] actual archive content verification', () => {
   afterEach(async () => {
     await fs.remove(root);
   });
+  it('[PKG-001][F-027] verifies nested archive entries with Windows lookup separators', async () => {
+    await createPackage(input, archive);
+    const asarTool = requireTool('@electron/asar');
+    const originalStatFile = asarTool.statFile;
+    const nativeSeparator = path.sep;
+    (path as unknown as {sep: string}).sep = '\\';
+    asarTool.statFile = (file: string, name: string, followLinks?: boolean) => {
+      if (name.includes('/')) {
+        throw new Error('Windows ASAR lookup rejects forward slashes in nested archive paths.');
+      }
+      (path as unknown as {sep: string}).sep = nativeSeparator;
+      try {
+        return originalStatFile(file, name.replace(/\\/g, '/'), followLinks);
+      } finally {
+        (path as unknown as {sep: string}).sep = '\\';
+      }
+    };
+    try {
+      assert.match((await verifyArchive(archive)).sha256, /^[a-f0-9]{64}$/);
+    } finally {
+      asarTool.statFile = originalStatFile;
+      (path as unknown as {sep: string}).sep = nativeSeparator;
+    }
+  });
+
   it('inspects a real ASAR and records its hash and required files', async () => {
     await createPackage(input, archive);
     const result = await verifyArchive(archive);
