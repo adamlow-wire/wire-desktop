@@ -40,11 +40,20 @@ describe('[TST-005] native updater subprocess display environment', function () 
       DISPLAY: ':77',
       XAUTHORITY: '/tmp/fixture-Xauthority',
       UPDATER_FIXTURE_MODE: 'unsigned',
+      ELECTRON_RUN_AS_NODE: '1',
     });
+  });
+
+  it('forces Node mode for nested Electron fixtures even if a caller supplies another value', () => {
+    const {buildNativeFixtureEnvironment} = requireCjs('./electron/test/nativeFixtureEnvironment.ts');
+    assert.deepEqual(
+      buildNativeFixtureEnvironment({ELECTRON_RUN_AS_NODE: '0'}, {ELECTRON_RUN_AS_NODE: '0'}),
+      {ELECTRON_RUN_AS_NODE: '1'},
+    );
   });
 
   it('keeps the minimal environment when no display is configured', () => {
     const {buildNativeFixtureEnvironment} = requireCjs('./electron/test/nativeFixtureEnvironment.ts');
-    assert.deepEqual(buildNativeFixtureEnvironment({PATH: '/usr/bin'}), {PATH: '/usr/bin'});
+    assert.deepEqual(buildNativeFixtureEnvironment({PATH: '/usr/bin'}), {PATH: '/usr/bin', ELECTRON_RUN_AS_NODE: '1'});
   });
 });
