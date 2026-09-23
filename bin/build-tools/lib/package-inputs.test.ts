@@ -220,3 +220,50 @@ describe('[PKG-001] package policy configuration and dependency assets', () => {
     }
   });
 });
+
+describe('[PKG-001][ELC-003] advisory-affected incidental package roots', () => {
+  it('[security-target] excludes unneeded top-level trees while retaining nested runtime versions', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-package-advisory-inputs-'));
+    const retained = [
+      'node_modules/electron-updater/node_modules/semver/package.json',
+      'node_modules/readdir-glob/node_modules/minimatch/package.json',
+      'node_modules/readdir-glob/node_modules/brace-expansion/package.json',
+    ];
+    const excluded = [
+      'node_modules/tar/package.json',
+      'node_modules/node-gyp/package.json',
+      'node_modules/cacache/package.json',
+      'node_modules/cacache/node_modules/minimatch/package.json',
+      'node_modules/make-fetch-happen/package.json',
+      'node_modules/glob/package.json',
+      'node_modules/minimatch/package.json',
+      'node_modules/brace-expansion/package.json',
+      'node_modules/semver/package.json',
+      'node_modules/ip/package.json',
+      'node_modules/socks/package.json',
+    ];
+    try {
+      for (const file of [...retained, ...excluded]) {
+        await fs.outputFile(path.join(root, file), 'synthetic');
+      }
+      const ignore = createPackageIgnore(root, 'electron');
+      const nodeMatcher = getNodeModuleFileMatcher(
+        root,
+        path.join(root, 'output'),
+        (value: string) => value,
+        {},
+        {config: {files: packageFilePatterns('electron')}, debugLogger: {isEnabled: false}},
+      ).createFilter();
+      for (const file of retained) {
+        assert.equal(ignore(`/${file}`), false, file);
+        assert.equal(nodeMatcher(path.join(root, file), fs.statSync(path.join(root, file))), true, file);
+      }
+      for (const file of excluded) {
+        assert.equal(ignore(`/${file}`), true, file);
+        assert.equal(nodeMatcher(path.join(root, file), fs.statSync(path.join(root, file))), false, file);
+      }
+    } finally {
+      await fs.remove(root);
+    }
+  });
+});
