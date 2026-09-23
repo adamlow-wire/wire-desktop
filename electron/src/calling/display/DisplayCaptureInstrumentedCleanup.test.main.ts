@@ -24,6 +24,7 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 
 const requireCjs = createRequire(path.resolve('package.json'));
+let localClosedPorts = 0;
 
 interface CleanupFlow {
   id: string;
@@ -42,6 +43,8 @@ interface DirectCoordinator {
   pendingCleanup: Map<string, CleanupFlow>;
   cleaning: Set<string>;
   end(flow: CleanupFlow): void;
+  select(flow: CleanupFlow, choiceId: string): Promise<void>;
+  options?: object;
 }
 
 // electron-mocha imports the instrumented production module directly. Local Node verification
@@ -57,7 +60,20 @@ function loadCoordinator(): typeof import('./DisplayCaptureCoordinator').Display
   loader._load = (request, parent, isMain) => {
     const directImport = parent?.filename?.endsWith('/electron/src/calling/display/DisplayCaptureCoordinator.ts');
     if (directImport && request === 'electron') {
-      return {};
+      return {
+        MessageChannelMain: class {
+          port1 = {
+            close: () => {
+              localClosedPorts += 1;
+            },
+          };
+          port2 = {
+            close: () => {
+              localClosedPorts += 1;
+            },
+          };
+        },
+      };
     }
     if (directImport && request === '../../security/LocalContentPolicy') {
       return {LOCAL_CONTENT_ORIGIN: 'wire-app://shell'};
@@ -85,6 +101,66 @@ function loadCoordinator(): typeof import('./DisplayCaptureCoordinator').Display
 
 describe('[TST-006][CAP-003] instrumented capture cleanup ownership', function () {
   this.timeout(10000);
+  it('[security-target] closes still-owned ports when the broker transfer fails', async () => {
+    localClosedPorts = 0;
+    const Coordinator = loadCoordinator();
+    const coordinator = Object.assign(Object.create(Coordinator.prototype) as object, {
+      flows: new Map<string, CleanupFlow>(),
+      pendingCleanup: new Map<string, CleanupFlow>(),
+      cleaning: new Set<string>(),
+    }) as DirectCoordinator;
+    const calls: string[] = [];
+    const mainFrame = {postMessage: () => calls.push('ended-notice')};
+    const identity = {mainFrame};
+    let destroyed = false;
+    const flow = {
+      id: 'owned-flow',
+      requestId: 'owned-request',
+      phase: 'choosing',
+      selected: undefined,
+      sourceChoices: new Map([['owned-source', {video: {id: 'synthetic-source'}}]]),
+      cleanup: [] as Array<() => void>,
+      identity,
+      owner: {isDestroyed: () => false, mainFrame},
+      window: {
+        isDestroyed: () => destroyed,
+        destroy: () => {
+          destroyed = true;
+          calls.push('destroy');
+        },
+        isFocused: () => true,
+        webContents: {
+          mainFrame: {
+            postMessage: () => {
+              throw new Error('synthetic broker transfer failure');
+            },
+          },
+        },
+      },
+      reject: (error: Error) => {
+        assert.equal(error.message, 'Display capture was cancelled or ended.');
+        calls.push('rejected');
+      },
+    };
+    coordinator.options = {
+      registry: {authorize: () => identity},
+      isEligible: () => true,
+      canApprove: () => true,
+    };
+    coordinator.flows.set(flow.id, flow);
+    await assert.rejects(coordinator.select(flow, 'owned-source'), /Display source did not start/);
+    assert.equal(destroyed, true);
+    assert.equal(flow.phase, 'ended');
+    assert.equal(coordinator.flows.has(flow.id), false);
+    assert.equal(coordinator.pendingCleanup.has(flow.id), false);
+    assert.equal(flow.cleanup.length, 0);
+    assert.equal(coordinator.cleaning.size, 0);
+    if (!process.versions.electron) {
+      assert.equal(localClosedPorts, 2, 'Both main-owned endpoints must close after failed transfer.');
+    }
+    assert.deepEqual(calls, ['rejected', 'ended-notice', 'destroy']);
+  });
+
   it('[security-target] retains failed cleanup, retries once, and withholds ended notice from a destroyed owner', () => {
     const Coordinator = loadCoordinator();
     const coordinator = Object.assign(Object.create(Coordinator.prototype) as object, {
