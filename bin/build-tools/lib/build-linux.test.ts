@@ -88,6 +88,12 @@ describe('build-linux', () => {
   });
 
   describe('buildLinuxConfig', () => {
+    it('uses the supplied Wire Linux icons for installer and desktop integration', async () => {
+      const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+
+      assert.strictEqual(builderConfig.linux?.icon, 'resources/icons');
+    });
+
     it('does not rebuild the Windows-only registry module on Linux', async () => {
       const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
 
