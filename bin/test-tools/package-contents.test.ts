@@ -30,6 +30,17 @@ const {required, canaries, verifyArchive, findArchives, main} = requireTool(
   './bin/test-tools/verify-package-contents.cjs',
 );
 
+const runtimeImages = [
+  'electron/img/logo.256.png',
+  'electron/img/taskbar.overlay.png',
+  'electron/img/tray-icon/tray/tray.png',
+  'electron/img/tray-icon/tray/tray.gnome.png',
+  'electron/img/tray-icon/tray/tray@3x.png',
+  'electron/img/tray-icon/tray-with-badge/tray.badge.png',
+  'electron/img/tray-icon/tray-with-badge/tray.badge.gnome.png',
+  'electron/img/tray-icon/tray-with-badge/tray.badge@3x.png',
+];
+
 describe('[PKG-001] actual archive content verification', () => {
   let root: string;
   let input: string;
@@ -38,7 +49,7 @@ describe('[PKG-001] actual archive content verification', () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-archive-test-'));
     input = path.join(root, 'input');
     archive = path.join(root, 'build', 'resources', 'app.asar');
-    for (const file of [...required, 'node_modules/example/package.json']) {
+    for (const file of [...required, ...runtimeImages, 'node_modules/example/package.json']) {
       await fs.outputFile(path.join(input, file), 'fixture');
     }
     await fs.writeJson(path.join(input, 'package.json'), {main: 'electron/dist/main.js'});
@@ -97,6 +108,13 @@ describe('[PKG-001] actual archive content verification', () => {
     await fs.writeJson(path.join(input, 'electron/wire.json'), {macAutoUpdateEnabled: false});
     await assert.rejects(verifyArchive(archive, {unsignedMacOS: true}), /Unsigned macOS update policy/);
   });
+  for (const image of runtimeImages) {
+    it(`[PKG-001][DCP-005] rejects missing runtime image ${image}`, async () => {
+      await fs.remove(path.join(input, image));
+      await createPackage(input, archive);
+      await assert.rejects(verifyArchive(archive), /Required package file missing/);
+    });
+  }
   it('rejects missing privileged preload instead of accepting any valid ASAR', async () => {
     await fs.remove(path.join(input, 'electron/dist/preload/preload-secure-account.js'));
     await createPackage(input, archive);
