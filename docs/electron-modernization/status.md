@@ -2,15 +2,15 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
-active_work_item: TST-006
-state: exact-candidate-inventory-refreshed
+active_work_item: PKG-001
+state: windows-installer-ci-scoped-candidate
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: review/TST-006-final-candidate-inventory-2026-09-23
-next_work_item: TST-006
+active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
+next_work_item: PKG-001
 blockers: [fork-publication-approval, profile-compatibility-decision, hosted-platform-qualification]
 ---
 
@@ -18,7 +18,7 @@ blockers: [fork-publication-approval, profile-compatibility-decision, hosted-pla
 
 ## Current execution
 
-**F-024 Windows installer gate:** TST-006 source review found that the current Windows package workflow builds and smokes only the unpacked `build:win` app; the separate Squirrel and MSI installer commands never run there. Its EXE existence check therefore cannot qualify either mandatory Windows installer. This is an open high PKG-001/TST-005 finding, with no hosted result claimed on the local candidate. Next: establish a sensitive missing-installer gate, build/inspect both unsigned formats, then qualify installed startup on disposable Windows CI. [Finding](review-findings.md).
+**F-024 Windows installer gate scoped candidate:** source review found the Windows package workflow built and smoked only the unpacked `build:win` app. Baseline `b7a1d004` fails five targets; `4f10a6fb` builds both Squirrel and MSI unsigned, requires all four deliverables, checks that the full Squirrel package embeds the verified app archive, and requests MSI administrative extraction/archive identity on hosted Windows. It also fixes the job's product configuration to internal so generated public assets and archived identity agree. Five focused and 395 complete build-tool tests pass; three missing-gate perturbations fail and restore. YAML/Bash parse; PowerShell and actual Windows builder execution are unrun. The workflow still smokes the unpacked EXE; neither installer has been installed/launched. F-024/PKG-001/TST-005 remain open until hosted MSI and Squirrel installed-app qualification, actual artifact hashes, final composition and PR checks. [Finding](review-findings.md).
 
 **TST-006 latest scoped inventory:** the original baseline `1b82b085` to local candidate `46465040` now has an exact 528-path ledger: 528 unique rows, no missing/extra paths and no change-status mismatch. The 28 new paths since source `725efb5c` are one pinned AppRun patch, two ASAR audit tools and 25 review documents. F-021/F-022/F-023 source/test/workflow rows and DCP-005/DCP-020/INV-001 traceability now have bounded static evidence; none is marked accepted from a test count alone. Exact placeholders remain 296 source, 317 provenance and 328 coverage, plus populated partial reviews and broader untraced behavior. This is file accounting, not the full source/provenance/coverage or platform audit. Among catalogued high findings, scoped source corrections are present locally except F-012 ciphertext ownership, which awaits the profile compatibility decision; every corrected path still needs its stated final native/CI/review evidence. [Current finding checkpoint](review-findings.md#current-catalogued-high-finding-checkpoint). [Exact guard and limits](inventory-reconciliation.md#latest-appimageruntime-imagedesktop-and-advisory-recomposition). Next: work the security/data-loss/resource-bound rows and capability paths, reconcile scoped fixes, then run final all-platform gates after profile decision and authorized PR-only integration.
 
