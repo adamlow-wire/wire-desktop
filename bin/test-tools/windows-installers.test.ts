@@ -41,6 +41,14 @@ describe('unsigned Windows installer CI gate', () => {
     assert.ok(workflow.includes('smoke-windows-installers.ps1'), 'Installer package job must run installed-app smoke');
   });
 
+  it('bounds the installed Windows installer smoke job for diagnostic failure', () => {
+    const installed = workflow
+      .split('- name: Smoke-test applications installed by both Windows installers\n')[1]
+      ?.split('\n      - name:')[0];
+    assert.ok(installed, 'Installed Windows smoke step must exist');
+    assert.match(installed, /timeout-minutes: 15/, 'Installed smoke must not wait indefinitely');
+  });
+
   it('requires an explicit managed policy for each installed Windows startup', () => {
     const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
     assert.match(smoke, /function Invoke-ManagedPackagedSmoke\(/);
