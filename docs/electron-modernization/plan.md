@@ -990,6 +990,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.86 | 2026-09-23 | Codex | Bound and phase-label the fourth hosted Windows installed-smoke wait after a separate failing CI-duration baseline; require actual Squirrel/MSI completion | PKG-001, TST-005, TST-006 |
 | 1.5.85 | 2026-09-23 | Codex | Trace F-028 fourth hosted updater fixture timeout to nested Electron GUI mode; add separate failing Node-mode baseline and scoped test-only correction | TST-005, PKG-002, TST-006 |
 | 1.5.84 | 2026-09-23 | Codex | Record third hosted Windows Squirrel policy-fixture failure and scoped F-024 managed fixture correction; retain installed MSI and final native gates | PKG-001, TST-005, TST-006 |
 | 1.5.83 | 2026-09-23 | Codex | Record third hosted deb/rpm native successes, expose remaining AppImage selector and F-028 nested Xvfb environment failures, and add sensitivity-proven test/CI corrections | PKG-001, TST-005, PKG-002, TST-006 |

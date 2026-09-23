@@ -11,8 +11,10 @@ function Require-SingleFile($directory, $filter, $label) {
 }
 
 function Invoke-CheckedProcess($file, $arguments, $label) {
+  Write-Output "Starting $label."
   $process = Start-Process -FilePath $file -ArgumentList $arguments -Wait -PassThru
   if ($process.ExitCode -ne 0) { throw "$label exited with code $($process.ExitCode)." }
+  Write-Output "$label completed."
 }
 
 function Assert-InstalledArchive($executable, $expectedHash, $label) {
@@ -24,8 +26,10 @@ function Assert-InstalledArchive($executable, $expectedHash, $label) {
 }
 
 function Invoke-PackagedSmoke($executable, $label) {
+  Write-Output "Starting $label packaged account smoke."
   node bin/test-tools/packaged-account-smoke.cjs $executable
   if ($LASTEXITCODE -ne 0) { throw "$label packaged account smoke failed." }
+  Write-Output "$label packaged account smoke completed."
 }
 
 # Hosted Windows may already be enrolled. An absent user policy cannot prove an unmanaged device,

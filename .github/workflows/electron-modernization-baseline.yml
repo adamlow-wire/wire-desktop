@@ -467,6 +467,7 @@ jobs:
         run: test '${{ steps.windows_smoke.outputs.completed }}' = 'true'
       - name: Smoke-test applications installed by both Windows installers
         if: runner.os == 'Windows'
+        timeout-minutes: 15
         shell: pwsh
         run: ./bin/test-tools/smoke-windows-installers.ps1
       - name: Smoke-test macOS package
