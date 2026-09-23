@@ -37,6 +37,21 @@ describe('unsigned Windows installer CI gate', () => {
     assert.ok(workflow.includes('package-contents-windows-msi.json'), 'Windows job must compare the MSI payload');
   });
 
+  it('uploads the four verified installers without the unpacked build tree', () => {
+    const windowsMatrix = workflow.split('- platform: Windows\n')[1]?.split('- platform: macOS\n')[0];
+    assert.ok(windowsMatrix, 'Windows package matrix must exist');
+    for (const artifact of ['*-Setup.exe', '*-full.nupkg', 'RELEASES', '*.msi']) {
+      assert.ok(windowsMatrix.includes(`wrap/dist/${artifact}`), `Upload must retain ${artifact}`);
+    }
+    assert.doesNotMatch(
+      windowsMatrix,
+      /wrap\/build\/\*\*\/\*/,
+      'Unpacked build tree must not delay installer delivery.',
+    );
+    const upload = workflow.split('- name: Upload development artifact\n')[1];
+    assert.match(upload ?? '', /if-no-files-found: error/, 'Missing handoff artifacts must fail the package job.');
+  });
+
   it('bounds each installer command and terminates a stalled direct process', () => {
     const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
     const processHelper = smoke
