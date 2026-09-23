@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
-active_work_item: CAP-001
-state: preload-diagnostic-candidate
+active_work_item: TST-006
+state: candidate-reconciliation-validation
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/CAP-001-account-preload-diagnostics-2026-09-23
+active_branch: review/TST-006-composed-pruned-2026-09-23
 next_work_item: TST-006
 blockers: [fork-publication-approval, profile-compatibility-decision]
 ---
@@ -17,6 +17,8 @@ blockers: [fork-publication-approval, profile-compatibility-decision]
 # Current project status
 
 ## Current execution
+
+**Reconciled combined candidate:** source `725efb5c` (tree `2e77b6c36eae6bae8d67c25bc71c8dbab51db02b`) composes the scoped package-input and account-preload fixes. Audit documentation and reproduction utilities are now on this local branch; source, tests and dependency lock remain those of `725efb5c`. The TST-006 inventory matches all500 baseline-to-source changed paths with zero missing/extra/status mismatches; exact pending source/provenance/coverage cells are297/319/329 plus partial reviews. Root/bin/Electron-test types, scoped lint,182 focused cases, production TypeScript/webpack, and a verified unsigned Linux directory pass. Its407 package records match the approved zero-high/critical scan; one moderate/one low remains to disposition. Native startup, actual unsigned Windows Squirrel/MSI/macOS/Linux installers, authenticated final-head E2E/report, complete review/profile decision and PR-only integration remain mandatory. [Inventory](inventory-reconciliation.md#package-input-and-account-preload-recomposition); [ASAR evidence](shipped-linux-asar-audit.md#scoped-package-input-correction-and-composed-linux-check). Next: finish the source/provenance/coverage ledger and confirmed diagnostics, resolve profile compatibility, then qualify all final artifacts and protected CI. No publication, native app launch or release occurred.
 
 **Composed PKG-001 dependency-pruning evidence:** scoped baseline `dda2cc6b` fails on actual top-level `tar` inclusion; fix `7280d5d9` excludes ten audited incidental root trees while preserving nested runtime versions. All357 tooling cases/types/forced lint pass; broad-glob mutation fails the retained-runtime target and restores. Combined source `725efb5c` (tree `2e77b6c36eae6bae8d67c25bc71c8dbab51db02b`) also includes CAP-001 account-preload confidentiality. Its own immutable install passes root/bin/Electron-test types, scoped lint,182 focused package/preload cases, production build/webpack and an unsigned Linux `dir` build. That ASAR passes7,338 entries/22 required files, SHA-256 `63062ddc07f4bf6694e6d618eca3ae38e7b11585dff645cbf692f3d40361f88e`; its407 package records match byte-for-byte the approved queried pruned inventory (zero high/critical, one moderate/one low at scan time). The standalone PKG-001 branch carries an older477-instance graph; public query of that expanded list was rejected by automatic approval review and has no advisory clearance. [Artifact/limitation evidence](shipped-linux-asar-audit.md#scoped-package-input-correction-and-composed-linux-check). Next: reconcile all scoped docs/code, qualify native and actual unsigned installers on every required platform, and continue TST-006 review/profile decision. ELC-003, PKG-001, TST-005 and the overall handoff remain open.
 
