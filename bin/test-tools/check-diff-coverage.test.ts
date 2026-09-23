@@ -14,6 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import assert from 'node:assert/strict';
@@ -68,7 +69,7 @@ describe('changed-code coverage source ownership', () => {
     assert.match(result.output, /absent from coverage/);
   });
 
-  it('does not report a green 0\/0 when changed maintained ESM TypeScript is uninstrumented', () => {
+  it('does not report a green 0/0 when changed maintained ESM TypeScript is uninstrumented', () => {
     const result = runChangedSource('mts');
     assert.notEqual(result.status, 0);
     assert.match(result.output, /absent from coverage|Uninstrumented application source/);
