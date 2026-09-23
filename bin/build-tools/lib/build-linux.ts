@@ -20,12 +20,14 @@
 import {Arch} from 'builder-util';
 import type * as electronBuilder from 'electron-builder';
 import fs from 'fs-extra';
+
 import path from 'path';
 
-import {backupFiles, getLogger, restoreFiles} from '../../bin-utils';
 import {getCommonConfig, flipElectronFuses} from './commonConfig';
 import {LinuxConfig} from './Config';
 import {packageFilePatterns} from './packageInputs';
+
+import {backupFiles, getLogger, restoreFiles} from '../../bin-utils';
 
 const libraryName = path.basename(__filename).replace('.ts', '');
 const logger = getLogger('build-tools', libraryName);

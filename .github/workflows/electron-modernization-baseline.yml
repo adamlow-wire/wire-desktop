@@ -271,6 +271,18 @@ jobs:
           assert.equal(extracted.length, 1);
           assert.equal(extracted[0].sha256, built[0].sha256, 'AppImage must contain the verified archive.');
           NODE
+          node - "$extract_dir/squashfs-root" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = process.argv[2];
+          const desktopFiles = fs.readdirSync(root).filter(name => name.endsWith('.desktop'));
+          assert.equal(desktopFiles.length, 1, 'Expected one AppImage desktop entry.');
+          const desktop = fs.readFileSync(path.join(root, desktopFiles[0]), 'utf8');
+          const launcher = fs.readFileSync(path.join(root, 'AppRun'), 'utf8');
+          assert.match(desktop, /^Exec=AppRun %U$/m, 'Desktop launch must not disable sandboxing.');
+          assert.doesNotMatch(launcher, /--no-sandbox/, 'AppRun must never add a sandbox bypass.');
+          NODE
           executable=$(find "$extract_dir/squashfs-root" -maxdepth 1 -type f -name '*-desktop' -print -quit)
           test -n "$executable"
           helper="$(dirname "$executable")/chrome-sandbox"
@@ -278,12 +290,12 @@ jobs:
           test ! -L "$helper"
           sudo chown root:root "$helper"
           sudo chmod 4755 "$helper"
-          xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$extract_dir/squashfs-root/AppRun"
           test ! -e /etc/wire/managed.json
           sudo mkdir -p /etc/wire
           trap 'sudo rm -f /etc/wire/managed.json; rm -rf "$extract_dir"' EXIT
           printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
-          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$extract_dir/squashfs-root/AppRun"
       - name: Smoke-test Windows package
         id: windows_smoke
         if: runner.os == 'Windows'

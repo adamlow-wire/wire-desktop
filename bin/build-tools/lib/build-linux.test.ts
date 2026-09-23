@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,18 +14,21 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
-import * as assert from 'assert';
+import {generateAppRunScript} from 'app-builder-lib/out/targets/appimage/appImageUtil';
+import {Arch} from 'builder-util';
+import type {Configuration, Platform} from 'electron-builder';
 import * as fs from 'fs-extra';
+
+import * as assert from 'assert';
+import {spawnSync} from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 
-import {Arch} from 'builder-util';
-import type {Configuration, Platform} from 'electron-builder';
-import {generateAppRunScript} from 'app-builder-lib/out/targets/appimage/appImageUtil';
-
 import {buildLinuxConfig, buildLinuxWrapper} from './build-linux';
+
 import {generateUUID} from '../../bin-utils';
 
 const wireJsonPath = path.join(__dirname, '../../../electron/wire.json');
@@ -49,6 +52,38 @@ describe('build-linux', () => {
       });
 
       assert.ok(!appRun.includes('--no-sandbox'), 'AppRun must fail closed instead of disabling the Chromium sandbox.');
+    });
+
+    it('forwards application arguments without a sandbox bypass after a failed namespace probe', async () => {
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'appimage-sandbox-'));
+      const appRunPath = path.join(tempDir, 'AppRun');
+      const executablePath = path.join(tempDir, 'WireInternal-desktop');
+      const argumentsPath = path.join(tempDir, 'arguments.txt');
+      try {
+        await fs.writeFile(
+          appRunPath,
+          generateAppRunScript({
+            DesktopFileName: 'WireInternal-desktop',
+            ExecutableName: 'WireInternal-desktop',
+            ProductFilename: 'WireInternal',
+            ProductName: 'WireInternal',
+            ResourceName: 'wireinternal',
+          }),
+        );
+        await fs.writeFile(executablePath, '#!/bin/sh\nprintf "%s\\n" "$@" > "$WIRE_APPIMAGE_ARGS"\n');
+        await fs.chmod(executablePath, 0o755);
+        await fs.writeFile(path.join(tempDir, 'unshare'), '#!/bin/sh\nexit 1\n');
+        await fs.chmod(path.join(tempDir, 'unshare'), 0o755);
+
+        const result = spawnSync('/bin/bash', [appRunPath, '--user-data-dir=fixture'], {
+          encoding: 'utf8',
+          env: {...process.env, APPDIR: tempDir, WIRE_APPIMAGE_ARGS: argumentsPath},
+        });
+        assert.strictEqual(result.status, 0, result.stderr);
+        assert.strictEqual(await fs.readFile(argumentsPath, 'utf8'), '--user-data-dir=fixture\n');
+      } finally {
+        await fs.remove(tempDir);
+      }
     });
   });
 
