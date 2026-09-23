@@ -46,10 +46,9 @@ describe('[TST-005] native updater subprocess display environment', function () 
 
   it('forces Node mode for nested Electron fixtures even if a caller supplies another value', () => {
     const {buildNativeFixtureEnvironment} = requireCjs('./electron/test/nativeFixtureEnvironment.ts');
-    assert.deepEqual(
-      buildNativeFixtureEnvironment({ELECTRON_RUN_AS_NODE: '0'}, {ELECTRON_RUN_AS_NODE: '0'}),
-      {ELECTRON_RUN_AS_NODE: '1'},
-    );
+    assert.deepEqual(buildNativeFixtureEnvironment({ELECTRON_RUN_AS_NODE: '0'}, {ELECTRON_RUN_AS_NODE: '0'}), {
+      ELECTRON_RUN_AS_NODE: '1',
+    });
   });
 
   it('keeps the minimal environment when no display is configured', () => {

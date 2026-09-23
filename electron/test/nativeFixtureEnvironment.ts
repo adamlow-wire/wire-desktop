@@ -27,5 +27,6 @@ export function buildNativeFixtureEnvironment(
       result[name] = source[name];
     }
   }
-  return {...result, ...overrides};
+  // process.execPath is Electron inside electron-mocha; these fixtures exercise Node code.
+  return {...result, ...overrides, ELECTRON_RUN_AS_NODE: '1'};
 }
