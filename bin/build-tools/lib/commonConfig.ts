@@ -133,8 +133,5 @@ export async function flipElectronFuses(pathToElectron: string) {
     // When this fuse is enabled the search order becomes a single entry app.asar thus ensuring that when combined
     // with the embeddedAsarIntegrityValidation fuse it is impossible to load non-validated code.
     [FuseV1Options.OnlyLoadAppFromAsar]: true,
-    // The product shell and auxiliary pages use the restricted wire-app: protocol.
-    // The one-time legacy profile reader loads a local file but needs no extra file: privileges.
-    [FuseV1Options.GrantFileProtocolExtraPrivileges]: false,
   });
 }

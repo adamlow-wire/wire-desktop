@@ -64,7 +64,6 @@ async function main(): Promise<void> {
     [FuseV1Options.EnableNodeCliInspectArguments, '0'],
     [FuseV1Options.EnableEmbeddedAsarIntegrityValidation, '0'],
     [FuseV1Options.OnlyLoadAppFromAsar, '1'],
-    [FuseV1Options.GrantFileProtocolExtraPrivileges, '0'],
   ] as const) {
     assert.equal(fuses[option], state.charCodeAt(0), `Preserve configured fuse ${FuseV1Options[option]}.`);
   }
