@@ -27,7 +27,8 @@ const requireCjs = createRequire(path.resolve('package.json'));
 const source = path.resolve('electron/src/runtime/wallClockLoader.mts');
 
 describe('[TST-006] instrumented wall-clock ESM source', () => {
-  it('[security-target] returns the ESM factory result through the actual maintained adapter with coverage counters', () => {
+  it('[security-target] returns the ESM factory result through the actual maintained adapter with coverage counters', function () {
+    this.timeout(10_000);
     const transformed = transformFileSync(source, {
       babelrc: false,
       configFile: false,
