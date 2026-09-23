@@ -17,7 +17,7 @@
  *
  */
 
-import Joi from '@hapi/joi';
+import Joi from 'joi';
 
 import {randomUUID} from 'crypto';
 import fs from 'fs';

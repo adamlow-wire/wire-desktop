@@ -80,7 +80,19 @@ export const bindSavePictureIpc = (
   ipc: IpcMainBinding,
   registry: ViewIdentityRegistry,
   savePicture: SavePictureBoundary,
-): (() => void) =>
-  bindAuthorizedIpc(ipc, registry, savePictureContract, (_identity, request) =>
-    savePicture(request.bytes, request.timestamp),
-  );
+): (() => void) => {
+  // A rate limit does not bound work retained while a native dialog is pending.
+  // Keep a single application-owned save active across all account senders.
+  let savePending = false;
+  return bindAuthorizedIpc(ipc, registry, savePictureContract, async (_identity, request) => {
+    if (savePending) {
+      throw new Error('A picture save is already pending.');
+    }
+    savePending = true;
+    try {
+      await savePicture(request.bytes, request.timestamp);
+    } finally {
+      savePending = false;
+    }
+  });
+};

@@ -25,13 +25,13 @@ export interface ProxyPromptActions {
 }
 
 export class ProxyPromptCoordinator {
-  private readonly activePrompts = new Map<number, ProxyPromptActions>();
+  private readonly activePrompts = new Map<number, {actions: ProxyPromptActions; canRetry: () => boolean}>();
 
-  register(webContentsId: number, actions: ProxyPromptActions): void {
+  register(webContentsId: number, actions: ProxyPromptActions, canRetry: () => boolean = () => true): void {
     if (!Number.isSafeInteger(webContentsId) || webContentsId <= 0 || this.activePrompts.has(webContentsId)) {
       throw new Error('Proxy prompt cannot be registered.');
     }
-    this.activePrompts.set(webContentsId, actions);
+    this.activePrompts.set(webContentsId, {actions, canRetry});
   }
 
   has(webContentsId: number): boolean {
@@ -50,16 +50,16 @@ export class ProxyPromptCoordinator {
     webContentsId: number,
     action: (actions: ProxyPromptActions) => void | Promise<void>,
   ): Promise<void> {
-    const actions = this.activePrompts.get(webContentsId);
-    if (!actions) {
+    const registration = this.activePrompts.get(webContentsId);
+    if (!registration) {
       throw new Error('Proxy prompt is not active.');
     }
     this.activePrompts.delete(webContentsId);
     try {
-      await action(actions);
+      await action(registration.actions);
     } catch (error) {
-      if (!this.activePrompts.has(webContentsId)) {
-        this.activePrompts.set(webContentsId, actions);
+      if (registration.canRetry() && !this.activePrompts.has(webContentsId)) {
+        this.activePrompts.set(webContentsId, registration);
       }
       throw error;
     }

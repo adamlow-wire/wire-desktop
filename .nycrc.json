@@ -1,9 +1,9 @@
 {
   "all": true,
   "clean": false,
-  "exclude": ["**/*.d.ts", "**/*.test*.ts", "**/wrap/**"],
-  "extension": [".ts"],
-  "include": ["electron/src/**/*.ts"],
+  "exclude": ["**/*.d.ts", "**/*.d.mts", "**/*.test*.ts", "**/wrap/**"],
+  "extension": [".ts", ".mts"],
+  "include": ["electron/src/**/*.ts", "electron/src/**/*.mts"],
   "per-file": false,
   "report-dir": "coverage/electron",
   "reporter": ["html", "json", "text-summary"],

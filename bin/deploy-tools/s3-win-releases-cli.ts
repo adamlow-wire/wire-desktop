@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,14 +14,16 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import {program as commander} from 'commander';
+
 import path from 'path';
 
-import {checkCommanderOptions, getLogger} from '../bin-utils';
-import {find} from './lib/deploy-utils';
 import {S3Deployer} from './lib/S3Deployer';
+
+import {checkCommanderOptions, getLogger} from '../bin-utils';
 
 const toolName = path.basename(__filename).replace('.ts', '');
 const logger = getLogger('deploy-tools', toolName);
@@ -59,28 +61,22 @@ if (!commanderOptions.wrapperBuild.includes('#')) {
   const searchBasePath = commanderOptions.path || path.resolve('.');
   const s3BasePath = `${commanderOptions.s3path || ''}/`.replace('//', '/');
 
-  const nupkgFile = await find('*-full.nupkg', {cwd: searchBasePath});
-  const setupExe = await find('*-Setup.exe', {cwd: searchBasePath});
-  const [, appShortName] = new RegExp('(.+)-[\\d.]+-full\\.nupkg').exec(nupkgFile.fileName) || ['', ''];
-  const [, appFullName] = new RegExp('(.+)-Setup\\.exe').exec(setupExe.fileName) || ['', ''];
-
-  if (!appShortName) {
-    throw new Error('App short name not found');
-  }
-
-  if (!appFullName) {
-    throw new Error('App full name not found');
-  }
+  const {secretKey: secretAccessKey, keyId: accessKeyId} = commanderOptions;
+  const s3Deployer = new S3Deployer({accessKeyId, dryRun: commanderOptions.dryRun || false, secretAccessKey});
+  // Resolve the same coherent, requested-version set used by the Windows upload path
+  // before changing any static release key.
+  const [nupkgFile, , setupExe] = await s3Deployer.findUploadFiles('windows', searchBasePath, version, 'squirrel');
+  const packageSuffix = `-${version}-full.nupkg`;
+  const setupSuffix = '-Setup.exe';
+  const appShortName = nupkgFile.fileName.slice(0, -packageSuffix.length);
+  const setupFileName = path.basename(setupExe.filePath);
+  const appFullName = setupFileName.slice(0, -setupSuffix.length);
 
   const staticReleaseKey = `${s3BasePath}/RELEASES`;
   const staticExeKey = `${s3BasePath}/${appFullName}-Setup.exe`;
 
   const latestReleaseKey = `${s3BasePath}/${appShortName}-${version}-RELEASES`;
   const latestExeKey = `${s3BasePath}/${appShortName}-${version}.exe`;
-
-  const {secretKey: secretAccessKey, keyId: accessKeyId} = commanderOptions;
-
-  const s3Deployer = new S3Deployer({accessKeyId, dryRun: commanderOptions.dryRun || false, secretAccessKey});
 
   logger.log(`Deleting "${staticReleaseKey}" from S3 ...`);
   await s3Deployer.deleteFromS3({bucket, s3Path: `${bucket}/${staticReleaseKey}`});
@@ -103,7 +99,7 @@ if (!commanderOptions.wrapperBuild.includes('#')) {
   });
 
   logger.log('Done updating releases on S3.');
-})().catch(error => {
-  logger.error(error);
+})().catch(() => {
+  logger.error('S3 release promotion failed');
   process.exit(1);
 });

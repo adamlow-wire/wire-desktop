@@ -28,8 +28,6 @@ import {AddressInfo} from 'net';
 import os from 'os';
 import path from 'path';
 
-import {Availability} from '@wireapp/protocol-messaging';
-
 import {AccountController, AccountControllerOptions} from './AccountController';
 import {getAccountDestination} from './AccountDestination';
 import {approveAccountEnvironment} from './AccountEnvironmentApproval';
@@ -67,6 +65,9 @@ describe('production account controller integration', function () {
   let disposeEvents: () => void;
   let records: ReturnType<typeof parseLegacyAccounts>;
   const preload = path.join(process.cwd(), 'electron/test/fixtures/account-controller-preload.js');
+  // Reuse two distinct persistent partitions across cases; teardown clears their data.
+  // Creating fresh native sessions for every case can accumulate Chromium resources on Windows.
+  const fixtureSessionIds = [randomUUID(), randomUUID()];
   const accountSession = (account: {sessionID?: string}) =>
     account.sessionID ? session.fromPartition(`persist:${account.sessionID}`) : session.defaultSession;
   let initializationPhase: string;
@@ -78,8 +79,9 @@ describe('production account controller integration', function () {
     registry.authorize({sender: contents, senderFrame: contents.mainFrame}, ACCOUNT_EVENT_CAPABILITY);
 
   beforeEach(async function () {
-    // Starting three real sandboxed renderers exceeds Mocha's 2s default on hosted Windows.
-    this.timeout(10_000);
+    // Starting three real sandboxed renderers can exceed 10s on a busy hosted Windows runner.
+    // Keep a finite limit and report the fixed slow phase before that limit expires.
+    this.timeout(20_000);
     initializationPhase = 'starting loopback server';
     server = createServer((_request, response) =>
       response.end('<!doctype html><title>Account controller fixture</title>'),
@@ -89,8 +91,8 @@ describe('production account controller integration', function () {
     records = parseLegacyAccounts(
       JSON.stringify({
         accounts: [
-          {id: randomUUID(), sessionID: randomUUID(), userID: 'first', visible: true},
-          {id: randomUUID(), sessionID: randomUUID(), userID: 'second'},
+          {id: randomUUID(), sessionID: fixtureSessionIds[0], userID: 'first', visible: true},
+          {id: randomUUID(), sessionID: fixtureSessionIds[1], userID: 'second'},
         ],
       }),
       3,
@@ -136,7 +138,15 @@ describe('production account controller integration', function () {
     disposeControl = bindAccountControlIpc(ipcMain, registry, controller);
     disposeEvents = bindAccountEventIpc(ipcMain, registry, controller.receive);
     initializationPhase = 'starting account views';
-    await controller.start();
+    const startupWarning = setTimeout(
+      () => console.error('Account fixture startup delayed during: starting account views'),
+      9_000,
+    );
+    try {
+      await controller.start();
+    } finally {
+      clearTimeout(startupWarning);
+    }
     initializationPhase = 'ready';
   });
 
@@ -146,17 +156,53 @@ describe('production account controller integration', function () {
     if (initializationPhase !== 'ready') {
       console.error(`Account fixture initialization stopped during: ${initializationPhase}`);
     }
-    restore();
-    disposeControl?.();
-    disposeEvents?.();
-    await views?.dispose();
-    if (window && !window.isDestroyed()) {
-      window.destroy();
+    const started = performance.now();
+    let stage = 'restoring observers';
+    let stageStarted = started;
+    let reported = false;
+    const completed: Array<{stage: string; elapsedMs: number}> = [];
+    const advance = (nextStage: string) => {
+      const now = performance.now();
+      completed.push({stage, elapsedMs: Math.round(now - stageStarted)});
+      stage = nextStage;
+      stageStarted = now;
+    };
+    const report = (state: 'pending' | 'failed' | 'finished') => {
+      reported = true;
+      // Only fixed stage names and durations: never account IDs or native error payloads.
+      console.error('Account fixture cleanup diagnostics:', {
+        state,
+        stage,
+        elapsedMs: Math.round(performance.now() - started),
+        completed,
+      });
+    };
+    const warning = setTimeout(() => report('pending'), 9_000);
+    try {
+      restore();
+      disposeControl?.();
+      disposeEvents?.();
+      advance('destroying account views');
+      await views?.dispose();
+      advance('destroying shell window');
+      if (window && !window.isDestroyed()) {
+        window.destroy();
+      }
+      for (const [index, account] of (records ?? []).entries()) {
+        advance(`clearing session ${index + 1}`);
+        await accountSession(account).clearStorageData();
+      }
+      advance('closing fixture server');
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    } catch (error) {
+      report('failed');
+      throw error;
+    } finally {
+      clearTimeout(warning);
+      if (!reported && performance.now() - started >= 9_000) {
+        report('finished');
+      }
     }
-    for (const account of records ?? []) {
-      await accountSession(account).clearStorageData();
-    }
-    await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
   it('[regression][CAP-001] queues menu commands for their original account until that account is ready', async () => {
@@ -823,7 +869,7 @@ describe('production account controller integration', function () {
     options.badge = (count, ignoreFlash) => badges.push([count, ignoreFlash]);
     const first = identity(views.get(records[0].id));
     const second = identity(views.get(records[1].id));
-    await controller.receive(first, {type: 'metadata', data: {availability: Availability.Type.BUSY}});
+    await controller.receive(first, {type: 'metadata', data: {availability: 3}});
     await controller.receive(first, {type: 'unread', count: 3});
     await controller.receive(second, {type: 'unread', count: 5});
     await controller.receive(second, {type: 'activate'});

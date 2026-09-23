@@ -91,14 +91,13 @@ export async function buildWindowsInstaller(
   logger.info(`Building ${commonConfig.name} ${commonConfig.version} Installer for Windows ...`);
 
   const backup = await backupFiles([wireJsonResolved]);
-  await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
-
   try {
+    await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
     await createWindowsInstaller(wInstallerOptions);
     const buildDir = path.resolve(wInstallerOptions.outputDirectory!);
     logger.log(`Built installer in "${buildDir}"`);
   } catch (error) {
-    logger.error(error);
+    logger.error('Installer packaging failed.');
     throw error;
   } finally {
     await restoreFiles(backup);

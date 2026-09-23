@@ -95,14 +95,34 @@ describe('[regression][CAP-001] account display bootstrap', () => {
     expect(createRoot).not.toHaveBeenCalled();
     switchAccount(0);
     expect(select).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalledWith('Unable to initialize account display.', failure);
+    expect(console.error).toHaveBeenCalledWith('Unable to initialize account display.');
+    expect(console.error).not.toHaveBeenCalledWith(expect.anything(), failure);
+  });
+
+  it('[security-target][INV-010] reports bootstrap failure without rejected detail', async () => {
+    const failure = new Error('private-profile=credential-value');
+    configure.mockRejectedValue(failure);
+    await initialize();
+    expect(console.error).toHaveBeenCalledWith('Unable to initialize account display.');
+    expect(console.error).not.toHaveBeenCalledWith(expect.anything(), failure);
+    expect(console.error).not.toHaveBeenCalledWith(failure);
   });
 
   it('reports a missing shell container without mounting', async () => {
     root.remove();
     await initialize();
     expect(createRoot).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalledWith('Unable to initialize account display.', expect.any(Error));
+    expect(console.error).toHaveBeenCalledWith('Unable to initialize account display.');
+  });
+
+  it('[security-target][INV-010] reports selection failure without rejected detail', async () => {
+    await initialize();
+    const failure = new Error('private-account=credential-value');
+    select.mockRejectedValue(failure);
+    switchAccount(0);
+    await Promise.resolve();
+    expect(console.error).toHaveBeenCalledWith('Unable to select account.');
+    expect(console.error).not.toHaveBeenCalledWith(failure);
   });
 
   it('reports rejected named selections', async () => {
@@ -111,6 +131,7 @@ describe('[regression][CAP-001] account display bootstrap', () => {
     select.mockRejectedValue(failure);
     switchAccount(0);
     await Promise.resolve();
-    expect(console.error).toHaveBeenCalledWith(failure);
+    expect(console.error).toHaveBeenCalledWith('Unable to select account.');
+    expect(console.error).not.toHaveBeenCalledWith(failure);
   });
 });

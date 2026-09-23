@@ -19,6 +19,7 @@
 
 import S3 from 'aws-sdk/clients/s3';
 import fs from 'fs-extra';
+import globby from 'globby';
 
 import path from 'path';
 
@@ -52,6 +53,25 @@ export interface S3CopyOptions {
 }
 
 export type WindowsArtifactType = 'auto' | 'msi' | 'squirrel';
+
+async function findSingleSquirrelArtifact(
+  basePath: string,
+  glob: string,
+  matchesName: (fileName: string) => boolean,
+  label: string,
+): Promise<FindResult> {
+  const candidates = (await globby(glob, {cwd: basePath, followSymbolicLinks: false, onlyFiles: true})).filter(
+    relativePath => matchesName(path.basename(relativePath)),
+  );
+  if (candidates.length !== 1) {
+    throw new Error(`Expected exactly one ${label}.`);
+  }
+  const filePath = path.resolve(basePath, candidates[0]);
+  if (!(await fs.lstat(filePath)).isFile()) {
+    throw new Error(`Expected a regular ${label}.`);
+  }
+  return {fileName: path.basename(filePath), filePath};
+}
 
 export class S3Deployer {
   private readonly options: Required<S3DeployerOptions>;
@@ -129,32 +149,36 @@ export class S3Deployer {
         return [{...msi, filePath: path.join(basePath, msi.fileName)}];
       }
 
-      const setupExe = await find('*-Setup.exe', {cwd: basePath});
-      const nupkgFile = await find('*-full.nupkg', {cwd: basePath});
-      const releasesFile = await find('RELEASES', {cwd: basePath});
-
-      const [, appShortName] = new RegExp('(.+)-[\\d.]+-full\\.nupkg').exec(nupkgFile.fileName) || ['', ''];
-
-      if (!appShortName) {
-        throw new Error('App short name not found');
+      const suffix = `-${version}-full.nupkg`;
+      const nupkgFile = await findSingleSquirrelArtifact(
+        basePath,
+        '**/*-full.nupkg',
+        fileName => fileName.endsWith(suffix) && fileName.length > suffix.length,
+        'Squirrel full package for the requested version',
+      );
+      const appShortName = nupkgFile.fileName.slice(0, -suffix.length);
+      const artifactDirectory = path.dirname(nupkgFile.filePath);
+      const setupExe = await findSingleSquirrelArtifact(
+        artifactDirectory,
+        '*-Setup.exe',
+        fileName => fileName.toLowerCase() === `${appShortName}-Setup.exe`.toLowerCase(),
+        'matching Squirrel setup executable',
+      );
+      const releasesFile = await findSingleSquirrelArtifact(
+        artifactDirectory,
+        'RELEASES',
+        fileName => fileName === 'RELEASES',
+        'Squirrel RELEASES file',
+      );
+      const releaseEntries = (await fs.readFile(releasesFile.filePath, 'utf8')).split(/\r?\n/).filter(Boolean);
+      if (!releaseEntries.some(line => line.trim().split(/\s+/)[1] === nupkgFile.fileName)) {
+        throw new Error('RELEASES must name the requested Squirrel full package.');
       }
 
-      const setupExeRenamed = {...setupExe, fileName: `${appShortName}-${version}.exe`};
-      const releasesRenamed = {...releasesFile, fileName: `${appShortName}-${version}-RELEASES`};
-
       return [
-        {
-          fileName: nupkgFile.fileName,
-          filePath: path.join(basePath, nupkgFile.fileName),
-        },
-        {
-          fileName: releasesRenamed.fileName,
-          filePath: path.join(basePath, releasesFile.fileName),
-        },
-        {
-          fileName: setupExeRenamed.fileName,
-          filePath: path.join(basePath, setupExe.fileName),
-        },
+        nupkgFile,
+        {...releasesFile, fileName: `${appShortName}-${version}-RELEASES`},
+        {...setupExe, fileName: `${appShortName}-${version}.exe`},
       ];
     } else if (platform.includes('macos')) {
       const setupPkg = await find('*.pkg', {cwd: basePath});

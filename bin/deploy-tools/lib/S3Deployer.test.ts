@@ -67,7 +67,7 @@ describe('S3Deployer', () => {
       await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-x64.msi'));
       await fs.ensureFile(path.join(basePath, 'Wire-Setup.exe'));
       await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-full.nupkg'));
-      await fs.ensureFile(path.join(basePath, 'RELEASES'));
+      await fs.writeFile(path.join(basePath, 'RELEASES'), 'hash Wire-3.42.123-full.nupkg 1\n');
       const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
 
       const files = await s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel');
@@ -80,6 +80,114 @@ describe('S3Deployer', () => {
         {fileName: 'Wire-3.42.123-RELEASES', filePath: path.join(basePath, 'RELEASES')},
         {fileName: 'Wire-3.42.123.exe', filePath: path.join(basePath, 'Wire-Setup.exe')},
       ]);
+    });
+
+    it('selects the requested Squirrel package version when an older full package is present', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-version-deployer-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Wire-Setup.exe'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.122-full.nupkg'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-full.nupkg'));
+      await fs.writeFile(
+        path.join(basePath, 'RELEASES'),
+        'hash Wire-3.42.122-full.nupkg 1\nhash Wire-3.42.123-full.nupkg 1\n',
+      );
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel');
+
+      assert.strictEqual(files[0].fileName, 'Wire-3.42.123-full.nupkg');
+    });
+
+    it('accepts the real builder casing difference between Setup and full package names', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-actual-case-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'WireInternal-Setup.exe'));
+      await fs.ensureFile(path.join(basePath, 'wireinternal-3.44.0-full.nupkg'));
+      await fs.writeFile(path.join(basePath, 'RELEASES'), 'hash wireinternal-3.44.0-full.nupkg 1\n');
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.44.0', 'squirrel');
+
+      assert.strictEqual(files[0].fileName, 'wireinternal-3.44.0-full.nupkg');
+      assert.strictEqual(files[2].filePath, path.join(basePath, 'WireInternal-Setup.exe'));
+    });
+
+    it('retains the selected package directory when artifacts are nested under the search root', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-nested-deployer-'));
+      temporaryDirectories.push(basePath);
+      const artifactDirectory = path.join(basePath, 'dist');
+      await fs.ensureDir(artifactDirectory);
+      await fs.ensureFile(path.join(artifactDirectory, 'Wire-Setup.exe'));
+      await fs.ensureFile(path.join(artifactDirectory, 'Wire-3.42.123-full.nupkg'));
+      await fs.writeFile(path.join(artifactDirectory, 'RELEASES'), 'hash Wire-3.42.123-full.nupkg 1\n');
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel');
+
+      assert.deepStrictEqual(
+        files.map(file => file.filePath),
+        ['Wire-3.42.123-full.nupkg', 'RELEASES', 'Wire-Setup.exe'].map(fileName =>
+          path.join(artifactDirectory, fileName),
+        ),
+      );
+    });
+
+    it('rejects a Squirrel directory without the requested full-package version', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-missing-version-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Wire-Setup.exe'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.122-full.nupkg'));
+      await fs.writeFile(path.join(basePath, 'RELEASES'), 'hash Wire-3.42.122-full.nupkg 1\n');
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      await assert.rejects(
+        s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel'),
+        /exactly one Squirrel full package for the requested version/,
+      );
+    });
+
+    it('rejects two Squirrel products with the same requested version', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-ambiguous-version-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Wire-Setup.exe'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-full.nupkg'));
+      await fs.ensureFile(path.join(basePath, 'WireInternal-3.42.123-full.nupkg'));
+      await fs.writeFile(path.join(basePath, 'RELEASES'), 'hash Wire-3.42.123-full.nupkg 1\n');
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      await assert.rejects(
+        s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel'),
+        /exactly one Squirrel full package for the requested version/,
+      );
+    });
+
+    it('rejects a Squirrel setup executable for a different product', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-other-setup-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Other-Setup.exe'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-full.nupkg'));
+      await fs.writeFile(path.join(basePath, 'RELEASES'), 'hash Wire-3.42.123-full.nupkg 1\n');
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      await assert.rejects(
+        s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel'),
+        /exactly one matching Squirrel setup executable/,
+      );
+    });
+
+    it('rejects RELEASES metadata that omits the selected Squirrel full package', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-stale-releases-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Wire-Setup.exe'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-full.nupkg'));
+      await fs.writeFile(path.join(basePath, 'RELEASES'), 'hash Wire-3.42.122-full.nupkg 1\n');
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      await assert.rejects(
+        s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'squirrel'),
+        /RELEASES must name the requested Squirrel full package/,
+      );
     });
 
     it('rejects ambiguous automatic selection when both Windows installer families are present', async () => {

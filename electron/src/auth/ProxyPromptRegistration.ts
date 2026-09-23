@@ -30,10 +30,39 @@ export interface RegisterProxyPromptOptions {
 
 export const showRegisteredProxyPrompt = async (options: RegisterProxyPromptOptions): Promise<void> => {
   await options.showWindow(webContentsId => {
-    options.coordinator.register(webContentsId, options.actions);
+    let closed = false;
+    let submission: Promise<void> | undefined;
+    options.coordinator.register(
+      webContentsId,
+      {
+        cancel: () => options.actions.cancel(),
+        submit: credentials => {
+          submission = (async () => {
+            await options.actions.submit(credentials);
+          })();
+          return submission;
+        },
+      },
+      () => !closed,
+    );
     return () => {
+      if (closed) {
+        return;
+      }
+      closed = true;
       if (options.coordinator.has(webContentsId)) {
         options.fireAndForget(() => options.coordinator.cancel(webContentsId));
+      } else if (submission) {
+        // A consumed submission cannot be cancelled until session setup settles.
+        // Success already completes the challenge; failure still needs cleanup.
+        const pending = submission;
+        options.fireAndForget(async () => {
+          try {
+            await pending;
+          } catch {
+            await options.actions.cancel();
+          }
+        });
       }
     };
   });

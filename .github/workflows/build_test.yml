@@ -38,11 +38,45 @@ jobs:
           cache: 'yarn'
       - name: Install dependencies
         run: yarn --immutable
+      - name: Prepare Electron sandbox helper for Linux tests
+        run: |
+          node node_modules/electron/install.js
+          helper=node_modules/electron/dist/chrome-sandbox
+          test -f "$helper"
+          test ! -L "$helper"
+          sudo chown root:root "$helper"
+          sudo chmod 4755 "$helper"
       - name: Use xvfb-run on Linux
         run: sed -i 's/\(electron-mocha \)/xvfb-run \1/g' package.json
-      - name: Test
-        run: yarn test
+      - name: Test types
+        timeout-minutes: 10
+        run: yarn test:types
+      - name: Build test application
+        timeout-minutes: 10
+        run: yarn prestart
+      - name: Build test TypeScript
+        timeout-minutes: 10
+        run: yarn build:ts:tests
+      - name: Test React renderer
+        timeout-minutes: 10
+        run: yarn test:react
+      - name: Test Electron main process
+        timeout-minutes: 10
+        run: yarn test:main
+      - name: Test maintained ESM source
+        timeout-minutes: 10
+        run: yarn test:runtime:node
+      - name: Test media
+        timeout-minutes: 10
+        run: yarn test:media
+      - name: Test renderer
+        timeout-minutes: 10
+        run: yarn test:renderer
+      - name: Test build tools
+        timeout-minutes: 10
+        run: yarn test:bin
       - name: Collect coverage and enforce changed-code thresholds
+        timeout-minutes: 15
         run: yarn coverage
         env:
           DIFF_COVERAGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}

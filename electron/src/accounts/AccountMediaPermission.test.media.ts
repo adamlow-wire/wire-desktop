@@ -44,32 +44,71 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
     assert.equal(app.commandLine.hasSwitch('use-fake-ui-for-media-stream'), false);
   });
 
-  beforeEach(async () => {
-    consent = false;
-    prompts = [];
-    server = createServer((_request, response) => response.end('<!doctype html><title>Fake media fixture</title>'));
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-    window = new BrowserWindow({show: false, webPreferences: {sandbox: true, contextIsolation: true}});
-    views = new AccountViews({
-      window,
-      registry: new ViewIdentityRegistry(),
-      preload: path.join(process.cwd(), 'electron/dist/preload/preload-secure-account.js'),
-      additionalArguments: [],
-      capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
-      permissionConsent: {
-        canPrompt: () => true,
-        ask: async (_identity, scopes) => {
-          prompts.push([...scopes]);
-          return consent;
+  beforeEach(async function () {
+    // A hosted Windows account load also exceeded ten seconds before any media
+    // request. Keep this native startup bound finite; test bodies retain two seconds.
+    this.timeout(20_000);
+    const started = performance.now();
+    let stage = 'starting the fixture server';
+    let pendingAccountId: string | undefined;
+    const reportPending = () => {
+      let pendingContents: WebContents | undefined;
+      try {
+        pendingContents = pendingAccountId ? views?.get(pendingAccountId) : undefined;
+      } catch {
+        // Registration can still be in progress; report that phase without account data.
+      }
+      console.error('Native fake-media setup pending:', {
+        stage,
+        elapsedMs: Math.round(performance.now() - started),
+        serverListening: server?.listening ?? false,
+        windowDestroyed: window?.isDestroyed() ?? true,
+        contentsRegistered: Boolean(pendingContents),
+        contentsLoadingMainFrame: pendingContents?.isLoadingMainFrame(),
+        contentsCrashed: pendingContents?.isCrashed(),
+      });
+    };
+    const warning = setTimeout(reportPending, 1_500);
+    const lateWarning = setTimeout(reportPending, 9_000);
+    try {
+      consent = false;
+      prompts = [];
+      server = createServer((_request, response) => response.end('<!doctype html><title>Fake media fixture</title>'));
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+      const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      stage = 'creating the fixture window';
+      window = new BrowserWindow({show: false, webPreferences: {sandbox: true, contextIsolation: true}});
+      views = new AccountViews({
+        window,
+        registry: new ViewIdentityRegistry(),
+        preload: path.join(process.cwd(), 'electron/dist/preload/preload-secure-account.js'),
+        additionalArguments: [],
+        capabilities: [ACCOUNT_PERMISSION_CAPABILITY],
+        permissionConsent: {
+          canPrompt: () => true,
+          ask: async (_identity, scopes) => {
+            prompts.push([...scopes]);
+            return consent;
+          },
         },
-      },
-      configure: async () => undefined,
-      lost: () => undefined,
-    });
-    const account = {id: randomUUID(), sessionID: randomUUID()};
-    contents = await views.create(account, origin);
-    views.select(account.id);
+        configure: async () => undefined,
+        lost: () => undefined,
+      });
+      const account = {id: randomUUID(), sessionID: randomUUID()};
+      pendingAccountId = account.id;
+      stage = 'creating and loading the account view';
+      contents = await views.create(account, origin);
+      views.select(account.id);
+    } finally {
+      clearTimeout(warning);
+      clearTimeout(lateWarning);
+      if (performance.now() - started >= 1_500) {
+        console.error('Native fake-media setup settled:', {
+          stage,
+          elapsedMs: Math.round(performance.now() - started),
+        });
+      }
+    }
   });
 
   afterEach(async () => {
@@ -80,11 +119,26 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
-  const capture = (constraints: {
+  const capture = async (constraints: {
     audio?: boolean;
     video?: boolean | {mandatory: {chromeMediaSource: string; chromeMediaSourceId: string}};
-  }) =>
-    contents.executeJavaScript(`(async () => {
+  }) => {
+    const requestor = contents;
+    const currentPrompts = prompts;
+    const priorPromptCount = currentPrompts.length;
+    const started = performance.now();
+    const warning = setTimeout(() => {
+      console.error('Native fake-media request pending:', {
+        elapsedMs: Math.round(performance.now() - started),
+        prompts: currentPrompts.length - priorPromptCount,
+        requestorDestroyed: requestor.isDestroyed(),
+        audioRequested: constraints.audio === true,
+        videoRequested: Boolean(constraints.video),
+        legacyCapture: typeof constraints.video === 'object',
+      });
+    }, 1_500);
+    try {
+      return await requestor.executeJavaScript(`(async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia(${JSON.stringify(constraints)});
         const tracks = stream.getTracks();
@@ -95,6 +149,10 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
         return {error: error.name};
       }
     })()`);
+    } finally {
+      clearTimeout(warning);
+    }
+  };
 
   it('denies real media requests when main-owned consent is cancelled', async () => {
     assert.deepEqual(await capture({audio: true, video: true}), {error: 'NotAllowedError'});

@@ -82,6 +82,9 @@ function isExistingFileError(error: unknown): boolean {
 }
 
 async function findRotatedLogPath(parameters: FindRotatedLogPathParameters): Promise<string> {
+  if (parameters.collisionIndex >= 128) {
+    throw new Error('Log rotation has no available destination.');
+  }
   const rotatedLogPath = `${parameters.logFilePath}.${parameters.currentTimeMilliseconds}-${parameters.collisionIndex}.old`;
   const rotatedLogPathExists = await parameters.pathExists(rotatedLogPath);
 
@@ -177,18 +180,64 @@ async function runQueuedWrite(parameters: RunQueuedWriteParameters): Promise<voi
   }
 }
 
+const maximumEntryBytes = 64 * 1024;
+const maximumPendingEntries = 256;
+const maximumPendingBytes = 1024 * 1024;
+const maximumPathCharacters = 32 * 1024;
+const truncationMarker = ' [desktop log entry truncated]';
+
+export function boundLogMessage(message: string, prefix: string = ''): string {
+  // Bound encoding work before copying a remote-controlled string. UTF-8 needs
+  // at least one byte per UTF-16 code unit, except surrogate pairs (four bytes).
+  const candidate = message.slice(0, maximumEntryBytes);
+  const available = maximumEntryBytes - Buffer.byteLength(prefix + os.EOL);
+  const encoded = Buffer.from(candidate);
+  if (candidate.length === message.length && encoded.length <= available) {
+    return prefix + candidate;
+  }
+  const bytes = encoded.subarray(0, available - Buffer.byteLength(truncationMarker));
+  // Streaming decode drops an incomplete terminal code point instead of adding
+  // a replacement character that could exceed the entry's byte budget.
+  return prefix + new TextDecoder('utf-8', {ignoreBOM: true}).decode(bytes, {stream: true}) + truncationMarker;
+}
+
 export function createBoundedLogWriter(parameters: CreateBoundedLogWriterParameters): BoundedLogWriter {
   const pendingWrites: PendingWrites = new Map();
+  let pendingEntries = 0;
+  let pendingBytes = 0;
+  let droppedEntries = 0;
 
   function writeLogMessage(writeParameters: WriteLogMessageParameters): Promise<void> {
-    const previousWrite = Maybe.of(pendingWrites.get(writeParameters.logFilePath)).unwrapOr(Promise.resolve());
+    const logFilePath = writeParameters.logFilePath;
+    if (
+      pendingEntries >= maximumPendingEntries ||
+      pendingBytes >= maximumPendingBytes ||
+      logFilePath.length > maximumPathCharacters
+    ) {
+      droppedEntries = Math.min(Number.MAX_SAFE_INTEGER, droppedEntries + 1);
+      return Promise.resolve();
+    }
+    const notice =
+      droppedEntries > 0 ? `[Desktop log writer dropped ${droppedEntries} entries while busy]${os.EOL}` : '';
+    const message = boundLogMessage(writeParameters.message, notice);
+    const entryBytes = Buffer.byteLength(message + os.EOL);
+    if (pendingBytes + entryBytes > maximumPendingBytes) {
+      droppedEntries = Math.min(Number.MAX_SAFE_INTEGER, droppedEntries + 1);
+      return Promise.resolve();
+    }
+    // Overflow is best-effort logging loss, not another error to log recursively.
+    // The next admitted entry records only a bounded count, never dropped content.
+    droppedEntries = 0;
+    pendingEntries += 1;
+    pendingBytes += entryBytes;
+    const previousWrite = Maybe.of(pendingWrites.get(logFilePath)).unwrapOr(Promise.resolve());
     const writeOperation = runQueuedWrite({
       afterWrite: parameters.afterWrite,
       dependencies: parameters.dependencies,
       maintenanceCoordinator: parameters.maintenanceCoordinator,
       maximumFileSizeBytes: parameters.maximumFileSizeBytes,
       previousWrite,
-      writeParameters,
+      writeParameters: {logFilePath, message},
     });
 
     let pendingWrite: Promise<void> = Promise.resolve();
@@ -197,12 +246,14 @@ export function createBoundedLogWriter(parameters: CreateBoundedLogWriterParamet
       try {
         await writeOperation;
       } finally {
-        removePendingWrite(pendingWrites, writeParameters.logFilePath, pendingWrite);
+        pendingEntries -= 1;
+        pendingBytes -= entryBytes;
+        removePendingWrite(pendingWrites, logFilePath, pendingWrite);
       }
     }
 
     pendingWrite = removePendingWriteAfterCompletion();
-    pendingWrites.set(writeParameters.logFilePath, pendingWrite);
+    pendingWrites.set(logFilePath, pendingWrite);
 
     return pendingWrite;
   }

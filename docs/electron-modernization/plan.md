@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.53
+revision: 1.5.90
 status: draft
-updated: 2026-09-15
+updated: 2026-09-23
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -202,7 +202,23 @@ M3 work remains one primary work item per PR, but validation is organized around
 
 Each PR still requires its focused tests and protected-branch checks. Authenticated cross-platform E2E runs at behavior-changing PRs and the checkpoints above; schema-only migrations may rely on the next checkpoint when the deferred platform gap is explicit.
 
-### Next execution: internal review and unsigned handoff
+### Current goal: close mandatory unsigned review-handoff work
+
+The maintainer confirmed this as the current goal on September 22. Completion means a **review-ready unsigned engineering handoff**, not merely making the unfinished candidate available for feedback. Use existing work items; unrelated cleanup, UI changes, new features and architectural redesign without an evidenced defect are outside this goal.
+
+All of the following are mandatory before accepting the handoff:
+
+| Gate | Existing owners | Required evidence |
+| --- | --- | --- |
+| Aggregate test and type integration | PKG-001, TST-005 | Correct Jest/Mocha ownership and passing root and dedicated type checks, without omitting tooling tests. |
+| Confirmed security, data-loss and packaging findings | TST-006 and existing CAP/SEC/PKG owners | Reviewed, sensitivity-tested and integrated fixes for diagnostics, settings recovery, resource bounds, package inputs, failure propagation and fuse/signing order; no unresolved high/critical or known security/data-loss finding. |
+| Ciphertext ownership and profile compatibility | SEC-003, PKG-003, DCP-016 | Explicit existing-profile or fresh-profile-only decision and an implemented, tested contract; no silent data loss or cross-account decryption authority. |
+| Shipped-dependency qualification | ELC-003 | Actual shipped graph reviewed, necessary compatible remediation tested, and no unaccepted high/critical finding. |
+| Internal review and test evidence | TST-006 | Completed module, capability/invariant, provenance and coverage ledgers; meaningful tests for reachable automatable paths and specific reviewed dispositions for residual gaps. |
+| Final composed platform qualification | PKG-001, TST-005 | Required build/type/lint/analysis, native, authenticated E2E/report and actual unsigned artifact checks pass on the final composed Windows/macOS/Linux candidate; outstanding failures are investigated, not hidden by retries. |
+| Reproducible handoff | PKG-001, TST-005, TST-006, GOV-002 | Exact source/artifact identity and hashes, build/test/setup instructions, durable CI evidence, known limitations and runnable external QA procedures with intended owners. |
+
+Actual credentialed signing/notarization and post-sign verification, signed updates, released-installation migration/rollback, live SSO/E2EI, remaining real OS/hardware qualification, independent security review and release-time Electron currency remain mandatory later release qualifications. They are not unsigned-handoff prerequisites or optional release work. Deterministic failure/order/migration tests and downstream procedures remain required now. No security invariant or existing acceptance criterion is waived.
 
 Follow [quality-review.md](quality-review.md): establish the full change/behavior ledger under TST-006, close reachable coverage and quality findings through their existing owners, resolve ELC-003, complete unsigned PKG-001 and packaged TST-005, then re-review and qualify the composed candidate. Prepare Wire review material under GOV-002; do not publish upstream or contact Wire without explicit authorization. A review handoff may precede M5, but no production release, signed-update or customer E2EI compatibility claim may do so. Keep Electron 43.4.0 for this goal; later release currency remains ELC-004.
 
@@ -355,7 +371,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
@@ -363,8 +379,10 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - No bridge exposes raw `send`, `invoke`, `on`, Electron event objects, or arbitrary channel names.
   - Every privileged channel declares permitted view types, origins, request schema, response schema, and failure behavior.
   - Every privileged channel has positive, unauthorized-sender, and invalid-payload tests.
-  - Payload size and rate limits exist where abuse could consume material resources.
+  - Payload size and rate limits exist where abuse could consume material resources. Pending native operations are also bounded independently of quota windows, and limiter state does not retain destroyed views for the binder lifetime.
 - Evidence: [PRs #14–32](https://github.com/adamlow-wire/wire-desktop/pulls?q=is%3Apr+is%3Amerged+base%3Aintegration%2Felectron-modernization) established the contract executor and migrated every inventoried privileged renderer-to-main operation. Each merged slice passed focused allow/deny tests, changed-code coverage, required CI, and all-platform packaging; [PR #31](https://github.com/adamlow-wire/wire-desktop/pull/31) additionally passed authenticated Windows/macOS E2E after one evidence-based rerun. [PR #32](https://github.com/adamlow-wire/wire-desktop/pull/32) merged as `661e616a` after every required check passed; it replaced the internal About event with a direct main-owned call, removed the unproduced updater listener, and closed the production-source audit with no raw privileged incoming listener remaining. Later capabilities MAY add narrowly authorized contracts with the same SEC-003 controls, as SEC-004 does for the SSO account-limit warning.
+
+- TST-006 follow-up: baseline `3bb1e04e` preserves quotas/identity behavior (11 passes) and exposes pending-save retention (one failure). Current local F-003/F-011 remedy uses weak webContents keys and one active application-owned native picture save, with capacity released on every settlement. Native/composed qualification and the separate DCP-016/F-012 ownership decision remain open.
 
 #### SEC-004 — Remove `@electron/remote`
 
@@ -555,7 +573,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### ELC-003 — Upgrade or replace Electron-adjacent dependencies
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M1`
 - Dependencies: ELC-001
 - Scope: Upgrade or replace incompatible/deprecated Electron-adjacent packages, prioritizing dependencies in privileged processes and removing abandoned packages.
@@ -563,7 +581,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Production dependency audit has no unaccepted high/critical finding.
   - Each replacement preserves required behavior with tests.
   - `@electron/remote` removal is handled by SEC-004, not upgraded in place.
-- Evidence: TBD
+- Evidence: local protocol-runtime removal starts with numeric availability characterization in both badge consumers; source inventory and graph limits are recorded in [status.md](status.md). The certificate-check parser is locally resolved to jsrsasign11.1.1 after RSA/EC pinning characterization and sensitivity; fresh installed-graph advisory matches fall from37 to31. Updater redirect/YAML dependencies are locally patched with deny-path and compatibility evidence; installed-graph matches now total25 across axios/Joi/uuid. Axios is locally patched in both tooling versions and removed from production scope after consumer characterization; only Joi low/uuid moderate remain in the installed production audit. Deprecated Joi is now locally migrated to joi17.13.8 with unchanged schemas and40 Node/80 renderer cases; only uuid moderate remains in the installed audit, assessed as not applicable to current v4-only callers. [Actual baseline and corrected unsigned Linux ASAR inventories](shipped-linux-asar-audit.md) are recorded. The two residual Linux installer version matches are [disposed for reviewed call paths](shipped-linux-asar-audit.md#elc-003-residual-advisory-call-path-disposition-on-the-final-linux-graph): `uuid` v3/v5/v6 buffer APIs are not used by first-party callers, and the sole shipped `@tootallnate/once` consumer does not pass `AbortSignal`. These remain unpatched range matches. [First hosted Windows/macOS and second hosted Linux candidate graphs](shipped-linux-asar-audit.md#elc-003-cross-platform-candidate-shipped-graphs-from-draft-pr-63) are now extracted: Windows/macOS have byte-identical 351-instance inventories whose name/version pairs are a subset of the already approved 407-instance Linux query, and the hosted Linux inventory matches that input exactly. Version screening therefore has no unaccepted high/critical match on these observed candidate graphs at the query time; platform-specific and dynamic call paths, advisory freshness, accepted-head composition and native qualification remain open.
 
 #### ELC-004 — Establish an Electron currency policy
 
@@ -651,12 +669,14 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Flaky tests have owners and bounded quarantine rules.
 - Evidence: The functional development/test foundation is integrated through reviewed [PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58), merge `6930c8ce`. All final-head core/native and 69-case Windows/macOS/Linux E2E/report gates pass, with retained bounded retries in status/PR evidence. All ten integration checks are strict and mandatory after protection readback. The [functional M4 audit](m4-acceptance.md) accepts the composed development scope at 41066868 after all 76 E2E cases/platform and core/native/report checks pass. Separate sensitive baselines protect safe registration diagnostics, independent account identities and native Quit inspector-reply handling; the notification fixture establishes its unread-conversation precondition without weakening assertions. Packaged-artifact smoke acceptance remains open under PKG-001; this functional scope does not claim release qualification.
 
+- Eighth PR #63 hosted E2E checkpoint: Windows/Linux pass 76/76 and macOS passes the corrected DCP-007 denial case, but the macOS logout-after-clear-data reauthentication case fails a 120-second first attempt and passes on retry (75 ordinary passes/one flaky). Retained trace `10768841287` shows the other authenticated account page at failure; target-account startup versus page-selector behavior is unresolved. TST-005 must diagnose this retry and require clean final composed qualification; report-job success alone does not close the gate. See [finding](review-findings.md).
+
 - Windows execution correction: the bd8b054c log audit shows the GUI version probe returns a green step before either intended packaged smoke runs. Withdraw that packaged execution claim while retaining executed native tests. Baseline02b9ee05 requires an explicit completion output; the actual log lacks both smoke observations and fails the baseline check. Remove the redundant GUI probe and require the Node driver to complete ordinary managed startup plus authenticated proxy startup under a temporary explicit HKCU policy. Do not assume the hosted device is unenrolled or claim an unmanaged Windows run. Final corrected head adbebedc passed both actual Windows smokes and every protected check, then PR #60 merged as 6e27c614; see [audit](m4-acceptance.md) and current status.
 
 #### TST-006 — Audit integrated implementation quality and test completeness
 
 - Priority: `P0`
-- Status: `ready`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: SEC-001, TST-001, TST-002, TST-003, TST-004
 - Scope: Review the entire modernization delta from the recorded pre-modernization baseline, including retained code at changed boundaries. Audit baseline-before-refactor provenance, test effectiveness, full changed-code coverage and production quality. This is an internal integrated review, not REL-001 independent security review. Existing CAP/SEC/ELC/PKG items own their implementation fixes; TST-005 owns platform CI, avoiding duplicate work.
@@ -668,14 +688,14 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Critical allow/deny, stale/cross-account, failure/recovery, persistence and teardown contracts are sensitivity-proven. Audit mocks, test-only hooks, collection, skip/quarantine, retries and actual CI execution. Unexplained timing failures are investigated and receive explicit bounded follow-up; a rerun alone is not a root-cause resolution.
   - All findings required for handoff are remediated and re-reviewed; the final composed candidate passes all applicable final-head gates. A reproducible test guide, coverage/gap ledger, internal review report and Wire QA handoff are committed with durable evidence and precise claim limits.
 - Execution: [Review and test-completeness work plan](quality-review.md). Do not claim this item done from earlier per-PR reviews or test counts.
-- Evidence: Not started. Maintainer requested this additional acceptance gate on September 15 after functional M4 integration.
+- Evidence: [Execution ledger](review-findings.md) records verified baseline/full scope, PR61 integration, current coverage/dependency audit and open findings. The [latest inventory reconciliation](inventory-reconciliation.md#latest-appimageruntime-imagedesktop-and-advisory-recomposition) accounts for all 528 original-baseline-to-scoped-candidate paths and partially maps F-021/F-022/F-023 to DCP-005/DCP-020/INV-001. Exact source/provenance/coverage placeholders remain 296/317/328 plus populated partial rows. Complete module and DCP/INV/IPC review, final-head re-accounting and platform qualification remain pending; this item is not accepted.
 
 ### 10.5 Capability migration
 
 #### CAP-001 — Migrate account and multi-account lifecycle
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: ARC-002, TST-004
 - Scope: Migrate account creation, persistent partitions, add/switch/remove, logout/clear-data, crash recovery, and account-targeted events. This product migration completes the product-wide SEC-007 acceptance that the bounded ARC-002 proof intentionally did not claim.
@@ -686,6 +706,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Cleanup correction (September15): real queued console writes can recreate account logs after removal. Drain queued writes after closing their native producer, then delete under exclusive log maintenance. Preserve exact-target and symlink checks, surface deletion failures for retry, and retain original write failures for their callers. The correction is accepted through [PR #59](https://github.com/adamlow-wire/wire-desktop/pull/59), merged51d04739 after reviewed7d5c34bb passes all core/native platforms and [48-case E2E/report per platform](https://github.com/adamlow-wire/wire-desktop/actions/runs/34963289067). Baseline e4cac57f and a drain-removal perturbation fail; restoration passes23 focused/925 full native cases. macOS has47 initial/one login retry; Windows46 initial/two post-removal/proxy-readiness retries. No skips, worker errors or ENOTEMPTY failures remain in those runs.
 - Acceptance:
   - Approved same-origin startup redirects preserve the owning view; failed, cancelled, stale or foreign replacements cannot become successful startup.
+  - Rejected shell-account actions and account-preload events produce fixed operation diagnostics without serializing rejected values, while preserving exact account-event forwarding and action rejection behavior.
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
@@ -693,14 +714,19 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 
 - Final startup acceptance: [PR #56](https://github.com/adamlow-wire/wire-desktop/pull/56) merged as `45840fca` with tree equal to reviewed `5c596187`. All native platforms, build/lint/analysis and full 48-case Windows/macOS E2E/report pass. Authorized same-origin replacements finish before startup succeeds; failure, cancellation, stale/foreign ownership and credential-bearing native errors remain denied or sanitized. The [complete M3 acceptance audit](m3-acceptance.md) records source review, sensitive baselines, all acceptance criteria and aggregate validation.
 
+- TST-006 follow-up F-008: reopen for bounded pending lifecycle work behind native environment consent. Baseline `8cd6bd18` fails overload rejection; the local candidate limits active/queued operations to 32, rejects excess without effects and releases capacity after success, cancellation and stale-authority failure. Prior cutover acceptance remains historical evidence; final remediation qualification is pending. See [review ledger](review-findings.md).
+
+- TST-006 follow-up F-013: diagnostic file rotation is insufficient to bound pending work. Preserve per-file ordering, cross-file concurrency, flush-tail snapshots and exclusive account-log deletion while limiting active/queued writes to 256, encoded pending payloads to 1MiB and each UTF-8 entry (including line ending and bounded markers) to 64KiB. Copy admitted path/message values, limit path retention to 32,768 characters and rotation collision lookup to 128 candidates. Overflow is best-effort diagnostic loss with a bounded count on the next admitted entry, never a recursively logged rejection; filesystem failures still reject and release reservations. This explicitly replaces unbounded log admission without changing account authorization. Baselines `aaa7e250` and `cbf24648`, local sensitivity and pending native/composed evidence are in the review ledger.
+
 #### CAP-002 — Migrate enterprise and automated SSO
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M3`
 - Dependencies: TST-002, SEC-008, CAP-001
 - Scope: Move SSO to the secure view/session/IPC architecture while preserving required identity-provider navigation. Include E2EI enrolment and renewal authentication compatibility explicitly; the webapp/core retain ownership of OIDC, ACME and certificate cryptography. This is distinct from CAP-005 transport certificate verification.
 - Acceptance:
+  - Authentication-page console content and native exceptions containing URLs, cookies or callback secrets never enter desktop diagnostics. Failures retain fixed bounded messages; tests include enabled logging, malformed callbacks, cleanup/cookie failures, external-opening failures and real Electron failed loads.
   - TST-002 passes against the new implementation.
   - Every CAP-002 `security-target` quarantine in the SSO suite is removed and passes.
   - SSO windows use fixed secure preferences and ephemeral sessions.
@@ -712,6 +738,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Evidence: The isolated-window backend fixture reproduced missing success/error while legacy opener controls passed. The implementation requests Spar's existing `success_redirect`/`error_redirect` format (wire-prefixed scheme, each URL at most 140 bytes), preserving bounded error labels. Each flow has its own ephemeral partition and closure-owned 192-bit one-use secret; only exact callbacks can transfer backend-scoped `zuid` cookies to the initiating account. All three former security quarantines pass, with deliberate replay/allowlist/domain regressions failing before restoration. PR #43 merged as `ef050e42` after 431 native tests (zero pending), 94 React tests and final-head build, analysis, all-platform packages and [authenticated Windows/macOS E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34239266392) passed. The live IdP checkpoint remains required for customer compatibility qualification, separately from M3 automated acceptance under the September 14 maintainer-approved revision.
 
 - Final automated acceptance: [PR #53](https://github.com/adamlow-wire/wire-desktop/pull/53) merged as `3c734cde363f1fcb783762997d247c4995ce6600`, with tree equal to reviewed `43961f6c`. [Build](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989433), [lint](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989529), [analysis](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989484), [all native platforms](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989430) and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34901989437) pass. Both authenticated platforms pass46 cases: Windows43 initial/three login-readiness retries; macOS42 initial/four login or account-action screen-readiness retries. No skips or worker errors. Windows native passed on its third unchanged-head attempt after two fixture-timeout failures; all attempts are retained and no assertion/deadline was changed. Native SSO controls, account limits, one-use/backend verdict/cookie isolation and three sensitivity-proven E2EI transport outcomes are qualified. The approved downstream QA obligation and lack of live customer-compatibility evidence remain explicit.
+
+- TST-006 follow-up F-009: reopen diagnostic confidentiality under INV-010. Baseline `1a1093f5` records nine failing targets before the local fix; present Node-only cases and sensitivity pass. Native and composed qualification remain open. Historical M3 acceptance above is preserved.
 
 #### CAP-003 — Migrate calling, media, display capture, and PiP
 
@@ -731,10 +759,11 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### CAP-004 — Migrate tray, notification, badge, menu, and shortcut integration
 
 - Priority: `P1`
-- Status: `done`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: TST-003, SEC-003, CAP-001
 - Scope: Route OS integration through explicit main-process capabilities and preserve account-aware behavior.
+- F-017 TST-006 follow-up: failed log archive creation/write/publication must preserve an existing user-selected destination. Stage privately on the destination filesystem with private output permissions and publish only a complete archive by rename; retain successful approved replacement and owned cleanup. The September15 functional acceptance below remains historical, not acceptance of this finding.
 - Acceptance:
   - TST-003 and existing menu/notification E2E pass.
   - Renderer data cannot invoke arbitrary menu commands.
@@ -791,7 +820,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### PKG-001 — Qualify packaging on the target Electron version
 
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M4`
 - Dependencies: ELC-002, ELC-003
 - Scope: Build unsigned Windows Squirrel, Windows MSI, macOS, and Linux artifacts using Electron 43.4.0 and reviewed tooling for Wire engineering review. Preserve signed-release pipeline configuration; actual signing/notarization validation is Wire-owned after review under SEC-011/PKG-002/M5, per the September 15 maintainer decision.
@@ -800,12 +829,25 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - The signing/notarization/fuse/integrity pipeline order is documented and reviewed, with unsigned CI validating applicable build steps and effective settings. Actual signed-binary, notarization and post-sign integrity verification remains mandatory under SEC-011/PKG-002/M5 after Wire review; it is not claimed by unsigned success.
   - Supported OS versions, architectures and artifact formats are explicit; verify existing requirements before requesting missing product decisions. Unsigned artifacts launch and required packaged smoke tests actually execute on every in-scope platform.
   - Artifact identity and environment separation are preserved.
-- Evidence: TBD
+- TST-006 remediation: F-004 restricts packaged inputs; F-005 forbids credential-bearing configuration dumps/native errors in CLI diagnostics; F-006 requires failure propagation, metadata restoration on every outcome and reviewed fuse/signing order. Baseline `7eb299f3` establishes eight passing CLI controls and ten failing targets before the local fix. Actual signing/notarization remains deferred; local mock success never closes that gate. Installed Windows fuse test baseline `d91028f6` fails three targets before `eaec8b35` adds a real V1 wire read on both Squirrel and MSI executables. Six configured unsigned bits are enforced and all nine positions are reported; the file-protocol privilege default remains under SEC-011/PKG-003 review. Local direct-binary and sensitivity checks pass, hosted Windows execution pending.
+- F-024 TST-006 finding: the prior Windows baseline CI built only an unpacked app, not Squirrel or MSI. Scoped baseline `b7a1d004` exposes five failures; candidate `4f10a6fb` adds unsigned dual-installer build, Squirrel full-package/ASAR identity and requested MSI administrative extraction/ASAR comparison. Five focused/395 tooling cases and three restored sensitivity perturbations pass locally. Separate baseline `a1e995d8` fails the omitted installed-smoke target; `87f85212` adds CI-only Squirrel/MSI install, installed-ASAR identity, startup/managed-proxy smoke and cleanup; omission sensitivity fails and six focused cases pass. Hosted Windows builder produced both installer families in PR #63, but the first two package runs stopped at the old ASAR verifier before MSI extraction/installation/startup; F-027 correction and final PR composition remain to qualify.
+- F-024 hosted checkpoint: the third PR #63 run passes both Windows installer builds, Squirrel full-package archive identity, MSI administrative extraction/archive identity and unpacked managed/proxy smoke. Installed Squirrel launches with the verified ASAR but the installed test wrongly expects unmanaged policy on a potentially enrolled runner; baseline `08668b8c` and scoped explicit managed-fixture correction are recorded in [review findings](review-findings.md). Installed MSI and final-head hosted qualification remain mandatory.
+- F-024 seventh/eighth hosted checkpoint: seventh PR #63 Windows job passes Squirrel/MSI installer builds, archive identity and both installed-app smoke paths, but the oversized development-artifact upload was cancelled after remaining active over 30 minutes. The scoped four-installer upload now fails if any file is missing. On eighth head `a72017d1`, Windows stops before packaging after the account fixture stalls at view startup and then session cleanup (221 passing/seven failures); `fdfcedd1` reuses two bounded native test sessions and requires hosted retest. Seventh Windows manifest is available, but fresh downloaded installer binaries and an accepted final-head package job remain mandatory.
+- F-024/F-006 tenth hosted checkpoint: PR #63 head `e760f10e` passes the Windows/macOS/Linux unsigned package matrix; the downloaded four Windows installers have matching hosted unpacked/Squirrel/MSI ASAR identity, and installed Squirrel/MSI startup, managed/proxy path, cleanup and effective `010001011` fuses pass. Exact hashes and refreshed ELC-003 graph are in the [tenth-run artifact audit](shipped-linux-asar-audit.md#tenth-pr-63-exact-head-unsigned-windowsmacoslinux-audit--september-23). The preceding Windows smoke hang was cancelled without a retrievable phase log; the 90-second child bound is qualified by this successful run, not a proven root-cause diagnosis. Signed release criteria, SEC-011 extra-fuse disposition and final composed-head checks remain open.
+- Hosted PR #63 head `e760f10e` E2E [`35905939092`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35905939092) passes Windows/Linux 76/76 but fails macOS: the TST-005 native zero-exit restart times out once (`child.exitCode` stays `null`), passes on retry, and leaves a separate 90-second worker-teardown error. A green retry is not final-head qualification; preserve the exact native-exit assertion and add bounded cleanup/negative-path evidence before handoff.
+- Hosted PR #63 head `80c7ecf7` passes [all three package jobs `35910739146`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35910739146), [generic `35910739166`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35910739166), lint and CodeQL. [E2E/report `35910739161`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35910739161) succeeds, with clean 76/76 macOS/Linux retained reports but one Windows retry: account addition is not visible through a ten-second poll on the first attempt of a later logout case. Its retry passes. Preserve this as TST-005 evidence, not clean final-head qualification; the newer local promotion/fuse changes still need full hosted checks.
+- F-031 S3 promotion follow-up: test-only `20c61806` exposes stale-product/version selection before static release-key deletion; local `453273f2` reuses the validated requested-version Squirrel set before mutations. Four inert CLI controls, types and the composed 423-case tooling suite pass; no S3 operation occurred. The GitHub draft selector still filters by extension, including potentially stale Windows/Linux files, and requires PKG-002 release-time disposition.
+- SEC-011 file-protocol fuse disposition: [Electron fuse guidance](https://www.electronjs.org/docs/latest/tutorial/fuses) recommends disabling extra `file://` privileges when an app does not serve local file pages. This app retains a one-time script-disabled and preload-free file-origin legacy-state reader. Test-first `873460bf`/`3350819f` attempted to disable bit 7, but [final-head package run `35915040701`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35915040701) fails actual Windows/macOS/Linux packaged startup with `ERR_FILE_NOT_FOUND` at that reader. A scoped rollback restores the previously hosted effective wire `010001011`; failing baseline `bb1d3dc4` then proves the old checker would accept bit 7 off, and `dfbc1c1f` explicitly checks bit 7 on across the three package gates. Three focused cases and bin types pass locally. Require fresh and seeded-legacy packaged startup after rollback, record the continued file-origin exposure, and leave full signed integrity/post-sign SEC-011 acceptance in M5. No security invariant is waived.
+- F-031 TST-006 finding under PKG-001: mixed-version Squirrel deploy directories select an older full nupkg despite an explicit requested version. Separate failing baselines `f3764f3b`/`1554b8f8` precede local `2136672b`, which requires exactly one requested-version package plus matching Setup/RELEASES in the same directory. Eleven focused, 25 deployment/pipeline and 422 full build-tool cases, types/lint, version/RELEASES sensitivity and selection against the downloaded Windows files pass; no upload occurred. The upload fix was published at fork PR #63 head `80c7ecf7`; package, generic, lint and CodeQL pass while E2E is running. Local S3 promotion follow-up is separate; GitHub draft selection remains under PKG-002 review.
+- Evidence: See [review findings](review-findings.md) and [branded Linux installer audit](shipped-linux-asar-audit.md#f-022f-023-branded-linux-installer-rebuild). The earlier combined candidate's 22-file archive verifier missed eight required runtime images (F-022), its AppImage launcher disabled Chromium sandboxing (F-021), and Linux desktop/window identity and icons were incomplete (F-023). Separate failing baselines precede scoped corrections. The real internal AppImage/deb/rpm wrapper build at `9e058e73` passes local 30-file archive, exact 407-package approved-inventory, branded-icon, desktop-identity and six-fuse static checks; the AppImage has no sandbox-disabling flag. CI `32b31c2d` now builds/checks all three and runs extracted deb/rpm native smoke, but has not run on a hosted runner. Actual installation and desktop integration, packaged native startup, Windows/macOS artifacts, reproducible CI and final composed all-platform qualification remain mandatory.
 
 #### PKG-002 — Qualify installers and updater behavior
 
+- Pre-handoff F-007 slice: updater diagnostics must omit credential-bearing feed/error data and contain check/dialog/installation promise failures while preserving user consent. Local Node tests cover this boundary; startup routing and unsigned package policy have a local candidate requiring final composed/native qualification. Actual signed qualification remains M5.
+- F-007 unsigned safeguard contract: macOS packaging must overwrite `macAutoUpdateEnabled` from build-owned facts: true only for internal distribution with a non-ad-hoc application signing identity configured and the corresponding signing step enabled; false for unsigned and App Store builds regardless of input metadata. Runtime requires a packaged app, literal true policy, internal distribution and non-development execution before configuring a feed. Missing/invalid policy fails closed. The flag records build intent, not cryptographic verification; failed signing must fail packaging, and actual signed/update qualification remains M5. No environment feed override may bypass this gate. The updater is routed once after successful main-window initialization, without a second `ready` registration.
+
 - Priority: `P1`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M5`
 - Dependencies: PKG-001, CAP-001
 - Scope: Test fresh install, launch, update/upgrade, repair where applicable, uninstall, protocol registration, auto-launch, and retained user data.
@@ -814,12 +856,12 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - MSI installations do not invoke Squirrel and satisfy `docs/windows-msi.md`.
   - macOS update behavior is verified with signed/notarized artifacts.
   - Linux package launch and desktop integration are verified.
-- Evidence: TBD
+- Local pre-handoff evidence: startup/policy baselines `c96d5795`, `43c88dd7`, `331f79d6`; candidate `1dd68c0c` passes22 runtime/startup and329 tooling cases. ASAR-policy baseline `13456006` precedes26 passing synthetic-ASAR cases and sensitive CLI/enforcement checks. The macOS workflow requires archived literal-false policy; actual composed platform artifacts and all signed acceptance remain pending. See status and review-findings for commands and limitations.
 
 #### PKG-003 — Validate legacy-to-modernized data migration
 
 - Priority: `P0`
-- Status: `proposed`
+- Status: `in_progress`
 - Milestone: `M5`
 - Dependencies: CAP-001, PKG-002
 - Scope: Upgrade representative released installations without losing accounts, settings, managed configuration, or required cached state.
@@ -827,7 +869,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Migration fixtures cover supported legacy versions and install types.
   - Account/session changes have documented recovery and rollback behavior.
   - A failed migration does not silently corrupt or delete user data.
-- Evidence: TBD
+- Evidence: TST-006 F-010 confirms settings migration/persistence data loss. Separate baselines `b122d801` and `f5f8684c`, local recovery tests and [settings recovery procedure](settings-recovery.md) are in progress; final hosted qualification is pending. Unsigned deterministic fixtures are brought forward for M4 handoff; full released-installation/rollback criteria remain M5.
 
 #### REL-001 — Complete independent security review
 
@@ -957,6 +999,39 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.93 | 2026-09-23 | Codex | Record published F-031 upload selection, separate failing S3 promotion test/fix, and test-first SEC-011 file-privilege fuse disposition; retain hosted and signed-release gates | PKG-001, TST-005, TST-006, SEC-011, PKG-002 |
+| 1.5.92 | 2026-09-23 | Codex | Record successful tenth unsigned Windows/macOS/Linux package and installed-fuse audit; add separate F-031 versioned Squirrel deployment baselines and local identity fix without claiming final composition | PKG-001, TST-005, TST-006, ELC-003, SEC-011, DCP-017, DCP-018 |
+| 1.5.90 | 2026-09-23 | Codex | Record eighth hosted three-platform DCP-007 pass and macOS logout retry as an open TST-005 qualification issue | TST-005, DCP-007, TST-006 |
+| 1.5.89 | 2026-09-23 | Codex | Record eighth hosted Windows native fixture failure, cross-platform package/E2E progress, and sensitivity-tested installed Windows fuse check; retain final-head and SEC-011 disposition gates | PKG-001, TST-005, TST-006, SEC-011 |
+| 1.5.88 | 2026-09-23 | Codex | Record seventh hosted Windows installed Squirrel/MSI step and exact macOS/Linux graphs; keep artifact upload, calling warning, full fuse disposition and final-head gates open | PKG-001, TST-005, TST-006, SEC-011, ELC-003 |
+| 1.5.86 | 2026-09-23 | Codex | Bound and phase-label the fourth hosted Windows installed-smoke wait after a separate failing CI-duration baseline; require actual Squirrel/MSI completion | PKG-001, TST-005, TST-006 |
+| 1.5.85 | 2026-09-23 | Codex | Trace F-028 fourth hosted updater fixture timeout to nested Electron GUI mode; add separate failing Node-mode baseline and scoped test-only correction | TST-005, PKG-002, TST-006 |
+| 1.5.84 | 2026-09-23 | Codex | Record third hosted Windows Squirrel policy-fixture failure and scoped F-024 managed fixture correction; retain installed MSI and final native gates | PKG-001, TST-005, TST-006 |
+| 1.5.83 | 2026-09-23 | Codex | Record third hosted deb/rpm native successes, expose remaining AppImage selector and F-028 nested Xvfb environment failures, and add sensitivity-proven test/CI corrections | PKG-001, TST-005, PKG-002, TST-006 |
+| 1.5.82 | 2026-09-23 | Codex | Account for actual draft PR63 Windows/macOS/Linux shipped graphs offline against approved advisory input; retain platform call-path and final-head review | ELC-003, PKG-001 |
+| 1.5.81 | 2026-09-23 | Codex | Correct F-026 Linux installer executable selection and F-027 Windows ASAR stat lookup after failing real-hosted jobs and sensitive baselines; retain final hosted/native gates | PKG-001, TST-005, TST-006 |
+| 1.5.79 | 2026-09-23 | Codex | Record draft PR63 hosted failures, correct documentation lint and Linux test-helper setup, and add bounded package-gate diagnostics; retain all installer/native acceptance gates | PKG-001, TST-005, TST-006 |
+| 1.5.76 | 2026-09-23 | Codex | Add scoped Windows CI installed Squirrel/MSI startup and managed-policy smoke after separate failing gate baseline; hosted behavior remains unrun | PKG-001, TST-005, TST-006, DCP-017, DCP-018 |
+| 1.5.75 | 2026-09-23 | Codex | Add scoped F-024 unsigned Windows Squirrel/MSI build and payload identity gates with failing baseline; retain installed-artifact and hosted qualification | PKG-001, TST-005, TST-006, DCP-017, DCP-018 |
+| 1.5.74 | 2026-09-23 | Codex | Record F-024: Windows package CI currently qualifies only unpacked app, not required Squirrel/MSI installers; require sensitive installer-format and installed-startup gates under existing PKG-001/TST-005 | PKG-001, TST-005, TST-006, DCP-017, DCP-018 |
+| 1.5.73 | 2026-09-23 | Codex | Refresh TST-006 changed-path accounting to 528 current candidate paths and bound F-021/F-022/F-023 capability/invariant traces without claiming review completion | TST-006, PKG-001, DCP-005, DCP-020, INV-001 |
+| 1.5.72 | 2026-09-23 | Codex | Disposition the two non-high/critical matches in the exact final scoped Linux shipped graph by advisory trigger and reviewed call path; retain final-platform graph gates | ELC-003, PKG-001 |
+| 1.5.71 | 2026-09-23 | Codex | Record missing packaged runtime images and Linux branding/desktop identity findings, scoped fixes and static all-format evidence; retain hosted/native/final-head gates | PKG-001, TST-006, F-022, F-023, DCP-005, DCP-020 |
+| 1.5.70 | 2026-09-23 | Codex | Record scoped AppImage sandbox-launch correction and environment-correct static artifact evidence while retaining native/final-head gates | PKG-001, TST-006, INV-001, DCP-020 |
+| 1.5.69 | 2026-09-23 | Codex | Record confirmed AppImage sandbox-disable defect F-021 under PKG-001 and INV-001 without relaxing the sandbox invariant | PKG-001, TST-006, INV-001, DCP-020 |
+| 1.5.68 | 2026-09-23 | Codex | Record actual unsigned Linux AppImage/deb/rpm static artifact qualification and its native/final-head limits | PKG-001, ELC-003, TST-005 |
+| 1.5.67 | 2026-09-23 | Codex | Record scoped dependency-root pruning and exact combined Linux ASAR evidence; retain native, installer and platform acceptance gates | PKG-001, ELC-003, TST-006 |
+| 1.5.66 | 2026-09-23 | Codex | Extend CAP-001 confidentiality acceptance to active account-preload IPC rejection diagnostics with separate baseline and sensitivity evidence | CAP-001, INV-010, TST-006 |
+| 1.5.65 | 2026-09-22 | Codex | Reopen existing CAP-004 for reproduced log-export destination data loss and separate baseline | CAP-004, DCP-005, F-017, TST-006 |
+| 1.5.64 | 2026-09-22 | Codex | Define build-owned unsigned-update policy and repair F-007 startup routing with separate baseline targets | PKG-002, F-007 |
+| 1.5.63 | 2026-09-22 | Codex | Start existing PKG-002 pre-handoff updater failure/diagnostic remediation; retain startup and signed-release gates | PKG-002, F-007, INV-010 |
+| 1.5.60 | 2026-09-22 | Maintainer in chat; Codex | Activate mandatory unsigned review-handoff closeout; make acceptance gates and later release qualifications explicit, retaining existing owners and invariants | PKG-001, TST-005, TST-006, ELC-003, SEC-003, PKG-003, GOV-002 |
+| 1.5.59 | 2026-09-16 | Codex | Start PKG-001 remediation of packaged inputs, secret diagnostics and fail-closed builds; retain unsigned scope and signed-release deferral | PKG-001, SEC-011, INV-010, TST-006 |
+| 1.5.58 | 2026-09-15 | Codex | Extend existing CAP-001 remediation with bounded log admission and immutable queued inputs; preserve cleanup barriers and document diagnostic truncation/loss | CAP-001, INV-010, TST-006 |
+| 1.5.57 | 2026-09-15 | Codex | Reopen CAP-002 for sensitive SSO diagnostics with an explicit safe logging contract and separate failing baseline; preserve authentication and pinning behavior | CAP-002, INV-010, TST-006 |
+| 1.5.56 | 2026-09-15 | Codex | Reopen SEC-003 for bounded pending native saves and rate-limiter lifetime findings; retain encryption ownership decision and native/composed gates | SEC-003, SEC-004, TST-006, DCP-014 |
+| 1.5.55 | 2026-09-15 | Codex | Bring forward PKG-003 settings preservation and recovery fixtures for confirmed F-010; retain full released-migration acceptance in M5 | PKG-003, TST-006, DCP-021 |
+| 1.5.54 | 2026-09-15 | Codex | Start integrated review and record full-delta findings; reopen CAP-001 for sensitive bounded lifecycle queue remediation without changing security invariants | TST-006, CAP-001 |
 | 1.5.53 | 2026-09-15 | Codex | Add TST-006 integrated quality/baseline-provenance/test-completeness gate; define unsigned M4 review handoff and defer actual signing validation to Wire in M5 without weakening INV-009; reconcile merged PR60 | TST-006, TST-005, ELC-003, PKG-001, SEC-011, PKG-002, GOV-002 |
 | 1.5.52 | 2026-09-15 | Codex | Reopen Windows package execution evidence after a false-success version probe; require explicit smoke completion and deterministic managed fixtures without changing application policy or claiming unmanaged Windows QA | TST-005, CAP-005 |
 | 1.5.51 | 2026-09-15 | Codex | Accept reviewed functional CAP-003/CAP-004 and development TST-005 after all-platform qualification; accept DEC-011, reconcile DEC-010 clerical status, retain final documentation-head merge gates and explicit packaging/OS/live-QA limits | CAP-003, CAP-004, TST-005, DEC-011 |

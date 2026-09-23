@@ -205,4 +205,104 @@ describe('desktop log cleanup', () => {
       assert.strictEqual((await fs.lstat(symbolicLinkPath)).isSymbolicLink(), true);
     }),
   );
+
+  it('recovers from discovery failure on the next run of the same cleanup instance', async () => {
+    const state: CleanupTestState = {failures: [], removedDirectories: [], removedFiles: []};
+    const metadata: LogFileMetadata[] = [
+      {filePath: 'logs/expired.log', fileSizeBytes: 10, isSymbolicLink: false, modifiedTimeMilliseconds: 1},
+    ];
+    const dependencies = createCleanupTestDependencies(metadata, state);
+    let discoveryAttempts = 0;
+    const failure = new Error('owned discovery failure');
+    const reported: unknown[] = [];
+    const cleanup = createLogCleanup({
+      ...dependencies,
+      async discoverLogFilePaths() {
+        discoveryAttempts += 1;
+        if (discoveryAttempts === 1) {
+          throw failure;
+        }
+        return metadata.map(file => file.filePath);
+      },
+      reportFailure(_message, error) {
+        reported.push(error);
+      },
+    });
+    const parameters = createCleanupParameters(new Set());
+    await cleanup.run(parameters);
+    assert.deepStrictEqual(reported, [failure]);
+    assert.deepStrictEqual(state.removedFiles, []);
+    await cleanup.run(parameters);
+    assert.strictEqual(discoveryAttempts, 2);
+    assert.deepStrictEqual(state.removedFiles, ['logs/expired.log']);
+    assert.deepStrictEqual(reported, [failure]);
+  });
+
+  it('skips uninspectable files while cleaning independently inspected files', async () => {
+    const state: CleanupTestState = {failures: [], removedDirectories: [], removedFiles: []};
+    const metadata: LogFileMetadata[] = ['unreadable', 'expired'].map(name => ({
+      filePath: `logs/${name}.log`,
+      fileSizeBytes: 10,
+      isSymbolicLink: false,
+      modifiedTimeMilliseconds: 1,
+    }));
+    const dependencies = createCleanupTestDependencies(metadata, state);
+    const failure = new Error('owned metadata failure');
+    const reported: unknown[] = [];
+    const cleanup = createLogCleanup({
+      ...dependencies,
+      async getFileMetadata(filePath) {
+        if (filePath === 'logs/unreadable.log') {
+          throw failure;
+        }
+        return dependencies.getFileMetadata(filePath);
+      },
+      reportFailure(_message, error) {
+        reported.push(error);
+      },
+    });
+    await cleanup.run(createCleanupParameters(new Set()));
+    assert.deepStrictEqual(state.removedFiles, ['logs/expired.log']);
+    assert.deepStrictEqual(reported, [failure]);
+  });
+
+  for (const failureMode of ['result', 'throw']) {
+    it(`continues independent parent cleanup after a directory ${failureMode} failure`, async () => {
+      const state: CleanupTestState = {failures: [], removedDirectories: [], removedFiles: []};
+      const firstDirectory = path.join('logs', 'first');
+      const secondDirectory = path.join('logs', 'other');
+      const metadata: LogFileMetadata[] = [firstDirectory, secondDirectory].map(directory => ({
+        filePath: path.join(directory, 'console.log'),
+        fileSizeBytes: 10,
+        isSymbolicLink: false,
+        modifiedTimeMilliseconds: 1,
+      }));
+      const dependencies = createCleanupTestDependencies(metadata, state);
+      const failure = new Error('owned parent failure');
+      const reported: unknown[] = [];
+      const cleanup = createLogCleanup({
+        ...dependencies,
+        async removeEmptyDirectory(directoryPath) {
+          state.removedDirectories.push(directoryPath);
+          if (directoryPath === firstDirectory) {
+            if (failureMode === 'throw') {
+              throw failure;
+            }
+            return Result.err(failure);
+          }
+          return Result.ok();
+        },
+        reportFailure(_message, error) {
+          reported.push(error);
+        },
+      });
+      await cleanup.run(createCleanupParameters(new Set()));
+      assert.deepStrictEqual(
+        state.removedFiles,
+        metadata.map(file => file.filePath),
+      );
+      assert.deepStrictEqual(state.removedDirectories, [firstDirectory, secondDirectory]);
+      assert.deepStrictEqual(reported, [failure]);
+    });
+  }
 });

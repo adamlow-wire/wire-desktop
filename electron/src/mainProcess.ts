@@ -70,6 +70,7 @@ import {getOpenGraphDataAsync} from './lib/openGraph';
 import {showErrorDialog} from './lib/showDialog';
 import {updateDownloadLocation} from './lib/updateDownloadLocation';
 import * as locale from './locale';
+import {boundLogMessage} from './logging/boundedLogWriter';
 import {runDesktopLogCleanup, writeBoundedLogMessage} from './logging/desktopLogWriter';
 import {ENABLE_LOGGING, getLogger} from './logging/getLogger';
 import {scheduleLogCleanup} from './logging/logCleanupScheduler';
@@ -167,7 +168,7 @@ const INDEX_HTML = path.join(APP_PATH, 'renderer/index.html');
 const PRELOAD_JS = path.join(APP_PATH, 'dist/preload/preload-shell.js');
 const PRELOAD_RENDERER_JS = path.join(APP_PATH, 'dist/preload/preload-account.js');
 const WRAPPER_CSS = path.join(APP_PATH, 'css/wrapper.css');
-const ICON = path.join(APP_PATH, 'img/download-dialog/logo@2x.png');
+const ICON = path.join(APP_PATH, 'img/logo.256.png');
 
 const WINDOW_SIZE = {
   DEFAULT_HEIGHT: 768,
@@ -220,20 +221,18 @@ logger.info(`Initializing ${config.name} v${config.version} ...`);
 
 if (argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig) {
   try {
-    proxyInfoArg = new URL(argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig);
+    const configuredProxy = new URL(argv[config.ARGUMENT.PROXY_SERVER] || fileBasedProxyConfig);
+    if (!/^(https?|socks[45]):$/.test(configuredProxy.protocol) || !configuredProxy.hostname) {
+      throw new Error('Invalid proxy server endpoint.');
+    }
+    proxyInfoArg = configuredProxy;
     if (!argv[config.ARGUMENT.PROXY_SERVER] && fileBasedProxyConfig) {
       logger.info('Using proxy server URL from "init.json"');
       app.commandLine.appendSwitch('proxy-server', fileBasedProxyConfig);
     }
-    if (!/^(https?|socks[45]):$/.test(proxyInfoArg.protocol)) {
-      throw new Error('Invalid protocol for the proxy server specified.');
-    }
-    if (proxyInfoArg.origin === 'null') {
-      proxyInfoArg = undefined;
-      throw new Error('No protocol for the proxy server specified.');
-    }
-  } catch (error) {
-    logger.error(`Could not parse authenticated proxy URL: "${(error as any).message}"`);
+  } catch {
+    proxyInfoArg = undefined;
+    logger.error('Could not parse authenticated proxy URL.');
   }
 }
 
@@ -681,27 +680,9 @@ const handleAppEvents = (): void => {
     }
     await showMainWindow(mainWindowState);
 
-    /* istanbul ignore next -- composition root */
-    app.on('ready', async () => {
-      const mainWindowState = initWindowStateKeeper();
-      const appMenu = systemMenu.createMenu(isFullScreen, wallClock, () => {
-        void AboutWindow.showWindow(viewIdentityRegistry).catch(error => logger.error(error));
-      });
-      if (EnvironmentUtil.app.IS_DEVELOPMENT) {
-        appMenu.append(developerMenu);
-      }
-
-      Menu.setApplicationMenu(appMenu);
-      tray = new TrayHandler();
-      if (!EnvironmentUtil.platform.IS_MAC_OS) {
-        tray.initTray();
-      }
-      await showMainWindow(mainWindowState);
-
-      if (EnvironmentUtil.platform.IS_MAC_OS && isInternalBuild()) {
-        initMacAutoUpdater(main);
-      }
-    });
+    if (EnvironmentUtil.platform.IS_MAC_OS && isInternalBuild()) {
+      initMacAutoUpdater(main);
+    }
   });
 };
 
@@ -734,14 +715,15 @@ function logConfiguredUserDataPath(userDataPath: string): void {
 function handleMissingUserDataPath(): void {}
 
 const applyProxySettings = async (authenticatedProxyDetails: URL, webContents: Electron.WebContents): Promise<void> => {
-  const proxyURL = authenticatedProxyDetails.origin.split('://')[1];
+  const proxyURL = authenticatedProxyDetails.host;
   const proxyProtocol = authenticatedProxyDetails.protocol;
   const isSocksProxy = proxyProtocol === 'socks4:' || proxyProtocol === 'socks5:';
 
   logger.info(`Setting proxy on the window to URL "${proxyURL}" with protocol "${proxyProtocol}"...`);
   webContents.session.allowNTLMCredentialsForDomains(authenticatedProxyDetails.hostname);
 
-  const proxyRules = isSocksProxy ? `socks=${proxyURL}` : `http=${proxyURL};https=${proxyURL}`;
+  const proxyEndpoint = proxyProtocol === 'https:' || isSocksProxy ? `${proxyProtocol}//${proxyURL}` : proxyURL;
+  const proxyRules = isSocksProxy ? `socks=${proxyEndpoint}` : `http=${proxyEndpoint};https=${proxyEndpoint}`;
   await webContents.session.setProxy({pacScript: '', proxyBypassRules: '', proxyRules});
 };
 
@@ -837,7 +819,7 @@ class ElectronWrapperInit {
       const stylingRegex = /(color:#|font-weight:)[^;]+; /gm;
       const accessTokenRegex = /access_token=[^ &]+/gm;
 
-      contents.on('console-message', async (_event, _level, message) => {
+      contents.on('console-message', (_event, _level, message) => {
         const accountId = Maybe.of(account.id);
 
         if (accountId.isJust) {
@@ -847,14 +829,18 @@ class ElectronWrapperInit {
             logDirectory: getLogDirectory(),
           });
           try {
-            await writeBoundedLogMessage({
+            // Bound remote text before regex work and do not retain the original
+            // message in an async listener while disk writes are pending.
+            void writeBoundedLogMessage({
               logFilePath,
-              message: message.replace(colorCodeRegex, '$1').replace(stylingRegex, '').replace(accessTokenRegex, ''),
-            });
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-
-            logger.error(`Cannot write to log file "${logFilePath}": ${errorMessage}`, error);
+              message: boundLogMessage(message)
+                .replace(colorCodeRegex, '$1')
+                .replace(stylingRegex, '')
+                .replace(accessTokenRegex, ''),
+            }).catch(() => console.error('Cannot write account diagnostics.'));
+          } catch {
+            // Reporting through the file logger can enqueue another failed write.
+            console.error('Cannot write account diagnostics.');
           }
         }
       });

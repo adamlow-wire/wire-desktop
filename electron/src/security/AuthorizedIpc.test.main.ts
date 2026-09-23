@@ -229,4 +229,64 @@ describe('authorized IPC contract', () => {
     assert.deepStrictEqual(await handler(first.event, {contractVersion: 1}), {accountId: 'account-a'});
     dispose();
   });
+
+  it('[regression][INV-003][INV-010][SEC-003] retains a view quota across identity revocation and registration', async () => {
+    let handle: (event: SenderIdentity, request: unknown) => Promise<unknown>;
+    const ipc = {
+      handle: (_channel: string, listener: typeof handle) => {
+        handle = listener;
+      },
+      removeHandler: () => {},
+    };
+    const {event, registry} = createSender(81);
+    const limited = {...contract, rateLimit: {maxRequests: 1, windowMs: 60_000}} as const;
+    bindAuthorizedIpc(
+      ipc,
+      registry,
+      limited,
+      async identity => ({accountId: identity.accountId!}),
+      () => 0,
+    );
+    assert.deepStrictEqual(await handle!(event, {contractVersion: 1}), {accountId: 'account-a'});
+    const identity = registry.authorize(event, contract.capability);
+    registry.unregister(event.sender.id);
+    await assert.rejects(handle!(event, {contractVersion: 1}), /not authorized/);
+    registry.register(identity);
+    await assert.rejects(handle!(event, {contractVersion: 1}), /rate limit/);
+  });
+
+  it('[regression][INV-003][INV-010][SEC-003] applies the same authorization, payload and quota rules to synchronous contracts', () => {
+    type SyncEvent = SenderIdentity & {returnValue?: unknown};
+    let handle: (event: SyncEvent, request: unknown) => void;
+    const ipc = {
+      on: (_channel: string, listener: typeof handle) => {
+        handle = listener;
+      },
+      removeListener: () => {},
+    };
+    const {event, registry} = createSender(82);
+    const limited = {...contract, rateLimit: {maxRequests: 2, windowMs: 60_000}} as const;
+    let now = 0;
+    let calls = 0;
+    bindAuthorizedSyncIpc(
+      ipc,
+      registry,
+      limited,
+      identity => {
+        calls++;
+        return {accountId: identity.accountId!};
+      },
+      () => now,
+    );
+    assert.throws(() => handle!({...event, senderFrame: null}, {contractVersion: 1}), /not authorized/);
+    assert.throws(() => handle!(event, {contractVersion: 2}), /payload/);
+    assert.equal(calls, 0);
+    handle!(event, {contractVersion: 1});
+    assert.deepStrictEqual((event as SyncEvent).returnValue, {accountId: 'account-a'});
+    assert.throws(() => handle!(event, {contractVersion: 1}), /rate limit/);
+    assert.equal(calls, 1);
+    now = 60_000;
+    handle!(event, {contractVersion: 1});
+    assert.equal(calls, 2);
+  });
 });

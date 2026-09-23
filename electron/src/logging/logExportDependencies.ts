@@ -51,11 +51,20 @@ export function createLogArchiveDependencies(
   reportFailure: (message: string, error: unknown) => void,
 ): LogArchiveDependencies {
   return {
+    createStagingDirectory(prefix) {
+      return fs.mkdtemp(prefix);
+    },
+    publishArchive(stagedPath, destinationPath) {
+      return fs.rename(stagedPath, destinationPath);
+    },
+    removeStagingDirectory(directoryPath) {
+      return fs.remove(directoryPath);
+    },
     createArchive() {
       return new ZipArchive({zlib: {level: 6}});
     },
     createOutputStream(destinationPath: string) {
-      return fs.createWriteStream(destinationPath);
+      return fs.createWriteStream(destinationPath, {mode: 0o600});
     },
     pathExists(filePath: string) {
       return fs.pathExists(filePath);

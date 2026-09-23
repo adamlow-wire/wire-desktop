@@ -22,6 +22,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 import {backupFiles, getLogger, restoreFiles} from '../../bin-utils';
+import {createPackageIgnore} from './packageInputs';
 import {flipElectronFuses, getCommonConfig} from './commonConfig';
 import {WindowsConfig} from './Config';
 
@@ -60,13 +61,7 @@ export async function buildWindowsConfig(
     buildVersion: commonConfig.buildNumber,
     dir: '.',
     icon: `${commonConfig.electronDirectory}/img/logo.ico`,
-    ignore: [
-      new RegExp(`${commonConfig.electronDirectory}/renderer/src$`),
-      new RegExp(`${commonConfig.electronDirectory}/src$`),
-      new RegExp(`/\\.yarn$`),
-      new RegExp(`/bin$`),
-      new RegExp(`/jenkins$`),
-    ],
+    ignore: createPackageIgnore(path.resolve('.'), commonConfig.electronDirectory),
     name: commonConfig.name,
     out: commonConfig.buildDir,
     overwrite: true,
@@ -103,23 +98,23 @@ export async function buildWindowsWrapper(
   logger.info(`Building ${commonConfig.name} ${commonConfig.version} for Windows ...`);
 
   const backup = await backupFiles([packageJsonResolved, wireJsonResolved]);
-  const packageJsonContent = await fs.readJson(packageJsonResolved);
-
-  await fs.writeJson(
-    packageJsonResolved,
-    {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
-    {spaces: 2},
-  );
-  await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
-
   try {
+    const packageJsonContent = await fs.readJson(packageJsonResolved);
+
+    await fs.writeJson(
+      packageJsonResolved,
+      {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
+      {spaces: 2},
+    );
+    await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
     const [buildDir] = await electronPackager(packagerConfig);
     logger.log(`Built package in "${buildDir}".`);
 
     await flipElectronFuses(path.join(buildDir, `${packagerConfig.name}.exe`));
   } catch (error) {
-    logger.error(error);
+    logger.error('Packaging failed.');
+    throw error;
+  } finally {
+    await restoreFiles(backup);
   }
-
-  await restoreFiles(backup);
 }

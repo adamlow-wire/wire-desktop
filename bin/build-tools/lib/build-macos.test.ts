@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,12 +14,14 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import * as assert from 'assert';
 import * as path from 'path';
 
 import {buildMacOSConfig} from './build-macos';
+
 import {generateUUID} from '../../bin-utils';
 
 const wireJsonPath = path.join(__dirname, '../../../electron/wire.json');
@@ -33,12 +35,14 @@ describe('build-macos', () => {
       const certNameInstaller = generateUUID();
       const notarizeAppleId = generateUUID();
       const notarizeApplePassword = generateUUID();
+      const notarizeTeamId = generateUUID();
 
       process.env.MACOS_BUNDLE_ID = bundleId;
       process.env.MACOS_CERTIFICATE_NAME_APPLICATION = certNameApplication;
       process.env.MACOS_CERTIFICATE_NAME_INSTALLER = certNameInstaller;
       process.env.MACOS_NOTARIZE_APPLE_ID = notarizeAppleId;
       process.env.MACOS_NOTARIZE_APPLE_PASSWORD = notarizeApplePassword;
+      process.env.MACOS_NOTARIZE_TEAM_ID = notarizeTeamId;
 
       const {macOSConfig} = await buildMacOSConfig(wireJsonPath, envFilePath);
 
@@ -47,12 +51,14 @@ describe('build-macos', () => {
       assert.strictEqual(macOSConfig.certNameInstaller, certNameInstaller);
       assert.strictEqual(macOSConfig.notarizeAppleId, notarizeAppleId);
       assert.strictEqual(macOSConfig.notarizeApplePassword, notarizeApplePassword);
+      assert.strictEqual(macOSConfig.notarizeTeamId, notarizeTeamId);
 
       delete process.env.MACOS_BUNDLE_ID;
       delete process.env.MACOS_CERTIFICATE_NAME_APPLICATION;
       delete process.env.MACOS_CERTIFICATE_NAME_INSTALLER;
       delete process.env.MACOS_NOTARIZE_APPLE_ID;
       delete process.env.MACOS_NOTARIZE_APPLE_PASSWORD;
+      delete process.env.MACOS_NOTARIZE_TEAM_ID;
     });
   });
 });

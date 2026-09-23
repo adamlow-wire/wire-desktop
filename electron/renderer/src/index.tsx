@@ -47,7 +47,7 @@ const initialize = async (): Promise<void> => {
     const index = (event as CustomEvent<{accountIndex: number}>).detail.accountIndex;
     const account = store.getState().accounts[Math.max(index, 0)];
     if (account) {
-      void window.wireAccounts.select(account.id).catch(console.error);
+      void window.wireAccounts.select(account.id).catch(() => console.error('Unable to select account.'));
     }
   });
   const container = document.getElementById('root');
@@ -60,4 +60,4 @@ const initialize = async (): Promise<void> => {
     </Provider>,
   );
 };
-void initialize().catch(error => console.error('Unable to initialize account display.', error));
+void initialize().catch(() => console.error('Unable to initialize account display.'));

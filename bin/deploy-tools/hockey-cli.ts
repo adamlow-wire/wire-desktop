@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,15 +14,18 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import {program as commander} from 'commander';
 import fs from 'fs-extra';
+
 import path from 'path';
 
-import {checkCommanderOptions, getLogger} from '../bin-utils';
 import {find, FindResult, zip} from './lib/deploy-utils';
 import {HockeyDeployer} from './lib/HockeyDeployer';
+
+import {checkCommanderOptions, getLogger} from '../bin-utils';
 
 const toolName = path.basename(__filename).replace('.ts', '');
 const logger = getLogger('deploy-tools', toolName);
@@ -92,7 +95,7 @@ function getUploadFile(platform: string, basePath: string): Promise<FindResult> 
   await fs.remove(zipFile);
 
   logger.log('Done uploading to Hockey.');
-})().catch(error => {
-  logger.error(error);
+})().catch(() => {
+  logger.error('Hockey deployment failed');
   process.exit(1);
 });
