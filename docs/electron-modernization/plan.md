@@ -991,6 +991,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.74 | 2026-09-23 | Codex | Record F-024: Windows package CI currently qualifies only unpacked app, not required Squirrel/MSI installers; require sensitive installer-format and installed-startup gates under existing PKG-001/TST-005 | PKG-001, TST-005, TST-006, DCP-017, DCP-018 |
 | 1.5.73 | 2026-09-23 | Codex | Refresh TST-006 changed-path accounting to 528 current candidate paths and bound F-021/F-022/F-023 capability/invariant traces without claiming review completion | TST-006, PKG-001, DCP-005, DCP-020, INV-001 |
 | 1.5.72 | 2026-09-23 | Codex | Disposition the two non-high/critical matches in the exact final scoped Linux shipped graph by advisory trigger and reviewed call path; retain final-platform graph gates | ELC-003, PKG-001 |
 | 1.5.71 | 2026-09-23 | Codex | Record missing packaged runtime images and Linux branding/desktop identity findings, scoped fixes and static all-format evidence; retain hosted/native/final-head gates | PKG-001, TST-006, F-022, F-023, DCP-005, DCP-020 |

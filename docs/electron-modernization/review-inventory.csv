@@ -2,7 +2,7 @@ path,change,scope,source_review,test_provenance,coverage_disposition
 .github/workflows/build_test.yml,M,tooling/CI/config,pending,pending,pending
 .github/workflows/codeql-analysis.yml,M,tooling/CI/config,pending,pending,pending
 .github/workflows/e2e-test.yml,M,tooling/CI/config,pending,pending,pending
-.github/workflows/electron-modernization-baseline.yml,A,tooling/CI/config,F-021/F-023 Linux sandbox/desktop gates and all-format build/static/native smoke authored through 32b31c2d; YAML/Bash/static scripts pass locally; hosted workflow unrun,F-021 old actual AppRun and F-023 old actual AppImage fail new static checks; corrected artifacts pass locally,AppImage/deb/rpm all-format hosted and extracted native smoke requested but unrun; actual installed desktop/protocol remains open
+.github/workflows/electron-modernization-baseline.yml,A,tooling/CI/config,F-021/F-023 Linux sandbox/desktop gates and all-format build/static/native smoke authored through 32b31c2d; YAML/Bash/static scripts pass locally; hosted workflow unrun; F-024 Windows installer build/smoke absent,F-021 old actual AppRun and F-023 old actual AppImage fail new static checks; corrected artifacts pass locally,AppImage/deb/rpm all-format hosted and extracted native smoke requested but unrun; actual installed desktop/protocol and Windows Squirrel/MSI remain open
 .github/workflows/electron-modernization-preview.yml,A,tooling/CI/config,pending,pending,pending
 .github/workflows/jira-lint-and-link.yml,M,tooling/CI/config,pending,pending,pending
 .github/workflows/lint.yml,M,tooling/CI/config,pending,pending,pending
