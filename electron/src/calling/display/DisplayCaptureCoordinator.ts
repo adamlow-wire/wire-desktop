@@ -315,15 +315,18 @@ export class DisplayCaptureCoordinator {
           }
         });
         flow.timer = setTimeout(ended, DISPLAY_CAPTURE_LIMITS.promptTimeoutMs);
-        void window.loadURL(DISPLAY_BROKER_URL).then(() => {
-          if (flow.phase !== 'loading' || !this.current(flow) || !this.options.isForeground(identity)) {
-            this.end(flow);
-            return;
-          }
-          flow.phase = 'choosing';
-          window.show();
-          window.focus();
-        }, ended);
+        void window
+          .loadURL(DISPLAY_BROKER_URL)
+          .then(() => {
+            if (flow.phase !== 'loading' || !this.current(flow) || !this.options.isForeground(identity)) {
+              this.end(flow);
+              return;
+            }
+            flow.phase = 'choosing';
+            window.show();
+            window.focus();
+          })
+          .catch(ended);
       } catch {
         this.end(flow);
       }
