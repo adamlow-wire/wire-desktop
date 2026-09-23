@@ -69,7 +69,7 @@ export async function buildLinuxConfig(
     Keywords: linuxConfig.keywords,
     MimeType: `x-scheme-handler/${commonConfig.customProtocolName}`,
     Name: commonConfig.name,
-    StartupWMClass: commonConfig.name,
+    StartupWMClass: linuxConfig.executableName,
     Version: '1.1',
   };
 
@@ -105,6 +105,7 @@ export async function buildLinuxConfig(
       output: commonConfig.distDir,
     },
     extraMetadata: {
+      desktopName: linuxConfig.executableName,
       homepage: commonConfig.websiteUrl,
     },
     files: packageFilePatterns(commonConfig.electronDirectory),
@@ -113,6 +114,7 @@ export async function buildLinuxConfig(
       category: platformSpecificConfig.category,
       icon: 'resources/icons',
       executableName: linuxConfig.executableName,
+      syncDesktopName: true,
       target: linuxConfig.targets,
     },
     // The only native production dependency is registry-js, which is loaded exclusively by the
