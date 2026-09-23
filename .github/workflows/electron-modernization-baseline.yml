@@ -354,6 +354,7 @@ jobs:
               [FuseV1Options.EnableNodeCliInspectArguments, '0'],
               [FuseV1Options.EnableEmbeddedAsarIntegrityValidation, '0'],
               [FuseV1Options.OnlyLoadAppFromAsar, '1'],
+              [FuseV1Options.GrantFileProtocolExtraPrivileges, '1'],
             ]) {
               assert.equal(fuses[option], expected.charCodeAt(0));
             }
