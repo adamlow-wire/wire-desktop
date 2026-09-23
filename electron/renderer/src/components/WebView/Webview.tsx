@@ -45,7 +45,9 @@ const Webview = ({account}: {account: Account}) => {
       return;
     }
     const sidebarWidth = document.querySelector('.Sidebar')?.getBoundingClientRect().width ?? 0;
-    void window.wireAccounts.layout(Math.round(sidebarWidth), canDelete ? 56 : 0).catch(console.error);
+    void window.wireAccounts
+      .layout(Math.round(sidebarWidth), canDelete ? 56 : 0)
+      .catch(() => console.error('Unable to lay out account view.'));
   }, [account.visible, canDelete, account.userID]);
   if (noUrlConfigured) {
     return <NoUrlConfigured accountId={account.id} visible={account.visible} />;
@@ -64,7 +66,9 @@ const Webview = ({account}: {account: Account}) => {
               block
               center
               data-uie-name="do-retry-account-removal"
-              onClick={() => void window.wireAccounts.remove(account.id).catch(console.error)}
+              onClick={() =>
+                void window.wireAccounts.remove(account.id).catch(() => console.error('Unable to remove account.'))
+              }
             >
               {getText('webviewErrorRetryAction')}
             </TextLink>
@@ -114,7 +118,7 @@ const Webview = ({account}: {account: Account}) => {
               center
               style={{marginTop: '32px'}}
               onClick={() => {
-                void window.wireAccounts.reload(account.id).catch(console.error);
+                void window.wireAccounts.reload(account.id).catch(() => console.error('Unable to reload account.'));
               }}
             >
               {getText('webviewErrorRetryAction')}
@@ -127,7 +131,9 @@ const Webview = ({account}: {account: Account}) => {
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions
         <div
           className="Webview-close"
-          onClick={() => void window.wireAccounts.remove(account.id).catch(console.error)}
+          onClick={() =>
+            void window.wireAccounts.remove(account.id).catch(() => console.error('Unable to remove account.'))
+          }
           data-uie-name="do-close-webview"
         >
           <svg width="16" height="16" viewBox="0 0 16 16">
