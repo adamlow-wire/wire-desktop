@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.90
+revision: 1.5.91
 status: draft
 updated: 2026-09-23
 owners:
@@ -837,7 +837,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 
 #### PKG-002 — Qualify installers and updater behavior
 
-- Pre-handoff F-007 slice: updater diagnostics must omit credential-bearing feed/error data and contain check/dialog/installation promise failures while preserving user consent. Local Node tests cover this boundary; startup routing and unsigned package policy have a local candidate requiring final composed/native qualification. Actual signed qualification remains M5.
+- Pre-handoff F-007 slice: updater diagnostics must omit credential-bearing feed/error data and contain check/dialog/installation promise failures while preserving user consent. Local Node tests cover the macOS boundary; startup routing and unsigned package policy have a local candidate requiring final composed/native qualification. F-030 extends the same pre-handoff confidentiality/failure requirement to retained Windows Squirrel: failing direct-source baselines `b18bcde2`/`657acb77` precede scoped `11df0aae`, with four focused Node passes, a clean 418-case local tooling rerun, types/lint and in-memory sensitivity; hosted Windows/native update qualification remains open. Actual signed qualification remains M5.
 - F-007 unsigned safeguard contract: macOS packaging must overwrite `macAutoUpdateEnabled` from build-owned facts: true only for internal distribution with a non-ad-hoc application signing identity configured and the corresponding signing step enabled; false for unsigned and App Store builds regardless of input metadata. Runtime requires a packaged app, literal true policy, internal distribution and non-development execution before configuring a feed. Missing/invalid policy fails closed. The flag records build intent, not cryptographic verification; failed signing must fail packaging, and actual signed/update qualification remains M5. No environment feed override may bypass this gate. The updater is routed once after successful main-window initialization, without a second `ready` registration.
 
 - Priority: `P1`
@@ -993,6 +993,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.91 | 2026-09-23 | Codex | Record F-030 Squirrel updater confidentiality and false-success baseline, scoped fix and open native update qualification under existing PKG-002 F-007 | PKG-002, TST-006, INV-010 |
 | 1.5.90 | 2026-09-23 | Codex | Record eighth hosted three-platform DCP-007 pass and macOS logout retry as an open TST-005 qualification issue | TST-005, DCP-007, TST-006 |
 | 1.5.89 | 2026-09-23 | Codex | Record eighth hosted Windows native fixture failure, cross-platform package/E2E progress, and sensitivity-tested installed Windows fuse check; retain final-head and SEC-011 disposition gates | PKG-001, TST-005, TST-006, SEC-011 |
 | 1.5.88 | 2026-09-23 | Codex | Record seventh hosted Windows installed Squirrel/MSI step and exact macOS/Linux graphs; keep artifact upload, calling warning, full fuse disposition and final-head gates open | PKG-001, TST-005, TST-006, SEC-011, ELC-003 |
