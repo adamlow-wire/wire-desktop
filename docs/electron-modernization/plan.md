@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.67
+revision: 1.5.89
 status: draft
 updated: 2026-09-23
 owners:
@@ -991,6 +991,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.89 | 2026-09-23 | Codex | Record eighth hosted Windows native fixture failure, cross-platform package/E2E progress, and sensitivity-tested installed Windows fuse check; retain final-head and SEC-011 disposition gates | PKG-001, TST-005, TST-006, SEC-011 |
 | 1.5.88 | 2026-09-23 | Codex | Record seventh hosted Windows installed Squirrel/MSI step and exact macOS/Linux graphs; keep artifact upload, calling warning, full fuse disposition and final-head gates open | PKG-001, TST-005, TST-006, SEC-011, ELC-003 |
 | 1.5.86 | 2026-09-23 | Codex | Bound and phase-label the fourth hosted Windows installed-smoke wait after a separate failing CI-duration baseline; require actual Squirrel/MSI completion | PKG-001, TST-005, TST-006 |
 | 1.5.85 | 2026-09-23 | Codex | Trace F-028 fourth hosted updater fixture timeout to nested Electron GUI mode; add separate failing Node-mode baseline and scoped test-only correction | TST-005, PKG-002, TST-006 |
