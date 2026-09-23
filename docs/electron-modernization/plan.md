@@ -829,7 +829,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Supported OS versions, architectures and artifact formats are explicit; verify existing requirements before requesting missing product decisions. Unsigned artifacts launch and required packaged smoke tests actually execute on every in-scope platform.
   - Artifact identity and environment separation are preserved.
 - TST-006 remediation: F-004 restricts packaged inputs; F-005 forbids credential-bearing configuration dumps/native errors in CLI diagnostics; F-006 requires failure propagation, metadata restoration on every outcome and reviewed fuse/signing order. Baseline `7eb299f3` establishes eight passing CLI controls and ten failing targets before the local fix. Actual signing/notarization remains deferred; local mock success never closes that gate.
-- Evidence: See [review findings](review-findings.md) and [actual/corrected Linux ASAR audit](shipped-linux-asar-audit.md). The combined candidate passes a local unsigned Linux directory content/dependency check; actual installers, native startup and final all-platform qualification remain pending.
+- Evidence: See [review findings](review-findings.md) and [actual/corrected Linux ASAR and installer audit](shipped-linux-asar-audit.md#actual-unsigned-linux-installers-from-the-composed-candidate). The combined candidate passes local unsigned Linux directory plus actual AppImage/deb/rpm static content, dependency-inventory and fuse checks. Packaged native startup, reproducible CI, Windows/macOS artifacts and final all-platform qualification remain pending.
 
 #### PKG-002 — Qualify installers and updater behavior
 
@@ -990,6 +990,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.68 | 2026-09-23 | Codex | Record actual unsigned Linux AppImage/deb/rpm static artifact qualification and its native/final-head limits | PKG-001, ELC-003, TST-005 |
 | 1.5.67 | 2026-09-23 | Codex | Record scoped dependency-root pruning and exact combined Linux ASAR evidence; retain native, installer and platform acceptance gates | PKG-001, ELC-003, TST-006 |
 | 1.5.66 | 2026-09-23 | Codex | Extend CAP-001 confidentiality acceptance to active account-preload IPC rejection diagnostics with separate baseline and sensitivity evidence | CAP-001, INV-010, TST-006 |
 | 1.5.65 | 2026-09-22 | Codex | Reopen existing CAP-004 for reproduced log-export destination data loss and separate baseline | CAP-004, DCP-005, F-017, TST-006 |
