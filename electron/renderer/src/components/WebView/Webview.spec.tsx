@@ -113,12 +113,16 @@ describe('[regression][CAP-001] native account shell slot', () => {
   });
 
   it('retries failed removal without reloading the account or exposing raw cleanup errors', async () => {
+    const failure = new Error('private-removal=credential-value');
+    remove.mockRejectedValue(failure);
     render({removalFailed: true, isLoading: false});
     expect(container.querySelector('[data-uie-name="status-account-removal-error"]')).not.toBeNull();
     const retry = container.querySelector<HTMLElement>('[data-uie-name="do-retry-account-removal"]')!;
     await act(async () => retry.click());
     expect(remove).toHaveBeenCalledWith(account.id);
     expect(reload).not.toHaveBeenCalled();
+    expect(reported.mock.calls).toContainEqual(['Unable to remove account.']);
+    expect(reported.mock.calls.flat()).not.toContain(failure);
   });
 
   it('[security-target][INV-010] reports layout, reload and removal failure without rejected detail', async () => {
