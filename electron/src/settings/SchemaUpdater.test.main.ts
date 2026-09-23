@@ -74,7 +74,9 @@ describe('[PKG-003][DCP-021][INV-010] settings schema migration', () => {
     assert.equal(fs.existsSync(current), false);
   });
 
-  it('[security-target] preserves the authoritative current file and leftover corrupt legacy file', () => {
+  it('[security-target] preserves the authoritative current file and leftover corrupt legacy file', function () {
+    // Hosted Windows can delay synchronous profile-file IO; keep a finite native bound.
+    this.timeout(10_000);
     const previous = '{ "configVersion": 1, "customSetting": "must survive" }\n';
     const corrupt = 'synthetic malformed legacy content';
     fs.outputFileSync(current, previous);
