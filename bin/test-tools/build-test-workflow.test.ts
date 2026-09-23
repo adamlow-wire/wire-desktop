@@ -19,9 +19,10 @@
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import yaml from 'js-yaml';
+const yaml = createRequire(path.resolve('package.json'))('js-yaml') as {load(source: string): unknown};
 
 interface WorkflowStep {
   name?: string;
