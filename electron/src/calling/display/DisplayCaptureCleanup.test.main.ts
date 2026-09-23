@@ -42,6 +42,7 @@ interface Coordinator {
   options: object;
   flows: Map<string, Flow>;
   select(flow: Flow, choiceId: string): Promise<void>;
+  configurePermission(flow: Flow, target: object): void;
   revalidate(): void;
   dispose(): void;
   begin(identity: Flow['identity'], request: {requestId: string}): unknown;
@@ -92,6 +93,7 @@ const fixture = (failureStage?: string) => {
     },
     DISPLAY_CAPTURE_ENDED_CHANNEL: 'ended-fixture',
     DISPLAY_CAPTURE_CAPABILITY: 'capture-fixture',
+    DISPLAY_BROKER_URL: 'wire-app://shell/html/display-capture.html',
     console: {warn: (...args: unknown[]) => diagnostics.push(args)},
     session: {
       fromPartition: () => {
@@ -150,6 +152,8 @@ const fixture = (failureStage?: string) => {
     isFocused: () => true,
     setParentWindow: () => check('detach-parent'),
     webContents: {
+      isDestroyed: () => false,
+      getURL: () => 'wire-app://shell/html/display-capture.html',
       mainFrame: {
         postMessage: () => {
           check('broker-transfer');
@@ -320,5 +324,118 @@ describe('[CAP-003][INV-006][INV-010] capture teardown ownership with inert nati
     assert.equal(f.ports[1].closed, true);
     assert.equal(f.calls.filter(value => value === 'denied').length, 1);
     assert.equal(f.flow.cleanup.length, 0);
+  });
+});
+
+describe('[CAP-003][INV-006] actual capture permission handlers with inert sessions', () => {
+  const permissionFixture = () => {
+    const f = fixture();
+    f.flow.phase = 'starting';
+    f.flow.selected = {video: {id: 'approved-source'}};
+    const contents = (f.flow.window as {webContents: {mainFrame: object; getURL(): string}}).webContents;
+    let check!: (contents: object, permission: string) => boolean;
+    let request!: (contents: object, permission: string, callback: (allowed: boolean) => void, details: object) => void;
+    let display!: (details: object, callback: (result: {video?: object}) => void) => void;
+    f.coordinator.configurePermission(f.flow, {
+      setPermissionCheckHandler: (handler: typeof check) => {
+        check = handler;
+      },
+      setPermissionRequestHandler: (handler: typeof request) => {
+        request = handler;
+      },
+      setDisplayMediaRequestHandler: (handler: typeof display) => {
+        display = handler;
+      },
+    });
+    const media = (
+      details: object = {isMainFrame: true, mediaTypes: []},
+      sender: object = contents,
+      permission = 'media',
+    ) => {
+      const values: boolean[] = [];
+      request(sender, permission, value => values.push(value), details);
+      assert.equal(values.length, 1);
+      return values[0];
+    };
+    const capture = (changes: object = {}) => {
+      const values: Array<{video?: object}> = [];
+      display(
+        {frame: contents.mainFrame, videoRequested: true, audioRequested: false, userGesture: true, ...changes},
+        value => values.push(value),
+      );
+      assert.equal(values.length, 1);
+      return values[0];
+    };
+    return {...f, contents, check, media, capture};
+  };
+  it('grants one exact broker media request followed by one selected video request', () => {
+    const f = permissionFixture();
+    assert.equal(f.check(f.contents, 'media'), true);
+    assert.equal(f.media(), true);
+    assert.equal(f.media(), false);
+    assert.equal(f.capture().video, (f.flow.selected as {video: object}).video);
+    assert.equal(f.capture().video, undefined);
+  });
+  it('denies display capture before the broker media permission is consumed', () => {
+    const f = permissionFixture();
+    assert.equal(f.capture().video, undefined);
+    assert.equal(f.media(), true);
+    assert.ok(f.capture().video);
+  });
+  for (const details of [
+    {isMainFrame: false, mediaTypes: []},
+    {isMainFrame: true, mediaTypes: ['video']},
+    {isMainFrame: true},
+  ]) {
+    it(`denies invalid media details without consuming approval: ${JSON.stringify(details)}`, () => {
+      const f = permissionFixture();
+      assert.equal(f.media(details), false);
+      assert.equal(f.media(), true);
+    });
+  }
+  it('denies foreign contents, other permissions and a different broker document', () => {
+    const f = permissionFixture();
+    assert.equal(f.check({}, 'media'), false);
+    assert.equal(f.media(undefined, {}), false);
+    assert.equal(f.check(f.contents, 'notifications'), false);
+    assert.equal(f.media(undefined, f.contents, 'notifications'), false);
+    f.contents.getURL = () => 'wire-app://shell/html/display-capture.html?foreign';
+    assert.equal(f.check(f.contents, 'media'), false);
+    assert.equal(f.media(), false);
+  });
+  for (const change of [{frame: {}}, {audioRequested: true}, {videoRequested: false}, {userGesture: false}]) {
+    it(`denies invalid display details without consuming the selected source: ${JSON.stringify(change)}`, () => {
+      const f = permissionFixture();
+      assert.equal(f.media(), true);
+      assert.equal(f.capture(change).video, undefined);
+      assert.ok(f.capture().video);
+    });
+  }
+  it('denies permission outside startup even while the broker and owner remain live', () => {
+    const f = permissionFixture();
+    for (const phase of ['loading', 'choosing', 'active']) {
+      f.flow.phase = phase;
+      assert.equal(f.check(f.contents, 'media'), false);
+      assert.equal(f.media(), false);
+    }
+    f.flow.phase = 'starting';
+    assert.equal(f.media(), true);
+    f.flow.phase = 'active';
+    assert.equal(f.capture().video, undefined);
+  });
+  it('denies retained session callbacks after flow teardown', () => {
+    const f = permissionFixture();
+    assert.equal(f.media(), true);
+    f.coordinator.dispose();
+    assert.equal(f.check(f.contents, 'media'), false);
+    assert.equal(f.media(), false);
+    assert.equal(f.capture().video, undefined);
+  });
+  it('rechecks current owner eligibility before using prior media approval', () => {
+    const f = permissionFixture();
+    assert.equal(f.media(), true);
+    Object.assign(f.coordinator.options, {isEligible: () => false});
+    assert.equal(f.check(f.contents, 'media'), false);
+    assert.equal(f.capture().video, undefined);
   });
 });
