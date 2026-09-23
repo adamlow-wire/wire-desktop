@@ -76,8 +76,9 @@ describe('production account controller integration', function () {
     registry.authorize({sender: contents, senderFrame: contents.mainFrame}, ACCOUNT_EVENT_CAPABILITY);
 
   beforeEach(async function () {
-    // Starting three real sandboxed renderers exceeds Mocha's 2s default on hosted Windows.
-    this.timeout(10_000);
+    // Starting three real sandboxed renderers can exceed 10s on a busy hosted Windows runner.
+    // Keep a finite limit and report the fixed slow phase before that limit expires.
+    this.timeout(20_000);
     initializationPhase = 'starting loopback server';
     server = createServer((_request, response) =>
       response.end('<!doctype html><title>Account controller fixture</title>'),
@@ -134,7 +135,15 @@ describe('production account controller integration', function () {
     disposeControl = bindAccountControlIpc(ipcMain, registry, controller);
     disposeEvents = bindAccountEventIpc(ipcMain, registry, controller.receive);
     initializationPhase = 'starting account views';
-    await controller.start();
+    const startupWarning = setTimeout(
+      () => console.error('Account fixture startup delayed during: starting account views'),
+      9_000,
+    );
+    try {
+      await controller.start();
+    } finally {
+      clearTimeout(startupWarning);
+    }
     initializationPhase = 'ready';
   });
 
