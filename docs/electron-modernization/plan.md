@@ -869,7 +869,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Migration fixtures cover supported legacy versions and install types.
   - Account/session changes have documented recovery and rollback behavior.
   - A failed migration does not silently corrupt or delete user data.
-- Evidence: TST-006 F-010 confirms settings migration/persistence data loss. Separate baselines `b122d801` and `f5f8684c`, local recovery tests and [settings recovery procedure](settings-recovery.md) are in progress; final hosted qualification is pending. Unsigned deterministic fixtures are brought forward for M4 handoff; full released-installation/rollback criteria remain M5.
+- Evidence: TST-006 F-010 confirms settings migration/persistence data loss. Separate baselines `b122d801` and `f5f8684c`, local recovery tests and [settings recovery procedure](settings-recovery.md) are in progress; final hosted qualification is pending. Unsigned deterministic fixtures are brought forward for M4 handoff; local `fa22317a` seeds an original file-origin profile and asserts exact migrated-account startup from real packaged binaries on all three OSes, with hosted execution still pending. Full released-installation/rollback criteria remain M5.
 
 #### REL-001 — Complete independent security review
 
