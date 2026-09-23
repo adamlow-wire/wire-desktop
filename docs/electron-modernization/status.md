@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
 active_work_item: PKG-001
-state: ninth-run-windows-smoke-requalification-active
+state: tenth-run-packages-pass-macos-e2e-failed-f031-local
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -14,8 +14,9 @@ next_work_item: PKG-001
 blockers:
   [
     profile-compatibility-decision,
-    hosted-platform-qualification,
-    installed-windows-smoke-timeout,
+    final-composed-platform-qualification,
+    squirrel-deployment-selection,
+    macos-e2e-native-quit-teardown,
     complete-review-and-coverage-ledger,
   ]
 ---
@@ -23,6 +24,8 @@ blockers:
 # Current project status
 
 ## Current execution
+
+**Tenth hosted unsigned package checkpoint and F-031 local candidate:** At published PR #63 head `e760f10e`, [generic `35905939190`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35905939190) passes 1,282 main/native, one Node ESM, 23 renderer and 415 tooling cases plus 343/390 changed statements and 31/32 selected security branches; lint and CodeQL pass. [Package `35905939007`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35905939007) passes Windows/macOS/Linux. The Windows job actually installs, starts and uninstalls Squirrel and MSI, passes managed/proxy startup, and reads effective fuse wire `010001011` from both installed EXEs. All four Windows installer files were uploaded, downloaded and hashed; their ASAR identity matches unpacked/Squirrel/MSI hosted manifests. Exact Windows/macOS/Linux artifacts, hashes, inventories and the refreshed approved names/versions-only advisory query (zero high/critical matches) are in the [tenth-run audit](shipped-linux-asar-audit.md#tenth-pr-63-exact-head-unsigned-windowsmacoslinux-audit--september-23). The prior ninth Windows run is finally `cancelled`; GitHub did not supply its phase log, so its stall cause is unknown. The [e760 E2E run `35905939092`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35905939092) passes 76/76 on Windows and Linux but **fails macOS**: the first attempt of `[TST-005] restart accepts native zero exit before the inspector replies` leaves `child.exitCode` null through its ten-second poll, then native cleanup stalls until the 90-second test limit and a further 90-second worker-teardown limit. Its retry passes; Playwright still reports one error outside any test and exits 1. The retained blob trace places the failure in the native quit/cleanup path, but does not establish why the exit request did not terminate the child. A fresh final-head macOS E2E pass and a reliable cleanup/exit disposition remain mandatory; the retry is not qualification. Separately, TST-006 discovered F-031: with two full nupkgs present, S3 release selection returned the older one despite the requested version. Test baselines `f3764f3b`/`1554b8f8` fail five version, ambiguity, Setup and RELEASES targets. Local `2136672b` selects one exact-version package, a matching Setup and RELEASES in its directory; 11 focused S3 cases, 25 deployment/pipeline cases, the full 422-case build-tool suite, bin types/lint, two in-memory omission sensitivities and a read-only selection of the actual downloaded Windows files pass. It has **not** been pushed or hosted; its composition will require another full final-head run. F-012 profile ownership, TST-006 review/coverage, PKG-002 and SEC-011 file-protocol fuse disposition remain mandatory blockers.
 
 **Ninth hosted checkpoint and bounded Windows child candidate (PR #63):** At published head `8f4df285`, [generic Build and Test `35900767440`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35900767440), lint and CodeQL pass; its generic suite includes 1,282 native/main cases, one Node ESM case, 23 renderer cases and 414 build-tool cases, with changed-statement coverage 343/390 and selected security branches 31/32. [E2E `35900767411`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35900767411) passes **76/76 on each of Windows, macOS and Linux without a reported retry**, and its merged-report job passes. [Package `35900767448`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35900767448) passes macOS and Linux; Windows passes its native account fixture and reaches the installed Squirrel/MSI smoke after producing and verifying both installer families. That step remains unreported more than 30 minutes after its `timeout-minutes: 15` bound. Normal cancellation did not end it; force-cancellation was submitted. GitHub returned `BlobNotFound` for the live Windows job log, so the exact installed phase, effective fuse result and installer file bytes remain unknown. This is **not** installed Windows acceptance. The script's direct `node packaged-account-smoke.cjs` call had no own deadline; separately failing baseline `4158cdf9` and local correction `0f267be4` wrap each installed account child with a 90-second wait and process-tree termination. All 12 focused Windows installer cases and bin TypeScript pass; removing the wait in memory fails the new test, then unchanged source passes. This closes a definite test-harness bound gap, not a proven root cause of the hosted stall. Its Windows execution and final composed artifact qualification are pending. F-012 profile ownership, TST-006 review/coverage ledgers and PKG-002 qualification also remain mandatory blockers.
 
