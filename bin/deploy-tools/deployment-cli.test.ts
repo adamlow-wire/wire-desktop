@@ -21,6 +21,62 @@ import {strict as assert} from 'assert';
 import {spawnSync} from 'child_process';
 import path from 'path';
 
+describe('[PKG-001][F-031] Windows release promotion selection', function () {
+  this.timeout(15000);
+
+  it('selects the requested Squirrel version before copying the static release keys', () => {
+    const child = spawnSync(
+      process.execPath,
+      [
+        '--require',
+        path.resolve('.babel-register.js'),
+        '--require',
+        path.resolve('bin/deploy-tools/fixtures/deployment-cli.cjs'),
+        path.resolve('bin/deploy-tools/s3-win-releases-cli.ts'),
+        '--wrapper-build',
+        'Windows#1.2.3',
+        '--bucket',
+        'fixture',
+        '--key-id',
+        'fixture',
+        '--secret-key',
+        'synthetic-cli-secret',
+        '--dry-run',
+      ],
+      {
+        encoding: 'utf8',
+        timeout: 10000,
+        env: {
+          PATH: process.env.PATH,
+          SystemRoot: process.env.SystemRoot,
+          DEPLOY_CLI_VERSION_FIXTURE: '1',
+        },
+      },
+    );
+    assert.equal(child.error, undefined);
+    assert.equal(child.signal, null);
+    assert.equal(child.status, 0, child.stderr);
+    const records = child.stdout
+      .split('\n')
+      .filter(line => line.startsWith('{'))
+      .map(line => JSON.parse(line));
+    assert.ok(
+      records.some(
+        record =>
+          record.kind === 'selection' &&
+          record.platform === 'windows' &&
+          record.version === '1.2.3' &&
+          record.windowsArtifact === 'squirrel',
+      ),
+    );
+    const copies = records.filter(record => record.kind === 'copy');
+    assert.equal(copies.length, 2);
+    assert.ok(copies.some(copy => copy.s3FromPath.endsWith('/fixture-1.2.3-RELEASES')));
+    assert.ok(copies.some(copy => copy.s3FromPath.endsWith('/fixture-1.2.3.exe')));
+    assert.equal(`${child.stdout}${child.stderr}`.includes('synthetic-cli-secret'), false);
+  });
+});
+
 describe('[PKG-001][F-015] deployment CLI failure boundary', function () {
   this.timeout(15000);
   for (const cli of ['github-draft', 'hockey', 's3', 's3-win-releases']) {

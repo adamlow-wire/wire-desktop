@@ -54,11 +54,20 @@ class Deployer {
   async deleteFromS3() {
     await step('operation');
   }
-  async copyOnS3() {
+  async copyOnS3(options) {
+    if (process.env.DEPLOY_CLI_VERSION_FIXTURE) emit({kind: 'copy', ...options});
     await step('operation');
   }
-  async findUploadFiles() {
+  async findUploadFiles(platform, basePath, version, windowsArtifact) {
     await step('preparation');
+    if (process.env.DEPLOY_CLI_VERSION_FIXTURE) {
+      emit({kind: 'selection', platform, version, windowsArtifact});
+      return [
+        {fileName: 'fixture-1.2.3-full.nupkg', filePath: 'inert/fixture-1.2.3-full.nupkg'},
+        {fileName: 'fixture-1.2.3-RELEASES', filePath: 'inert/RELEASES'},
+        {fileName: 'fixture-1.2.3.exe', filePath: 'inert/Fixture-Setup.exe'},
+      ];
+    }
     return [{fileName: 'Fixture.exe', filePath: 'inert/Fixture.exe'}];
   }
 }
@@ -80,7 +89,13 @@ const replacements = {
     FileExtension: {ASC: '.asc', SIG: '.sig', EXE: '.exe'},
     find: async pattern => {
       await step('preparation');
-      const fileName = pattern.includes('nupkg') ? 'Fixture-1.2.3-full.nupkg' : 'Fixture-Setup.exe';
+      const fileName = pattern.includes('nupkg')
+        ? process.env.DEPLOY_CLI_VERSION_FIXTURE
+          ? 'Stale-1.2.2-full.nupkg'
+          : 'Fixture-1.2.3-full.nupkg'
+        : process.env.DEPLOY_CLI_VERSION_FIXTURE
+        ? 'Other-Setup.exe'
+        : 'Fixture-Setup.exe';
       return {fileName, filePath: `inert/${fileName}`};
     },
     zip: async () => 'inert/Fixture.zip',
