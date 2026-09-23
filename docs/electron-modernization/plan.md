@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.89
+revision: 1.5.90
 status: draft
 updated: 2026-09-23
 owners:
@@ -669,6 +669,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Flaky tests have owners and bounded quarantine rules.
 - Evidence: The functional development/test foundation is integrated through reviewed [PR #58](https://github.com/adamlow-wire/wire-desktop/pull/58), merge `6930c8ce`. All final-head core/native and 69-case Windows/macOS/Linux E2E/report gates pass, with retained bounded retries in status/PR evidence. All ten integration checks are strict and mandatory after protection readback. The [functional M4 audit](m4-acceptance.md) accepts the composed development scope at 41066868 after all 76 E2E cases/platform and core/native/report checks pass. Separate sensitive baselines protect safe registration diagnostics, independent account identities and native Quit inspector-reply handling; the notification fixture establishes its unread-conversation precondition without weakening assertions. Packaged-artifact smoke acceptance remains open under PKG-001; this functional scope does not claim release qualification.
 
+- Eighth PR #63 hosted E2E checkpoint: Windows/Linux pass 76/76 and macOS passes the corrected DCP-007 denial case, but the macOS logout-after-clear-data reauthentication case fails a 120-second first attempt and passes on retry (75 ordinary passes/one flaky). Retained trace `10768841287` shows the other authenticated account page at failure; target-account startup versus page-selector behavior is unresolved. TST-005 must diagnose this retry and require clean final composed qualification; report-job success alone does not close the gate. See [finding](review-findings.md).
+
 - Windows execution correction: the bd8b054c log audit shows the GUI version probe returns a green step before either intended packaged smoke runs. Withdraw that packaged execution claim while retaining executed native tests. Baseline02b9ee05 requires an explicit completion output; the actual log lacks both smoke observations and fails the baseline check. Remove the redundant GUI probe and require the Node driver to complete ordinary managed startup plus authenticated proxy startup under a temporary explicit HKCU policy. Do not assume the hosted device is unenrolled or claim an unmanaged Windows run. Final corrected head adbebedc passed both actual Windows smokes and every protected check, then PR #60 merged as 6e27c614; see [audit](m4-acceptance.md) and current status.
 
 #### TST-006 — Audit integrated implementation quality and test completeness
@@ -991,6 +993,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.90 | 2026-09-23 | Codex | Record eighth hosted three-platform DCP-007 pass and macOS logout retry as an open TST-005 qualification issue | TST-005, DCP-007, TST-006 |
 | 1.5.89 | 2026-09-23 | Codex | Record eighth hosted Windows native fixture failure, cross-platform package/E2E progress, and sensitivity-tested installed Windows fuse check; retain final-head and SEC-011 disposition gates | PKG-001, TST-005, TST-006, SEC-011 |
 | 1.5.88 | 2026-09-23 | Codex | Record seventh hosted Windows installed Squirrel/MSI step and exact macOS/Linux graphs; keep artifact upload, calling warning, full fuse disposition and final-head gates open | PKG-001, TST-005, TST-006, SEC-011, ELC-003 |
 | 1.5.86 | 2026-09-23 | Codex | Bound and phase-label the fourth hosted Windows installed-smoke wait after a separate failing CI-duration baseline; require actual Squirrel/MSI completion | PKG-001, TST-005, TST-006 |
