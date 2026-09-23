@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
 active_work_item: PKG-001
-state: sixth-run-windows-native-fixture-timeout-follow-up
+state: seventh-run-diagnostic-candidate-pending
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -11,12 +11,20 @@ upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
 active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
 next_work_item: PKG-001
-blockers: [profile-compatibility-decision, hosted-platform-qualification, complete-review-and-coverage-ledger]
+blockers:
+  [
+    profile-compatibility-decision,
+    hosted-platform-qualification,
+    e2e-calling-denial-regression,
+    complete-review-and-coverage-ledger,
+  ]
 ---
 
 # Current project status
 
 ## Current execution
+
+**Sixth generic/E2E diagnostic and seventh local candidate:** [Generic run](https://github.com/adamlow-wire/wire-desktop/actions/runs/35884978814) remained in monolithic `yarn test` over 30 minutes (prior run: about six); normal cancellation retained its log, whose last test header is the new wall-clock ESM fixture. The synchronous source transform hung under native `electron-mocha`, although its Node/NYC path passes. Local `ee498f47` moves that test to an explicit Node-only command, includes the same source counters in the cumulative NYC report, and runs all nine current package test commands in order, including the new Node-only fixture, as individually named, ten-minute bounded CI steps; coverage has a 15-minute bound. A separate failing workflow test baseline `e304c7ae`, omission sensitivity/restoration, Node source/coverage execution, types, lint and YAML parse pass. [E2E run](https://github.com/adamlow-wire/wire-desktop/actions/runs/35884978709) fails the same DCP-007 calling-denial case on Windows/macOS/Linux: `No camera access` is absent, while the failure snapshots show a `Microphone disabled` dialog saying an audio input device was not found. This could reflect a changed webapp/device path; a warning alone does not prove the call was blocked. Test-only `57fcd249` now also requires a recorded rejected native media consent and no visible call, retaining the original warning assertion until hosted evidence determines the contract. No E2E behavior claim is promoted from the failed run. [Sixth macOS/Linux ASAR audit](shipped-linux-asar-audit.md) verifies actual package hashes, effective unsigned fuses and a fresh metadata-only advisory result with zero high/critical version matches; Windows shipped/installed qualification remains open. Next: publish the local diagnostic candidate to the existing draft fork PR, inspect named generic and E2E failure phases, and require Windows installed-installer proof.
 
 **Sixth hosted package checkpoint:** [head `004793f7` package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/35884978768) passes macOS native/package smoke after the bounded bridge fixture and passes Linux native plus deb/rpm/AppImage package smoke. Windows fails **before installer building** in the existing native account-controller integration suite: one `beforeEach` reaches fixed phase `starting account views` and exceeds its ten-second hook limit; the same suite passed on the fifth Windows run. Other 217 cases in that step pass. No installed Squirrel/MSI result follows from this run. Local `0e2cfe0d` gives this three-renderer setup a finite 20-second hook budget and a fixed warning at nine seconds, preserving its assertions; test typing and scoped lint pass. Hosted Windows proof of the adjusted fixture and installer-process deadline remains open. [Generic Build and Test](https://github.com/adamlow-wire/wire-desktop/actions/runs/35884978814) and [E2E](https://github.com/adamlow-wire/wire-desktop/actions/runs/35884978709) are still running at this checkpoint.
 
