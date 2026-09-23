@@ -6,6 +6,8 @@ M3 and functional M4 are integrated at 6e27c614 through PR60; [status](status.md
 
 The current TST-006 audit reopens CAP-001 for F-008: pending lifecycle work behind an environment-approval dialog was unbounded. The local 32-operation queue candidate has sensitive Node-only ordering/authority/overload/recovery tests; hosted qualification is pending. Earlier DCP-002/DCP-004 acceptance is a historical checkpoint, not acceptance of this remediation. See [findings](review-findings.md).
 
+Packaged legacy-account migration has a bounded new checkpoint: [PKG-003 draft #65 package run `35919774438`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35919774438) starts the actual unsigned Linux AppImage and macOS app from a seeded original file-origin profile and observes the exact migrated account ID. Windows stops earlier in the fake-media native fixture, so packaged Windows migration and released-installation upgrade/rollback remain unqualified. This does not resolve ciphertext ownership or the full DCP-021 settings/cache matrix.
+
 ## Rules
 
 September 15 reconciliation: the [M3 acceptance audit](m3-acceptance.md) records integrated final-head qualification. Checkpoint paragraphs below are historical evidence, not current open-item or deployment claims. Functional M4 and later packaged/customer qualification remain distinct. Use `status.md` for current execution.
