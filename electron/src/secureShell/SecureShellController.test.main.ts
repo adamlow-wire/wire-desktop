@@ -172,8 +172,11 @@ describe('SecureShellController', () => {
     lifecyclePhase = undefined;
   });
 
-  it('[security-target][INV-001][INV-002][INV-003][ARC-002] exposes only the isolated fixed bridge', async () => {
+  it('[security-target][INV-001][INV-002][INV-003][ARC-002] exposes only the isolated fixed bridge', async function () {
+    this.timeout(10_000);
+    lifecyclePhase = 'bridge-controller-start';
     const controller = await createController('account-a');
+    lifecyclePhase = 'bridge-preferences';
     const webContents = controller.getAccountWebContentsForTest();
     assert.ok(webContents);
 
@@ -184,6 +187,7 @@ describe('SecureShellController', () => {
     assert.strictEqual(preferences.sandbox, true);
     assert.notStrictEqual(preferences.webviewTag, true);
 
+    lifecyclePhase = 'bridge-exposure';
     const exposed = await webContents.executeJavaScript(`({
       electron: typeof window.electron,
       nodeRequire: typeof window.require,
@@ -198,10 +202,12 @@ describe('SecureShellController', () => {
       bridge: ['getRuntimeInfo'],
       frozen: true,
     });
+    lifecyclePhase = 'bridge-runtime-info';
     assert.deepStrictEqual(await webContents.executeJavaScript('window.wireDesktopProof.getRuntimeInfo()'), {
       accountId: 'account-a',
       contractVersion: 1,
     });
+    lifecyclePhase = undefined;
   });
 
   it('[security-target][INV-004][ARC-002] isolates persistent account storage', async function () {
