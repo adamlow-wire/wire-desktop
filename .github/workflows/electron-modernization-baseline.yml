@@ -38,8 +38,11 @@ jobs:
         include:
           - platform: Linux
             os: ubuntu-24.04
-            build: LINUX_TARGET=AppImage yarn build:linux
-            artifact: wrap/dist/*.AppImage
+            build: LINUX_TARGET=AppImage,deb,rpm yarn build:linux
+            artifact: |
+              wrap/dist/*.AppImage
+              wrap/dist/*.deb
+              wrap/dist/*.rpm
           - platform: Windows
             os: windows-2025
             build: yarn build:win
@@ -65,7 +68,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y gnome-keyring dbus-x11 libglib2.0-bin
+          sudo apt-get install --no-install-recommends -y gnome-keyring dbus-x11 libglib2.0-bin rpm cpio
           python3 bin/test-tools/run-linux-e2e.test.py
       - name: Build production preloads
         shell: bash
@@ -241,7 +244,12 @@ jobs:
         shell: bash
         run: |
           case '${{ matrix.platform }}' in
-            Linux) artifact=$(find wrap/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit) ;;
+            Linux)
+              for extension in AppImage deb rpm; do
+                test -n "$(find wrap/dist -maxdepth 1 -type f -name "*.$extension" -print -quit)"
+              done
+              artifact=$(find wrap/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+              ;;
             Windows) artifact=$(find wrap/build -type f -name '*.exe' -print -quit) ;;
             macOS) artifact=$(find wrap/build -type d -name '*.app' -print -quit) ;;
           esac
@@ -251,6 +259,73 @@ jobs:
           fi
           echo 'available=true' >> "$GITHUB_OUTPUT"
           printf '%s\n' "$artifact"
+      - name: Verify and smoke-test Linux deb and rpm
+        if: runner.os == 'Linux' && steps.artifact.outputs.available == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          extract_dir=$(mktemp -d)
+          trap 'rm -rf "$extract_dir"' EXIT
+          deb=$(find wrap/dist -maxdepth 1 -type f -name '*.deb' -print -quit)
+          rpm=$(find wrap/dist -maxdepth 1 -type f -name '*.rpm' -print -quit)
+          mkdir -p "$extract_dir/deb" "$extract_dir/rpm"
+          dpkg-deb -x "$deb" "$extract_dir/deb"
+          rpm2cpio "$rpm" | (cd "$extract_dir/rpm" && cpio --quiet -idm)
+          node bin/test-tools/verify-package-contents.cjs "$extract_dir/deb" "$extract_dir/rpm" > package-contents-linux-installers.json
+          node - "$extract_dir/deb" "$extract_dir/rpm" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const asar = require('@electron/asar');
+          const {FuseV1Options, getCurrentFuseWire} = require('@electron/fuses');
+          const {findArchives} = require('./bin/test-tools/verify-package-contents.cjs');
+          const built = require('./package-contents.json').archives;
+          const extracted = require('./package-contents-linux-installers.json').archives;
+          assert.equal(built.length, 1);
+          assert.equal(extracted.length, 2);
+          async function verify(root) {
+            const archives = findArchives(root);
+            assert.equal(archives.length, 1, 'Installer must contain exactly one application archive.');
+            const archive = archives[0];
+            const sha = require('node:crypto').createHash('sha256').update(fs.readFileSync(archive)).digest('hex');
+            assert.equal(sha, built[0].sha256, 'Installer must contain the verified archive.');
+            const metadata = JSON.parse(asar.extractFile(archive, 'package.json').toString());
+            assert.match(metadata.desktopName, /^[A-Za-z0-9._-]+$/);
+            const desktop = fs.readFileSync(path.join(root, 'usr/share/applications', `${metadata.desktopName}.desktop`), 'utf8');
+            assert.ok(desktop.split('\n').includes(`StartupWMClass=${metadata.desktopName}`));
+            assert.ok(desktop.split('\n').includes(`Icon=${metadata.desktopName}`));
+            for (const size of ['32x32', '256x256']) {
+              const icon = path.join(root, 'usr/share/icons/hicolor', size, 'apps', `${metadata.desktopName}.png`);
+              assert.deepEqual(fs.readFileSync(icon), fs.readFileSync(path.join('resources/icons', `${size}.png`)));
+            }
+            const executable = path.join(path.dirname(path.dirname(archive)), metadata.desktopName);
+            const fuses = await getCurrentFuseWire(executable);
+            for (const [option, expected] of [
+              [FuseV1Options.RunAsNode, '0'],
+              [FuseV1Options.EnableCookieEncryption, '1'],
+              [FuseV1Options.EnableNodeOptionsEnvironmentVariable, '0'],
+              [FuseV1Options.EnableNodeCliInspectArguments, '0'],
+              [FuseV1Options.EnableEmbeddedAsarIntegrityValidation, '0'],
+              [FuseV1Options.OnlyLoadAppFromAsar, '1'],
+            ]) {
+              assert.equal(fuses[option], expected.charCodeAt(0));
+            }
+          }
+          Promise.all(process.argv.slice(2).map(verify)).catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+          for format in deb rpm; do
+            executable=$(find "$extract_dir/$format/opt" -maxdepth 2 -type f -name '*-desktop' -print -quit)
+            test -n "$executable"
+            helper="$(dirname "$executable")/chrome-sandbox"
+            test -f "$helper"
+            test ! -L "$helper"
+            sudo chown root:root "$helper"
+            sudo chmod 4755 "$helper"
+            xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          done
       - name: Smoke-test Linux package
         if: runner.os == 'Linux' && steps.artifact.outputs.available == 'true'
         shell: bash
