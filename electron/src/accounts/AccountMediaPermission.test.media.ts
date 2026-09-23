@@ -45,15 +45,31 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
   });
 
   beforeEach(async function () {
-    // Hosted Windows twice exceeded Mocha's implicit two-second fixture limit
-    // while creating the native account, before requesting any media. Match the
-    // existing native account setup budget; test bodies retain two seconds.
-    this.timeout(10_000);
+    // A hosted Windows account load also exceeded ten seconds before any media
+    // request. Keep this native startup bound finite; test bodies retain two seconds.
+    this.timeout(20_000);
     const started = performance.now();
     let stage = 'starting the fixture server';
-    const warning = setTimeout(() => {
-      console.error('Native fake-media setup pending:', {stage, elapsedMs: Math.round(performance.now() - started)});
-    }, 1_500);
+    let pendingAccountId: string | undefined;
+    const reportPending = () => {
+      let pendingContents: WebContents | undefined;
+      try {
+        pendingContents = pendingAccountId ? views?.get(pendingAccountId) : undefined;
+      } catch {
+        // Registration can still be in progress; report that phase without account data.
+      }
+      console.error('Native fake-media setup pending:', {
+        stage,
+        elapsedMs: Math.round(performance.now() - started),
+        serverListening: server?.listening ?? false,
+        windowDestroyed: window?.isDestroyed() ?? true,
+        contentsRegistered: Boolean(pendingContents),
+        contentsLoadingMainFrame: pendingContents?.isLoadingMainFrame(),
+        contentsCrashed: pendingContents?.isCrashed(),
+      });
+    };
+    const warning = setTimeout(reportPending, 1_500);
+    const lateWarning = setTimeout(reportPending, 9_000);
     try {
       consent = false;
       prompts = [];
@@ -79,11 +95,13 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
         lost: () => undefined,
       });
       const account = {id: randomUUID(), sessionID: randomUUID()};
+      pendingAccountId = account.id;
       stage = 'creating and loading the account view';
       contents = await views.create(account, origin);
       views.select(account.id);
     } finally {
       clearTimeout(warning);
+      clearTimeout(lateWarning);
       if (performance.now() - started >= 1_500) {
         console.error('Native fake-media setup settled:', {
           stage,
