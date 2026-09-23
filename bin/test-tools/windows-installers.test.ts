@@ -44,7 +44,7 @@ describe('unsigned Windows installer CI gate', () => {
   it('requires an explicit managed policy for each installed Windows startup', () => {
     const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
     assert.match(smoke, /function Invoke-ManagedPackagedSmoke\(/);
-    assert.match(smoke, /if \(\$null -ne \$existing\) \{ throw 'Refusing to replace existing managed policy\.'; \}/);
+    assert.match(smoke, /if \(\$null -ne \$existing\) \{ throw 'Refusing to replace existing managed policy\.' \}/);
     assert.match(smoke, /New-ItemProperty -Path \$policy -Name applockOverride -PropertyType DWord -Value 1/);
     assert.match(smoke, /\$env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'/);
     assert.match(smoke, /Remove-ItemProperty -Path \$policy -Name applockOverride -ErrorAction SilentlyContinue/);

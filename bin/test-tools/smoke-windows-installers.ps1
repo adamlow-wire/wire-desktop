@@ -28,6 +28,25 @@ function Invoke-PackagedSmoke($executable, $label) {
   if ($LASTEXITCODE -ne 0) { throw "$label packaged account smoke failed." }
 }
 
+# Hosted Windows may already be enrolled. An absent user policy cannot prove an unmanaged device,
+# so give every installed startup an owned positive policy and assert the exact managed result.
+function Invoke-ManagedPackagedSmoke($executable, $label, $authenticatedProxy = $false) {
+  $policy = 'HKCU:\SOFTWARE\Policies\Wire'
+  $existing = Get-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+  if ($null -ne $existing) { throw 'Refusing to replace existing managed policy.' }
+  New-Item -Path $policy -Force | Out-Null
+  try {
+    New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
+    $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
+    if ($authenticatedProxy) { $env:M3_AUTHENTICATED_PROXY = 'true' }
+    Invoke-PackagedSmoke $executable $label
+  } finally {
+    Remove-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
+    Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
+    Remove-Item Env:M3_AUTHENTICATED_PROXY -ErrorAction SilentlyContinue
+  }
+}
+
 $archives = @(Get-ChildItem -Path 'wrap/build' -Recurse -File -Filter 'app.asar')
 if ($archives.Count -ne 1) { throw 'Expected one verified unpacked application archive.' }
 $archive = $archives[0]
@@ -55,7 +74,7 @@ try {
   $applications = @($versions | ForEach-Object { Join-Path $_.FullName ($metadata.name + '.exe') } | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf })
   if ($applications.Count -ne 1) { throw 'Expected one installed Squirrel application version.' }
   Assert-InstalledArchive $applications[0] $expectedHash 'Squirrel installed'
-  Invoke-PackagedSmoke $applications[0] 'Squirrel installed'
+  Invoke-ManagedPackagedSmoke $applications[0] 'Squirrel installed'
 } catch { $squirrelFailure = $_ }
 try {
   $updater = Join-Path $squirrelRoot 'Update.exe'
@@ -78,22 +97,8 @@ try {
   Invoke-CheckedProcess 'msiexec.exe' $installArgs 'MSI install'
   $application = Join-Path $msiRoot ($metadata.name + '.exe')
   Assert-InstalledArchive $application $expectedHash 'MSI installed'
-  Invoke-PackagedSmoke $application 'MSI installed'
-
-  $policy = 'HKCU:\SOFTWARE\Policies\Wire'
-  $existing = Get-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
-  if ($null -ne $existing) { throw 'Refusing to replace existing managed policy.' }
-  New-Item -Path $policy -Force | Out-Null
-  try {
-    New-ItemProperty -Path $policy -Name applockOverride -PropertyType DWord -Value 1 | Out-Null
-    $env:M3_EXPECT_APPLOCK_OVERRIDE = 'true'
-    $env:M3_AUTHENTICATED_PROXY = 'true'
-    Invoke-PackagedSmoke $application 'MSI installed managed/proxy'
-  } finally {
-    Remove-ItemProperty -Path $policy -Name applockOverride -ErrorAction SilentlyContinue
-    Remove-Item Env:M3_EXPECT_APPLOCK_OVERRIDE -ErrorAction SilentlyContinue
-    Remove-Item Env:M3_AUTHENTICATED_PROXY -ErrorAction SilentlyContinue
-  }
+  Invoke-ManagedPackagedSmoke $application 'MSI installed'
+  Invoke-ManagedPackagedSmoke $application 'MSI installed managed/proxy' $true
 } catch { $msiFailure = $_ }
 try {
   if (Test-Path -LiteralPath $msiRoot) {
