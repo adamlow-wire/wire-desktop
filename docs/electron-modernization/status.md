@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
 active_work_item: PKG-001
-state: f026-f027-corrected-hosted-recheck-pending
+state: third-run-native-results-and-f028-fix-pending
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -17,6 +17,8 @@ blockers: [profile-compatibility-decision, hosted-platform-qualification]
 # Current project status
 
 ## Current execution
+
+**Third hosted package/test checkpoint:** [package run](https://github.com/adamlow-wire/wire-desktop/actions/runs/35872062149) reaches Windows MSI administrative extraction and unpacked Windows smoke after F-027; installed Squirrel/MSI results were still pending. Linux passes extracted deb and rpm packaged-account startup, immutable managed configuration and page Node denial. Its AppImage step still had the old `*-desktop` suffix selector; failing test delta `ec42fcc4` and local `5245dd16` now route that step through the archived-identity resolver, with restoration sensitivity. The generic [Build and Test run](https://github.com/adamlow-wire/wire-desktop/actions/runs/35872062230) now reaches main tests: 1,258 pass, 22 updater subprocess cases fail because their minimal child environment drops Xvfb `DISPLAY`/`XAUTHORITY`. F-028 failing baseline `3664f570` precedes test-only helper `5245dd16`, which retains only the safe display authority and the caller's fixture mode; two focused cases, types and lint pass, and omitting `DISPLAY` fails the intended target. Neither fix is yet published or hosted qualified on this checkpoint.
 
 **ELC-003 observed cross-platform candidate graphs:** extracted Windows/macOS ASARs from the first hosted PR63 package run have identical 351-instance/309-name inventories (private JSON SHA `634f174eec3172893305f70f826efe8a6975e0030b7d46c9a909178`), and every name/version pair is within the approved 407-instance Linux advisory query. The second hosted Linux deb inventory matches that approved input byte for byte. This supports zero high/critical version matches on these observed artifact graphs at query time without submitting new metadata. Windows/macOS retain only the `uuid` moderate range match; Linux also retains the already call-path-disposed `@tootallnate/once` low range match. Platform-specific/dynamic call paths, freshness, exact final-head artifacts and native checks remain open. [Hashes and reproduction](shipped-linux-asar-audit.md#elc-003-cross-platform-candidate-shipped-graphs-from-draft-pr-63).
 

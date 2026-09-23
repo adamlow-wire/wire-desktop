@@ -989,6 +989,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.83 | 2026-09-23 | Codex | Record third hosted deb/rpm native successes, expose remaining AppImage selector and F-028 nested Xvfb environment failures, and add sensitivity-proven test/CI corrections | PKG-001, TST-005, PKG-002, TST-006 |
 | 1.5.82 | 2026-09-23 | Codex | Account for actual draft PR63 Windows/macOS/Linux shipped graphs offline against approved advisory input; retain platform call-path and final-head review | ELC-003, PKG-001 |
 | 1.5.81 | 2026-09-23 | Codex | Correct F-026 Linux installer executable selection and F-027 Windows ASAR stat lookup after failing real-hosted jobs and sensitive baselines; retain final hosted/native gates | PKG-001, TST-005, TST-006 |
 | 1.5.79 | 2026-09-23 | Codex | Record draft PR63 hosted failures, correct documentation lint and Linux test-helper setup, and add bounded package-gate diagnostics; retain all installer/native acceptance gates | PKG-001, TST-005, TST-006 |
