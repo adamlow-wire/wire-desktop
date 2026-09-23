@@ -121,8 +121,11 @@ describe('build-linux', () => {
       process.env.LINUX_NAME_SHORT = nameShort;
       process.env.LINUX_TARGET = targets.join(',');
 
-      const {linuxConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+      const {builderConfig, linuxConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
 
+      assert.strictEqual(builderConfig.extraMetadata?.desktopName, nameShort);
+      assert.strictEqual(builderConfig.linux?.executableName, nameShort);
+      assert.strictEqual(builderConfig.appImage?.desktop?.entry?.StartupWMClass, nameShort);
       assert.strictEqual(linuxConfig.categories, categories);
       assert.strictEqual(linuxConfig.executableName, nameShort);
       assert.strictEqual(linuxConfig.keywords, keywords);
