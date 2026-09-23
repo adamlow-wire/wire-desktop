@@ -12,18 +12,18 @@ Candidate `0a9617912f141d9853a3347bb65c78cc66227947`, tree `3f3d66d5948b8b0aa269
 
 ## Results
 
-| Check | Result |
-| --- | --- |
-| Immutable install under pinned Node | pass; existing peer warnings retained |
-| Root/application types | pass |
-| Build-tool types | pass |
-| Playwright types | pass; no browser/E2E execution |
-| Electron test types | pass; no native execution |
-| Renderer Jest/jsdom |82 cases,12 suites pass |
-| Full Node build-tool suite |376 pass, approximately4 minutes |
-| Capture cleanup/permission/startup/contracts |40 inert Node cases pass |
-| Changed capture source/test lint |pass with explicit candidate configuration |
-| Production TypeScript and webpack |pass; existing bundle/Browserslist warnings retained |
+| Check                                        | Result                                               |
+| -------------------------------------------- | ---------------------------------------------------- |
+| Immutable install under pinned Node          | pass; existing peer warnings retained                |
+| Root/application types                       | pass                                                 |
+| Build-tool types                             | pass                                                 |
+| Playwright types                             | pass; no browser/E2E execution                       |
+| Electron test types                          | pass; no native execution                            |
+| Renderer Jest/jsdom                          | 82 cases,12 suites pass                              |
+| Full Node build-tool suite                   | 376 pass, approximately4 minutes                     |
+| Capture cleanup/permission/startup/contracts | 40 inert Node cases pass                             |
+| Changed capture source/test lint             | pass with explicit candidate configuration           |
+| Production TypeScript and webpack            | pass; existing bundle/Browserslist warnings retained |
 
 The initial ordinary lint invocation failed because this nested checkout inherited the older outer checkout's ESLint plugins, producing duplicate jasmine plugin resolution. Running the unchanged candidate configuration explicitly with `--no-eslintrc --config .eslintrc.json` passes. No rule or assertion was disabled. Earlier standalone-test/borrowed-tool results retain their original scope.
 

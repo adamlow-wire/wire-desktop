@@ -118,7 +118,7 @@ The report records112 attempts:58 passed,48 failed and6 timed out. This is18 exh
 The separate Electron-app trace supplies the decisive evidence:
 
 | Trace event | Monotonic time (ms) | Observation |
-| --- | ---: | --- |
+| --- | --: | --- |
 | Connect click begins (`call@255`) | 36142.030 | Exact `go-people` test-id selector |
 | Browser console error | 36186.652 | `TypeError: n.findDOMNode is not a function`; `performExit` / `updateStatus` / `componentDidUpdate` stack from `wire-webapp-dev.zinfra.io` |
 | Webapp error-fallback diagnostic | 36187.471 | Same exception |

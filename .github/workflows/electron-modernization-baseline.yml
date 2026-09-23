@@ -244,6 +244,18 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == 'macOS' ]]; then
             node bin/test-tools/verify-package-contents.cjs --unsigned-macos wrap/build wrap/dist > package-contents.json
+          elif [[ "$RUNNER_OS" == 'Windows' ]]; then
+            node - wrap/build wrap/dist > package-contents.json <<'NODE'
+          const {main} = require('./bin/test-tools/verify-package-contents.cjs');
+          const assert = require('node:assert');
+          main(process.argv.slice(2)).catch(error => {
+            const kind = error instanceof assert.AssertionError ? 'assertion' : error?.name || 'unknown';
+            const code = error?.code || 'none';
+            const detail = error instanceof assert.AssertionError ? error.message : 'see verifier source for this error class';
+            console.error(`Windows package verification failed: ${kind}; code=${code}; ${detail}`);
+            process.exitCode = 1;
+          });
+          NODE
           else
             node bin/test-tools/verify-package-contents.cjs wrap/build wrap/dist > package-contents.json
           fi
@@ -354,12 +366,18 @@ jobs:
           NODE
           for format in deb rpm; do
             executable=$(find "$extract_dir/$format/opt" -maxdepth 2 -type f -name '*-desktop' -print -quit)
-            test -n "$executable"
+            if [[ -z "$executable" ]]; then
+              echo "No $format desktop executable found under extracted opt directory." >&2
+              exit 1
+            fi
             helper="$(dirname "$executable")/chrome-sandbox"
-            test -f "$helper"
-            test ! -L "$helper"
+            if [[ ! -f "$helper" || -L "$helper" ]]; then
+              echo "$format sandbox helper is missing or a symlink." >&2
+              exit 1
+            fi
             sudo chown root:root "$helper"
             sudo chmod 4755 "$helper"
+            echo "Running extracted $format packaged-account smoke."
             xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
           done
       - name: Smoke-test Linux package
