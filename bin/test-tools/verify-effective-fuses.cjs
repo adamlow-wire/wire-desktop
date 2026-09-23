@@ -28,6 +28,7 @@ const configured = [
   [FuseV1Options.EnableNodeCliInspectArguments, '0', 'EnableNodeCliInspectArguments'],
   [FuseV1Options.EnableEmbeddedAsarIntegrityValidation, '0', 'EnableEmbeddedAsarIntegrityValidation'],
   [FuseV1Options.OnlyLoadAppFromAsar, '1', 'OnlyLoadAppFromAsar'],
+  [FuseV1Options.GrantFileProtocolExtraPrivileges, '0', 'GrantFileProtocolExtraPrivileges'],
 ];
 
 function assertConfiguredFuses(wire) {
