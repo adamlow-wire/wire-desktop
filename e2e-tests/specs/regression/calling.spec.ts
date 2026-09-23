@@ -113,8 +113,9 @@ test.describe('Calling - Negative Scenarios / Permissions', () => {
         );
       });
       expect(nativeMediaDenied).toBe(true);
+      await expect(app.page.getByRole('heading', {name: 'Microphone disabled'})).toBeVisible();
       await expect(callCell(userAPage)).not.toBeVisible();
-      await expect(app.page.getByText('No camera access')).toBeVisible();
+      await expect(callCell(userBPage)).not.toBeVisible();
     },
   );
 });
