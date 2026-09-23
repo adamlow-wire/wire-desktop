@@ -1,15 +1,15 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-22
+updated: 2026-09-23
 milestone: M4
-active_work_item: CAP-004
-state: log-export-recovery-candidate
+active_work_item: CAP-001
+state: preload-diagnostic-candidate
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/CAP-004-log-export-recovery-2026-09-22
+active_branch: fix/CAP-001-account-preload-diagnostics-2026-09-23
 next_work_item: TST-006
 blockers: [fork-publication-approval, profile-compatibility-decision]
 ---
@@ -17,6 +17,8 @@ blockers: [fork-publication-approval, profile-compatibility-decision]
 # Current project status
 
 ## Current execution
+
+**CAP-001 active account preload diagnostics:** baseline `f655d236` passes exact account-event forwarding and fails synthetic-private rejected-Error confidentiality (one pass/one fail). Scoped `3bfa7434` emits only a fixed rejection message; temporarily restoring raw Error logging fails the one security target, then restored source passes. Focused two-case and adjacent 12-case inert suites, root/test/production types, targeted lint and webpack pass with known build warnings. The candidate has not been composed with audit documentation or run natively/all-platform. [Evidence](renderer-rejection-confidentiality-review.md#active-account-preload-rejection-follow-up). Next: compose with the current TST-006/ELC-003 audit branch, review other active main/preload diagnostics, and qualify the final candidate. Profile, shipped high/critical dependency matches, full review, actual installers and platform gates remain open.
 
 **CAP-004/F-017 preservation candidate:** baseline `5367256f` precedes adjacent private staging and atomic rename publication. The existing destination is never opened for writing; only a fully completed archive is published. The output file uses0600 permissions so publication does not expose previously private archive data through default umask permissions. A POSIX mode target fails before that explicit mode, then passes. Staging/stream/publication failure preserves old bytes; cleanup attempts are limited to the owned staging directory, and cleanup errors cannot hide a publication failure.
 

@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.65
+revision: 1.5.66
 status: draft
-updated: 2026-09-22
+updated: 2026-09-23
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -704,6 +704,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Cleanup correction (September15): real queued console writes can recreate account logs after removal. Drain queued writes after closing their native producer, then delete under exclusive log maintenance. Preserve exact-target and symlink checks, surface deletion failures for retry, and retain original write failures for their callers. The correction is accepted through [PR #59](https://github.com/adamlow-wire/wire-desktop/pull/59), merged51d04739 after reviewed7d5c34bb passes all core/native platforms and [48-case E2E/report per platform](https://github.com/adamlow-wire/wire-desktop/actions/runs/34963289067). Baseline e4cac57f and a drain-removal perturbation fail; restoration passes23 focused/925 full native cases. macOS has47 initial/one login retry; Windows46 initial/two post-removal/proxy-readiness retries. No skips, worker errors or ENOTEMPTY failures remain in those runs.
 - Acceptance:
   - Approved same-origin startup redirects preserve the owning view; failed, cancelled, stale or foreign replacements cannot become successful startup.
+  - Rejected shell-account actions and account-preload events produce fixed operation diagnostics without serializing rejected values, while preserving exact account-event forwarding and action rejection behavior.
   - Existing multi-account critical and regression flows pass.
   - Cross-account session and IPC isolation tests pass.
   - Removal deletes only the selected account's intended data.
@@ -988,6 +989,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.66 | 2026-09-23 | Codex | Extend CAP-001 confidentiality acceptance to active account-preload IPC rejection diagnostics with separate baseline and sensitivity evidence | CAP-001, INV-010, TST-006 |
 | 1.5.65 | 2026-09-22 | Codex | Reopen existing CAP-004 for reproduced log-export destination data loss and separate baseline | CAP-004, DCP-005, F-017, TST-006 |
 | 1.5.64 | 2026-09-22 | Codex | Define build-owned unsigned-update policy and repair F-007 startup routing with separate baseline targets | PKG-002, F-007 |
 | 1.5.63 | 2026-09-22 | Codex | Start existing PKG-002 pre-handoff updater failure/diagnostic remediation; retain startup and signed-release gates | PKG-002, F-007, INV-010 |
