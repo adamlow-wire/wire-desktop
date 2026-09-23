@@ -2,15 +2,15 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
-active_work_item: TST-006
-state: candidate-reconciliation-validation
+active_work_item: PKG-001
+state: scoped-appimage-sandbox-candidate
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: review/TST-006-composed-pruned-2026-09-23
-next_work_item: TST-006
+active_branch: fix/PKG-001-appimage-sandbox-2026-09-23
+next_work_item: PKG-001
 blockers: [fork-publication-approval, profile-compatibility-decision]
 ---
 
@@ -18,7 +18,7 @@ blockers: [fork-publication-approval, profile-compatibility-decision]
 
 ## Current execution
 
-**New high-priority PKG-001 finding F-021:** the actual AppImage desktop entry passes `--no-sandbox` unconditionally, and its generated launcher can add the same flag when user namespaces are unavailable. This violates INV-001 and blocks handoff even though the ASAR/dependency/fuse static checks pass. The installed builder's defaults are traced; characterization, scoped remediation, rebuilt AppImage and packaged native smoke are next. Deb/rpm entries omit the flag. No Electron/native launch occurred. [Finding](review-findings.md#tst-006-execution-ledger); [artifact](shipped-linux-asar-audit.md#actual-unsigned-linux-installers-from-the-composed-candidate).
+**PKG-001 F-021 sandbox candidate:** the original AppImage desktop entry passed `--no-sandbox` and its generated launcher added the flag after a failed namespace probe, violating INV-001. Baseline `84ac22aa` has three controls pass/two security targets fail; fix `45f45f4f` removes both defaults using an explicit desktop option and a pinned builder patch. A correctly identified `WireInternal`/`internal` AppImage at scoped source `7771a714` has `Exec=AppRun %U`, no launcher bypass and the same approved 407-package inventory; desktop/launcher/ASAR/fuse static gates pass. Root/bin/Electron-test types, forced lint, production build and all380 build-tool cases pass after restoring only public generated test inputs. A synthetic launcher execution confirms argument forwarding without the bypass when the namespace probe fails; the old actual launcher produces the flag. Hosted native startup, final composition and all-platform qualification remain mandatory. Earlier ad hoc AppImage/deb/rpm artifacts have mixed `WireInternal` name/`production` environment; their static checks stand but they do not qualify environment separation. Deb/rpm entries omit the flag and need environment-correct rebuilds. No Electron/native launch occurred. [Finding](review-findings.md#tst-006-execution-ledger); [artifact](shipped-linux-asar-audit.md#actual-unsigned-linux-installers-from-the-composed-candidate).
 
 
 **Reconciled combined candidate:** source `725efb5c` (tree `2e77b6c36eae6bae8d67c25bc71c8dbab51db02b`) composes the scoped package-input and account-preload fixes. Audit documentation and reproduction utilities are now on this local branch; source, tests and dependency lock remain those of `725efb5c`. The TST-006 inventory matches all500 baseline-to-source changed paths with zero missing/extra/status mismatches; exact pending source/provenance/coverage cells are297/319/329 plus partial reviews. Root/bin/Electron-test types, scoped lint,182 focused cases, production TypeScript/webpack, and verified unsigned Linux directory plus actual AppImage/deb/rpm static artifact checks pass. All three installers have identical 7,338-entry ASARs, 407 shipped package records matching the approved zero-high/critical scan, and the six configured Electron fuse states. One moderate/one low match remains to disposition. Packaged native startup, actual unsigned Windows Squirrel/MSI/macOS artifacts, authenticated final-head E2E/report, complete review/profile decision and PR-only integration remain mandatory. [Inventory](inventory-reconciliation.md#package-input-and-account-preload-recomposition); [installer/ASAR evidence](shipped-linux-asar-audit.md#actual-unsigned-linux-installers-from-the-composed-candidate). Next: finish the source/provenance/coverage ledger and confirmed diagnostics, resolve profile compatibility, then qualify packaged native startup, remaining platform artifacts and protected CI. No publication, native app launch or release occurred.
