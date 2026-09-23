@@ -119,7 +119,12 @@ export class DisplayCaptureCoordinator {
       policy: AuthorizedIpcContract<Request, Response>,
       handler: (identity: AuthorizedViewIdentity, request: Request) => Response | Promise<Response>,
     ): void => {
-      this.unbind.push(bindAuthorizedIpc(ipcMain, options.registry, policy, handler));
+      try {
+        this.unbind.push(bindAuthorizedIpc(ipcMain, options.registry, policy, handler));
+      } catch (error) {
+        this.dispose();
+        throw error;
+      }
     };
     bind(
       contract(DISPLAY_CAPTURE_BEGIN_CHANNEL, false, isDisplayCaptureRequest, isDisplayCaptureStarted),
