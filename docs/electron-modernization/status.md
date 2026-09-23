@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-23
 milestone: M4
 active_work_item: PKG-001
-state: f031-corrected-file-fuse-gated-awaiting-hosted-package
+state: f031-windows-native-test-bounds-awaiting-hosted-package
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -25,6 +25,8 @@ blockers:
 # Current project status
 
 ## Current execution
+
+**Corrected `cf0c5279` E2E checkpoint:** [Run `35919415510`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35919415510) passes the Windows, macOS and Linux platform jobs. Retained Playwright blobs show macOS/Linux each 76 passing first attempts and no worker errors. Windows reports 77 attempts for 76 tests: the first `Logout flow` attempt submits login and confirms history, then waits for CA’s authenticated account page until its 120-second test limit; retry passes. No worker error is reported. The failed attempt does not establish whether the target account failed to load or the fixture failed to observe it. The merged report also completes successfully. This retry remains open under TST-005; a green platform job alone is not clean qualification.
 
 **PKG-003 hosted legacy-profile proof and separate Windows media fixture stall:** [Fork draft PR #65 head `befbf8d5` package-only run `35919774438`](https://github.com/adamlow-wire/wire-desktop/actions/runs/35919774438) passes complete Linux and macOS native/package jobs, including the seeded file-origin legacy profile loading its exact account from the actual packaged AppImage/app. Windows stops before package creation after 257 passing native main cases: the first fake-media permission test remains in `AccountViews.create` at “creating and loading the account view” until its ten-second setup bound, before any permission assertion. No Windows legacy-profile result follows. Local `03ed663f` keeps the permission assertions and two-second test bodies, gives only native fixture setup a finite 20-second bound, and adds fixed phase/loading/crash diagnostics at 1.5 and nine seconds. Mocha types, scoped forced lint and format pass; hosted rerun and root cause remain open.
 
