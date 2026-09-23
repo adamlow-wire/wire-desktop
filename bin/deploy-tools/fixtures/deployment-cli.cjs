@@ -55,13 +55,17 @@ class Deployer {
     await step('operation');
   }
   async copyOnS3(options) {
-    if (process.env.DEPLOY_CLI_VERSION_FIXTURE) emit({kind: 'copy', ...options});
+    if (process.env.DEPLOY_CLI_VERSION_FIXTURE) {
+      emit({kind: 'copy', ...options});
+    }
     await step('operation');
   }
   async findUploadFiles(platform, basePath, version, windowsArtifact) {
     await step('preparation');
     if (windowsArtifact === 'squirrel') {
-      if (process.env.DEPLOY_CLI_VERSION_FIXTURE) emit({kind: 'selection', platform, version, windowsArtifact});
+      if (process.env.DEPLOY_CLI_VERSION_FIXTURE) {
+        emit({kind: 'selection', platform, version, windowsArtifact});
+      }
       return [
         {fileName: 'fixture-1.2.3-full.nupkg', filePath: 'inert/fixture-1.2.3-full.nupkg'},
         {fileName: 'fixture-1.2.3-RELEASES', filePath: 'inert/RELEASES'},
