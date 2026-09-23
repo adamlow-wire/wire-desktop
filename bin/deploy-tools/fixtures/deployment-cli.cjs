@@ -60,8 +60,8 @@ class Deployer {
   }
   async findUploadFiles(platform, basePath, version, windowsArtifact) {
     await step('preparation');
-    if (process.env.DEPLOY_CLI_VERSION_FIXTURE) {
-      emit({kind: 'selection', platform, version, windowsArtifact});
+    if (windowsArtifact === 'squirrel') {
+      if (process.env.DEPLOY_CLI_VERSION_FIXTURE) emit({kind: 'selection', platform, version, windowsArtifact});
       return [
         {fileName: 'fixture-1.2.3-full.nupkg', filePath: 'inert/fixture-1.2.3-full.nupkg'},
         {fileName: 'fixture-1.2.3-RELEASES', filePath: 'inert/RELEASES'},
