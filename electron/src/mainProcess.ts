@@ -168,7 +168,7 @@ const INDEX_HTML = path.join(APP_PATH, 'renderer/index.html');
 const PRELOAD_JS = path.join(APP_PATH, 'dist/preload/preload-shell.js');
 const PRELOAD_RENDERER_JS = path.join(APP_PATH, 'dist/preload/preload-account.js');
 const WRAPPER_CSS = path.join(APP_PATH, 'css/wrapper.css');
-const ICON = path.join(APP_PATH, 'img/download-dialog/logo@2x.png');
+const ICON = path.join(APP_PATH, 'img/logo.256.png');
 
 const WINDOW_SIZE = {
   DEFAULT_HEIGHT: 768,
