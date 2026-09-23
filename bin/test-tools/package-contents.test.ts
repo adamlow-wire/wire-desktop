@@ -109,7 +109,7 @@ describe('[PKG-001] actual archive content verification', () => {
     await assert.rejects(verifyArchive(archive, {unsignedMacOS: true}), /Unsigned macOS update policy/);
   });
   for (const image of runtimeImages) {
-    it(`[PKG-001][DCP-005] rejects missing runtime image ${image}`, async () => {
+    it(`[PKG-001][regression][DCP-005] rejects missing runtime image ${image}`, async () => {
       await fs.remove(path.join(input, image));
       await createPackage(input, archive);
       await assert.rejects(verifyArchive(archive), /Required package file missing/);

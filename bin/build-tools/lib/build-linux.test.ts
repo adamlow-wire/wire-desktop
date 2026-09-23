@@ -88,7 +88,7 @@ describe('build-linux', () => {
   });
 
   describe('buildLinuxConfig', () => {
-    it('keeps the installed desktop entry and Electron window identity aligned', async () => {
+    it('[PKG-001][regression] keeps the installed desktop entry and Electron window identity aligned', async () => {
       const {builderConfig, linuxConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
 
       assert.strictEqual(builderConfig.extraMetadata?.desktopName, linuxConfig.executableName);
@@ -98,7 +98,7 @@ describe('build-linux', () => {
       assert.strictEqual(builderConfig.rpm?.desktop?.entry?.StartupWMClass, linuxConfig.executableName);
     });
 
-    it('uses the supplied Wire Linux icons for installer and desktop integration', async () => {
+    it('[PKG-001][regression] uses the supplied Wire Linux icons for installer and desktop integration', async () => {
       const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
 
       assert.strictEqual(builderConfig.linux?.icon, 'resources/icons');
@@ -110,7 +110,7 @@ describe('build-linux', () => {
       assert.strictEqual(builderConfig.npmRebuild, false);
     });
 
-    it('honors environment variables', async () => {
+    it('[PKG-001][compatibility] honors environment variables', async () => {
       const categories = generateUUID();
       const keywords = generateUUID();
       const nameShort = generateUUID();
