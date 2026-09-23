@@ -141,6 +141,7 @@ async function main() {
                     webappUrl,
                   },
                 ],
+                contextMenuState: {accountId: '', isAtLeastAdmin: false, position: {centerX: 0, centerY: 0}},
               }),
             ),
           {id: legacyAccountId, webappUrl: origin},
