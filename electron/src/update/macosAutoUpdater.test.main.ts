@@ -21,6 +21,8 @@ import {strict as assert} from 'assert';
 import {spawnSync} from 'child_process';
 import path from 'path';
 
+import {buildNativeFixtureEnvironment} from '../../test/nativeFixtureEnvironment';
+
 function run(mode: string) {
   const child = spawnSync(
     process.execPath,
@@ -28,7 +30,7 @@ function run(mode: string) {
     {
       encoding: 'utf8',
       timeout: 10000,
-      env: {PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, UPDATER_FIXTURE_MODE: mode},
+      env: buildNativeFixtureEnvironment(process.env, {UPDATER_FIXTURE_MODE: mode}),
     },
   );
   assert.equal(child.error, undefined);

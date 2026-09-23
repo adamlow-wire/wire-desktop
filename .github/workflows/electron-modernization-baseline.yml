@@ -418,8 +418,7 @@ jobs:
           assert.match(desktop, /^Exec=AppRun %U$/m, 'Desktop launch must not disable sandboxing.');
           assert.doesNotMatch(launcher, /--no-sandbox/, 'AppRun must never add a sandbox bypass.');
           NODE
-          executable=$(find "$extract_dir/squashfs-root" -maxdepth 1 -type f -name '*-desktop' -print -quit)
-          test -n "$executable"
+          executable=$(node bin/test-tools/resolve-linux-installer-executable.cjs "$extract_dir/squashfs-root")
           helper="$(dirname "$executable")/chrome-sandbox"
           test -f "$helper"
           test ! -L "$helper"

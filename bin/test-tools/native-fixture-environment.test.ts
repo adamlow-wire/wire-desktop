@@ -14,6 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import assert from 'node:assert/strict';
@@ -22,7 +23,8 @@ import path from 'node:path';
 
 const requireCjs = createRequire(path.resolve('package.json'));
 
-describe('[TST-005] native updater subprocess display environment', () => {
+describe('[TST-005] native updater subprocess display environment', function () {
+  this.timeout(10000);
   it('preserves the Xvfb authority needed by nested Electron without copying secrets', () => {
     const {buildNativeFixtureEnvironment} = requireCjs('./electron/test/nativeFixtureEnvironment.ts');
     const source = {

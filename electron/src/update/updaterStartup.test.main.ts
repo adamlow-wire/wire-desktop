@@ -21,11 +21,13 @@ import {strict as assert} from 'assert';
 import {spawnSync} from 'child_process';
 import path from 'path';
 
+import {buildNativeFixtureEnvironment} from '../../test/nativeFixtureEnvironment';
+
 function startup(mode: string) {
   const result = spawnSync(process.execPath, [path.resolve('electron/test/fixtures/updater-startup.cjs'), mode], {
     encoding: 'utf8',
     timeout: 10000,
-    env: {PATH: process.env.PATH, SystemRoot: process.env.SystemRoot},
+    env: buildNativeFixtureEnvironment(process.env),
   });
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
