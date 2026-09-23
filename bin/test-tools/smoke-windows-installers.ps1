@@ -12,9 +12,17 @@ function Require-SingleFile($directory, $filter, $label) {
 
 function Invoke-CheckedProcess($file, $arguments, $label) {
   Write-Output "Starting $label."
-  $process = Start-Process -FilePath $file -ArgumentList $arguments -Wait -PassThru
-  if ($process.ExitCode -ne 0) { throw "$label exited with code $($process.ExitCode)." }
-  Write-Output "$label completed."
+  $process = Start-Process -FilePath $file -ArgumentList $arguments -PassThru
+  try {
+    if (-not $process.WaitForExit(180000)) {
+      try { $process.Kill($true) } catch { Write-Warning "$label process termination failed." }
+      throw "$label did not complete within three minutes."
+    }
+    if ($process.ExitCode -ne 0) { throw "$label exited with code $($process.ExitCode)." }
+    Write-Output "$label completed."
+  } finally {
+    $process.Dispose()
+  }
 }
 
 function Assert-InstalledArchive($executable, $expectedHash, $label) {
