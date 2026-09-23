@@ -104,6 +104,7 @@ async function main() {
     const localServer = `http://127.0.0.1:${server.address().port}`;
     const env = {...process.env};
     delete env.ELECTRON_RUN_AS_NODE;
+    delete env.M3_LEGACY_PROFILE;
     // Both the legacy seeder and packaged app use only this fixture's Linux state roots.
     if (process.platform === 'linux') {
       for (const name of ['XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME', 'XDG_RUNTIME_DIR']) {
