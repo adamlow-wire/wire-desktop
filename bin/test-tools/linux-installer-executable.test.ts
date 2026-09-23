@@ -54,6 +54,23 @@ describe('[PKG-001][F-026] extracted Linux installer executable ownership', () =
     assert.ok(workflow.includes('resolve-linux-installer-executable.cjs'));
   });
 
+  it('selects the archived identity for extracted AppImage as well as deb/rpm', async () => {
+    const {resolveLinuxInstallerExecutable} = requireCjs('./bin/test-tools/resolve-linux-installer-executable.cjs');
+    const appImageRoot = path.join(root, 'squashfs-root');
+    const resources = path.join(appImageRoot, 'resources');
+    fs.mkdirSync(resources, {recursive: true});
+    await createPackage(input, path.join(resources, 'app.asar'));
+    const executable = path.join(appImageRoot, 'wire-desktop-internal');
+    fs.writeFileSync(executable, 'fixture executable');
+    fs.chmodSync(executable, 0o755);
+    assert.equal(resolveLinuxInstallerExecutable(appImageRoot), executable);
+    assert.equal(
+      workflow.split('resolve-linux-installer-executable.cjs').length - 1,
+      2,
+      'Both extracted Linux installer steps must use the archived executable identity.',
+    );
+  });
+
   it('rejects a missing or symlinked executable', () => {
     const {resolveLinuxInstallerExecutable} = requireCjs('./bin/test-tools/resolve-linux-installer-executable.cjs');
     const executable = path.join(application, 'wire-desktop-internal');
