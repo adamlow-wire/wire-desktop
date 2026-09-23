@@ -52,6 +52,20 @@ describe('unsigned Windows installer CI gate', () => {
     assert.match(upload ?? '', /if-no-files-found: error/, 'Missing handoff artifacts must fail the package job.');
   });
 
+  it('checks effective fuses in both installed Windows applications', () => {
+    const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
+    const inspect = smoke.split('function Assert-InstalledArchive(')[1]?.split('function Invoke-PackagedSmoke(')[0];
+    assert.ok(inspect, 'Both installed applications must use the common archive checker.');
+    assert.match(
+      inspect,
+      /verify-effective-fuses\.cjs \$executable/,
+      'Installed binaries must have their effective fuses read.',
+    );
+    assert.match(inspect, /if \(\$LASTEXITCODE -ne 0\)/, 'A bad fuse wire must fail the installer smoke.');
+    assert.match(smoke, /Assert-InstalledArchive \$applications\[0\]/);
+    assert.match(smoke, /Assert-InstalledArchive \$application \$expectedHash 'MSI installed'/);
+  });
+
   it('bounds each installer command and terminates a stalled direct process', () => {
     const smoke = fs.readFileSync(path.resolve('bin/test-tools/smoke-windows-installers.ps1'), 'utf8');
     const processHelper = smoke
