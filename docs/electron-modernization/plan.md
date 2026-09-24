@@ -443,7 +443,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### SEC-008 — Centralize navigation and window-open policy
 
 - Priority: `P0`
-- Status: `done`
+- Status: `in_progress` (reopened for TST-006 F-035; prior M3 cutover evidence remains historical)
 - Milestone: `M3`
 - Dependencies: SEC-002
 - Scope: Enforce allowed origins, navigation types, external destinations, SSO windows, PiP windows, and denial behavior.
@@ -457,6 +457,8 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. PR #38 merged as `67dfb5db` after final-head build, analysis, all-platform packages and authenticated Windows/macOS E2E/report passed; the custom-backend cutover gate below remains open.
 - SSO lifecycle refinement: reserve the single active flow before asynchronous initialization and retain it until cleanup completes. Repeated requests from its owner focus it; requests from another account cannot replace or control it. Close and native closed events share one captured-session cleanup operation; a new target reproduced a duplicate-cleanup `undefined.protocol` error. Failed cleanup does not mark the session reusable. CAP-002 still owns one-time callback validation, cookie scope, and full IdP acceptance.
 - Cutover acceptance: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) integrates main-owned destination approval with exact owning-view replacement, preserved partitions, saved-destination denial and invalid approval-result rejection. [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49) integrates unreadable machine-policy denial as4f04a8a0. Final head66f9d9db passes [all-platform native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889664), including real Windows registry guard-removal failure/restoration and combined account/navigation/popup/SSO/PiP/external policy targets, plus build/lint/analysis and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889715),43 initial passes per platform without skips or retries. Programmatic navigation cannot bypass main-owned policy; all four SEC-008 acceptance criteria are satisfied. Live identity-provider acceptance remains CAP-002, not a waiver of navigation enforcement.
+
+- TST-006 follow-up F-035 (September 24): the original native popup tests covered top-level initiators but not a cross-origin child frame with a suppressed referrer. A test-only real-Electron fixture at `e983f58a` fails on Windows, macOS and Linux because the handler accepts its external URL using the top-level account URL. Reopen SEC-008. Preserve ordinary top-level noreferrer external/deep-link behavior and fixed SSO/PiP session controls while denying foreign child initiators; prove both paths with native deny/allow tests and requalify the final composed head. No renderer-claimed origin or empty referrer can establish the opener identity. [Finding and run](review-findings.md).
 
 #### SEC-009 — Centralize permission policy
 
@@ -1001,6 +1003,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.95 | 2026-09-24 | Codex | Reopen SEC-008 for reproduced foreign-child noreferrer popup origin bypass; retain top-level compatibility and require scoped native-qualified fix | SEC-008, TST-006, F-035 |
 | 1.5.94 | 2026-09-24 | Codex | Align Windows App-lock override with current upstream explicit Wire policy; retire generic MDM/Entra activation and update DCP-013 tests/contract | CAP-005, TST-006, DCP-013 |
 | 1.5.93 | 2026-09-23 | Codex | Record published F-031 upload selection, separate failing S3 promotion test/fix, and test-first SEC-011 file-privilege fuse disposition; retain hosted and signed-release gates | PKG-001, TST-005, TST-006, SEC-011, PKG-002 |
 | 1.5.92 | 2026-09-23 | Codex | Record successful tenth unsigned Windows/macOS/Linux package and installed-fuse audit; add separate F-031 versioned Squirrel deployment baselines and local identity fix without claiming final composition | PKG-001, TST-005, TST-006, ELC-003, SEC-011, DCP-017, DCP-018 |
