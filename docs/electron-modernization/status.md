@@ -24,7 +24,7 @@ blockers:
 
 # Current project status
 
-**September 24 upstream App-lock policy review:** F-033 reproduces the modernization branch accepting unrelated Windows MDM enrollment or Entra join as an App-lock override, contrary to upstream Wire commit `4ee56f09`. Isolated `fix/CAP-005-windows-applock-policy-2026-09-24` starts from PR #63 candidate `572bbf25`; test-only baseline `e23672dd` has 23 passing controls/three failing deny targets. The scoped policy correction and DCP-013 contract now pass 22 inert Node managed-backend fixtures, with hosted Windows and final composed qualification still pending. This is local review work; the holistic TST-006 audit remains open. See [review findings](review-findings.md).
+**September 24 upstream App-lock policy review:** F-033 reproduces the modernization branch accepting unrelated Windows MDM enrollment or Entra join as an App-lock override, contrary to upstream Wire commit `4ee56f09`. Isolated `fix/CAP-005-windows-applock-policy-2026-09-24` starts from PR #63 candidate `572bbf25`; test-only baseline `e23672dd` has 23 passing controls/three failing deny targets. The scoped policy correction and DCP-013 contract now pass 22 inert Node managed-backend fixtures, with hosted Windows and final composed qualification still pending. The scoped fix is published as [fork draft PR #67](https://github.com/adamlow-wire/wire-desktop/pull/67), stacked on draft PR #63; hosted Windows and final composed qualification remain pending. The holistic TST-006 audit remains open. See [review findings](review-findings.md).
 
 ## Current execution
 
