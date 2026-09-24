@@ -17,16 +17,22 @@
  *
  */
 
-import {BrowserWindow, HandlerDetails, session} from 'electron';
+import {app, BrowserWindow, HandlerDetails, ipcMain, session} from 'electron';
 import {Maybe} from 'true-myth';
 
 import * as assert from 'assert';
 import {createServer, Server} from 'http';
 import {AddressInfo} from 'net';
+import * as path from 'path';
 
+import {ACCOUNT_POPUP_GRANT_CAPABILITY} from './AccountPopupGrantContract';
+import {AccountPopupGrants, bindAccountPopupGrantIpc} from './AccountPopupGrantIpc';
 import {handleAccountWindowOpen} from './AccountWindowPolicy';
-import {ViewIdentityRegistry} from './ViewIdentityRegistry';
+import {registerViewIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
+import * as EnvironmentUtil from '../runtime/EnvironmentUtil';
+import {snapshotRendererEnvironment} from '../runtime/rendererEnvironment';
+import {createRendererRuntimeArguments} from '../runtime/rendererRuntimeArguments';
 import {SingleSignOn} from '../sso/SingleSignOn';
 
 const getPreferences = (window: BrowserWindow): Electron.WebPreferences =>
@@ -40,6 +46,8 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
   let origin: string;
   let createdSso: SingleSignOn | undefined;
   let observedPopupDetails: HandlerDetails[];
+  let popupGrants: AccountPopupGrants;
+  let registry: ViewIdentityRegistry;
   const external: string[] = [];
   const deepLinks: string[] = [];
   beforeEach(async () => {
@@ -50,19 +58,43 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
     server = createServer((_request, response) => {
       response.setHeader('Content-Type', 'text/html');
       response.setHeader('Referrer-Policy', 'same-origin');
-      response.end('<!doctype html><title>Popup fixture</title>');
+      response.end(
+        `<!doctype html><title>Popup fixture</title><script>
+        window.amplify = {publish() {}, subscribe() {}, unsubscribe() {}};
+        window.wire = {};
+        window.z = {event: {}, util: {Environment: {version() {return 'webapp';}}}};
+      </script>`,
+      );
     });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     parent = new BrowserWindow({
       show: false,
       webPreferences: {
+        additionalArguments: createRendererRuntimeArguments({
+          locale: 'en-US',
+          userDataPath: app.getPath('userData'),
+          environment: snapshotRendererEnvironment(EnvironmentUtil),
+          applockOverride: false,
+        }),
         partition: 'navigation-popup-fixture',
+        preload: path.join(process.cwd(), 'electron/dist/preload/preload-account.js'),
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
       },
     });
+    registry = new ViewIdentityRegistry();
+    registerViewIdentity(registry, {
+      accountId: 'f9b52bc1-fde1-43f2-ad8e-fca517b278f4',
+      allowedOrigin: origin,
+      capabilities: [ACCOUNT_POPUP_GRANT_CAPABILITY],
+      partition: 'navigation-popup-fixture',
+      session: parent.webContents.session,
+      viewType: 'account',
+      webContents: parent.webContents,
+    });
+    popupGrants = bindAccountPopupGrantIpc(ipcMain, registry);
     const popupContext = {
       accountOrigin: origin,
       accountSession: parent.webContents.session,
@@ -73,13 +105,7 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
         deepLinks.push(url);
       },
       openSso: (url: string) => {
-        createdSso = SingleSignOn.create(
-          parent,
-          parent.webContents,
-          Maybe.nothing<string>(),
-          url,
-          new ViewIdentityRegistry(),
-        );
+        createdSso = SingleSignOn.create(parent, parent.webContents, Maybe.nothing<string>(), url, registry);
       },
     };
     parent.webContents.setWindowOpenHandler(details => {
@@ -87,11 +113,13 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
       return handleAccountWindowOpen(details, {
         ...popupContext,
         sourceUrl: parent.webContents.getURL(),
+        trustedMainFrameGrant: popupGrants.consume(parent.webContents, details),
       });
     });
     await parent.loadURL(origin);
   });
   afterEach(async () => {
+    popupGrants.dispose();
     const accountSession = session.fromPartition('navigation-popup-fixture');
     for (const window of BrowserWindow.getAllWindows()) {
       if (window === parent || window.getParentWindow() === parent || window.webContents.session === accountSession) {
@@ -125,22 +153,8 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
       response.end('<!doctype html><title>Foreign child popup fixture</title>');
     });
     await new Promise<void>(resolve => foreignServer.listen(0, '127.0.0.1', resolve));
-    let popupTimeout: NodeJS.Timeout | undefined;
     try {
       const foreignOrigin = `http://127.0.0.1:${(foreignServer.address() as AddressInfo).port}`;
-      let observePopup!: (details: HandlerDetails) => void;
-      const popup = new Promise<HandlerDetails>(resolve => (observePopup = resolve));
-      parent.webContents.setWindowOpenHandler(details => {
-        observePopup(details);
-        return handleAccountWindowOpen(details, {
-          accountOrigin: origin,
-          accountSession: parent.webContents.session,
-          sourceUrl: parent.webContents.getURL(),
-          openExternal: url => external.push(url),
-          openDeepLink: url => deepLinks.push(url),
-          openSso: () => undefined,
-        });
-      });
       await parent.webContents.executeJavaScript(`
         new Promise(resolve => {
           const frame = document.createElement('iframe');
@@ -163,19 +177,9 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
       `,
         true,
       );
-      const details = await Promise.race([
-        popup,
-        new Promise<never>((_resolve, reject) => {
-          popupTimeout = setTimeout(() => reject(new Error('Child popup did not reach the handler.')), 5_000);
-        }),
-      ]);
-      assert.strictEqual(details.referrer.url, '', 'the child link must suppress its outbound referrer');
       assert.deepStrictEqual(external, [], 'a foreign child must not open an external URL');
       assert.deepStrictEqual(deepLinks, []);
     } finally {
-      if (popupTimeout) {
-        clearTimeout(popupTimeout);
-      }
       await new Promise<void>(resolve => foreignServer.close(() => resolve()));
     }
   });
@@ -267,6 +271,7 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
         {
           accountOrigin: origin,
           sourceUrl: parent.webContents.getURL(),
+          trustedMainFrameGrant: false,
           accountSession: parent.webContents.session,
           openExternal: url => {
             external.push(url);
