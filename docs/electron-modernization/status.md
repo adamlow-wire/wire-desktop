@@ -24,6 +24,8 @@ blockers:
 
 # Current project status
 
+**September 24 composed test-collection correction:** The first composed [native/package run `36055679945`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36055679945) is on `1f999595`, whose selected native workflow grep omitted F-034's real-Electron `native account frame identity` test. Its other results remain tied to that SHA; it cannot qualify this specific native assertion. The composed review branch now includes the SEC-003 workflow selector correction and needs one new exact-head hosted native/package run. The full TST-006 review, F-012 and final E2E remain open.
+
 **September 24 composed review fixes:** [The exact-candidate checkpoint](composed-review-checkpoint-2026-09-24.md) combines the scoped F-032 download-setting rollback, upstream F-033 Windows Wire-policy correction and F-034 current-frame IPC guard from fork draft PRs #66–#68 on PR #63 `572bbf25`. Local focused cases pass 13/22/29; root TypeScript, scoped lint and format pass. The native frame lifecycle test has not run. This temporary TST-006 composition requires one hosted native/package qualification and then full source/provenance/coverage reconciliation before handoff; no integration merge is implied.
 
 ## Current execution
