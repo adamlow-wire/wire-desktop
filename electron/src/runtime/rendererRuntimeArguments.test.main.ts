@@ -54,6 +54,17 @@ describe('renderer runtime arguments', () => {
     assert.strictEqual(readRendererUserDataPath(argv), '/tmp/Wire Desktop/user data');
   });
 
+  it('[upstream-parity][CAP-005] passes an optional OS regional locale from main to the isolated preload', () => {
+    const argv = createRendererRuntimeArguments({
+      locale: 'en-US',
+      regionalLocale: 'fr-CH',
+      userDataPath: '/unused',
+    });
+
+    assert.ok(argv.includes('--wire-desktop-regional-locale=fr-CH'));
+    assert.strictEqual(readRendererLocale(argv), 'en-US');
+  });
+
   it('fails closed for missing or malformed values', () => {
     assert.strictEqual(readRendererLocale([]), undefined);
     assert.strictEqual(readRendererUserDataPath(['--wire-desktop-user-data=%E0%A4%A']), undefined);
