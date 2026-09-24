@@ -122,6 +122,16 @@ describe('proxy prompt IPC contracts', () => {
     assert.strictEqual(errors.length, 3);
   });
 
+  it('[security-target][INV-010][SEC-003] omits credentials from rejected proxy submission diagnostics', async () => {
+    const password = 'synthetic-proxy-password-for-diagnostic-test';
+    const errors: unknown[][] = [];
+    const logger = {error: (...args: unknown[]) => errors.push(args)};
+    const ipc = {invoke: async () => Promise.reject(new Error(`proxy failed for ${password}`))};
+
+    assert.strictEqual(await submitProxyPrompt(ipc, {username: 'proxy-user', password}, logger), false);
+    assert.deepStrictEqual(errors, [['Failed to submit proxy credentials.']]);
+  });
+
   it('[characterization][security-target][INV-003][SEC-003][CAP-005] preserves locale, credential, and cancel effects', async () => {
     const handlers = new Map<string, BoundHandler>();
     const registry = new ViewIdentityRegistry();
