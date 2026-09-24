@@ -264,8 +264,8 @@ electron/src/lib/LocalAccountDeletion.test.main.ts,A,test/fixture,pending,pendin
 electron/src/lib/LocalAccountDeletion.ts,M,application,pending,pending,pending
 electron/src/lib/accountLogDeletion.test.main.ts,A,test/fixture,Reviewed lexical containment and exact UUID/legacy layout selection; legacy adapter weaker than native per-ancestor checks. See logging-path-writer-review.md.,d0510140/dce4c285 legacy helper;10399b47 containment correction; no new original-baseline claim. See logging-path-writer-review.md.,Included in43 composed Node cases; full legacy adapter and diagnostic confidentiality review remain open. See logging-path-writer-review.md.
 electron/src/lib/accountLogDeletion.ts,A,application,Reviewed lexical containment and exact UUID/legacy layout selection; legacy adapter weaker than native per-ancestor checks. See logging-path-writer-review.md.,d0510140/dce4c285 legacy helper;10399b47 containment correction; no new original-baseline claim. See logging-path-writer-review.md.,Included in43 composed Node cases; full legacy adapter and diagnostic confidentiality review remain open. See logging-path-writer-review.md.
-electron/src/lib/applicationBootstrap.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/lib/applicationBootstrap.ts,A,application,pending,pending,pending
+electron/src/lib/applicationBootstrap.test.main.ts,A,test/fixture,"Initial 2026-09-24 one-case order assertion passes on composed source; sensitivity and native event ordering provenance pending",pending,pending
+electron/src/lib/applicationBootstrap.ts,A,application,"Initial source pass: fixed IPC/log/wrapper/app-event/maintenance order; native event replay and failure paths pending",pending,pending
 electron/src/lib/availability.ts,A,application,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
 electron/src/lib/configureEnforcedDownloads.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/lib/configureEnforcedDownloads.ts,A,application,"Initial source pass 2026-09-24: startup and download-start path recheck traced; final review pending; see review-pass-2026-09-24.md",pending,pending
@@ -376,11 +376,11 @@ electron/src/preload/preload-webview.ts,M,application,pending,pending,pending
 electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/EnvironmentUtil.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/WallClockLoader.test.node.ts,A,test/fixture,pending,pending,pending
-electron/src/runtime/configurePortableUserData.ts,A,application,pending,pending,pending
+electron/src/runtime/configurePortableUserData.ts,A,application,"Initial source pass: CLI string extraction and injected Electron userData set; malformed flag and OS path behavior pending",pending,pending
 electron/src/runtime/lifecycle.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/lifecycle.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
-electron/src/runtime/portableUserData.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/runtime/portableUserData.ts,A,application,pending,pending,pending
+electron/src/runtime/portableUserData.test.main.ts,A,test/fixture,"Initial 2026-09-24 four-case portable/custom/default path and injected-boundary run passes; CLI/native path behavior pending",pending,pending
+electron/src/runtime/portableUserData.ts,A,application,"Initial source pass: caller-chosen absolute directory or AppImage-adjacent Data path; symlink and native profile behavior pending",pending,pending
 electron/src/runtime/rendererEnvironment.ts,A,application,pending,pending,pending
 electron/src/runtime/rendererRuntimeArguments.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/runtime/rendererRuntimeArguments.ts,A,application,pending,pending,pending
@@ -488,9 +488,9 @@ electron/src/security/WrapperRelaunchIpc.ts,A,application,Initial 2026-09-24 acc
 electron/src/security/WrapperReloadContract.ts,A,application,pending,pending,pending
 electron/src/security/WrapperReloadIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/WrapperReloadIpc.ts,A,application,Initial 2026-09-24 account-only payload-free binder and main caller traced; full test/native lifecycle review remains open,pending,29 combined inert Node IPC cases pass on 0fd4679a; native event serialization and full module coverage pending
-electron/src/security/deepLinkPolicy.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/deepLinkPolicy.ts,A,application,pending,pending,pending
-electron/src/security/externalLinkPolicy.ts,A,application,pending,pending,pending
+electron/src/security/deepLinkPolicy.test.main.ts,A,test/fixture,"Initial 2026-09-24 three-case route/malformed/domain policy run passes; baseline provenance and native dispatch pending",pending,pending
+electron/src/security/deepLinkPolicy.ts,A,application,"Initial source pass: fixed routes, bounded tokens and raw-path delimiter/traversal denial; native protocol dispatch pending",pending,pending
+electron/src/security/externalLinkPolicy.ts,A,application,"Initial source pass: bounded allowed schemes and no URL credentials/control characters; exercised indirectly by four navigation policy cases; native OS open and mailto edge cases pending",pending,pending
 electron/src/settings/ConfigurationPersistence.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/settings/ConfigurationPersistence.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/settings/SchemaUpdater.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
