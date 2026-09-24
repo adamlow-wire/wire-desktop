@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.90
+revision: 1.5.94
 status: draft
-updated: 2026-09-23
+updated: 2026-09-24
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -780,6 +780,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Machine endpoint read failures (September 14, INV-010): an unavailable registry dependency or a registry access error is configured-invalid policy, not proof that policy is absent. Block command-line, per-user, default and saved-account endpoint fallback and emit a non-secret diagnostic. Preserve unmanaged behavior only after a successful read with no configured value. The pinned registry library returns an empty array for a missing key and throws for other read failures. This intentionally strengthens the older fallback characterization; it does not change the separate App-lock override backend contract.
 - Backend characterization checkpoint (2026-09-10): 23 fixture-adapter tests cover all three unchanged backend contracts and error fallbacks; Linux opt-out, macOS preference-key and Windows per-user-policy mutations fail seven targets. The combined central/backend/authorized-IPC suite passes 35/35 locally. Actual OS policy deployment/readback and final-platform gates remain open; the certificate candidate is preserved separately at `ad1211cd` with scoped-exception acceptance still pending.
 - Certificate completion checkpoint (2026-09-10): seven synthetic decision baselines preserve Chromium delegation and explicit rejection; sensitivity mutation detects unconditional acceptance. Three regressions reproduce unanswered callbacks on verifier/dialog exceptions. The local repair returns denial once and does not retry a throwing callback; 11 focused tests pass. Native TLS, final-platform and exception-scope acceptance remain open; the legacy process-global pinning bypass is retained under the maintainer-approved product-parity decision below.
+- September 24 upstream App-lock policy reconciliation (CAP-005/TST-006, DCP-013): on Windows, only the explicit enabled `applockOverride` value under the Wire machine or user policy key authorizes the override. Generic MDM enrollment and Entra join are not Wire policy and must leave the override off without probing those registry trees. This intentionally supersedes the older backend characterization that accepted generic enrollment; preserve the named-policy positive and absent/unreadable-policy negative cases. The change follows upstream Wire commit `4ee56f09` and requires final candidate Windows qualification.
 - Download-path contract (2026-09-09): retain ordinary home-relative nested folders, Unicode/spaces and clearing the setting; normalize separators before persistence. Reject traversal, rooted/drive/UNC/device/stream paths, ambiguous names and linked directory components. Validate saved configuration at startup and revalidate at download start; invalid enforced configuration blocks downloads until corrected and restarted rather than silently bypassing enterprise policy. The main-selected home base is trusted; defending against a same-user filesystem race after validation is not claimed. Native Windows junction evidence is required in addition to platform-independent policy tests.
 - Path-policy reference: [Microsoft file/path naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file), including device aliases, superscript port numbers and trailing-dot/space ambiguity; use explicit Windows path semantics on every test host.
 - Session contract (September 14): automatic system credentials require an exact configured proxy host (case-insensitive) and port match to the native challenge. Missing credentials, an unreadable settings source or a different proxy require the native prompt; no foreign credentials may be transmitted. Applying settings must succeed before authentication or saved proxy state changes. System-proxy credentials and native prompt submission apply settings to the web contents that raised the challenge. Cancellation clears that session and reloads that view; the main shell and unrelated accounts retain their routing. A real two-account proxy regression reproduces the old unrelated default-session mutation.
@@ -999,6 +1000,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.94 | 2026-09-24 | Codex | Align Windows App-lock override with current upstream explicit Wire policy; retire generic MDM/Entra activation and update DCP-013 tests/contract | CAP-005, TST-006, DCP-013 |
 | 1.5.93 | 2026-09-23 | Codex | Record published F-031 upload selection, separate failing S3 promotion test/fix, and test-first SEC-011 file-privilege fuse disposition; retain hosted and signed-release gates | PKG-001, TST-005, TST-006, SEC-011, PKG-002 |
 | 1.5.92 | 2026-09-23 | Codex | Record successful tenth unsigned Windows/macOS/Linux package and installed-fuse audit; add separate F-031 versioned Squirrel deployment baselines and local identity fix without claiming final composition | PKG-001, TST-005, TST-006, ELC-003, SEC-011, DCP-017, DCP-018 |
 | 1.5.90 | 2026-09-23 | Codex | Record eighth hosted three-platform DCP-007 pass and macOS logout retry as an open TST-005 qualification issue | TST-005, DCP-007, TST-006 |

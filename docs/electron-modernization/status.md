@@ -1,16 +1,16 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-23
+updated: 2026-09-24
 milestone: M4
-active_work_item: PKG-001
-state: f031-windows-native-test-bounds-awaiting-hosted-package
+active_work_item: TST-006
+state: composed-review-fixes-awaiting-hosted-native
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
-next_work_item: PKG-001
+active_branch: review/TST-006-composed-fixes-2026-09-24
+next_work_item: TST-006
 blockers:
   [
     profile-compatibility-decision,
@@ -23,6 +23,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 24 composed review fixes:** [The exact-candidate checkpoint](composed-review-checkpoint-2026-09-24.md) combines the scoped F-032 download-setting rollback, upstream F-033 Windows Wire-policy correction and F-034 current-frame IPC guard from fork draft PRs #66–#68 on PR #63 `572bbf25`. Local focused cases pass 13/22/29; root TypeScript, scoped lint and format pass. The native frame lifecycle test has not run. This temporary TST-006 composition requires one hosted native/package qualification and then full source/provenance/coverage reconciliation before handoff; no integration merge is implied.
 
 ## Current execution
 

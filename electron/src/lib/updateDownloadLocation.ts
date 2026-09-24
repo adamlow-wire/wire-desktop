@@ -23,6 +23,7 @@ interface DownloadLocationDependencies {
   readonly ensureDirectory: (path: string) => void;
   readonly isWindows: boolean;
   readonly persist: () => void;
+  readonly read: () => string | undefined;
   readonly resolvePath: (downloadPath: string) => string;
   readonly save: (downloadPath: string | undefined) => void;
 }
@@ -38,6 +39,12 @@ export const updateDownloadLocation = (
     downloadPath = normalizeWindowsDownloadPath(downloadPath);
     dependencies.ensureDirectory(dependencies.resolvePath(downloadPath));
   }
+  const previous = dependencies.read();
   dependencies.save(downloadPath);
-  dependencies.persist();
+  try {
+    dependencies.persist();
+  } catch (error) {
+    dependencies.save(previous);
+    throw error;
+  }
 };

@@ -110,6 +110,42 @@ describe('authorized IPC contract', () => {
     assert.strictEqual(handler.callCount, 1);
   });
 
+  it('[security-target][INV-003][SEC-003] rejects a stale registered frame after same-origin main-frame replacement', async () => {
+    const registeredFrame = {url: 'https://app.wire.test/account'};
+    let currentFrame = registeredFrame;
+    const session = {};
+    const webContents = {
+      id: 83,
+      isDestroyed: () => false,
+      get mainFrame() {
+        return currentFrame;
+      },
+      session,
+    };
+    const registry = new ViewIdentityRegistry();
+    registry.register({
+      accountId: 'account-a',
+      allowedOrigin: 'https://app.wire.test',
+      capabilities: [contract.capability],
+      partition: 'persist:test',
+      session,
+      viewType: 'account',
+      webContents,
+    });
+    const event = {sender: webContents, senderFrame: registeredFrame};
+    const handler = spy(async () => ({accountId: 'account-a'}));
+
+    assert.deepStrictEqual(await executeAuthorizedIpc(registry, contract, event, {contractVersion: 1}, handler), {
+      accountId: 'account-a',
+    });
+    currentFrame = {url: registeredFrame.url};
+    await assert.rejects(
+      () => executeAuthorizedIpc(registry, contract, event, {contractVersion: 1}, handler),
+      /not authorized/,
+    );
+    assert.strictEqual(handler.callCount, 1);
+  });
+
   it('[security-target][INV-003][SEC-003] rejects a view type outside the contract and an invalid response', async () => {
     const sso = createSender(2, 'sso');
     const handler = spy(async () => ({accountId: 'account-a'}));
