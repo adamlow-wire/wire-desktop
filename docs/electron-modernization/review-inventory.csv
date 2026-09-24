@@ -206,7 +206,7 @@ electron/src/accounts/AccountController.test.main.ts,A,test/fixture,"Partial rev
 electron/src/accounts/AccountController.ts,A,application,"Partial lifecycle queue review atb2a72752:32 admitted operations, copied events, execution-time registration identity and finally capacity release. Post-consent check traced; full native/caller/controller review remains pending. ELC availability mapping review retained. Partial removal ordering/session/retry review at5112c50a; publisher/session lookup/survivor effects and native view failure ownership remain open. See account-controller-removal-review.md.","pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore F008 baseline8cd6bd18 before28fbf798; later209c9b8b stale re-registration test. See account-controller-queue-review.md. Removal flags894df496; native filesystem testb0a7bd8c; later374125ab four inert stage/retry cases, composed5112c50a.","pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending Four later queue Node cases/types/lint pass with sensitive registration/copy/cap/release mutations. Not full controller/native acceptance. Later209c9b8b queue test now composed in00a88ae2;86 selected Node cases and test types/lint pass, still partial controller scope. Four removal cases pass; await/order/failure-state mutations fail1/2/4/3 and restore. Included in90 Node cases; native semantics unqualified."
 electron/src/accounts/AccountControllerQueue.test.main.ts,A,test/fixture,"Reviewed inert real-controller/state/registry queue fixture, cancelled approval, ordered copied payloads, stale authority and bounded admission/recovery. Later same-contents re-registration test added.",Separate8cd6bd18 baseline before28fbf798 queue cap; later209c9b8b stale re-registration coverage. Registration/copy/cap/release mutations fail1/1/1/2 and restore4.,4 queue cases included in86 composed00a88ae2 Node controller/profile/cleanup/IPC checks; test types/lint pass. Native consent/navigation and other controller queues/failure paths remain open.
 electron/src/accounts/AccountControllerRemoval.test.main.ts,A,test/fixture,Reviewed real-controller/state fixture with inert owned views/sessions and three failure/retry stages; no native acceptance.,"Later characterization374125ab, composed5112c50a; close-await/clear-await/order/failure-state mutations fail1/2/4/3 and restore4.",4 cases included in90 passing selected Node cases; Electron test types and targeted lint pass. See account-controller-removal-review.md.
-electron/src/accounts/AccountDestination.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/accounts/AccountDestination.test.main.ts,A,test/fixture,"Initial 2026-09-24 test review: eight saved/default/SSO/managed-origin cases pass on composed source; production view guard and provenance remain separate",pending,pending
 electron/src/accounts/AccountDestination.ts,A,application,"Initial source pass 2026-09-24: network profile and view guard traced; final review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/accounts/AccountEnvironmentApproval.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/accounts/AccountEnvironmentApproval.ts,A,application,initial source pass; final review pending,pending,pending
@@ -431,7 +431,7 @@ electron/src/security/DeveloperToolViewIdentity.ts,A,application,pending,pending
 electron/src/security/DownloadLocationContract.ts,A,application,pending,pending,pending
 electron/src/security/DownloadLocationIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/DownloadLocationIpc.ts,A,application,"Initial source pass 2026-09-24: bounded authorized path request and F-032 sink traced; final diagnostics review pending; see review-pass-2026-09-24.md",pending,pending
-electron/src/security/LegacyAccountViewIdentity.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/LegacyAccountViewIdentity.test.main.ts,A,test/fixture,"Initial 2026-09-24 test review: six partition/identity/denial cases pass; registration helper is not called by current main composition",pending,pending
 electron/src/security/LegacyAccountViewIdentity.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/LocalContentPolicy.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/LocalContentPolicy.ts,A,application,initial source pass; final review pending,pending,pending
@@ -442,7 +442,7 @@ electron/src/security/ManagedConfigIpc.test.main.ts,A,test/fixture,pending,pendi
 electron/src/security/ManagedConfigIpc.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/NavigationGuard.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/NavigationGuard.ts,A,application,initial source pass; final review pending,pending,pending
-electron/src/security/NavigationPolicy.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/NavigationPolicy.test.main.ts,A,test/fixture,"Initial 2026-09-24 test review: four navigation/SSO/popup decision cases pass; native child-frame opener identity remains unproved",pending,pending
 electron/src/security/NavigationPolicy.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/NotificationActivationContract.ts,A,application,pending,pending,pending
 electron/src/security/NotificationActivationIpc.test.main.ts,A,test/fixture,pending,pending,pending
@@ -460,7 +460,7 @@ electron/src/security/PublicNetworkPolicy.ts,A,application,initial source pass; 
 electron/src/security/PublicResourceFetch.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/PublicResourceFetch.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/SafeStorageContract.ts,A,application,pending,pending,pending
-electron/src/security/SafeStorageIpc.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/security/SafeStorageIpc.test.main.ts,A,test/fixture,"Initial 2026-09-24 test review: three sender/payload/quota cases pass; cross-account ciphertext ownership F-012 remains unresolved",pending,pending
 electron/src/security/SafeStorageIpc.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/SavePictureContract.ts,A,application,pending,pending,pending
 electron/src/security/SavePictureIpc.test.main.ts,A,test/fixture,Local F003/F011 code and test review; native/composed review pending,Original history mapped separately; later baseline3bb1e04e:11 pass/1 pending-save failure; current15 IPC/save/storage cases pass,Quota/re-registration/pending/failure recovery tested; native dialog and final full-denominator evidence pending
