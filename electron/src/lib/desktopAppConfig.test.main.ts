@@ -22,9 +22,18 @@ import assert from 'node:assert';
 import {createDesktopAppConfig} from './desktopAppConfig';
 
 describe('createDesktopAppConfig', () => {
+  it('[upstream-parity][CAP-005] exposes the OS regional locale separately from display language', () => {
+    const desktopAppConfig = createDesktopAppConfig('3.42.0', {applockOverride: true}, 'fr-CH');
+
+    assert.strictEqual(desktopAppConfig.regionalLocale, 'fr-CH');
+    assert.deepStrictEqual(desktopAppConfig.managedConfig, {applockOverride: true});
+    assert.strictEqual(desktopAppConfig.version, '3.42.0');
+  });
+
   it('exposes support for refreshing existing webviews', () => {
     const desktopAppConfig = createDesktopAppConfig('3.42.0', {applockOverride: false});
 
     assert.strictEqual(desktopAppConfig.supportsWebViewRefresh, true);
+    assert.strictEqual(Object.hasOwn(desktopAppConfig, 'regionalLocale'), false);
   });
 });
