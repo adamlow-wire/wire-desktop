@@ -71,9 +71,11 @@ export const selectAccountPopup = (request: {
   accountOrigin: string | undefined;
   referrerUrl: string;
   sourceUrl: string;
+  trustedMainFrameGrant?: boolean;
 }): AccountPopupDecision => {
   if (
     !isAllowedAccountNavigation(request.sourceUrl, request.accountOrigin) ||
+    (request.referrerUrl === '' && request.trustedMainFrameGrant !== true) ||
     (request.referrerUrl !== '' && !isAllowedAccountNavigation(request.referrerUrl, request.accountOrigin))
   ) {
     return 'deny';

@@ -2,17 +2,18 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-24
 milestone: M4
-active_work_item: TST-006
-state: composed-review-fixes-awaiting-hosted-native
+active_work_item: SEC-008
+state: sec008-popup-grant-scoped-platform-qualified-final-composition-open
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: review/TST-006-composed-fixes-2026-09-24
+active_branch: review/SEC-008-child-frame-popup-repro-2026-09-24
 next_work_item: TST-006
 blockers:
   [
+    sec008-final-composition,
     profile-compatibility-decision,
     final-composed-platform-qualification,
     packaged-legacy-profile-qualification,
@@ -23,6 +24,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 24 SEC-008 scoped popup fix:** F-035 [test-only baseline `e983f58a`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36063921163) proves an external link opened by a committed foreign-origin child frame on Windows, macOS and Linux when `noopener noreferrer` removes the referrer. The first main-frame grant candidate `4531918e` [run `36067600554`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36067600554) denied the child and preserved PiP/SSO, but broke ordinary top-level chat and deep links on all three platforms; it is rejected. Revised `3386c9e1` keeps native anchor navigation, binds an exact destination to a short-lived one-use account-main-frame grant, and passes 18 focused inert cases, both TypeScript projects and scoped lint. [Hosted run `36068535525`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36068535525) passes Windows, macOS and Linux native popup allow/deny, product account/calling and full unsigned package jobs at exact code SHA `3386c9e1`. F-035 remains open for final composition/re-review; this scoped pass does not close TST-006. The exact 548-path audit ledger lives separately at `f8cadb32`; the full TST-006 review and F-012 remain open.
 
 **September 24 upstream regional-locale composition:** [CAP-005 draft PR #69](https://github.com/adamlow-wire/wire-desktop/pull/69) has failing test-only baseline `4631fc8d` and focused main-owned bridge implementation `98d82032`. The composed review branch now carries those source/test changes on top of PRs #66/#67/#68 plus the corrected native frame-test selector. Local composed checks and final exact-head hosted qualification are pending. This does not change the earlier `1f999595` run's SHA or qualify the new locale assertion.
 
