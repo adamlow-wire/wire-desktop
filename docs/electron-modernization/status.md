@@ -24,7 +24,7 @@ blockers:
 
 # Current project status
 
-**September 24 CAP-005 review finding:** Focused TST-006 source review reproduced F-032, a failed Windows download-location settings write that left the rejected value in process memory for a later persistence. Isolated branch `fix/CAP-005-download-location-rollback-2026-09-24` starts from PR #63 candidate `572bbf25`; baseline `9b7534e5` has 12 passing controls and one failing security target. A scoped rollback fix passes 13 focused Node cases, root TypeScript, ESLint, formatting and diff checks locally. The scoped fix is local only and remains unqualified on hosted Windows; the holistic TST-006 review remains open. See [review findings](review-findings.md).
+**September 24 CAP-005 review finding:** Focused TST-006 source review reproduced F-032, a failed Windows download-location settings write that left the rejected value in process memory for a later persistence. Isolated branch `fix/CAP-005-download-location-rollback-2026-09-24` starts from PR #63 candidate `572bbf25`; baseline `9b7534e5` has 12 passing controls and one failing security target. A scoped rollback fix passes 13 focused Node cases, root TypeScript, ESLint, formatting and diff checks locally. The scoped fix is published as [fork draft PR #66](https://github.com/adamlow-wire/wire-desktop/pull/66), stacked on draft PR #63; hosted Windows and final composed qualification remain pending. The holistic TST-006 review remains open. See [review findings](review-findings.md).
 
 ## Current execution
 
