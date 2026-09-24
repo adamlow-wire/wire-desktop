@@ -1,16 +1,16 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-23
+updated: 2026-09-24
 milestone: M4
-active_work_item: PKG-001
-state: f031-windows-native-test-bounds-awaiting-hosted-package
+active_work_item: CAP-005
+state: f032-download-location-rollback-local-review
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
-next_work_item: PKG-001
+active_branch: fix/CAP-005-download-location-rollback-2026-09-24
+next_work_item: TST-006
 blockers:
   [
     profile-compatibility-decision,
@@ -23,6 +23,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 24 CAP-005 review finding:** Focused TST-006 source review reproduced F-032, a failed Windows download-location settings write that left the rejected value in process memory for a later persistence. Isolated branch `fix/CAP-005-download-location-rollback-2026-09-24` starts from PR #63 candidate `572bbf25`; baseline `9b7534e5` has 12 passing controls and one failing security target. A scoped rollback fix passes 13 focused Node cases, root TypeScript, ESLint, formatting and diff checks locally. The scoped fix is published as [fork draft PR #66](https://github.com/adamlow-wire/wire-desktop/pull/66), stacked on draft PR #63; hosted Windows and final composed qualification remain pending. The holistic TST-006 review remains open. See [review findings](review-findings.md).
 
 ## Current execution
 

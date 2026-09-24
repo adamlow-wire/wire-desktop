@@ -321,6 +321,7 @@ const bindIpcEvents = (): void => {
       ensureDirectory: fs.ensureDirSync,
       isWindows: EnvironmentUtil.platform.IS_WINDOWS,
       persist: () => settings.persistToFile(),
+      read: () => settings.restore<string | undefined>(SettingsType.DOWNLOAD_PATH),
       resolvePath: appHomePath,
       save: value => settings.save(SettingsType.DOWNLOAD_PATH, value),
     });
