@@ -371,8 +371,9 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 #### SEC-003 — Introduce typed, validated, capability-specific IPC
 
 - Priority: `P0`
-- Status: `in_progress`
+- Status: `in_progress` (F-003/F-011 and TST-006 F-036 diagnostic follow-up; historical IPC cutover evidence remains scoped)
 - Milestone: `M3`
+- September 24 F-036: a synthetic rejected proxy credential submission reaches the production prompt preload `console.error` through the raw Error argument. Test-only baseline `a2d58e5d` has 16 controls pass and the fixed-message confidentiality target fail. Keep this under SEC-003; a scoped remediation must preserve submit/cancel failure behavior and pass sensitive diagnostics plus final composed qualification. No real credential incident is asserted.
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
 - Acceptance:

@@ -15,6 +15,7 @@ blockers:
   [
     profile-compatibility-decision,
     sec008-child-frame-popup-origin,
+    sec003-proxy-credential-diagnostic,
     final-composed-platform-qualification,
     packaged-legacy-profile-qualification,
     release-draft-selection-disposition,
@@ -24,6 +25,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 24 proxy credential diagnostic review:** In the composed source, the production proxy prompt preload sends credentials to `submitProxyPrompt`; its rejection catch forwards the raw error to `console.error`. Separate test-only baseline `a2d58e5d` has 16 controls pass and one synthetic credential-bearing diagnostic assertion fail. This is F-036 under the already-open SEC-003 owner. No real credential incident is inferred, and no production correction or platform qualification exists yet.
 
 **September 24 exact composed inventory:** [The refreshed ledger](inventory-reconciliation.md#september-24-exact-four-fix-composed-source-accounting) now matches all 548 changed paths/statuses from the original modernization baseline to this audit branch, which combines application SHA `0fd4679a` with the upstream/source-review notes. Five new rows account for the composed checkpoint, regional-locale source/test, removed Windows enrollment constants and native frame-lifecycle test. The initial nine-binder and preload source passes, with 29-case binder and 23-case preload focused inert Node runs, leave 259 source, 330 provenance and 336 coverage exact pending cells; further partial rows still block TST-006. [Native/package run `36058028533`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36058028533) is tied to `0fd4679a`: Linux passes the full job; Windows passes the full job including selected native frame test and installed Squirrel/MSI account smoke; macOS failed in the second fake-media case when its first camera/microphone request exceeded the two-second test-body bound. The case had not reached its legacy-capture denial assertion. macOS packaging and the later native frame test therefore did not run; the artifact-upload failure is secondary to the missing package. No capture-policy bypass is inferred. The earlier `1f999595` run passed Linux/macOS, while Windows was cancelled by same-branch concurrency during installed-app smoke; it gives no Windows outcome. No final handoff or full review is claimed.
 

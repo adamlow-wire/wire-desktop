@@ -35,7 +35,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:webapp-versions:report:v1` | account | Supplies combined About-window version state | merged in PR #30 | SEC-003 |
 | `wire-desktop:about:locale-read:v1` | About window | Bounded localized resource lookup | merged in PR #30 | SEC-003 |
 | `wire-desktop:proxy-prompt:locale-read:v1` | active proxy prompt | Bounded localized resource lookup | merged in PR #31 | SEC-003, CAP-005 |
-| `wire-desktop:proxy-prompt:submit:v1` / `wire-desktop:proxy-prompt:cancel:v1` | exact active proxy prompt | Proxy credentials, challenged-session policy, and reload | merged in PR #31 | SEC-003, CAP-005 |
+| `wire-desktop:proxy-prompt:submit:v1` / `wire-desktop:proxy-prompt:cancel:v1` | exact active proxy prompt | Proxy credentials, challenged-session policy, and reload | merged in PR #31; F-036 baseline `a2d58e5d` confirms raw rejected submit Error reaches the production preload console sink when the error contains a synthetic password; fixed-diagnostic remediation pending | SEC-003, CAP-005 |
 | `wire-desktop:sso:account-limit:v1` | exact application shell | Native warning dialog with no renderer-supplied content | merged in PR #33 | SEC-004, CAP-002 |
 
 TST-006 F-008 identifies that the account-event per-minute quota did not bound pending controller work behind native environment consent. The current CAP-001 candidate bounds shared lifecycle work to 32 active/queued operations, including consent, and rejects overload without enqueueing or state mutation. Existing schemas, capabilities, per-minute quotas and queued authority checks remain. Sensitive local tests pass; hosted qualification and merge remain pending.
