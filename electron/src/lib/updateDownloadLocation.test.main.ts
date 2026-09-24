@@ -29,6 +29,7 @@ const createDependencies = (isWindows: boolean) => {
       ensureDirectory: (path: string) => calls.push(`ensure:${path}`),
       isWindows,
       persist: () => calls.push('persist'),
+      read: () => undefined,
       resolvePath: (downloadPath: string) => `C:\\Users\\wire\\${downloadPath}`,
       save: (downloadPath: string | undefined) => calls.push(`save:${String(downloadPath)}`),
     },
@@ -90,6 +91,7 @@ describe('download location update', () => {
         }
         persisted.push(stored);
       },
+      read: () => stored,
       resolvePath: (downloadPath: string) => `C:\\Users\\wire\\${downloadPath}`,
       save: (downloadPath: string | undefined) => {
         stored = downloadPath ?? '';
