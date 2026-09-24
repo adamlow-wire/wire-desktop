@@ -1,21 +1,20 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-24
+updated: 2026-09-25
 milestone: M4
 active_work_item: TST-006
-state: composed-review-fixes-platform-gap-and-full-audit-open
+state: security-fixes-composed-final-platform-and-full-audit-open
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: review/TST-006-composed-inventory-2026-09-24
+active_branch: review/TST-006-final-composition-2026-09-25
 next_work_item: TST-006
 blockers:
   [
     profile-compatibility-decision,
-    sec008-child-frame-popup-origin,
-    sec003-proxy-credential-diagnostic,
+    final-composed-sec008-and-sec003-qualification,
     final-composed-platform-qualification,
     packaged-legacy-profile-qualification,
     release-draft-selection-disposition,
@@ -25,6 +24,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 25 composed review candidate:** Isolated branch `review/TST-006-final-composition-2026-09-25` at source `c832da76` combines the earlier four-fix application with SEC-008 F-035 one-use popup grants, SEC-003 F-036 fixed proxy rejection diagnostics and TST-005's bounded macOS media test. Exact original-baseline path accounting is **553/553** in [the inventory](inventory-reconciliation.md#september-25-sec-008sec-003media-composed-source-accounting); 258 source, 327 provenance and 341 coverage cells remain exactly `pending`, plus partial entries. Both TypeScript projects, 36 focused inert tests and production preload bundling pass locally on this composition. SEC-008 alone passes all three hosted native/product/package jobs at `3386c9e1`; SEC-003 alone has Linux/macOS full jobs green and Windows packaging still running in run `36070507112`. No hosted final-composition run, final E2E or complete audit exists yet. F-012 profile compatibility also remains open.
 
 **September 24 proxy credential diagnostic review:** In the composed source, the production proxy prompt preload sends credentials to `submitProxyPrompt`; its rejection catch forwards the raw error to `console.error`. Separate test-only baseline `a2d58e5d` has 16 controls pass and one synthetic credential-bearing diagnostic assertion fail. This is F-036 under the already-open SEC-003 owner. No real credential incident is inferred, and no production correction or platform qualification exists yet.
 
