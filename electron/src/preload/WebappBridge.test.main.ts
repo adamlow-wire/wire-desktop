@@ -57,6 +57,10 @@ describe('webapp bridge', () => {
       calls.push({args: [url], name: 'open-graph'});
       return {title: 'Example', url};
     },
+    preparePopup: (url, frameName) => {
+      calls.push({args: [url, frameName], name: 'prepare-popup'});
+      return '0123456789abcdef0123456789abcdef';
+    },
   });
 
   beforeEach(() => calls.splice(0));

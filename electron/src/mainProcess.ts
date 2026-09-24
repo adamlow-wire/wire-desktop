@@ -98,6 +98,8 @@ import {ACCOUNT_EVENT_CAPABILITY} from './security/AccountEventContract';
 import {bindAccountEventIpc} from './security/AccountEventIpc';
 import {createAccountPermissionConsent} from './security/AccountPermissionConsent';
 import {ACCOUNT_PERMISSION_CAPABILITY} from './security/AccountPermissionPolicy';
+import {ACCOUNT_POPUP_GRANT_CAPABILITY} from './security/AccountPopupGrantContract';
+import {bindAccountPopupGrantIpc} from './security/AccountPopupGrantIpc';
 import {handleAccountWindowOpen} from './security/AccountWindowPolicy';
 import {BADGE_COUNT_CAPABILITY, bindBadgeCountIpc} from './security/BadgeCountIpc';
 import {bindDeepLinkSubmitIpc, DEEP_LINK_SUBMIT_CAPABILITY} from './security/DeepLinkSubmitIpc';
@@ -155,6 +157,7 @@ const mainProcessFireAndForgetInvoker = createFireAndForgetInvoker({
 });
 const configuredUserDataPath = getConfiguredPortableUserDataPath();
 const viewIdentityRegistry = new ViewIdentityRegistry();
+const accountPopupGrants = bindAccountPopupGrantIpc(ipcMain, viewIdentityRegistry);
 const pictureInPictureOwners = new PictureInPictureOwners(viewIdentityRegistry);
 const proxyPromptCoordinator = new ProxyPromptCoordinator();
 const developerMenu = createDeveloperMenu(viewIdentityRegistry);
@@ -438,7 +441,12 @@ const showMainWindow = async (mainWindowState: windowStateKeeper.State): Promise
     registry: viewIdentityRegistry,
     preload: PRELOAD_RENDERER_JS,
     additionalArguments: getRendererRuntimeArguments(),
-    capabilities: [...ACCOUNT_CAPABILITIES, ACCOUNT_EVENT_CAPABILITY, ACCOUNT_PERMISSION_CAPABILITY],
+    capabilities: [
+      ...ACCOUNT_CAPABILITIES,
+      ACCOUNT_EVENT_CAPABILITY,
+      ACCOUNT_PERMISSION_CAPABILITY,
+      ACCOUNT_POPUP_GRANT_CAPABILITY,
+    ],
     permissionConsent: createAccountPermissionConsent(main),
     configure: (contents, account, url) => wrapperInit.configureAccountContents(contents, account, url),
     lost: id => mainProcessFireAndForgetInvoker.fireAndForget(() => accountController!.reload(id)),
@@ -783,6 +791,7 @@ class ElectronWrapperInit {
         accountSession: contents.session,
         accountOrigin,
         sourceUrl: contents.getURL(),
+        trustedMainFrameGrant: accountPopupGrants.consume(contents, details),
         openExternal: url => mainProcessFireAndForgetInvoker.fireAndForget(() => WindowUtil.openExternal(url)),
         openDeepLink: url =>
           mainProcessFireAndForgetInvoker.fireAndForget(() => customProtocolHandler.dispatchDeepLink(url)),

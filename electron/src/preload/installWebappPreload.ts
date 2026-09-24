@@ -21,6 +21,7 @@ import {contextBridge, ipcRenderer, webFrame} from 'electron';
 import type {Data as OpenGraphResult} from 'open-graph';
 
 import {ACCOUNT_THEME_CHANNEL} from './AccountThemeContract';
+import {requestAccountPopupGrant} from './requestAccountPopupGrant';
 import {createWebappBridge, exposeWebappBridge} from './WebappBridge';
 import {WebappVersions} from './WebappEventBridge';
 import {createWebappMainWorld} from './WebappMainWorld';
@@ -114,6 +115,8 @@ export const installWebappPreload = (
       environment,
       events: preloadEvents.events,
       getOpenGraphData: getOpenGraphDataViaChannel,
+      preparePopup: (url, frameName) =>
+        sendAccountEvent ? requestAccountPopupGrant(ipcRenderer, url, frameName, logger) : undefined,
     });
     exposeWebappBridge(contextBridge, webappBridge);
   };
@@ -121,7 +124,7 @@ export const installWebappPreload = (
   /* istanbul ignore next -- executed and asserted by LegacyPreloadCompatibility.test.main.ts. */
   initializeWebappBridge();
   installDisplayCapturePreload();
-  mainWorld.install();
+  mainWorld.install(Boolean(sendAccountEvent));
   preloadEvents.subscribeToMainProcessEvents();
 
   window.addEventListener('DOMContentLoaded', async () => {
