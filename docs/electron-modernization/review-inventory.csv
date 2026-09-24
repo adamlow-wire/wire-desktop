@@ -339,22 +339,22 @@ electron/src/preload/AccountShellBridge.ts,A,application,"Reviewed fixed named m
 electron/src/preload/AccountThemeContract.ts,A,application,pending,pending,pending
 electron/src/preload/AccountThemeReceiver.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/preload/AccountThemeReceiver.ts,A,application,pending,pending,pending
-electron/src/preload/ApplicationShellBootstrap.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/preload/ApplicationShellBootstrap.ts,A,application,pending,pending,pending
-electron/src/preload/ApplicationShellBridge.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/preload/ApplicationShellBridge.ts,A,application,pending,pending,pending
-electron/src/preload/ApplicationShellMainWorld.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/preload/ApplicationShellMainWorld.ts,A,application,pending,pending,pending
+electron/src/preload/ApplicationShellBootstrap.test.main.ts,A,test/fixture,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/ApplicationShellBootstrap.ts,A,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/ApplicationShellBridge.test.main.ts,A,test/fixture,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/ApplicationShellBridge.ts,A,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/ApplicationShellMainWorld.test.main.ts,A,test/fixture,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/ApplicationShellMainWorld.ts,A,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/LegacyPreloadCompatibility.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/preload/LegacyWebviewPreferences.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/preload/LegacyWebviewPreferences.ts,A,application,pending,pending,pending
-electron/src/preload/WebappBridge.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/WebappBridge.test.main.ts,A,test/fixture,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/WebappBridge.ts,A,application,"Initial source pass 2026-09-24: fixed exposed bridge traced; full compatibility review pending; see review-pass-2026-09-24.md",pending,pending
-electron/src/preload/WebappEventBridge.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/preload/WebappEventBridge.ts,A,application,pending,pending,pending
-electron/src/preload/WebappMainWorld.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/preload/WebappMainWorld.ts,A,application,pending,pending,pending
-electron/src/preload/WebappPreloadEvents.test.main.ts,A,test/fixture,pending,pending,pending
+electron/src/preload/WebappEventBridge.test.main.ts,A,test/fixture,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/WebappEventBridge.ts,A,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/WebappMainWorld.test.main.ts,A,test/fixture,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/WebappMainWorld.ts,A,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/WebappPreloadEvents.test.main.ts,A,test/fixture,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/WebappPreloadEvents.ts,A,application,"Initial source pass 2026-09-24: fixed event actions and notification gate traced; final review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/installWebappPreload.ts,A,application,"Initial source pass 2026-09-24: named IPC wiring traced; final lifecycle review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/menu/ContextMenuImageAction.ts,A,application,pending,pending,pending
@@ -367,12 +367,12 @@ electron/src/preload/menu/preload-proxy-prompt.test.renderer.ts,A,test/fixture,p
 electron/src/preload/menu/preload-proxy-prompt.ts,M,application,pending,pending,pending
 electron/src/preload/preload-account.test.main.ts,A,test/fixture,Reviewed inert actual-module IPC success and rejection console capture; native console persistence separate,f655d236 one forwarding pass/one private-Error failure; 3bfa7434 passes; raw-Error restoration fails target,2 direct-module cases pass; combined focused182; native/other preload diagnostics pending
 electron/src/preload/preload-account.ts,A,application,Partial: fixed rejection diagnostic preserves fixed IPC event/channel; other preload and native lifecycle review pending,f655d236 forwarding control passes and confidential rejection target fails; 3bfa7434 fix; raw-Error mutation fails then restores,2 inert direct-module targets pass; actual native account-view startup and broader preload paths pending
-electron/src/preload/preload-app.ts,M,application,pending,pending,pending
+electron/src/preload/preload-app.ts,M,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/preload-display-broker.ts,A,application,pending,pending,pending
 electron/src/preload/preload-display-pip.ts,A,application,pending,pending,pending
 electron/src/preload/preload-secure-account.ts,A,application,pending,pending,pending
-electron/src/preload/preload-shell.ts,A,application,pending,pending,pending
-electron/src/preload/preload-webview.ts,M,application,pending,pending,pending
+electron/src/preload/preload-shell.ts,A,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/preload-webview.ts,M,application,"Initial source pass 2026-09-24: preload routing/reachability or direct test read; 23 shared inert Node cases pass; native/lifecycle and test provenance remain open; see review-pass-2026-09-24.md",pending,pending
 electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/EnvironmentUtil.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/WallClockLoader.test.node.ts,A,test/fixture,pending,pending,pending
