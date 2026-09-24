@@ -132,6 +132,19 @@ describe('proxy prompt IPC contracts', () => {
     assert.deepStrictEqual(errors, [['Failed to submit proxy credentials.']]);
   });
 
+  it('[security-target][INV-010][SEC-003] keeps rejected proxy locale and cancel diagnostics fixed', async () => {
+    const errors: unknown[][] = [];
+    const logger = {error: (...args: unknown[]) => errors.push(args)};
+    const ipc = {invoke: async () => Promise.reject(new Error('synthetic-proxy-password-in-error'))};
+
+    assert.strictEqual(await requestProxyPromptLocaleValues(ipc, ['proxyPromptTitle'], logger), undefined);
+    assert.strictEqual(await cancelProxyPrompt(ipc, logger), false);
+    assert.deepStrictEqual(errors, [
+      ['Failed to read proxy prompt locale values.'],
+      ['Failed to cancel the proxy prompt.'],
+    ]);
+  });
+
   it('[characterization][security-target][INV-003][SEC-003][CAP-005] preserves locale, credential, and cancel effects', async () => {
     const handlers = new Map<string, BoundHandler>();
     const registry = new ViewIdentityRegistry();
