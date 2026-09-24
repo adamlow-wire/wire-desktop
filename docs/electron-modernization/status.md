@@ -1,16 +1,16 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-23
+updated: 2026-09-24
 milestone: M4
-active_work_item: PKG-001
-state: f031-windows-native-test-bounds-awaiting-hosted-package
+active_work_item: CAP-005
+state: f033-windows-applock-policy-local-review
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
-next_work_item: PKG-001
+active_branch: fix/CAP-005-windows-applock-policy-2026-09-24
+next_work_item: TST-006
 blockers:
   [
     profile-compatibility-decision,
@@ -23,6 +23,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 24 upstream App-lock policy review:** F-033 reproduces the modernization branch accepting unrelated Windows MDM enrollment or Entra join as an App-lock override, contrary to upstream Wire commit `4ee56f09`. Isolated `fix/CAP-005-windows-applock-policy-2026-09-24` starts from PR #63 candidate `572bbf25`; test-only baseline `e23672dd` has 23 passing controls/three failing deny targets. The scoped policy correction and DCP-013 contract now pass 22 inert Node managed-backend fixtures, with hosted Windows and final composed qualification still pending. The scoped fix is published as [fork draft PR #67](https://github.com/adamlow-wire/wire-desktop/pull/67), stacked on draft PR #63; hosted Windows and final composed qualification remain pending. The holistic TST-006 audit remains open. See [review findings](review-findings.md).
 
 ## Current execution
 
