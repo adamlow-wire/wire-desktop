@@ -24,7 +24,7 @@ blockers:
 
 # Current project status
 
-**September 24 common IPC source review:** F-034 reproduces a same-origin stale-frame authorization in an inert registry fixture; a scoped current-main-frame check now denies it. Branch `fix/SEC-003-current-main-frame-2026-09-24` starts from PR #63 candidate `572bbf25`; test-only baseline `773a6fd8` fails the intended denial. The correction passes 29 representative Node IPC cases, root TypeScript, scoped ESLint and format locally. A native first-load/same-origin regression is authored but unrun. The fix is published as [fork draft PR #68](https://github.com/adamlow-wire/wire-desktop/pull/68), stacked on draft PR #63. No real detached-frame IPC exploit or hosted qualification is claimed; this and the full TST-006 review remain open. See [review findings](review-findings.md).
+**September 24 common IPC source review:** F-034 reproduces a same-origin stale-frame authorization in an inert registry fixture; a scoped current-main-frame check now denies it. Branch `fix/SEC-003-current-main-frame-2026-09-24` starts from PR #63 candidate `572bbf25`; test-only baseline `773a6fd8` fails the intended denial. The correction passes 29 representative Node IPC cases, root TypeScript, scoped ESLint and format locally. A native first-load/same-origin regression is authored but unrun; the package-baseline workflow now selects its exact `native account frame identity` suite title on each OS. The fix is published as [fork draft PR #68](https://github.com/adamlow-wire/wire-desktop/pull/68), stacked on draft PR #63. No real detached-frame IPC exploit or hosted qualification is claimed; this and the full TST-006 review remain open. See [review findings](review-findings.md).
 
 ## Current execution
 
