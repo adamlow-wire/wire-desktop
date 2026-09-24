@@ -138,6 +138,7 @@ const logger = getLogger(MAIN_PROCESS_LOGGER_NAME);
 const getRendererRuntimeArguments = (): string[] =>
   createRendererRuntimeArguments({
     locale: locale.getCurrent(),
+    regionalLocale,
     userDataPath: app.getPath('userData'),
     environment: snapshotRendererEnvironment(EnvironmentUtil),
     applockOverride: getManagedConfig().applockOverride,
@@ -185,6 +186,7 @@ const customProtocolHandler = new CustomProtocolHandler();
 const fileBasedProxyConfig = settings.restore<string | undefined>(SettingsType.PROXY_SERVER_URL);
 
 const currentLocale = locale.getCurrent();
+let regionalLocale: string | undefined;
 const startHidden = Boolean(argv[config.ARGUMENT.STARTUP] || argv[config.ARGUMENT.HIDDEN]);
 const customDownloadPath = settings.restore<string | undefined>(SettingsType.DOWNLOAD_PATH);
 const appHomePath = (downloadPath: string) => resolveWindowsDownloadPath(app.getPath('home'), downloadPath);
@@ -661,6 +663,11 @@ const handleAppEvents = (): void => {
 
   // System Menu, Tray Icon & Show window
   app.on('ready', async () => {
+    try {
+      regionalLocale = app.getSystemLocale();
+    } catch {
+      logger.warn('System regional locale is unavailable; omitting it from the webapp configuration.');
+    }
     installLocalContentProtocol(session.defaultSession, APP_PATH, 'shell');
     installLocalContentProtocol(session.fromPartition('about-window'), APP_PATH, 'about');
     installLocalContentProtocol(session.fromPartition('proxy-prompt-window'), APP_PATH, 'proxy-prompt');

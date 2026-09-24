@@ -34,5 +34,6 @@ describe('createDesktopAppConfig', () => {
     const desktopAppConfig = createDesktopAppConfig('3.42.0', {applockOverride: false});
 
     assert.strictEqual(desktopAppConfig.supportsWebViewRefresh, true);
+    assert.strictEqual(Object.hasOwn(desktopAppConfig, 'regionalLocale'), false);
   });
 });
