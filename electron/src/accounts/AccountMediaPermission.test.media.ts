@@ -159,7 +159,9 @@ describe('[security-target][SEC-009] native account fake-media permissions', () 
     assert.deepEqual(prompts, [['audio', 'video']]);
   });
 
-  it('does not reuse device consent for legacy capture of a test-owned fixture window', async () => {
+  it('does not reuse device consent for legacy capture of a test-owned fixture window', async function () {
+    // A hosted fake-device request can exceed Mocha's two-second default before this denial assertion.
+    this.timeout(10_000);
     consent = true;
     assert.deepEqual(await capture({audio: true, video: true}), {kinds: ['audio', 'video']});
     // Never use a screen id or enumerate sources: only this fixture's own window.
