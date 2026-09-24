@@ -422,10 +422,10 @@ electron/src/security/BadgeCountIpc.test.main.ts,A,test/fixture,pending,pending,
 electron/src/security/BadgeCountIpc.ts,A,application,pending,pending,pending
 electron/src/security/DeepLinkSubmitContract.ts,A,application,pending,pending,pending
 electron/src/security/DeepLinkSubmitIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/DeepLinkSubmitIpc.ts,A,application,pending,pending,pending
+electron/src/security/DeepLinkSubmitIpc.ts,A,application,Initial 2026-09-24 shell-only bounded URL binder and deny/quota tests traced; F-018 diagnostics and native routing remain open,pending,pending
 electron/src/security/DesktopSourcesContract.ts,A,application,pending,pending,pending
 electron/src/security/DesktopSourcesIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/DesktopSourcesIpc.ts,A,application,pending,pending,pending
+electron/src/security/DesktopSourcesIpc.ts,A,application,Initial 2026-09-24 bounded account-only source request and response traced; real Electron serialization and capture performance remain open,pending,pending
 electron/src/security/DeveloperToolViewIdentity.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/DeveloperToolViewIdentity.ts,A,application,pending,pending,pending
 electron/src/security/DownloadLocationContract.ts,A,application,pending,pending,pending
@@ -472,7 +472,7 @@ electron/src/security/SsoAccountLimitIpc.ts,A,application,pending,pending,pendin
 electron/src/security/SsoWindowControl.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/SsoWindowControlContract.ts,A,application,pending,pending,pending
 electron/src/security/SsoWindowControlIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/SsoWindowControlIpc.ts,A,application,pending,pending,pending
+electron/src/security/SsoWindowControlIpc.ts,A,application,Initial 2026-09-24 account-only payload-free binder and exact-owner test traced; native popup lifecycle remains open,pending,pending
 electron/src/security/SsoWindowCoordinator.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/SsoWindowCoordinator.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/ViewIdentityRegistry.ts,A,application,"Partial common authority review at6e987dc5: frozen metadata, object/session/frame/origin/capability and lifecycle revocation. Actual native frame replacement and full caller/registration audit remain open.",Identity baseline8cf6f825 before9058fdd5; later revocation/exact URL/child/shell changes and9a93c6bb coverage mapped in common-ipc-review.md; native baselines not rerun.,9 selected view-authority Node cases pass using inert protocol import; destroy/crash/binding/duplicate mutations fail1/1/2/1 then restore9. Other securityPolicy tests and native deletion/frame/session gates not covered.
@@ -484,10 +484,10 @@ electron/src/security/WindowsDownloadPath.test.main.ts,A,test/fixture,pending,pe
 electron/src/security/WindowsDownloadPath.ts,A,application,"Initial source pass 2026-09-24: lexical and linked-component checks traced; final native review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/security/WrapperRelaunchContract.ts,A,application,pending,pending,pending
 electron/src/security/WrapperRelaunchIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/WrapperRelaunchIpc.ts,A,application,pending,pending,pending
+electron/src/security/WrapperRelaunchIpc.ts,A,application,Initial 2026-09-24 account-only payload-free binder with quota and no-side-effect denial traced; native relaunch remains open,pending,pending
 electron/src/security/WrapperReloadContract.ts,A,application,pending,pending,pending
 electron/src/security/WrapperReloadIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/WrapperReloadIpc.ts,A,application,pending,pending,pending
+electron/src/security/WrapperReloadIpc.ts,A,application,Initial 2026-09-24 account-only payload-free binder and main caller traced; full test/native lifecycle review remains open,pending,pending
 electron/src/security/deepLinkPolicy.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/deepLinkPolicy.ts,A,application,pending,pending,pending
 electron/src/security/externalLinkPolicy.ts,A,application,pending,pending,pending
