@@ -146,6 +146,27 @@ describe('[characterization][CAP-005] managed backend contracts', () => {
     });
 
     for (const marker of ['UPN', 'ProviderID']) {
+      it(`[security-target][CAP-005] ignores unrelated MDM ${marker} enrollment without Wire policy`, () => {
+        registry.enumerateKeys
+          .withArgs(hives.HKEY_LOCAL_MACHINE, constants.WINDOWS_ENROLLMENTS_KEY)
+          .returns(['fixture']);
+        registry.enumerateValues
+          .withArgs(hives.HKEY_LOCAL_MACHINE, `${constants.WINDOWS_ENROLLMENTS_KEY}\\fixture`)
+          .returns([{name: marker, type: 'REG_SZ', data: 'synthetic enrollment'}]);
+        assert.equal(isDeviceManagedWindows(), false);
+        assert.equal(registry.enumerateKeys.callCount, 0, 'Wire policy must not probe generic enrollment');
+      });
+    }
+
+    it('[security-target][CAP-005] ignores an unrelated Entra join without Wire policy', () => {
+      registry.enumerateKeys
+        .withArgs(hives.HKEY_LOCAL_MACHINE, constants.WINDOWS_CLOUD_DOMAIN_JOIN_KEY)
+        .returns(['fixture']);
+      assert.equal(isDeviceManagedWindows(), false);
+      assert.equal(registry.enumerateKeys.callCount, 0, 'Wire policy must not probe generic join state');
+    });
+
+    for (const marker of ['UPN', 'ProviderID']) {
       it(`recognizes MDM enrollment by ${marker} under the machine enrollment key`, () => {
         registry.enumerateKeys
           .withArgs(hives.HKEY_LOCAL_MACHINE, constants.WINDOWS_ENROLLMENTS_KEY)
