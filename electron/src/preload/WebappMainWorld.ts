@@ -19,7 +19,7 @@
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
-import {ACCOUNT_POPUP_GRANT_FEATURE} from '../security/AccountPopupGrantContract';
+import {ACCOUNT_POPUP_GRANT_FEATURE, ACCOUNT_POPUP_GRANT_FRAME_PREFIX} from '../security/AccountPopupGrantContract';
 
 interface WebappEventNames {
   changeEnvironment: string;
@@ -64,6 +64,7 @@ export function installWebappEventAdapter(
   eventNames: WebappEventNames,
   enablePopupBroker = false,
   popupGrantFeature = 'wirePopupGrant',
+  popupGrantFramePrefix = 'wirePopupGrant_',
 ): void {
   if (enablePopupBroker) {
     const bridge = (window as unknown as {wireDesktopBridge?: MainWorldBridge}).wireDesktopBridge;
@@ -101,14 +102,25 @@ export function installWebappEventAdapter(
       if (!anchor || anchor.target !== '_blank') {
         return;
       }
-      event.preventDefault();
-      const features = [
-        anchor.relList.contains('noopener') ? 'noopener' : '',
-        anchor.relList.contains('noreferrer') ? 'noreferrer' : '',
-      ]
-        .filter(Boolean)
-        .join(',');
-      window.open(anchor.href, '_blank', features);
+      if (!bridge || typeof bridge.preparePopup !== 'function') {
+        return;
+      }
+      let token: string | undefined;
+      try {
+        token = bridge.preparePopup(anchor.href, '_blank');
+      } catch {
+        return;
+      }
+      if (!token || !/^[0-9a-f]{32}$/.test(token)) {
+        return;
+      }
+      const authorizedTarget = `${popupGrantFramePrefix}${token}`;
+      anchor.target = authorizedTarget;
+      window.setTimeout(() => {
+        if (anchor.target === authorizedTarget) {
+          anchor.target = '_blank';
+        }
+      }, 0);
     });
   }
 
@@ -192,7 +204,7 @@ export const createWebappMainWorld = (executor: MainWorldExecutor): WebappMainWo
     executor.executeInMainWorld({args: [eventName, detail], func: dispatchWebappEvent}),
   install: (enablePopupBroker = false): void =>
     executor.executeInMainWorld({
-      args: [WEBAPP_EVENT_NAMES, enablePopupBroker, ACCOUNT_POPUP_GRANT_FEATURE],
+      args: [WEBAPP_EVENT_NAMES, enablePopupBroker, ACCOUNT_POPUP_GRANT_FEATURE, ACCOUNT_POPUP_GRANT_FRAME_PREFIX],
       func: installWebappEventAdapter,
     }),
   publish: (eventName: string, ...args: unknown[]): void =>
