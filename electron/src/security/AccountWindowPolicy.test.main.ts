@@ -39,12 +39,14 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
   let server: Server;
   let origin: string;
   let createdSso: SingleSignOn | undefined;
+  let observedPopupDetails: HandlerDetails[];
   const external: string[] = [];
   const deepLinks: string[] = [];
   beforeEach(async () => {
     external.length = 0;
     deepLinks.length = 0;
     createdSso = undefined;
+    observedPopupDetails = [];
     server = createServer((_request, response) => {
       response.setHeader('Content-Type', 'text/html');
       response.setHeader('Referrer-Policy', 'same-origin');
@@ -80,12 +82,13 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
         );
       },
     };
-    parent.webContents.setWindowOpenHandler(details =>
-      handleAccountWindowOpen(details, {
+    parent.webContents.setWindowOpenHandler(details => {
+      observedPopupDetails.push(details);
+      return handleAccountWindowOpen(details, {
         ...popupContext,
         sourceUrl: parent.webContents.getURL(),
-      }),
-    );
+      });
+    });
     await parent.loadURL(origin);
   });
   afterEach(async () => {
@@ -198,9 +201,11 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
       parent.webContents.once('did-create-window', child => resolve(child)),
     );
     await parent.webContents.executeJavaScript(
-      "window.open('', 'WIRE_PICTURE_IN_PICTURE_CALL', 'nodeIntegration=yes,contextIsolation=no,sandbox=no'); undefined",
+      "window.open('', 'WIRE_PICTURE_IN_PICTURE_CALL', 'nodeIntegration=yes,contextIsolation=no,sandbox=no,wirePopupProbe=fixture'); undefined",
     );
     const child = await created;
+    assert.strictEqual(observedPopupDetails.at(-1)?.referrer.url, '', 'PiP has no usable referrer');
+    assert.ok(observedPopupDetails.at(-1)?.features.includes('wirePopupProbe=fixture'));
     try {
       assert.strictEqual(
         child.webContents.session === parent.webContents.session,
@@ -223,6 +228,7 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
       "window.open('https://idp.test/login', 'WIRE_SSO') === null",
     );
     assert.strictEqual(result, true, 'the renderer must not receive a cross-session Window proxy');
+    assert.strictEqual(observedPopupDetails.at(-1)?.referrer.url, '', 'SSO has no usable referrer');
     const child = createdSso?.['ssoWindow'];
     assert.ok(child);
     try {
