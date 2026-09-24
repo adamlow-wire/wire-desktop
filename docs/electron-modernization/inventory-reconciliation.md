@@ -1,5 +1,13 @@
 # Review inventory reconciliation — September 23
 
+## September 24 exact four-fix composed source accounting
+
+The original baseline remains `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a`. The reviewed application/source composition is `0fd4679a2cb5d100bdb9d856627903b49bd4bcd8`: PR #63 plus the scoped PR #66/#67/#68/#69 source and tests, with the SEC-003 native test selector. This separate TST-006 audit branch adds the source-review and upstream-delta notes without changing application source. Compared with the previous 543-row audit ledger, five newly changed paths were inserted: the composed checkpoint, both desktop-config source/test files, managed constants, and the native frame-lifecycle test. The two review notes stay in the ledger because this audit branch adds them. `git diff --no-renames --name-status <baseline> <audit branch>` matches **548 unique path/status rows** with no missing, extra, duplicate or status mismatch. Exact placeholder counts remain **297 source-review, 330 test-provenance and 341 coverage-disposition pending**; many populated cells are also partial. This is path accounting, not a completed holistic review or proof of full coverage. [Composed native/package run `36058028533`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36058028533) is on exact application SHA `0fd4679a` and was pending when recorded; its outcome must be checked separately.
+
+## September 24 exact PR #63 source and review-note accounting
+
+The original baseline remains `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a`. The unchanged runnable application candidate is PR #63 `572bbf25b327ebd91aa9dd98fe0eed1d47521a28`; the TST-006 documentation audit branch adds `upstream-delta-2026-09-24.md` and `review-pass-2026-09-24.md` without changing application source. The former 528-row ledger omitted 14 files already changed at its `c49ebae0` target; this pass adds them plus the new review note. A `git diff --no-renames --name-status <baseline> HEAD` reconciliation on this audit branch, with the new review note included as `A`, matches **543 unique path/status rows** with no missing, extra or duplicate entries. Exact placeholder counts are **297 source-review, 330 test-provenance and 341 coverage-disposition pending**, plus many partial notes. This is complete file accounting for this branch's current diff, not a completed code review or a reconciled PR #66/#67 composition. Re-run after any target or documentation-path change.
+
 TST-006's inventory is scoped to the exact original-baseline-to-current-scoped-candidate delta. This is file-accounting and evidence reconciliation, not completed source review or coverage acceptance.
 
 - Original baseline: `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a`.

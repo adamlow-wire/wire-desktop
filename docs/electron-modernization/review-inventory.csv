@@ -61,17 +61,27 @@ bin/deploy-tools/lib/deploy-utils.ts,M,tooling/CI/config,F-015 dry-run diagnosti
 bin/deploy-tools/s3-cli.ts,M,tooling/CI/config,F-015 terminal catch reviewed; other CLI argument behavior pending,50e86c1a 4 controls pass/8 negative cases fail,Fixed terminal messages preserve exit1; raw logging sensitivity fails
 bin/deploy-tools/s3-win-releases-cli.ts,M,tooling/CI/config,F-015 terminal catch reviewed; other CLI argument behavior pending,50e86c1a 4 controls pass/8 negative cases fail,Fixed terminal messages preserve exit1; raw logging sensitivity fails
 bin/test-tools/build-macos-smoke.ts,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/build-test-workflow.test.ts,A,test/fixture,pending,pending,pending
 bin/test-tools/check-diff-coverage.js,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/check-diff-coverage.test.ts,A,test/fixture,pending,pending,pending
 bin/test-tools/generate-public-api.test.main.ts,A,test/fixture,pending,pending,pending
 bin/test-tools/generate-public-api.ts,A,tooling/CI/config,pending,pending,pending
 bin/test-tools/inventory-shipped-asar.cjs,A,tooling/CI/config,Actual ASAR package-root inventory extraction and semver validation reviewed; dynamic/peer reachability not inferred,Created for ELC-003 shipped graph audit; no pre-existing application behavior changed,Final Linux trio each has identical 407-instance inventory; Windows/macOS graphs and final accepted head pending
+bin/test-tools/linux-installer-executable.test.ts,A,test/fixture,pending,pending,pending
+bin/test-tools/native-fixture-environment.test.ts,A,test/fixture,pending,pending,pending
 bin/test-tools/package-contents.test.ts,A,tooling/CI/config,F-022 eight required runtime-image regression targets reviewed; PKG-002 archived mac policy gate retained; hosted qualification pending,7b532d29 26 controls pass/8 image targets fail before 49ccd76b; 34 focused image cases pass,Full 388 tooling cases after image fix; 42 final Linux/archive focused cases; native tray/About and Windows dialog unrun
 bin/test-tools/packaged-account-smoke.cjs,A,tooling/CI/config,pending,pending,pending
 bin/test-tools/query-shipped-advisories.cjs,A,tooling/CI/config,Explicit opt-in metadata-only npm bulk query reviewed; no automatic network request,Created for ELC-003 shipped advisory audit; initial 423-instance query explicitly approved; 407 subset already queried,Zero high/critical for exact Linux 407 graph at query time; residual moderate/low call paths reviewed; final all-platform graphs pending
 bin/test-tools/renderer-source-maps.test.ts,A,test/fixture,pending,pending,pending
+bin/test-tools/resolve-linux-installer-executable.cjs,A,tooling/CI/config,pending,pending,pending
 bin/test-tools/run-linux-e2e.py,A,tooling/CI/config,pending,pending,pending
 bin/test-tools/run-linux-e2e.test.py,A,test/fixture,pending,pending,pending
+bin/test-tools/smoke-windows-installers.ps1,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/verify-effective-fuses.cjs,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/verify-effective-fuses.test.ts,A,test/fixture,pending,pending,pending
 bin/test-tools/verify-package-contents.cjs,A,tooling/CI/config,F-022 eight runtime images now required; prior 22-file check accepted actual broken installers; hosted qualification pending,7b532d29 actual synthetic ASAR baseline 26 pass/8 failures; 49ccd76b fixes; actual old AppImage rejected,Final Linux trio 7373 entries/30 required images and no forbidden own input; Windows/macOS and native behavior pending
+bin/test-tools/verify-windows-installers.cjs,A,tooling/CI/config,pending,pending,pending
+bin/test-tools/windows-installers.test.ts,A,test/fixture,pending,pending,pending
 docs/electron-modernization/README.md,M,documentation,pending,pending,pending
 docs/electron-modernization/account-controller-queue-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/account-controller-removal-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
@@ -88,6 +98,7 @@ docs/electron-modernization/cap003-capture-cleanup-recovery.md,A,documentation,i
 docs/electron-modernization/cap005-proxy-protocol-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/capabilities.md,M,documentation,pending,pending,pending
 docs/electron-modernization/common-ipc-review.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/composed-review-checkpoint-2026-09-24.md,A,documentation,Scoped four-fix composition and first-run limitation reviewed; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/decisions/0001-process-and-view-architecture.md,A,documentation,pending,pending,pending
 docs/electron-modernization/decisions/0002-account-permission-consent.md,A,documentation,pending,pending,pending
 docs/electron-modernization/decisions/0003-local-content-protocol.md,A,documentation,pending,pending,pending
@@ -117,6 +128,7 @@ docs/electron-modernization/resume-m3.md,A,documentation,pending,pending,pending
 docs/electron-modernization/resume-m4.md,A,documentation,pending,pending,pending
 docs/electron-modernization/review-findings.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-inventory.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
+docs/electron-modernization/review-pass-2026-09-24.md,A,documentation,initial source pass; holistic review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/review-traceability.csv,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/sec013-dispatch-diagnostics.md,A,documentation,initial review; final review pending,not applicable: review documentation,not applicable: review documentation
 docs/electron-modernization/settings-recovery.md,A,documentation,pending,pending,pending
@@ -124,6 +136,7 @@ docs/electron-modernization/shipped-linux-asar-audit.md,A,documentation,initial 
 docs/electron-modernization/status.md,M,documentation,pending,pending,pending
 docs/electron-modernization/testing.md,M,documentation,pending,pending,pending
 docs/electron-modernization/threat-model.md,A,documentation,pending,pending,pending
+docs/electron-modernization/upstream-delta-2026-09-24.md,A,documentation,initial source comparison; final upstream reconciliation pending,not applicable: review documentation,not applicable: review documentation
 docs/windows-msi.md,A,documentation,pending,pending,pending
 e2e-tests/README.md,M,test/fixture,pending,pending,pending
 e2e-tests/actions/createApp.ts,M,test/fixture,pending,pending,pending
@@ -194,7 +207,7 @@ electron/src/accounts/AccountController.ts,A,application,"Partial lifecycle queu
 electron/src/accounts/AccountControllerQueue.test.main.ts,A,test/fixture,"Reviewed inert real-controller/state/registry queue fixture, cancelled approval, ordered copied payloads, stale authority and bounded admission/recovery. Later same-contents re-registration test added.",Separate8cd6bd18 baseline before28fbf798 queue cap; later209c9b8b stale re-registration coverage. Registration/copy/cap/release mutations fail1/1/1/2 and restore4.,4 queue cases included in86 composed00a88ae2 Node controller/profile/cleanup/IPC checks; test types/lint pass. Native consent/navigation and other controller queues/failure paths remain open.
 electron/src/accounts/AccountControllerRemoval.test.main.ts,A,test/fixture,Reviewed real-controller/state fixture with inert owned views/sessions and three failure/retry stages; no native acceptance.,"Later characterization374125ab, composed5112c50a; close-await/clear-await/order/failure-state mutations fail1/2/4/3 and restore4.",4 cases included in90 passing selected Node cases; Electron test types and targeted lint pass. See account-controller-removal-review.md.
 electron/src/accounts/AccountDestination.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/accounts/AccountDestination.ts,A,application,pending,pending,pending
+electron/src/accounts/AccountDestination.ts,A,application,"Initial source pass 2026-09-24: network profile and view guard traced; final review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/accounts/AccountEnvironmentApproval.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/accounts/AccountEnvironmentApproval.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/accounts/AccountLogCleanup.test.main.ts,A,test/fixture,Reviewed UUID/root/ancestor checks and flush-before-maintenance ordering; concurrent local replacement not proven. See logging-path-writer-review.md.,b0a7bd8c implementation; e4cac57f queue-drain baseline before7d5c34bb. See logging-path-writer-review.md.,Included in43 composed Node cases; owned filesystem/link/sentinel and queue recovery evidence; native platform gate pending. See logging-path-writer-review.md.
@@ -237,12 +250,13 @@ electron/src/calling/display/DisplayCaptureContract.test.main.ts,A,test/fixture,
 electron/src/calling/display/DisplayCaptureContract.ts,A,application,pending,pending,pending
 electron/src/calling/display/DisplayCaptureCoordinator.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/calling/display/DisplayCaptureCoordinator.ts,A,application,"Partial end/revalidate/dispose/admission review: reproduced interrupted cancellation and lost cleanup ownership;8727695e settles once, attempts all cleanup and retains bounded failed owners for retry. Full constructor/permission/port/source/native scope remains open. See cap003-capture-cleanup-recovery.md. Partial port transfer ownership review: untransferred endpoints close; failed closure retains retry ownership. Native transfer atomicity remains open. Actual configurePermission callback policy reviewed: exact broker/frame, current owner/start phase, one-shot media then selected display; retained callbacks deny after teardown. Partial setup/native/session lifetime remains open. Confirmed async startup fulfillment exception gap fixed by terminal catch5ca6dbf6; synchronous partial setup still open. Partial constructor failure reproduced; ce028312 rolls back acquired bindings without removing foreign handler. Synchronous flow/session/listener setup remains open. Synchronous registration/permission/popup/navigation failure response characterized with acquired-resource assertions; pre-flow/native partial installation/session lifetime remains unqualified.","Original source/native fixturea90c6892; separate82f6e965 cleanup baseline and latera389b683 revalidation baseline precede8727695e. Native fixture not executed here. Baseline8986305a (10 pass/2 fail) before26706fb8; closure/ownership mutations fail3/4 then restore13. Test-only14a1578e adds13 passing cases; six guard mutations each fail1 after strengthening independent phase coverage. Startup baseline57c46a3b/8e8b5682 (2 pass/3 fail), no-cleanup mutation4fail. Constructor d1df4fca2pass5fail beforece028312; mutations5/6fail. c9a542c1 adds6 passing setup cases; cancellation/revocation mutations fail6/9 then restore11 startup cases.","8 inert actual-field/method cases plus9 contract cases pass; five mutations fail8/6/1/1/1 then restore. Composed40f9b191 types/lint/build pass. No native/OS stream-termination claim. Composition4b1eb667:22 inert cleanup/contract cases plus types/lint/build observed September22; temporary logs lost September23. Native constructor/session/port qualification remains open. Composed7fbd3b7d passes35 inert cases; standalone strict test types and lint pass with surviving root dependencies. No new full-build/native claim. Latest0a961791 passes40 inert capture cases; source/test lint and standalone fixture types pass; no new native/full-build claim. September23 immutable own-dependency revalidation at unchanged0a961791 passes all four typecheck groups,40 capture cases,targeted lint and production build; see recovered-candidate-qualification.md. Native gates remain open. Latest1c301664 passes47 inert capture cases, Electron test types/lint/build; no native claim. Latest1555802d passes53 combined capture cases, Electron test types and lint; runtime unchanged from1c301664."
+electron/src/calling/display/DisplayCaptureInstrumentedCleanup.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/calling/display/DisplayCaptureRegistration.test.main.ts,A,test/fixture,"Complete actual class/contract helper and real authorization binder, with inert duplicate-rejecting IPC port. Checks acquired-handler rollback, foreign-owner preservation and clean retry; native removal/lifecycle not qualified.",Separate d1df4fca baseline2 pass/5 fail before ce028312; omission/foreign-deletion mutations fail5/6 then restore7.,"7 registration plus40 prior capture cases pass at1c301664; Electron test types, targeted lint and production build pass with pinned own dependencies. Native/session partial setup remains open."
 electron/src/calling/display/DisplayCaptureRenderer.test.renderer.ts,A,test/fixture,pending,pending,pending
 electron/src/calling/display/DisplayCaptureStartup.test.main.ts,A,test/fixture,"Actual class minus constructor IPC binding; captures otherwise discarded load chain with AST observation. Inert window/session/registration ports; asserts settlement and owned cleanup, no native qualification. Synchronous registration/permission/popup/navigation failure response characterized with acquired-resource assertions; pre-flow/native partial installation/session lifetime remains unqualified.",Separate57c46a3b baseline2 pass/3 fail;8e8b5682 fixes whitespace observation and repeats baseline;5ca6dbf6 runtime fix. Swallowed-cleanup mutation fails4 then restores. c9a542c1 adds6 passing setup cases; cancellation/revocation mutations fail6/9 then restore11 startup cases.,"5 startup cases plus35 prior capture cases pass on0a961791; targeted lint and strict standalone test types pass. Full composed build/native startup remain open. September23 immutable own-dependency revalidation at unchanged0a961791 passes all four typecheck groups,40 capture cases,targeted lint and production build; see recovered-candidate-qualification.md. Native gates remain open. Latest1555802d passes53 combined capture cases, Electron test types and lint; runtime unchanged from1c301664."
 electron/src/lib/CertificateDependency.test.main.ts,A,test/fixture,Reviewed real parser and temporary pin lifetime,0d792464 eight passing baseline cases,Three pin-denial sensitivity failures; patched eight pass; native callback qualification pending
 electron/src/lib/CertificateVerifyProcManager.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/lib/CertificateVerifyProcManager.ts,M,application,pending,pending,pending
+electron/src/lib/CertificateVerifyProcManager.ts,M,application,"Initial source and selected test pass 2026-09-24: Chromium and pin denial traced; native and diagnostic review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/lib/CoreProtocol.test.main.ts,M,test/fixture,pending,pending,pending
 electron/src/lib/CoreProtocol.ts,M,application,F-018 failure catch reviewed and fixed bya2d77b19; routing unchanged in composed308fceb4. Registration/platform and full module review remain open.,Separatebdbe1595 baseline5 controls pass/4 confidentiality failures; a2d77b19 fix9 pass; omission sensitivities1 delivery/4 diagnostics.,9 inert real-handler/parser cases pass within29 composed308fceb4 tests; native CoreProtocol registration/routing and final platform gates remain open.
 electron/src/lib/CoreProtocolDiagnostics.test.main.ts,A,test/fixture,Reviewed inert VM adapter executes actual handler and real parser; exact routing/refusal/useful non-secret diagnostic assertions.,bdbe1595 baseline5 controls pass/4 failures beforea2d77b19; success omission and diagnostic omission sensitivity verified.,"9 cases pass within29 composed308fceb4 cases; tests replace native delivery only, not native/platform qualification."
@@ -254,7 +268,9 @@ electron/src/lib/applicationBootstrap.test.main.ts,A,test/fixture,pending,pendin
 electron/src/lib/applicationBootstrap.ts,A,application,pending,pending,pending
 electron/src/lib/availability.ts,A,application,pending; ELC-003 badge enum consumer locally reviewed; final composed review pending,pending; c35af26c numeric-wire baseline passes; two wrong-enum assertions per consumer fail then restore,pending; renderer80/controller9 pass after fresh install; actual packaged pruning/native qualification pending
 electron/src/lib/configureEnforcedDownloads.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/lib/configureEnforcedDownloads.ts,A,application,pending,pending,pending
+electron/src/lib/configureEnforcedDownloads.ts,A,application,"Initial source pass 2026-09-24: startup and download-start path recheck traced; final review pending; see review-pass-2026-09-24.md",pending,pending
+electron/src/lib/desktopAppConfig.test.main.ts,M,test/fixture,Scoped locale and retained capability assertions reviewed; native bridge assertion remains unrun,4631fc8d test-only baseline fails missing locale then 98d82032 passes,2 direct Node cases pass; actual preload and full module coverage pending
+electron/src/lib/desktopAppConfig.ts,M,application,Scoped optional regional-locale factory reviewed; main and preload integration pending hosted test,4631fc8d baseline fails field before 98d82032 correction,2 direct Node cases pass; native bridge and full coverage pending
 electron/src/lib/download.test.main.ts,M,test/fixture,pending,pending,pending
 electron/src/lib/download.ts,M,application,pending,pending,pending
 electron/src/lib/enumerateDesktopSources.test.main.ts,A,test/fixture,pending,pending,pending
@@ -264,9 +280,9 @@ electron/src/lib/fireAndForgetInvoker.test.main.ts,A,test/fixture,"Reviewed sync
 electron/src/lib/fireAndForgetInvoker.ts,A,application,"Reviewed synchronous invocation, promise tracking, finally release and observer-failure reporting; errors intentionally forwarded unchanged. See logging-diagnostic-review.md.",1781c337 source/test together; no separate preimplementation baseline established. See logging-diagnostic-review.md.,5 cases pass at65e258ab; omitted reporting fails3; snapshot semantics and repeated reporter failure remain explicit limits. See logging-diagnostic-review.md.
 electron/src/lib/forwardWrapperReloadRequest.test.main.ts,M,test/fixture,pending,pending,pending
 electron/src/lib/openGraph.test.main.ts,M,test/fixture,pending,pending,pending
-electron/src/lib/openGraph.ts,M,application,pending,pending,pending
+electron/src/lib/openGraph.ts,M,application,"Initial source pass 2026-09-24: public fetch and image result traced; current webapp 4b361a4d consumes candidate image.data; upstream desktop 5504073a writes image.url; see review-pass-2026-09-24.md",pending,pending
 electron/src/lib/updateDownloadLocation.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/lib/updateDownloadLocation.ts,A,application,pending,pending,pending
+electron/src/lib/updateDownloadLocation.ts,A,application,"F-032 reproduced and scoped PR66 fix; final composed review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/lib/zip.ts,D,application,Deletion verified at 035aae92; no zipFiles or lib/zip consumers remain in composed electron/bin tree,035aae92 replaced materialized log export with streaming snapshots; no standalone pre-deletion test provenance claimed,Deleted helper has no instrumentable target; retained logExport/loggerUtils behavior requires their own review
 electron/src/locale/en-US.json,M,application,pending,pending,pending
 electron/src/locale/index.ts,M,application,pending,pending,pending
@@ -306,7 +322,8 @@ electron/src/main.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/main.ts,M,application,pending,pending,pending
 electron/src/mainProcess.ts,A,application,Partial F-007/F-019 review retained; F-022 Windows download-complete icon now uses packaged logo. Remaining diagnostics/composition review pending,F-007/F-019 baselines retained; F-022 archive image baseline 7b532d29 preceded 8cb97698 icon-path correction,Required logo present in final Linux ASAR; actual Windows download dialog/native startup and broader module review pending
 electron/src/managed/backends/ManagedBackends.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/managed/backends/windows.ts,M,application,pending,pending,pending
+electron/src/managed/backends/windows.ts,M,application,"F-033 upstream policy mismatch reproduced and scoped PR67 fix; final Windows review pending; see review-pass-2026-09-24.md",pending,pending
+electron/src/managed/constants.ts,M,application,Scoped removal of unrelated MDM and Entra marker constants reviewed; actual Windows policy readback pending,e23672dd failing generic-enrollment targets before d3450642 correction,22 inert backend cases pass; actual Windows registry policy readback pending
 electron/src/menu/AccountContextMenu.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/menu/AccountContextMenu.ts,A,application,pending,pending,pending
 electron/src/menu/AccountTheme.test.main.ts,A,test/fixture,pending,pending,pending
@@ -332,14 +349,14 @@ electron/src/preload/LegacyPreloadCompatibility.test.main.ts,A,test/fixture,pend
 electron/src/preload/LegacyWebviewPreferences.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/preload/LegacyWebviewPreferences.ts,A,application,pending,pending,pending
 electron/src/preload/WebappBridge.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/preload/WebappBridge.ts,A,application,pending,pending,pending
+electron/src/preload/WebappBridge.ts,A,application,"Initial source pass 2026-09-24: fixed exposed bridge traced; full compatibility review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/WebappEventBridge.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/preload/WebappEventBridge.ts,A,application,pending,pending,pending
 electron/src/preload/WebappMainWorld.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/preload/WebappMainWorld.ts,A,application,pending,pending,pending
 electron/src/preload/WebappPreloadEvents.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/preload/WebappPreloadEvents.ts,A,application,pending,pending,pending
-electron/src/preload/installWebappPreload.ts,A,application,pending,pending,pending
+electron/src/preload/WebappPreloadEvents.ts,A,application,"Initial source pass 2026-09-24: fixed event actions and notification gate traced; final review pending; see review-pass-2026-09-24.md",pending,pending
+electron/src/preload/installWebappPreload.ts,A,application,"Initial source pass 2026-09-24: named IPC wiring traced; final lifecycle review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/preload/menu/ContextMenuImageAction.ts,A,application,pending,pending,pending
 electron/src/preload/menu/contextMenuPolicy.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/preload/menu/contextMenuPolicy.ts,A,application,pending,pending,pending
@@ -358,6 +375,7 @@ electron/src/preload/preload-shell.ts,A,application,pending,pending,pending
 electron/src/preload/preload-webview.ts,M,application,pending,pending,pending
 electron/src/runtime/EnvironmentUtil.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/EnvironmentUtil.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
+electron/src/runtime/WallClockLoader.test.node.ts,A,test/fixture,pending,pending,pending
 electron/src/runtime/configurePortableUserData.ts,A,application,pending,pending,pending
 electron/src/runtime/lifecycle.test.main.ts,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/src/runtime/lifecycle.ts,M,application,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
@@ -412,7 +430,7 @@ electron/src/security/DeveloperToolViewIdentity.test.main.ts,A,test/fixture,pend
 electron/src/security/DeveloperToolViewIdentity.ts,A,application,pending,pending,pending
 electron/src/security/DownloadLocationContract.ts,A,application,pending,pending,pending
 electron/src/security/DownloadLocationIpc.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/DownloadLocationIpc.ts,A,application,pending,pending,pending
+electron/src/security/DownloadLocationIpc.ts,A,application,"Initial source pass 2026-09-24: bounded authorized path request and F-032 sink traced; final diagnostics review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/security/LegacyAccountViewIdentity.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/LegacyAccountViewIdentity.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/LocalContentPolicy.test.main.ts,A,test/fixture,pending,pending,pending
@@ -433,7 +451,7 @@ electron/src/security/OpenGraphContract.ts,A,application,pending,pending,pending
 electron/src/security/OpenGraphIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/OpenGraphIpc.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/PreviewMetadata.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/PreviewMetadata.ts,A,application,pending,pending,pending
+electron/src/security/PreviewMetadata.ts,A,application,"Initial source pass 2026-09-24: finite parser fields traced; final result-shape review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/security/ProxyPromptContract.ts,A,application,"Endpoint review atb2c7433c in proxy-ipc-review.md: fixed channels/capabilities/view, exact credentials and sender-owned ID, bounded values/quotas. Raw diagnostic errors and broader common-boundary review remain open.",Source/tests together75761fce; no separate original baseline. Later335a91a8 updates wire-app fixture and adds7 identity denials plus inclusive credential-limit control; each identity/limit mutation fails1.,16 endpoint cases included in74 composed6e987dc5 Node proxy/window/IPC checks; Electron test types and targeted lint pass. Native sender/IPC and exhaustive locale shapes remain unqualified.
 electron/src/security/ProxyPromptIpc.test.main.ts,A,test/fixture,"Endpoint review atb2c7433c in proxy-ipc-review.md: fixed channels/capabilities/view, exact credentials and sender-owned ID, bounded values/quotas. Raw diagnostic errors and broader common-boundary review remain open.",Source/tests together75761fce; no separate original baseline. Later335a91a8 updates wire-app fixture and adds7 identity denials plus inclusive credential-limit control; each identity/limit mutation fails1.,16 endpoint cases included in74 composed6e987dc5 Node proxy/window/IPC checks; Electron test types and targeted lint pass. Native sender/IPC and exhaustive locale shapes remain unqualified.
 electron/src/security/ProxyPromptIpc.ts,A,application,"Endpoint review atb2c7433c in proxy-ipc-review.md: fixed channels/capabilities/view, exact credentials and sender-owned ID, bounded values/quotas. Raw diagnostic errors and broader common-boundary review remain open.",Source/tests together75761fce; no separate original baseline. Later335a91a8 updates wire-app fixture and adds7 identity denials plus inclusive credential-limit control; each identity/limit mutation fails1.,16 endpoint cases included in74 composed6e987dc5 Node proxy/window/IPC checks; Electron test types and targeted lint pass. Native sender/IPC and exhaustive locale shapes remain unqualified.
@@ -458,11 +476,12 @@ electron/src/security/SsoWindowControlIpc.ts,A,application,pending,pending,pendi
 electron/src/security/SsoWindowCoordinator.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/SsoWindowCoordinator.ts,A,application,initial source pass; final review pending,pending,pending
 electron/src/security/ViewIdentityRegistry.ts,A,application,"Partial common authority review at6e987dc5: frozen metadata, object/session/frame/origin/capability and lifecycle revocation. Actual native frame replacement and full caller/registration audit remain open.",Identity baseline8cf6f825 before9058fdd5; later revocation/exact URL/child/shell changes and9a93c6bb coverage mapped in common-ipc-review.md; native baselines not rerun.,9 selected view-authority Node cases pass using inert protocol import; destroy/crash/binding/duplicate mutations fail1/1/2/1 then restore9. Other securityPolicy tests and native deletion/frame/session gates not covered.
+electron/src/security/ViewIdentityRegistryLifecycle.test.main.ts,A,test/fixture,Scoped real-Electron initial-load and same-origin frame fixture reviewed; no detached-frame exploit claimed,Added after 773a6fd8 inert failing baseline and 96fea00b correction; hosted native run pending,Selected in 0fd4679a workflow; actual three-OS native result pending
 electron/src/security/WebAppLoadedContract.ts,A,application,pending,pending,pending
 electron/src/security/WebAppLoadedIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/WebAppLoadedIpc.ts,A,application,pending,pending,pending
 electron/src/security/WindowsDownloadPath.test.main.ts,A,test/fixture,pending,pending,pending
-electron/src/security/WindowsDownloadPath.ts,A,application,pending,pending,pending
+electron/src/security/WindowsDownloadPath.ts,A,application,"Initial source pass 2026-09-24: lexical and linked-component checks traced; final native review pending; see review-pass-2026-09-24.md",pending,pending
 electron/src/security/WrapperRelaunchContract.ts,A,application,pending,pending,pending
 electron/src/security/WrapperRelaunchIpc.test.main.ts,A,test/fixture,pending,pending,pending
 electron/src/security/WrapperRelaunchIpc.ts,A,application,pending,pending,pending
@@ -511,6 +530,7 @@ electron/test/fixtures/legacy-account-profile.js,A,test/fixture,pending,pending,
 electron/test/fixtures/macos-updater.cjs,A,test/fixture,Reviewed fake Electron/updater and synthetic credentials,e0103706 before implementation,No native or network execution; process rejection observation
 electron/test/fixtures/save-picture-preload.js,A,test/fixture,Local review/type/lint; native execution pending,Later F011 native regression; not original baseline,Hosted-only; controlled dialog response; actual OS interaction remains external
 electron/test/fixtures/updater-startup.cjs,A,test/fixture,Reviewed structural extraction of actual callback and inert ports,Pre-fix Node composition fixture,No native lifecycle or update claim; nested listener retained under test
+electron/test/nativeFixtureEnvironment.ts,A,test/fixture,pending,pending,pending
 electron/test/node-settings-context.cjs,A,test/fixture,F-010 scoped remediation; final review pending,b122d801/f5f8684c observed baseline; later fault/recovery regressions; native caller tests pending,pending
 electron/test/node-sso-context.cjs,A,test adapter,Node-only guard and owned objects reviewed,1a1093f5,native tests do not load this adapter
 electron/test/proxySettingsApplicationFixture.ts,A,test/fixture,Reviewed test-only AST extraction preserves actual initializer and inert logger; requires exactly one matching declaration; no production import.,Extracted without semantic change from d49d3bf3 regression in d204e2d5; prefix mutation fails6; restoration9 passes.,Shared loader exercised by9 Node cases in31 composed2ea74556 checks. Native consumer unrun; fixture cannot establish caller/session integration.
