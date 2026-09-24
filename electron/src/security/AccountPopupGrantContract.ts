@@ -20,6 +20,7 @@
 export const ACCOUNT_POPUP_GRANT_CHANNEL = 'wire-desktop:account:popup-grant:v1';
 export const ACCOUNT_POPUP_GRANT_CAPABILITY = 'account:popup-grant';
 export const ACCOUNT_POPUP_GRANT_FEATURE = 'wirePopupGrant';
+export const ACCOUNT_POPUP_GRANT_FRAME_PREFIX = 'wirePopupGrant_';
 
 export interface AccountPopupGrantRequest {
   readonly url: string;

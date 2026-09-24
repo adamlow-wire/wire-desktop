@@ -23,6 +23,7 @@ import {
   ACCOUNT_POPUP_GRANT_CAPABILITY,
   ACCOUNT_POPUP_GRANT_CHANNEL,
   ACCOUNT_POPUP_GRANT_FEATURE,
+  ACCOUNT_POPUP_GRANT_FRAME_PREFIX,
 } from './AccountPopupGrantContract';
 import {bindAccountPopupGrantIpc} from './AccountPopupGrantIpc';
 import {ViewIdentityRegistry} from './ViewIdentityRegistry';
@@ -127,6 +128,32 @@ describe('account popup one-use main-frame grants [security-target][SEC-008]', (
 
   it('binds each token to its destination, window name and short lifetime, rejecting marker ambiguity', () => {
     const {contents, details, grants, issue, setClock} = createHarness();
+    const anchorToken = issue({url: DESTINATION, frameName: '_blank'});
+    const anchorDetails = {
+      features: '',
+      frameName: `${ACCOUNT_POPUP_GRANT_FRAME_PREFIX}${anchorToken}`,
+      url: DESTINATION,
+    };
+    assert.strictEqual(grants.consume(contents, anchorDetails), true);
+    assert.strictEqual(grants.consume(contents, anchorDetails), false);
+    const mixedToken = issue({url: DESTINATION, frameName: '_blank'});
+    assert.strictEqual(
+      grants.consume(contents, {
+        features: `${ACCOUNT_POPUP_GRANT_FEATURE}=${mixedToken}`,
+        frameName: `${ACCOUNT_POPUP_GRANT_FRAME_PREFIX}${mixedToken}`,
+        url: DESTINATION,
+      }),
+      false,
+    );
+    const wrongAnchorUrl = issue({url: DESTINATION, frameName: '_blank'});
+    assert.strictEqual(
+      grants.consume(contents, {
+        features: '',
+        frameName: `${ACCOUNT_POPUP_GRANT_FRAME_PREFIX}${wrongAnchorUrl}`,
+        url: 'https://example.test/other',
+      }),
+      false,
+    );
     const wrongDestination = issue({url: DESTINATION, frameName: '_blank'});
     assert.strictEqual(grants.consume(contents, details(wrongDestination, 'https://example.test/other')), false);
     const wrongName = issue({url: DESTINATION, frameName: '_blank'});

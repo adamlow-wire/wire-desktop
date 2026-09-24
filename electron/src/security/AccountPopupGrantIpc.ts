@@ -25,6 +25,7 @@ import {
   ACCOUNT_POPUP_GRANT_CAPABILITY,
   ACCOUNT_POPUP_GRANT_CHANNEL,
   ACCOUNT_POPUP_GRANT_FEATURE,
+  ACCOUNT_POPUP_GRANT_FRAME_PREFIX,
   AccountPopupGrantRequest,
 } from './AccountPopupGrantContract';
 import {AuthorizedIpcContract, bindAuthorizedSyncIpc} from './AuthorizedIpc';
@@ -150,14 +151,25 @@ export const bindAccountPopupGrantIpc = (
       webContents: WebContentsIdentity,
       details: Pick<HandlerDetails, 'features' | 'frameName' | 'url'>,
     ): boolean => {
-      const token = readToken(details.features);
+      const featureToken = readToken(details.features);
+      const frameToken = details.frameName.startsWith(ACCOUNT_POPUP_GRANT_FRAME_PREFIX)
+        ? details.frameName.slice(ACCOUNT_POPUP_GRANT_FRAME_PREFIX.length)
+        : undefined;
+      if (
+        frameToken &&
+        (!TOKEN_PATTERN.test(frameToken) || details.features.includes(`${ACCOUNT_POPUP_GRANT_FEATURE}=`))
+      ) {
+        return false;
+      }
+      const token = featureToken ?? frameToken;
+      const expectedFrameName = frameToken ? '_blank' : details.frameName;
       const grants = pending.get(webContents);
       if (!token || !grants) {
         return false;
       }
       const grant = grants.get(token);
       grants.delete(token);
-      if (!grant || grant.expiresAt <= now() || grant.frameName !== details.frameName) {
+      if (!grant || grant.expiresAt <= now() || grant.frameName !== expectedFrameName) {
         return false;
       }
       try {

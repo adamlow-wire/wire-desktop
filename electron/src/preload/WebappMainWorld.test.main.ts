@@ -92,9 +92,10 @@ describe('webapp main-world adapter', () => {
     assert.ok(!calls.includes('close'));
   });
 
-  it('[security-target][SEC-008] grants only named popups for the current frame and reroutes noreferrer anchors', () => {
+  it('[security-target][SEC-008] grants named popups and preserves native noreferrer anchor navigation', () => {
     const opens: unknown[][] = [];
     const grants: unknown[][] = [];
+    const timers: Array<() => void> = [];
     let onClick: ((event: {defaultPrevented: boolean; preventDefault(): void; target: unknown}) => void) | undefined;
     const popup = {} as WindowProxy;
     const fakeWindow = {
@@ -112,7 +113,7 @@ describe('webapp main-world adapter', () => {
         opens.push(args);
         return popup;
       },
-      setTimeout: () => assert.fail('webapp fixture should register immediately'),
+      setTimeout: (callback: () => void) => timers.push(callback),
       wire: {},
       wireDesktopBridge: {
         events: new Proxy({}, {get: () => () => undefined}),
@@ -134,24 +135,22 @@ describe('webapp main-world adapter', () => {
       'width=300,wirePopupGrant=0123456789abcdef0123456789abcdef',
     ]);
     let prevented = false;
+    const anchor = {href: 'https://example.test/message', target: '_blank'};
     onClick?.({
       defaultPrevented: false,
       preventDefault: () => (prevented = true),
       target: {
-        closest: () => ({
-          href: 'https://example.test/message',
-          relList: {contains: (value: string) => ['noopener', 'noreferrer'].includes(value)},
-          target: '_blank',
-        }),
+        closest: () => anchor,
       },
     });
-    assert.strictEqual(prevented, true);
+    assert.strictEqual(prevented, false, 'the anchor default action must remain native');
     assert.deepStrictEqual(grants[1], ['https://example.test/message', '_blank']);
-    assert.deepStrictEqual(opens[1], [
-      'https://example.test/message',
-      '_blank',
-      'noopener,noreferrer,wirePopupGrant=0123456789abcdef0123456789abcdef',
-    ]);
+    assert.strictEqual(anchor.target, 'wirePopupGrant_0123456789abcdef0123456789abcdef');
+    assert.strictEqual(opens.length, 1, 'the click handler must not call window.open');
+    for (const timer of timers) {
+      timer();
+    }
+    assert.strictEqual(anchor.target, '_blank');
   });
 
   it('[security-target][SEC-008] never opens a native popup when the frame cannot obtain a grant', () => {
