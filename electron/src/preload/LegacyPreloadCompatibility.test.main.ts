@@ -47,6 +47,7 @@ const createWindow = (preload: string, contextIsolation: boolean, partition?: st
     webPreferences: {
       additionalArguments: createRendererRuntimeArguments({
         locale: 'en-US',
+        regionalLocale: 'fr-CH',
         userDataPath: app.getPath('userData'),
         environment: snapshotRendererEnvironment(EnvironmentUtil),
       }),
@@ -247,6 +248,7 @@ describe('legacy preload compatibility surface', () => {
 
     const surface = await window.webContents.executeJavaScript(`({
       desktopAppConfigVersion: typeof window.desktopAppConfig.version,
+      regionalLocale: window.desktopAppConfig.regionalLocale,
       supportsWebViewRefresh: window.desktopAppConfig.supportsWebViewRefresh,
       desktopCapturer: typeof window.desktopCapturer?.getDesktopSources,
       environment: typeof window.environment,
@@ -258,6 +260,7 @@ describe('legacy preload compatibility surface', () => {
 
     assert.deepStrictEqual(surface, {
       desktopAppConfigVersion: 'string',
+      regionalLocale: 'fr-CH',
       desktopCapturer: 'undefined',
       environment: 'object',
       openGraphAsync: 'function',
