@@ -1,16 +1,16 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-23
+updated: 2026-09-24
 milestone: M4
-active_work_item: PKG-001
-state: f031-windows-native-test-bounds-awaiting-hosted-package
+active_work_item: CAP-005
+state: regional-locale-local-review-hosted-open
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
-next_work_item: PKG-001
+active_branch: fix/CAP-005-regional-locale-2026-09-24
+next_work_item: TST-006
 blockers:
   [
     profile-compatibility-decision,
@@ -23,6 +23,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 24 CAP-005 regional-locale parity:** Upstream desktop `4bbd5572` supplies the OS regional locale for webapp date formatting. Scoped branch `fix/CAP-005-regional-locale-2026-09-24` starts from unsigned PR #63 `572bbf25`. Test-only baseline `4631fc8d` fails the missing desktop-config field and renderer argument while prior controls pass; `98d82032` reads `app.getSystemLocale()` after readiness and passes the optional value through the existing main-owned preload bootstrap. Two config and six runtime-argument Node cases, root TypeScript, scoped ESLint, Prettier and diff checks pass. A real-Electron legacy webview preload assertion is authored but unrun; no hosted or composed qualification is claimed. No new renderer-selected configuration IPC or managed-policy change is introduced.
 
 ## Current execution
 
