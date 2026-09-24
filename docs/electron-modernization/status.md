@@ -24,7 +24,7 @@ blockers:
 
 # Current project status
 
-**September 24 CAP-005 regional-locale parity:** Upstream desktop `4bbd5572` supplies the OS regional locale for webapp date formatting. Scoped branch `fix/CAP-005-regional-locale-2026-09-24` starts from unsigned PR #63 `572bbf25`. Test-only baseline `4631fc8d` fails the missing desktop-config field and renderer argument while prior controls pass; `98d82032` reads `app.getSystemLocale()` after readiness and passes the optional value through the existing main-owned preload bootstrap. Two config and six runtime-argument Node cases, root TypeScript, scoped ESLint, Prettier and diff checks pass. A real-Electron legacy webview preload assertion is authored but unrun; no hosted or composed qualification is claimed. No new renderer-selected configuration IPC or managed-policy change is introduced.
+**September 24 CAP-005 regional-locale parity:** Upstream desktop `4bbd5572` supplies the OS regional locale for webapp date formatting. Scoped [fork draft PR #69](https://github.com/adamlow-wire/wire-desktop/pull/69), branch `fix/CAP-005-regional-locale-2026-09-24`, starts from unsigned PR #63 `572bbf25`. Test-only baseline `4631fc8d` fails the missing desktop-config field and renderer argument while prior controls pass; `98d82032` reads `app.getSystemLocale()` after readiness and passes the optional value through the existing main-owned preload bootstrap. Two config and six runtime-argument Node cases, root TypeScript, scoped ESLint, Prettier and diff checks pass. A real-Electron legacy webview preload assertion is authored but unrun; no hosted or composed qualification is claimed. No new renderer-selected configuration IPC or managed-policy change is introduced.
 
 ## Current execution
 
