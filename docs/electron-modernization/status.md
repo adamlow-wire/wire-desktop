@@ -1,16 +1,16 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-23
+updated: 2026-09-24
 milestone: M4
-active_work_item: PKG-001
-state: f031-windows-native-test-bounds-awaiting-hosted-package
+active_work_item: SEC-003
+state: f034-current-main-frame-local-review
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: fix/PKG-001-windows-installer-ci-2026-09-23
-next_work_item: PKG-001
+active_branch: fix/SEC-003-current-main-frame-2026-09-24
+next_work_item: TST-006
 blockers:
   [
     profile-compatibility-decision,
@@ -23,6 +23,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 24 common IPC source review:** F-034 reproduces a same-origin stale-frame authorization in an inert registry fixture; a scoped current-main-frame check now denies it. Branch `fix/SEC-003-current-main-frame-2026-09-24` starts from PR #63 candidate `572bbf25`; test-only baseline `773a6fd8` fails the intended denial. The correction passes 29 representative Node IPC cases, root TypeScript, scoped ESLint and format locally. A native first-load/same-origin regression is authored but unrun. No real detached-frame IPC exploit or hosted qualification is claimed; this and the full TST-006 review remain open. See [review findings](review-findings.md).
 
 ## Current execution
 
