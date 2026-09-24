@@ -114,6 +114,69 @@ describe('account popup boundary [security-target][INV-005][SEC-008]', () => {
     assert.strictEqual(BrowserWindow.getAllWindows().filter(window => window.getParentWindow() === parent).length, 0);
   });
 
+  it('denies noreferrer external links opened by a foreign child frame', async function () {
+    this.timeout(10_000);
+    const foreignServer = createServer((_request, response) => {
+      response.setHeader('Content-Type', 'text/html');
+      response.setHeader('Referrer-Policy', 'no-referrer');
+      response.end('<!doctype html><title>Foreign child popup fixture</title>');
+    });
+    await new Promise<void>(resolve => foreignServer.listen(0, '127.0.0.1', resolve));
+    let popupTimeout: NodeJS.Timeout | undefined;
+    try {
+      const foreignOrigin = `http://127.0.0.1:${(foreignServer.address() as AddressInfo).port}`;
+      let observePopup!: (details: HandlerDetails) => void;
+      const popup = new Promise<HandlerDetails>(resolve => (observePopup = resolve));
+      parent.webContents.setWindowOpenHandler(details => {
+        observePopup(details);
+        return handleAccountWindowOpen(details, {
+          accountOrigin: origin,
+          accountSession: parent.webContents.session,
+          sourceUrl: parent.webContents.getURL(),
+          openExternal: url => external.push(url),
+          openDeepLink: url => deepLinks.push(url),
+          openSso: () => undefined,
+        });
+      });
+      await parent.webContents.executeJavaScript(`
+        new Promise(resolve => {
+          const frame = document.createElement('iframe');
+          frame.src = ${JSON.stringify(foreignOrigin)};
+          frame.onload = resolve;
+          document.body.append(frame);
+        });
+      `);
+      const foreignFrame = parent.webContents.mainFrame.frames.find(frame => frame.url.startsWith(`${foreignOrigin}/`));
+      assert.ok(foreignFrame, 'the child must commit a distinct origin before opening a popup');
+      await foreignFrame.executeJavaScript(
+        `
+        const link = document.createElement('a');
+        link.href = 'https://example.test/foreign-child';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.append(link);
+        link.click();
+        undefined;
+      `,
+        true,
+      );
+      const details = await Promise.race([
+        popup,
+        new Promise<never>((_resolve, reject) => {
+          popupTimeout = setTimeout(() => reject(new Error('Child popup did not reach the handler.')), 5_000);
+        }),
+      ]);
+      assert.strictEqual(details.referrer.url, '', 'the child link must suppress its outbound referrer');
+      assert.deepStrictEqual(external, [], 'a foreign child must not open an external URL');
+      assert.deepStrictEqual(deepLinks, []);
+    } finally {
+      if (popupTimeout) {
+        clearTimeout(popupTimeout);
+      }
+      await new Promise<void>(resolve => foreignServer.close(() => resolve()));
+    }
+  });
+
   it('dispatches recognized custom chat links internally without opening the OS protocol handler', async () => {
     const url = 'wire://user/266d36c0-ae62-48b5-91b5-b10ed42f1a0f';
     await parent.webContents.executeJavaScript(`
