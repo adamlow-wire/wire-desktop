@@ -29,7 +29,10 @@ const MAX_BYTES = 15 * 1024 * 1024;
 type ImageAction = {kind: string; sourceUrl: string};
 type ImageActionListener = (_event: unknown, action: ImageAction) => void;
 
-function loadPreload(fetchResponse: () => Promise<unknown>) {
+function loadPreload(
+  fetchResponse: (_url?: unknown, options?: {signal?: AbortSignal}) => Promise<unknown>,
+  timeoutSignal: (milliseconds: number) => AbortSignal = AbortSignal.timeout.bind(AbortSignal),
+) {
   const source = fs.readFileSync(path.resolve('electron/src/preload/menu/preload-context.ts'), 'utf8');
   const javascript = ts.transpileModule(source, {
     compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020},
@@ -53,6 +56,7 @@ function loadPreload(fetchResponse: () => Promise<unknown>) {
     '../../settings/config': {config: {userAgent: 'Wire-test'}},
   };
   vm.runInNewContext(javascript, {
+    AbortSignal: {timeout: timeoutSignal},
     Uint8Array,
     console: {error: (...args: unknown[]) => diagnostics.push(args)},
     exports,
@@ -118,6 +122,58 @@ describe('[SEC-008] account image save preload', () => {
     assert.strictEqual(response.wholeBodyReads, 0, 'Must not buffer the whole response');
     assert.strictEqual(response.reads, 16, 'Must stop at the first over-limit chunk');
     assert.strictEqual(response.cancellations, 1);
+    assert.deepStrictEqual(preload.invocations, []);
+    assert.deepStrictEqual(preload.diagnostics, [['Could not save picture.']]);
+  });
+
+  it('[security-target] admits only one in-flight remote image read', async () => {
+    let completeRead!: () => void;
+    const pendingRead = new Promise<void>(resolve => (completeRead = resolve));
+    let fetches = 0;
+    const preload = loadPreload(async () => {
+      fetches++;
+      return {
+        body: {
+          getReader: () => ({
+            cancel: async () => undefined,
+            read: async () => {
+              await pendingRead;
+              return {done: true};
+            },
+            releaseLock: () => undefined,
+          }),
+        },
+      };
+    });
+    preload.listener(undefined, {kind: 'save', sourceUrl: 'https://example.test/first-image'});
+    preload.listener(undefined, {kind: 'save', sourceUrl: 'https://example.test/second-image'});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(fetches, 1, 'A second click must not start another remote read');
+    completeRead();
+    await new Promise(resolve => setImmediate(resolve));
+    preload.listener(undefined, {kind: 'save', sourceUrl: 'https://example.test/third-image'});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(fetches, 2, 'The slot must reopen after the first read settles');
+  });
+
+  it('[security-target] aborts a stalled remote fetch with a fixed diagnostic', async () => {
+    const controller = new AbortController();
+    let timeoutMs: number | undefined;
+    const preload = loadPreload(
+      async (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener('abort', () => reject(new Error('synthetic private fetch detail')));
+        }),
+      milliseconds => {
+        timeoutMs = milliseconds;
+        return controller.signal;
+      },
+    );
+    preload.listener(undefined, {kind: 'save', sourceUrl: 'https://example.test/stalled-image'});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(timeoutMs && timeoutMs <= 60_000, 'Remote image read needs a finite one-minute bound');
+    controller.abort();
+    await new Promise(resolve => setImmediate(resolve));
     assert.deepStrictEqual(preload.invocations, []);
     assert.deepStrictEqual(preload.diagnostics, [['Could not save picture.']]);
   });
