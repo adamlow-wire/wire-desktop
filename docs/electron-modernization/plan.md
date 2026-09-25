@@ -1,7 +1,7 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.96
+revision: 1.5.97
 status: draft
 updated: 2026-09-25
 owners:
@@ -1007,6 +1007,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.97 | 2026-09-25 | Codex | Record clean three-platform PR #72 checkpoint, compose separately failing-baseline image-read concurrency/timeout and login-helper identity corrections, and retain full-review/final-head gates | SEC-008, TST-006, F-037, F-041 |
 | 1.5.96 | 2026-09-25 | Codex | Compose sensitivity-proven bounded image-save and exact artifact-path/version/ambiguity fixes; preserve open full-review and final-platform gates | SEC-008, PKG-002, TST-006, F-037, F-040 |
 | 1.5.95 | 2026-09-24 | Codex | Reopen SEC-008 for reproduced foreign-child noreferrer popup origin bypass; retain top-level compatibility and require scoped native-qualified fix | SEC-008, TST-006, F-035 |
 | 1.5.94 | 2026-09-24 | Codex | Align Windows App-lock override with current upstream explicit Wire policy; retire generic MDM/Entra activation and update DCP-013 tests/contract | CAP-005, TST-006, DCP-013 |

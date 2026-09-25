@@ -16,18 +16,20 @@ Existing behavior is not automatically correct. Security invariants describe the
 
 ## September 25 bounded review checks
 
-From the repository root, the inert SEC-008/PKG-002 composition checks are:
+From the repository root, the inert SEC-008/PKG-002 composition and F-041 login-helper checks are:
 
 ```sh
 node node_modules/mocha/bin/mocha.js --require .babel-register.js electron/src/preload/menu/preload-context.test.main.ts bin/deploy-tools/lib/deploy-utils.test.ts bin/deploy-tools/lib/S3Deployer.test.ts
 node node_modules/mocha/bin/mocha.js --require .babel-register.js 'bin/deploy-tools/**/*.test.ts'
+node node_modules/@playwright/test/cli.js test --project=linux e2e-tests/specs/tooling/loginUserIdentity.spec.ts --reporter=line
 node node_modules/typescript/bin/tsc --noEmit
 node node_modules/typescript/bin/tsc -P tsconfig.mocha.json --noEmit
 node node_modules/typescript/bin/tsc -P tsconfig.bin.json --noEmit
+node node_modules/typescript/bin/tsc -P tsconfig.playwright.json --noEmit
 node node_modules/webpack/bin/webpack.js --env production
 ```
 
-The focused composed source passes 24 cases; the scoped deployment branch passes 73 deployment cases. These commands use synthetic HTTP streams and local release-file fixtures, without starting Electron or uploading to S3. Hosted native, unsigned package and authenticated E2E/report jobs must run on the exact final PR head; the prior `ba575034` package/E2E results are recorded in [status](status.md). The macOS native zero-exit fixture stall and two API-client-403 E2E retries remain unqualified, even when later attempts pass.
+The image-preload suite has seven inert cases after F-037 follow-up; scoped deployment tooling has 73 cases; F-041 has three Playwright cases that use fake pages and no GUI. F-041's test-only baseline returns one passing control and two failed foreign-page targets on original source; F-037's second test-only baseline fails repeated-click and stalled-read targets. Current local corrected cases pass, while the prior `bce6f775` head has the clean hosted checkpoint: [all three package jobs](https://github.com/adamlow-wire/wire-desktop/actions/runs/36114887283) and [76/76 first-attempt E2E passes per OS](https://github.com/adamlow-wire/wire-desktop/actions/runs/36114887254). New local source requires its own exact-head hosted checks after one consolidated push. Actual OS image-save interaction, backend user identity, and full coverage review remain distinct from these inert tests.
 
 ## Native-account E2E harness checkpoint (2026-09-10)
 
