@@ -119,6 +119,17 @@ describe('[SEC-008] account image save preload', () => {
     assert.strictEqual(response.reads, 16, 'Must stop at the first over-limit chunk');
     assert.strictEqual(response.cancellations, 1);
     assert.deepStrictEqual(preload.invocations, []);
+    assert.deepStrictEqual(preload.diagnostics, [['Could not save picture.']]);
+  });
+
+  it('[security-target] reports fetch failure without logging the response error', async () => {
+    const preload = loadPreload(async () => {
+      throw new Error('synthetic private response detail');
+    });
+    preload.listener(undefined, {kind: 'save', sourceUrl: 'https://example.test/private-image'});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepStrictEqual(preload.invocations, []);
+    assert.deepStrictEqual(preload.diagnostics, [['Could not save picture.']]);
   });
 
   it('[security-target] sends exact bytes of a bounded stream', async () => {
