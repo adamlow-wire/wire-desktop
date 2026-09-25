@@ -508,7 +508,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - CI verifies effective fuse values in packaged binaries.
   - Integrity settings and code-signing order are compatible, verified on actual signed artifacts by Wire after engineering review; unsigned CI or source inspection cannot close this criterion.
   - Development packages cannot be confused with production artifacts.
-- Evidence: TBD
+- Evidence: September 25 bounded signed-Windows pipeline review found Wire Gov application EXEs were verified under `production || wireGov` but signed only under `production`. Test-only `ef9f6506` fails the stage-parity target with one artifact control passing; scoped `a28a324a`, composed as `26979240`, aligns application signing. Six adjacent Jenkins artifact/deployment cases and bin types pass locally. No signing credentials or actual signed artifacts were used; Wire-owned signed-release validation and SEC-011 acceptance remain open.
 
 #### SEC-012 — Harden renderer-initiated network fetches
 
