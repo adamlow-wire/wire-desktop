@@ -2,14 +2,14 @@
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-25
 milestone: M4
-active_work_item: TST-006
-state: security-fixes-composed-final-platform-and-full-audit-open
+active_work_item: SEC-011
+state: sec011-wire-gov-signing-source-fixed-signed-validation-open
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: review/TST-006-final-composition-2026-09-25
+active_branch: fix/SEC-011-wire-gov-app-signing-2026-09-25
 next_work_item: TST-006
 blockers:
   [
@@ -24,6 +24,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 25 scoped SEC-011 Wire Gov signing parity:** The signed Windows Jenkins path verified Wire Gov application executables but did not enter the preceding application-signing stage when only `WIRE_GOV` was selected. Test-only `ef9f6506` fails that parity check (one artifact control passes), then one-line `a28a324a` makes six adjacent Jenkins artifact/deployment tests pass. This is source-level pipeline correction only; no signed build, signing credentials, deployment or Wire Gov Jenkins run occurred. The unsigned TST-006 candidate remains separate and SEC-011 signed-release acceptance remains Wire-owned.
 
 **September 25 composed review candidate:** Isolated branch `review/TST-006-final-composition-2026-09-25` at source `c832da76` combines the earlier four-fix application with SEC-008 F-035 one-use popup grants, SEC-003 F-036 fixed proxy rejection diagnostics and TST-005's bounded macOS media test. Exact original-baseline path accounting is **553/553** in [the inventory](inventory-reconciliation.md#september-25-sec-008sec-003media-composed-source-accounting); 231 source, 300 provenance and 341 coverage cells remain exactly `pending`, plus partial entries. Both TypeScript projects, 36 focused inert tests and production preload bundling pass locally on this composition. SEC-008 alone passes all three hosted native/product/package jobs at `3386c9e1`. [Scoped SEC-003 run `36070507112`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36070507112) and [exact final-composition run `36071785851`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36071785851) each have Linux/macOS full jobs green and Windows native/product/package build checks green, while both installed Squirrel/MSI smoke steps remain in progress beyond the configured 15-minute step timeout. Their Windows jobs are not qualified until they finish with conclusive evidence. Final E2E, complete audit and F-012 profile compatibility remain open.
 
