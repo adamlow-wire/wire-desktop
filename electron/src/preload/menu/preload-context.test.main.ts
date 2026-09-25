@@ -178,6 +178,43 @@ describe('[SEC-008] account image save preload', () => {
     assert.deepStrictEqual(preload.diagnostics, [['Could not save picture.']]);
   });
 
+  it('[security-target] aborts a stalled response body without retaining the save slot', async () => {
+    const controllers: AbortController[] = [];
+    let fetches = 0;
+    const preload = loadPreload(
+      async (_url, options) => {
+        fetches++;
+        return {
+          body: {
+            getReader: () => ({
+              cancel: async () => undefined,
+              read: async () =>
+                new Promise((_resolve, reject) => {
+                  options?.signal?.addEventListener('abort', () => reject(new Error('private body failure')));
+                }),
+              releaseLock: () => undefined,
+            }),
+          },
+        };
+      },
+      () => {
+        const controller = new AbortController();
+        controllers.push(controller);
+        return controller.signal;
+      },
+    );
+    preload.listener(undefined, {kind: 'save', sourceUrl: 'https://example.test/slow-body'});
+    await new Promise(resolve => setImmediate(resolve));
+    controllers[0].abort();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepStrictEqual(preload.diagnostics, [['Could not save picture.']]);
+    preload.listener(undefined, {kind: 'save', sourceUrl: 'https://example.test/new-body'});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(fetches, 2, 'A failed read must release the account save slot');
+    controllers[1].abort();
+    await new Promise(resolve => setImmediate(resolve));
+  });
+
   it('[security-target] reports fetch failure without logging the response error', async () => {
     const preload = loadPreload(async () => {
       throw new Error('synthetic private response detail');
