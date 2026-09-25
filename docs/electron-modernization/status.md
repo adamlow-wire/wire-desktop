@@ -1,18 +1,19 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-24
+updated: 2026-09-25
 milestone: M4
-active_work_item: TST-006
-state: composed-review-fixes-awaiting-hosted-native
+active_work_item: SEC-003
+state: sec003-proxy-diagnostic-windows-installed-smoke-inconclusive
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
 upstream_commit: 6f9b6a994500f0fc0ad64e60882ac9f5b099d5f2
 fork_url: https://github.com/adamlow-wire/wire-desktop
-active_branch: review/TST-006-composed-fixes-2026-09-24
+active_branch: fix/SEC-003-proxy-credential-diagnostics-2026-09-24
 next_work_item: TST-006
 blockers:
   [
+    sec003-proxy-diagnostic-final-composition,
     profile-compatibility-decision,
     final-composed-platform-qualification,
     packaged-legacy-profile-qualification,
@@ -23,6 +24,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 25 scoped SEC-003 proxy diagnostic correction:** In the production proxy prompt preload, rejected submit IPC previously forwarded the raw Error object to `console.error`; a synthetic credential-bearing rejection reached that sink. Test-only baseline `6177206f` preserves 16 passing controls and fails the new confidentiality target; added baseline `ba3890f9` also proves raw locale/cancel rejection errors. Product commit `fa40a7a4` emits only fixed messages for these three failures, preserving their false/undefined results. All 18 focused IPC cases, build and test TypeScript, scoped lint/format and production preload bundling pass locally. [Hosted run `36070507112`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36070507112) passes full Linux/macOS jobs and Windows native/product/package build checks, but its Windows job failed at 23:59:36 UTC after the installed Squirrel/MSI smoke step remained in progress from 23:14:05 UTC with no completion marker. GitHub did not provide a step log for that terminal job; no installer or product failure is inferred. F-036 remains open for conclusive Windows installed-app smoke, final composition and review. The central TST-006 ledger is maintained separately; this branch does not close the full handoff.
 
 **September 24 upstream regional-locale composition:** [CAP-005 draft PR #69](https://github.com/adamlow-wire/wire-desktop/pull/69) has failing test-only baseline `4631fc8d` and focused main-owned bridge implementation `98d82032`. The composed review branch now carries those source/test changes on top of PRs #66/#67/#68 plus the corrected native frame-test selector. Local composed checks and final exact-head hosted qualification are pending. This does not change the earlier `1f999595` run's SHA or qualify the new locale assertion.
 

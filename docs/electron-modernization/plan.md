@@ -373,6 +373,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
 - Priority: `P0`
 - Status: `in_progress`
 - Milestone: `M3`
+- September 25 F-036: a synthetic rejected proxy credential submission reaches the production prompt preload console sink through a raw Error argument. Test-only baselines `6177206f` and `ba3890f9` fail fixed-message diagnostics with 16 controls passing. Scoped `fa40a7a4` removes raw error forwarding from submit, cancel and locale rejection paths; 18 focused cases and static checks pass. [Hosted run `36070507112`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36070507112) passes complete Linux/macOS jobs and Windows native/product/package build checks. The Windows job failed near its one-hour bound while installed Squirrel/MSI smoke remained in progress, with no conclusive step log or completion marker; Windows installed-app and final composed qualification remain pending. No real credential incident is asserted.
 - Dependencies: SEC-002
 - Scope: Replace ad hoc main/renderer IPC with a narrow versioned contract and runtime payload schemas.
 - Acceptance:
