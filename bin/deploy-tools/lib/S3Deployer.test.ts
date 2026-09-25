@@ -104,6 +104,19 @@ describe('S3Deployer', () => {
       );
     });
 
+    it('[security-target][PKG-002] selects the exact MSI version without prerelease spillover', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-msi-exact-version-deployer-'));
+      temporaryDirectories.push(basePath);
+      const stableName = 'Wire-3.42.123-x64.msi';
+      await fs.ensureFile(path.join(basePath, stableName));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-beta-x64.msi'));
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'msi');
+
+      assert.deepStrictEqual(files, [{fileName: stableName, filePath: path.join(basePath, stableName)}]);
+    });
+
     it('selects Squirrel artifacts when an MSI is also present', async () => {
       const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-deployer-'));
       temporaryDirectories.push(basePath);
