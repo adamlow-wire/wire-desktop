@@ -48,7 +48,16 @@ const nested = [];
 const main = {};
 const state = {};
 const context = {
-  app: {on: (event, callback) => nested.push({event, callback}), commandLine: {appendSwitch() {}}},
+  app: {
+    on: (event, callback) => nested.push({event, callback}),
+    commandLine: {appendSwitch() {}},
+    getSystemLocale: () => {
+      if (mode === 'locale-failure') {
+        throw new Error('synthetic regional locale failure');
+      }
+      return 'en-GB';
+    },
+  },
   installLocalContentProtocol: (_session, _path, role) => calls.push(`protocol:${role}`),
   session: {defaultSession: {}, fromPartition: () => ({})},
   APP_PATH: '/inert/application',
@@ -66,7 +75,8 @@ const context = {
   wallClock: {},
   AboutWindow: {},
   viewIdentityRegistry: {},
-  logger: {},
+  logger: {warn: message => calls.push(`warning:${message}`)},
+  regionalLocale: undefined,
   EnvironmentUtil: {app: {IS_DEVELOPMENT: internal}, platform: {IS_MAC_OS: mac}},
   developerMenu: {},
   Menu: {setApplicationMenu: () => calls.push('set-menu')},
@@ -105,7 +115,14 @@ const context = {
     }
     failed = true;
   }
-  process.stdout.write(`${JSON.stringify({calls, failed, pendingReadyListeners: nested.length})}\n`);
+  process.stdout.write(
+    `${JSON.stringify({
+      calls,
+      failed,
+      pendingReadyListeners: nested.length,
+      regionalLocale: context.regionalLocale,
+    })}\n`,
+  );
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

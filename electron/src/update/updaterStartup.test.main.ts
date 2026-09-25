@@ -55,6 +55,23 @@ describe('[PKG-002][F-007] production startup updater routing', () => {
       );
     });
   }
+  it('[characterization] passes the system regional locale through startup', () => {
+    const {regionalLocale, calls} = startup('internal-mac');
+    assert.equal(regionalLocale, 'en-GB');
+    assert.equal(
+      calls.some((call: string) => call.startsWith('warning:')),
+      false,
+    );
+  });
+  it('[regression-target] continues startup with a fixed diagnostic when regional locale lookup fails', () => {
+    const {regionalLocale, calls} = startup('locale-failure');
+    assert.equal(regionalLocale, undefined);
+    assert.deepEqual(
+      calls.filter((call: string) => call.startsWith('warning:')),
+      ['warning:System regional locale is unavailable; omitting it from the webapp configuration.'],
+    );
+    assert.equal(calls.includes('window-ready'), true);
+  });
   it('[regression-target] starts the internal mac updater after the window is ready', () => {
     const {calls, pendingReadyListeners} = startup('internal-mac');
     assert.equal(calls.filter((call: string) => call === 'updater').length, 1);
