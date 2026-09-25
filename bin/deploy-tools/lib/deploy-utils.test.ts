@@ -17,6 +17,7 @@
  */
 
 import * as assert from 'assert';
+import path from 'node:path';
 import {find} from './deploy-utils';
 
 describe('deploy-utils', () => {
@@ -42,6 +43,6 @@ describe('deploy-utils', () => {
     const result = await find('deploy-utils.test.ts', {cwd: __dirname, safeGuard: false});
     assert.notEqual(result, null);
     assert.strictEqual(typeof result!.fileName, 'string');
-    assert.strictEqual(typeof result!.filePath, 'string');
+    assert.strictEqual(result!.filePath, path.join(__dirname, 'deploy-utils.test.ts'));
   });
 });
