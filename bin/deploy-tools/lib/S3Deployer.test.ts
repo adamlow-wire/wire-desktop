@@ -61,6 +61,32 @@ describe('S3Deployer', () => {
       assert.deepStrictEqual(files, [{fileName, filePath: path.join(basePath, fileName)}]);
     });
 
+    it('[security-target][PKG-002] retains the real path of a nested MSI artifact', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-msi-nested-deployer-'));
+      temporaryDirectories.push(basePath);
+      const fileName = 'Wire-3.42.123-x64.msi';
+      const expectedPath = path.join(basePath, 'release', fileName);
+      await fs.ensureFile(expectedPath);
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'msi');
+
+      assert.deepStrictEqual(files, [{fileName, filePath: expectedPath}]);
+    });
+
+    it('[security-target][PKG-002] rejects ambiguous MSI artifacts for one version', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-msi-ambiguous-deployer-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-x64.msi'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123-arm64.msi'));
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      await assert.rejects(
+        s3Deployer.findUploadFiles('wrapper_windows_production', basePath, '3.42.123', 'msi'),
+        /exactly one MSI for the requested version/,
+      );
+    });
+
     it('selects Squirrel artifacts when an MSI is also present', async () => {
       const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-squirrel-deployer-'));
       temporaryDirectories.push(basePath);
