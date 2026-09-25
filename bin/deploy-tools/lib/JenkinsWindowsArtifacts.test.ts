@@ -17,14 +17,29 @@
  *
  */
 
+import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-
-import assert from 'node:assert';
 
 const windowsPipeline = fs.readFileSync(path.resolve(process.cwd(), 'jenkins/windows.groovy'), 'utf8');
 
 describe('Jenkins Windows build artifacts', () => {
+  it('[security-target][SEC-011] signs every Wire Gov application that the release stage verifies', () => {
+    const signApplication = windowsPipeline
+      .split("stage('Sign application')")[1]
+      ?.split("stage('Build installers')")[0];
+    const verifyApplication = windowsPipeline.split("stage('verify')")[1]?.split("stage('Print hash')")[0];
+    assert.ok(signApplication, 'Application signing stage must exist.');
+    assert.ok(verifyApplication, 'Release verification stage must exist.');
+    const signingCondition = signApplication.match(/if \(([^)]*)\)/)?.[1];
+    const verificationCondition = verifyApplication.match(/if \(([^)]*)\)/)?.[1];
+    assert.ok(signingCondition && verificationCondition, 'Both stages need explicit release conditions.');
+    assert.match(verificationCondition, /\bwireGov\b/, 'Wire Gov executables must be verified.');
+    assert.equal(signingCondition, verificationCondition, 'Every verified application must first be signed.');
+    assert.match(signApplication, /smctl sign/);
+    assert.match(verifyApplication, /signtool\.exe verify/);
+  });
+
   it('fails the build unless both complete installer families were produced', () => {
     for (const artifact of ['*-Setup.exe', '*-full.nupkg', 'RELEASES', '*.msi']) {
       assert.ok(
