@@ -58,7 +58,7 @@ export async function find(fileGlob: string, options?: FindOptions): Promise<Fin
   const matches = await globby(`**/${fileGlob}`, {cwd: findOptions.cwd, followSymbolicLinks: false, onlyFiles: true});
 
   if (matches.length > 0) {
-    const file = path.resolve(matches[0]);
+    const file = path.resolve(findOptions.cwd, matches[0]);
     return {fileName: path.basename(file), filePath: file};
   }
 

@@ -113,23 +113,26 @@ export class S3Deployer {
         'debian/dists/stable/main/binary-amd64/Packages.gz',
       ].map(fileName => ({fileName, filePath: path.join(basePath, fileName)}));
 
-      return [
-        ...repositoryFiles,
-        {
-          fileName: appImage.fileName,
-          filePath: path.join(basePath, appImage.fileName),
-        },
-        {
-          fileName: debImage.fileName,
-          filePath: path.join(basePath, debImage.fileName),
-        },
-      ];
+      return [...repositoryFiles, appImage, debImage];
     } else if (platform.includes('windows')) {
       if (!['auto', 'msi', 'squirrel'].includes(windowsArtifact)) {
         throw new Error(`Invalid Windows artifact type "${windowsArtifact}"`);
       }
 
-      const msi = await find(`*-${version}-*.msi`, {cwd: basePath, safeGuard: false});
+      const msiCandidates =
+        windowsArtifact === 'squirrel'
+          ? []
+          : await globby(`**/*-${version}-*.msi`, {
+              cwd: basePath,
+              followSymbolicLinks: false,
+              onlyFiles: true,
+            });
+      if (msiCandidates.length > 1) {
+        throw new Error('Expected exactly one MSI for the requested version.');
+      }
+      const msiPath = msiCandidates[0] && path.resolve(basePath, msiCandidates[0]);
+      const msi =
+        msiPath && (await fs.lstat(msiPath)).isFile() ? {fileName: path.basename(msiPath), filePath: msiPath} : null;
       if (windowsArtifact === 'msi' && !msi) {
         throw new Error(`Could not find an MSI for version "${version}".`);
       }
@@ -146,7 +149,7 @@ export class S3Deployer {
         }
       }
       if (msi && windowsArtifact !== 'squirrel') {
-        return [{...msi, filePath: path.join(basePath, msi.fileName)}];
+        return [msi];
       }
 
       const suffix = `-${version}-full.nupkg`;
