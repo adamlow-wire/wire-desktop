@@ -14,6 +14,21 @@ This is characterization-driven development followed by test-driven implementati
 
 Existing behavior is not automatically correct. Security invariants describe the required target even when the corresponding target test initially fails.
 
+## September 25 bounded review checks
+
+From the repository root, the inert SEC-008/PKG-002 composition checks are:
+
+```sh
+node node_modules/mocha/bin/mocha.js --require .babel-register.js electron/src/preload/menu/preload-context.test.main.ts bin/deploy-tools/lib/deploy-utils.test.ts bin/deploy-tools/lib/S3Deployer.test.ts
+node node_modules/mocha/bin/mocha.js --require .babel-register.js 'bin/deploy-tools/**/*.test.ts'
+node node_modules/typescript/bin/tsc --noEmit
+node node_modules/typescript/bin/tsc -P tsconfig.mocha.json --noEmit
+node node_modules/typescript/bin/tsc -P tsconfig.bin.json --noEmit
+node node_modules/webpack/bin/webpack.js --env production
+```
+
+The focused composed source passes 24 cases; the scoped deployment branch passes 73 deployment cases. These commands use synthetic HTTP streams and local release-file fixtures, without starting Electron or uploading to S3. Hosted native, unsigned package and authenticated E2E/report jobs must run on the exact final PR head; the prior `ba575034` package/E2E results are recorded in [status](status.md). The macOS native zero-exit fixture stall and two API-client-403 E2E retries remain unqualified, even when later attempts pass.
+
 ## Native-account E2E harness checkpoint (2026-09-10)
 
 `accountSidebar.spec.ts` is a CAP-001 regression for DCP-002/DCP-004. It uses isolated local profiles and real native views/menus to exercise switching, background/active/last-account removal, addition, and logout event delivery with an unrelated window present. It reproduced incorrect positional page selection and the obsolete DOM-menu timeout. The helper now resolves the main-selected account and invokes the actual enabled native menu item; no production IPC or permission bypass is added. The authenticated logout spec retains its menu labels/enabled-state and confirmation/cancellation assertions using that adapter. Local fixtures do not prove staging login, actual data-clearing confirmation, live SSO/E2EI, or macOS/Windows operation.

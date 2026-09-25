@@ -1,9 +1,9 @@
 ---
 document_id: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 title: Wire Desktop Electron Modernization Plan
-revision: 1.5.94
+revision: 1.5.96
 status: draft
-updated: 2026-09-24
+updated: 2026-09-25
 owners:
   technical: adamlow-wire
   security: adamlow-wire
@@ -456,7 +456,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - Allowed SSO/PiP windows use fixed reviewed preferences.
   - External URLs use protocol and origin policy with adversarial tests.
 - Evidence: Local baseline 31 passing / 3 owned CAP-002 targets pending. Real navigation/redirect cancellation and origin-policy mutations failed as intended and were restored. New targets reproduced SSO session inheritance, missing SSO redirect/transport denial, hung About requests, the proxy stylesheet redirect, permissive developer popups, and ambiguous external URL dispatch. PR #38 merged as `67dfb5db` after final-head build, analysis, all-platform packages and authenticated Windows/macOS E2E/report passed; the custom-backend cutover gate below remains open.
-- September 25 F-037 image-save follow-up: the account preload's old whole-body fetch bypassed the main-side 15 MiB resource bound until after allocation. Scoped `c32bc6dc` has one passing action control and two failing stream targets before `271b9389` bounds reading, cancels oversized responses, preserves exact small bytes and emits a fixed rejection diagnostic. Four inert cases, root/test types, lint and production preload bundling pass; final composed hosted/native image-save qualification remains open.
+- September 25 F-037 image-save follow-up: the account preload's old whole-body fetch bypassed the main-side 15 MiB resource bound until after allocation. Scoped `c32bc6dc` has one passing action control and two failing stream targets before `271b9389` bounds reading, cancels oversized responses, preserves exact small bytes and emits a fixed rejection diagnostic. Four inert cases, root/test types, lint and production preload bundling pass; its source is composed as `3a0fe06b`; final hosted/native image-save qualification remains open.
 - September 24 F-035 follow-up: the foreign-child empty-referrer bypass fails its deny baseline on all three OSes at `e983f58a`. The first scoped candidate broke top-level chat/deep links despite denying the child. [Fork draft PR #71](https://github.com/adamlow-wire/wire-desktop/pull/71) corrects that path; `3386c9e1` passes [all-platform native/product/unsigned-package run `36068535525`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36068535525). The fix is included in final-composition source `16c35ef7`; keep SEC-008 open until that tree passes re-review and qualification.
 - SSO lifecycle refinement: reserve the single active flow before asynchronous initialization and retain it until cleanup completes. Repeated requests from its owner focus it; requests from another account cannot replace or control it. Close and native closed events share one captured-session cleanup operation; a new target reproduced a duplicate-cleanup `undefined.protocol` error. Failed cleanup does not mark the session reusable. CAP-002 still owns one-time callback validation, cookie scope, and full IdP acceptance.
 - Cutover acceptance: [PR #47](https://github.com/adamlow-wire/wire-desktop/pull/47) integrates main-owned destination approval with exact owning-view replacement, preserved partitions, saved-destination denial and invalid approval-result rejection. [PR #49](https://github.com/adamlow-wire/wire-desktop/pull/49) integrates unreadable machine-policy denial as4f04a8a0. Final head66f9d9db passes [all-platform native/package gates](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889664), including real Windows registry guard-removal failure/restoration and combined account/navigation/popup/SSO/PiP/external policy targets, plus build/lint/analysis and [authenticated E2E/report](https://github.com/adamlow-wire/wire-desktop/actions/runs/34848889715),43 initial passes per platform without skips or retries. Programmatic navigation cannot bypass main-owned policy; all four SEC-008 acceptance criteria are satisfied. Live identity-provider acceptance remains CAP-002, not a waiver of navigation enforcement.
@@ -863,7 +863,7 @@ Signing validation is transferred in scheduling/ownership, not waived: Wire is t
   - MSI installations do not invoke Squirrel and satisfy `docs/windows-msi.md`.
   - macOS update behavior is verified with signed/notarized artifacts.
   - Linux package launch and desktop integration are verified.
-- F-040 deployment-path finding: failing baselines `4068c040`, `90a20be0`, `b1244744` and `cfcd28fd` expose wrong search-root resolution, nested artifact paths, stale/prerelease version selection and duplicate Windows/Linux/macOS packages. Scoped `19c10800`, `e3693e9e` and `2be14a12` use builder filename contracts and require one matching artifact; 73 inert deployment tests, bin types, forced lint and formatting pass. No upload occurred; final composed exact-head and release-time behavior remain unqualified.
+- F-040 deployment-path finding: failing baselines `4068c040`, `90a20be0`, `b1244744` and `cfcd28fd` expose wrong search-root resolution, nested artifact paths, stale/prerelease version selection and duplicate Windows/Linux/macOS packages. Scoped `19c10800`, `e3693e9e` and `2be14a12` use builder filename contracts and require one matching artifact; 73 inert deployment tests, bin types, forced lint and formatting pass. The source is composed through `547cdca5`; no upload occurred, and final exact-head and release-time behavior remain unqualified.
 - Local pre-handoff evidence: startup/policy baselines `c96d5795`, `43c88dd7`, `331f79d6`; candidate `1dd68c0c` passes22 runtime/startup and329 tooling cases. ASAR-policy baseline `13456006` precedes26 passing synthetic-ASAR cases and sensitive CLI/enforcement checks. The macOS workflow requires archived literal-false policy; actual composed platform artifacts and all signed acceptance remain pending. See status and review-findings for commands and limitations.
 
 #### PKG-003 — Validate legacy-to-modernized data migration
@@ -1007,6 +1007,7 @@ The first modernized release MUST NOT ship if any of these conditions is true:
 
 | Revision | Date | Author | Change | Affected IDs |
 | --- | --- | --- | --- | --- |
+| 1.5.96 | 2026-09-25 | Codex | Compose sensitivity-proven bounded image-save and exact artifact-path/version/ambiguity fixes; preserve open full-review and final-platform gates | SEC-008, PKG-002, TST-006, F-037, F-040 |
 | 1.5.95 | 2026-09-24 | Codex | Reopen SEC-008 for reproduced foreign-child noreferrer popup origin bypass; retain top-level compatibility and require scoped native-qualified fix | SEC-008, TST-006, F-035 |
 | 1.5.94 | 2026-09-24 | Codex | Align Windows App-lock override with current upstream explicit Wire policy; retire generic MDM/Entra activation and update DCP-013 tests/contract | CAP-005, TST-006, DCP-013 |
 | 1.5.93 | 2026-09-23 | Codex | Record published F-031 upload selection, separate failing S3 promotion test/fix, and test-first SEC-011 file-privilege fuse disposition; retain hosted and signed-release gates | PKG-001, TST-005, TST-006, SEC-011, PKG-002 |
