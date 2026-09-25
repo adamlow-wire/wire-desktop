@@ -21,7 +21,7 @@ import {ipcRenderer} from 'electron';
 
 import {CONTEXT_MENU_IMAGE_ACTION_CHANNEL, ContextMenuImageAction} from './ContextMenuImageAction';
 
-import {SAVE_PICTURE_CHANNEL} from '../../security/SavePictureContract';
+import {MAX_SAVE_PICTURE_BYTES, SAVE_PICTURE_CHANNEL} from '../../security/SavePictureContract';
 import {config} from '../../settings/config';
 
 const savePicture = async (url: RequestInfo, timestamp?: string): Promise<void> => {
@@ -30,12 +30,39 @@ const savePicture = async (url: RequestInfo, timestamp?: string): Promise<void> 
       'User-Agent': config.userAgent,
     },
   });
-  const bytes = await response.arrayBuffer();
-  await ipcRenderer.invoke(SAVE_PICTURE_CHANNEL, {bytes: new Uint8Array(bytes), timestamp});
+  if (!response.body) {
+    throw new Error('Image response has no body.');
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) {
+        break;
+      }
+      if (value.byteLength > MAX_SAVE_PICTURE_BYTES - totalBytes) {
+        await reader.cancel();
+        throw new Error('Image exceeds save limit.');
+      }
+      chunks.push(value);
+      totalBytes += value.byteLength;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  await ipcRenderer.invoke(SAVE_PICTURE_CHANNEL, {bytes, timestamp});
 };
 
 ipcRenderer.on(CONTEXT_MENU_IMAGE_ACTION_CHANNEL, (_event, action: ContextMenuImageAction) => {
   if (action.kind === 'save') {
-    void savePicture(action.sourceUrl);
+    void savePicture(action.sourceUrl).catch(() => console.error('Could not save picture.'));
   }
 });
