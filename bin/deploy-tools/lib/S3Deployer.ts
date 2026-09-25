@@ -122,11 +122,15 @@ export class S3Deployer {
       const msiCandidates =
         windowsArtifact === 'squirrel'
           ? []
-          : await globby(`**/*-${version}-*.msi`, {
-              cwd: basePath,
-              followSymbolicLinks: false,
-              onlyFiles: true,
-            });
+          : (await globby('**/*.msi', {cwd: basePath, followSymbolicLinks: false, onlyFiles: true})).filter(
+              relativePath => {
+                const fileName = path.basename(relativePath);
+                return ['x64', 'ia32', 'arm64'].some(arch => {
+                  const suffix = `-${version}-${arch}.msi`;
+                  return fileName.length > suffix.length && fileName.endsWith(suffix);
+                });
+              },
+            );
       if (msiCandidates.length > 1) {
         throw new Error('Expected exactly one MSI for the requested version.');
       }
