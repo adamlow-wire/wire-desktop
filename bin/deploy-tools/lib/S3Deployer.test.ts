@@ -48,18 +48,62 @@ describe('S3Deployer', () => {
     it('[security-target][PKG-002] retains nested Linux application and package paths', async () => {
       const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-linux-nested-deployer-'));
       temporaryDirectories.push(basePath);
-      const appImage = path.join(basePath, 'release', 'Wire.AppImage');
-      const debImage = path.join(basePath, 'release', 'wire.deb');
+      const appImage = path.join(basePath, 'release', 'Wire-3.44.0-ffa6074c-internal_x86_64.AppImage');
+      const debImage = path.join(basePath, 'release', 'Wire-3.44.0-ffa6074c-internal_amd64.deb');
       await fs.ensureFile(appImage);
       await fs.ensureFile(debImage);
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_linux_production', basePath, '3.44.0-ffa6074c-internal');
+
+      assert.deepStrictEqual(files.slice(-2), [
+        {fileName: 'Wire-3.44.0-ffa6074c-internal_x86_64.AppImage', filePath: appImage},
+        {fileName: 'Wire-3.44.0-ffa6074c-internal_amd64.deb', filePath: debImage},
+      ]);
+    });
+
+    it('[security-target][PKG-002] selects exact-version Linux artifacts in a mixed directory', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-linux-mixed-deployer-'));
+      temporaryDirectories.push(basePath);
+      for (const version of ['3.42.122', '3.42.123']) {
+        await fs.ensureFile(path.join(basePath, `Wire-${version}_x86_64.AppImage`));
+        await fs.ensureFile(path.join(basePath, `Wire-${version}_amd64.deb`));
+      }
       const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
 
       const files = await s3Deployer.findUploadFiles('wrapper_linux_production', basePath, '3.42.123');
 
       assert.deepStrictEqual(files.slice(-2), [
-        {fileName: 'Wire.AppImage', filePath: appImage},
-        {fileName: 'wire.deb', filePath: debImage},
+        {fileName: 'Wire-3.42.123_x86_64.AppImage', filePath: path.join(basePath, 'Wire-3.42.123_x86_64.AppImage')},
+        {fileName: 'Wire-3.42.123_amd64.deb', filePath: path.join(basePath, 'Wire-3.42.123_amd64.deb')},
       ]);
+    });
+
+    it('[security-target][PKG-002] rejects two Linux package architectures for one version', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-linux-ambiguous-deployer-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123_x86_64.AppImage'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123_amd64.deb'));
+      await fs.ensureFile(path.join(basePath, 'Wire-3.42.123_arm64.deb'));
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      await assert.rejects(
+        s3Deployer.findUploadFiles('wrapper_linux_production', basePath, '3.42.123'),
+        /exactly one Linux deb for the requested version/,
+      );
+    });
+
+    it('[security-target][PKG-002] rejects two macOS packages under one search root', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-macos-ambiguous-deployer-'));
+      temporaryDirectories.push(basePath);
+      await fs.ensureFile(path.join(basePath, 'internal', 'Wire.pkg'));
+      await fs.ensureFile(path.join(basePath, 'production', 'Wire.pkg'));
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      await assert.rejects(
+        s3Deployer.findUploadFiles('wrapper_macos_production', basePath, '3.42.123'),
+        /exactly one macOS package/,
+      );
     });
 
     it('selects the requested native MSI when Squirrel artifacts are also present', async () => {
