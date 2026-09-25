@@ -45,6 +45,23 @@ describe('S3Deployer', () => {
   });
 
   describe('findUploadFiles', () => {
+    it('[security-target][PKG-002] retains nested Linux application and package paths', async () => {
+      const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-linux-nested-deployer-'));
+      temporaryDirectories.push(basePath);
+      const appImage = path.join(basePath, 'release', 'Wire.AppImage');
+      const debImage = path.join(basePath, 'release', 'wire.deb');
+      await fs.ensureFile(appImage);
+      await fs.ensureFile(debImage);
+      const s3Deployer = new S3Deployer({accessKeyId: '', dryRun: true, secretAccessKey: ''});
+
+      const files = await s3Deployer.findUploadFiles('wrapper_linux_production', basePath, '3.42.123');
+
+      assert.deepStrictEqual(files.slice(-2), [
+        {fileName: 'Wire.AppImage', filePath: appImage},
+        {fileName: 'wire.deb', filePath: debImage},
+      ]);
+    });
+
     it('selects the requested native MSI when Squirrel artifacts are also present', async () => {
       const basePath = await fs.mkdtemp(path.join(os.tmpdir(), 'wire-msi-deployer-'));
       temporaryDirectories.push(basePath);
