@@ -54,7 +54,7 @@ export interface S3CopyOptions {
 
 export type WindowsArtifactType = 'auto' | 'msi' | 'squirrel';
 
-async function findSingleSquirrelArtifact(
+async function findSingleArtifact(
   basePath: string,
   glob: string,
   matchesName: (fileName: string) => boolean,
@@ -98,8 +98,27 @@ export class S3Deployer {
     windowsArtifact: WindowsArtifactType = 'auto',
   ): Promise<FindResult[]> {
     if (platform.includes('linux')) {
-      const appImage = await find('*.AppImage', {cwd: basePath});
-      const debImage = await find('*.deb', {cwd: basePath});
+      const matchesLinuxVersion = (fileName: string, extension: string): boolean => {
+        const marker = `-${version}_`;
+        const markerIndex = fileName.lastIndexOf(marker);
+        return (
+          markerIndex > 0 &&
+          fileName.endsWith(extension) &&
+          /^[a-zA-Z0-9_]+$/.test(fileName.slice(markerIndex + marker.length, -extension.length))
+        );
+      };
+      const appImage = await findSingleArtifact(
+        basePath,
+        '**/*.AppImage',
+        fileName => matchesLinuxVersion(fileName, '.AppImage'),
+        'Linux AppImage for the requested version',
+      );
+      const debImage = await findSingleArtifact(
+        basePath,
+        '**/*.deb',
+        fileName => matchesLinuxVersion(fileName, '.deb'),
+        'Linux deb for the requested version',
+      );
       const repositoryFiles = [
         `debian/pool/main/${debImage.fileName}`,
         'debian/dists/stable/Contents-amd64',
@@ -157,7 +176,7 @@ export class S3Deployer {
       }
 
       const suffix = `-${version}-full.nupkg`;
-      const nupkgFile = await findSingleSquirrelArtifact(
+      const nupkgFile = await findSingleArtifact(
         basePath,
         '**/*-full.nupkg',
         fileName => fileName.endsWith(suffix) && fileName.length > suffix.length,
@@ -165,13 +184,13 @@ export class S3Deployer {
       );
       const appShortName = nupkgFile.fileName.slice(0, -suffix.length);
       const artifactDirectory = path.dirname(nupkgFile.filePath);
-      const setupExe = await findSingleSquirrelArtifact(
+      const setupExe = await findSingleArtifact(
         artifactDirectory,
         '*-Setup.exe',
         fileName => fileName.toLowerCase() === `${appShortName}-Setup.exe`.toLowerCase(),
         'matching Squirrel setup executable',
       );
-      const releasesFile = await findSingleSquirrelArtifact(
+      const releasesFile = await findSingleArtifact(
         artifactDirectory,
         'RELEASES',
         fileName => fileName === 'RELEASES',
@@ -188,7 +207,7 @@ export class S3Deployer {
         {...setupExe, fileName: `${appShortName}-${version}.exe`},
       ];
     } else if (platform.includes('macos')) {
-      const setupPkg = await find('*.pkg', {cwd: basePath});
+      const setupPkg = await findSingleArtifact(basePath, '**/*.pkg', () => true, 'macOS package');
       return [setupPkg];
     }
     throw new Error(`Invalid platform "${platform}"`);
