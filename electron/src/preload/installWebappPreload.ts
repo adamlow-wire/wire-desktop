@@ -21,6 +21,7 @@ import {contextBridge, ipcRenderer, webFrame} from 'electron';
 import type {Data as OpenGraphResult} from 'open-graph';
 
 import {ACCOUNT_THEME_CHANNEL} from './AccountThemeContract';
+import {requestAccountPopupGrant} from './requestAccountPopupGrant';
 import {createWebappBridge, exposeWebappBridge} from './WebappBridge';
 import {WebappVersions} from './WebappEventBridge';
 import {createWebappMainWorld} from './WebappMainWorld';
@@ -30,7 +31,7 @@ import {installDisplayCapturePreload} from '../calling/display/DisplayCaptureAda
 import {createDesktopAppConfig} from '../lib/desktopAppConfig';
 import type {ManagedConfig} from '../managed/ManagedConfig';
 import {restoreRendererEnvironment} from '../runtime/rendererEnvironment';
-import {readRendererEnvironment} from '../runtime/rendererRuntimeArguments';
+import {readRendererEnvironment, readRendererRegionalLocale} from '../runtime/rendererRuntimeArguments';
 import {reportWebappVersions as submitWebappVersions} from '../security/AboutWindowIpc';
 import {requestDownloadLocationUpdate} from '../security/DownloadLocationIpc';
 import {MANAGED_CONFIG_CHANNEL} from '../security/ManagedConfigContract';
@@ -105,11 +106,17 @@ export const installWebappPreload = (
 
     const webappBridge = createWebappBridge({
       decrypt: encrypted => ipcRenderer.invoke(SAFE_STORAGE_DECRYPT_CHANNEL, encrypted),
-      desktopAppConfig: createDesktopAppConfig(environment.app.DESKTOP_VERSION, managedConfig),
+      desktopAppConfig: createDesktopAppConfig(
+        environment.app.DESKTOP_VERSION,
+        managedConfig,
+        readRendererRegionalLocale(),
+      ),
       encrypt: value => ipcRenderer.invoke(SAFE_STORAGE_ENCRYPT_CHANNEL, value),
       environment,
       events: preloadEvents.events,
       getOpenGraphData: getOpenGraphDataViaChannel,
+      preparePopup: (url, frameName) =>
+        sendAccountEvent ? requestAccountPopupGrant(ipcRenderer, url, frameName, logger) : undefined,
     });
     exposeWebappBridge(contextBridge, webappBridge);
   };
@@ -117,7 +124,7 @@ export const installWebappPreload = (
   /* istanbul ignore next -- executed and asserted by LegacyPreloadCompatibility.test.main.ts. */
   initializeWebappBridge();
   installDisplayCapturePreload();
-  mainWorld.install();
+  mainWorld.install(Boolean(sendAccountEvent));
   preloadEvents.subscribeToMainProcessEvents();
 
   window.addEventListener('DOMContentLoaded', async () => {

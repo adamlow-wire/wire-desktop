@@ -19,6 +19,7 @@
 
 import S3 from 'aws-sdk/clients/s3';
 import fs from 'fs-extra';
+import globby from 'globby';
 
 import path from 'path';
 
@@ -53,6 +54,25 @@ export interface S3CopyOptions {
 
 export type WindowsArtifactType = 'auto' | 'msi' | 'squirrel';
 
+async function findSingleArtifact(
+  basePath: string,
+  glob: string,
+  matchesName: (fileName: string) => boolean,
+  label: string,
+): Promise<FindResult> {
+  const candidates = (await globby(glob, {cwd: basePath, followSymbolicLinks: false, onlyFiles: true})).filter(
+    relativePath => matchesName(path.basename(relativePath)),
+  );
+  if (candidates.length !== 1) {
+    throw new Error(`Expected exactly one ${label}.`);
+  }
+  const filePath = path.resolve(basePath, candidates[0]);
+  if (!(await fs.lstat(filePath)).isFile()) {
+    throw new Error(`Expected a regular ${label}.`);
+  }
+  return {fileName: path.basename(filePath), filePath};
+}
+
 export class S3Deployer {
   private readonly options: Required<S3DeployerOptions>;
   private readonly S3Instance: S3;
@@ -78,8 +98,27 @@ export class S3Deployer {
     windowsArtifact: WindowsArtifactType = 'auto',
   ): Promise<FindResult[]> {
     if (platform.includes('linux')) {
-      const appImage = await find('*.AppImage', {cwd: basePath});
-      const debImage = await find('*.deb', {cwd: basePath});
+      const matchesLinuxVersion = (fileName: string, extension: string): boolean => {
+        const marker = `-${version}_`;
+        const markerIndex = fileName.lastIndexOf(marker);
+        return (
+          markerIndex > 0 &&
+          fileName.endsWith(extension) &&
+          /^[a-zA-Z0-9_]+$/.test(fileName.slice(markerIndex + marker.length, -extension.length))
+        );
+      };
+      const appImage = await findSingleArtifact(
+        basePath,
+        '**/*.AppImage',
+        fileName => matchesLinuxVersion(fileName, '.AppImage'),
+        'Linux AppImage for the requested version',
+      );
+      const debImage = await findSingleArtifact(
+        basePath,
+        '**/*.deb',
+        fileName => matchesLinuxVersion(fileName, '.deb'),
+        'Linux deb for the requested version',
+      );
       const repositoryFiles = [
         `debian/pool/main/${debImage.fileName}`,
         'debian/dists/stable/Contents-amd64',
@@ -93,23 +132,30 @@ export class S3Deployer {
         'debian/dists/stable/main/binary-amd64/Packages.gz',
       ].map(fileName => ({fileName, filePath: path.join(basePath, fileName)}));
 
-      return [
-        ...repositoryFiles,
-        {
-          fileName: appImage.fileName,
-          filePath: path.join(basePath, appImage.fileName),
-        },
-        {
-          fileName: debImage.fileName,
-          filePath: path.join(basePath, debImage.fileName),
-        },
-      ];
+      return [...repositoryFiles, appImage, debImage];
     } else if (platform.includes('windows')) {
       if (!['auto', 'msi', 'squirrel'].includes(windowsArtifact)) {
         throw new Error(`Invalid Windows artifact type "${windowsArtifact}"`);
       }
 
-      const msi = await find(`*-${version}-*.msi`, {cwd: basePath, safeGuard: false});
+      const msiCandidates =
+        windowsArtifact === 'squirrel'
+          ? []
+          : (await globby('**/*.msi', {cwd: basePath, followSymbolicLinks: false, onlyFiles: true})).filter(
+              relativePath => {
+                const fileName = path.basename(relativePath);
+                return ['x64', 'ia32', 'arm64'].some(arch => {
+                  const suffix = `-${version}-${arch}.msi`;
+                  return fileName.length > suffix.length && fileName.endsWith(suffix);
+                });
+              },
+            );
+      if (msiCandidates.length > 1) {
+        throw new Error('Expected exactly one MSI for the requested version.');
+      }
+      const msiPath = msiCandidates[0] && path.resolve(basePath, msiCandidates[0]);
+      const msi =
+        msiPath && (await fs.lstat(msiPath)).isFile() ? {fileName: path.basename(msiPath), filePath: msiPath} : null;
       if (windowsArtifact === 'msi' && !msi) {
         throw new Error(`Could not find an MSI for version "${version}".`);
       }
@@ -126,38 +172,42 @@ export class S3Deployer {
         }
       }
       if (msi && windowsArtifact !== 'squirrel') {
-        return [{...msi, filePath: path.join(basePath, msi.fileName)}];
+        return [msi];
       }
 
-      const setupExe = await find('*-Setup.exe', {cwd: basePath});
-      const nupkgFile = await find('*-full.nupkg', {cwd: basePath});
-      const releasesFile = await find('RELEASES', {cwd: basePath});
-
-      const [, appShortName] = new RegExp('(.+)-[\\d.]+-full\\.nupkg').exec(nupkgFile.fileName) || ['', ''];
-
-      if (!appShortName) {
-        throw new Error('App short name not found');
+      const suffix = `-${version}-full.nupkg`;
+      const nupkgFile = await findSingleArtifact(
+        basePath,
+        '**/*-full.nupkg',
+        fileName => fileName.endsWith(suffix) && fileName.length > suffix.length,
+        'Squirrel full package for the requested version',
+      );
+      const appShortName = nupkgFile.fileName.slice(0, -suffix.length);
+      const artifactDirectory = path.dirname(nupkgFile.filePath);
+      const setupExe = await findSingleArtifact(
+        artifactDirectory,
+        '*-Setup.exe',
+        fileName => fileName.toLowerCase() === `${appShortName}-Setup.exe`.toLowerCase(),
+        'matching Squirrel setup executable',
+      );
+      const releasesFile = await findSingleArtifact(
+        artifactDirectory,
+        'RELEASES',
+        fileName => fileName === 'RELEASES',
+        'Squirrel RELEASES file',
+      );
+      const releaseEntries = (await fs.readFile(releasesFile.filePath, 'utf8')).split(/\r?\n/).filter(Boolean);
+      if (!releaseEntries.some(line => line.trim().split(/\s+/)[1] === nupkgFile.fileName)) {
+        throw new Error('RELEASES must name the requested Squirrel full package.');
       }
-
-      const setupExeRenamed = {...setupExe, fileName: `${appShortName}-${version}.exe`};
-      const releasesRenamed = {...releasesFile, fileName: `${appShortName}-${version}-RELEASES`};
 
       return [
-        {
-          fileName: nupkgFile.fileName,
-          filePath: path.join(basePath, nupkgFile.fileName),
-        },
-        {
-          fileName: releasesRenamed.fileName,
-          filePath: path.join(basePath, releasesFile.fileName),
-        },
-        {
-          fileName: setupExeRenamed.fileName,
-          filePath: path.join(basePath, setupExe.fileName),
-        },
+        nupkgFile,
+        {...releasesFile, fileName: `${appShortName}-${version}-RELEASES`},
+        {...setupExe, fileName: `${appShortName}-${version}.exe`},
       ];
     } else if (platform.includes('macos')) {
-      const setupPkg = await find('*.pkg', {cwd: basePath});
+      const setupPkg = await findSingleArtifact(basePath, '**/*.pkg', () => true, 'macOS package');
       return [setupPkg];
     }
     throw new Error(`Invalid platform "${platform}"`);

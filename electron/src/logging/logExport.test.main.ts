@@ -428,6 +428,9 @@ describe('desktop log export', () => {
             createArchive: archiveDependencies.createArchive,
             createOutputStream: archiveDependencies.createOutputStream,
             destinationPath,
+            createStagingDirectory: archiveDependencies.createStagingDirectory,
+            publishArchive: archiveDependencies.publishArchive,
+            removeStagingDirectory: archiveDependencies.removeStagingDirectory,
             pathExists: archiveDependencies.pathExists,
             removeFile: archiveDependencies.removeFile,
             reportFailure: archiveDependencies.reportFailure,
@@ -509,6 +512,9 @@ describe('desktop log export', () => {
 
           return createdOutputStream;
         },
+        createStagingDirectory: archiveDependencies.createStagingDirectory,
+        publishArchive: archiveDependencies.publishArchive,
+        removeStagingDirectory: archiveDependencies.removeStagingDirectory,
         pathExists: archiveDependencies.pathExists,
         removeFile: archiveDependencies.removeFile,
         reportFailure: archiveDependencies.reportFailure,
@@ -519,6 +525,9 @@ describe('desktop log export', () => {
           createArchive: failingArchiveDependencies.createArchive,
           createOutputStream: failingArchiveDependencies.createOutputStream,
           destinationPath: archivePath,
+          createStagingDirectory: failingArchiveDependencies.createStagingDirectory,
+          publishArchive: failingArchiveDependencies.publishArchive,
+          removeStagingDirectory: failingArchiveDependencies.removeStagingDirectory,
           pathExists: failingArchiveDependencies.pathExists,
           removeFile: failingArchiveDependencies.removeFile,
           reportFailure: failingArchiveDependencies.reportFailure,
@@ -563,6 +572,9 @@ describe('desktop log export', () => {
 
           return createdOutputStream;
         },
+        createStagingDirectory: archiveDependencies.createStagingDirectory,
+        publishArchive: archiveDependencies.publishArchive,
+        removeStagingDirectory: archiveDependencies.removeStagingDirectory,
         pathExists: archiveDependencies.pathExists,
         removeFile: archiveDependencies.removeFile,
         reportFailure: archiveDependencies.reportFailure,
@@ -573,6 +585,9 @@ describe('desktop log export', () => {
           createArchive: failingArchiveDependencies.createArchive,
           createOutputStream: failingArchiveDependencies.createOutputStream,
           destinationPath: archivePath,
+          createStagingDirectory: failingArchiveDependencies.createStagingDirectory,
+          publishArchive: failingArchiveDependencies.publishArchive,
+          removeStagingDirectory: failingArchiveDependencies.removeStagingDirectory,
           pathExists: failingArchiveDependencies.pathExists,
           removeFile: failingArchiveDependencies.removeFile,
           reportFailure: failingArchiveDependencies.reportFailure,
@@ -612,18 +627,21 @@ describe('desktop log export', () => {
       const archiveDependencies = createLogArchiveDependencies(noop);
       const failingArchiveDependencies = {
         createArchive: archiveDependencies.createArchive,
-        createOutputStream() {
+        createOutputStream(outputPath: string) {
           return new Writable({
             write(chunk: Buffer, _encoding: BufferEncoding, callback: (error?: Error) => void): void {
               if (wrotePartialArchive === false) {
                 wrotePartialArchive = true;
-                fs.writeFileSync(archivePath, chunk);
+                fs.writeFileSync(outputPath, chunk);
               }
 
               callback(outputFailure);
             },
           });
         },
+        createStagingDirectory: archiveDependencies.createStagingDirectory,
+        publishArchive: archiveDependencies.publishArchive,
+        removeStagingDirectory: archiveDependencies.removeStagingDirectory,
         pathExists: archiveDependencies.pathExists,
         removeFile: archiveDependencies.removeFile,
         reportFailure: archiveDependencies.reportFailure,
@@ -642,6 +660,9 @@ describe('desktop log export', () => {
               createArchive: failingArchiveDependencies.createArchive,
               createOutputStream: failingArchiveDependencies.createOutputStream,
               destinationPath,
+              createStagingDirectory: failingArchiveDependencies.createStagingDirectory,
+              publishArchive: failingArchiveDependencies.publishArchive,
+              removeStagingDirectory: failingArchiveDependencies.removeStagingDirectory,
               pathExists: failingArchiveDependencies.pathExists,
               removeFile: failingArchiveDependencies.removeFile,
               reportFailure: failingArchiveDependencies.reportFailure,

@@ -19,6 +19,11 @@ on:
         type: choice
         default: '1'
         options: ['1', '5']
+      native_repeats:
+        description: 'Bounded investigation of capture Stop and fake-media fixture waits'
+        type: choice
+        default: '1'
+        options: ['1', '5']
 
 concurrency:
   group: electron-modernization-baseline-${{ github.ref }}
@@ -33,17 +38,27 @@ jobs:
         include:
           - platform: Linux
             os: ubuntu-24.04
-            build: LINUX_TARGET=AppImage yarn build:linux
-            artifact: wrap/dist/*.AppImage
+            build: LINUX_TARGET=AppImage,deb,rpm yarn build:linux
+            artifact: |
+              wrap/dist/*.AppImage
+              wrap/dist/*.deb
+              wrap/dist/*.rpm
           - platform: Windows
             os: windows-2025
-            build: yarn build:win
-            artifact: wrap/build/**/*.exe
+            build: yarn build:win && yarn build:win:installers:manual
+            artifact: |
+              wrap/dist/*-Setup.exe
+              wrap/dist/*-full.nupkg
+              wrap/dist/RELEASES
+              wrap/dist/*.msi
           - platform: macOS
             os: macos-26
             build: yarn ts-node -P tsconfig.bin.json bin/test-tools/build-macos-smoke.ts
-            artifact: wrap/build/**/*.app
+            artifact: wrap/dist/unsigned-macos-app.tar.gz
     runs-on: ${{ matrix.os }}
+    env:
+      # Keep generated public config assets and archived wire.json in the same product environment.
+      APP_ENV: internal
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -60,11 +75,57 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y gnome-keyring dbus-x11 libglib2.0-bin
+          sudo apt-get install --no-install-recommends -y gnome-keyring dbus-x11 libglib2.0-bin rpm cpio
           python3 bin/test-tools/run-linux-e2e.test.py
       - name: Build production preloads
         shell: bash
         run: yarn build:ts && yarn bundle
+      - name: Prove native Stop test sensitivity
+        if: github.event_name == 'workflow_dispatch' && inputs.native_repeats == '5'
+        shell: bash
+        run: |
+          target=electron/src/calling/display/DisplayCaptureCoordinator.test.main.ts
+          original=$(mktemp)
+          cp "$target" "$original"
+          trap 'cp "$original" "$target"; rm -f "$original"' EXIT
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          target = Path('electron/src/calling/display/DisplayCaptureCoordinator.test.main.ts')
+          source = target.read_text(encoding='utf-8')
+          action = 'document.getElementById("stop-capture").click()'
+          assert source.count(action) == 1
+          target.write_text(source.replace(action, 'void 0'), encoding='utf-8')
+          PYTHON
+          set +e
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'cancelling the visible chooser never starts a stream' > native-stop-sensitivity.log 2>&1
+          else
+            yarn test:main --grep 'cancelling the visible chooser never starts a stream' > native-stop-sensitivity.log 2>&1
+          fi
+          result=$?
+          set -e
+          cp "$original" "$target"
+          cat native-stop-sensitivity.log
+          test "$result" -ne 0
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          log = Path('native-stop-sensitivity.log').read_text(encoding='utf-8')
+          assert '1 failing' in log and 'Native capture condition timed out.' in log
+          PYTHON
+      - name: Diagnose repeated native capture and media fixtures
+        if: github.event_name == 'workflow_dispatch' && inputs.native_repeats == '5'
+        shell: bash
+        run: |
+          for attempt in 1 2 3 4 5; do
+            echo "Native capture/media diagnostic iteration $attempt of 5"
+            if [[ "$RUNNER_OS" == 'Linux' ]]; then
+              xvfb-run yarn test:main --grep 'consented display capture native boundary'
+              xvfb-run yarn test:media
+            else
+              yarn test:main --grep 'consented display capture native boundary'
+              yarn test:media
+            fi
+          done
       - name: Test secure-shell boundary
         shell: bash
         run: |
@@ -103,6 +164,30 @@ jobs:
           cp "$original" "$target"
           yarn electron-mocha --require .babel-register.js electron/src/settings/WindowsMachineDestination.test.main.ts --no-sandbox
 
+      - name: Test bounded logging and maintenance contracts
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|desktop log maintenance coordination'
+          else
+            yarn test:main --grep 'bounded desktop log writer|bounded desktop logging admission|desktop log maintenance coordination'
+          fi
+      - name: Test bounded native picture saves and IPC quotas
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'native picture save IPC|authorized IPC contract|save-picture IPC contract|safe storage IPC contracts'
+          else
+            yarn test:main --grep 'native picture save IPC|authorized IPC contract|save-picture IPC contract|safe storage IPC contracts'
+          fi
+      - name: Test SSO diagnostics and retained native authentication boundaries
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'Linux' ]]; then
+            xvfb-run yarn test:main --grep 'SingleSignOn|WindowUtil'
+          else
+            yarn test:main --grep 'SingleSignOn|WindowUtil'
+          fi
       - name: Test native account lifecycle and cleanup
         shell: bash
         run: |
@@ -131,9 +216,9 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == 'Linux' ]]; then
-            xvfb-run yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            xvfb-run yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|settings persistence recovery|settings schema migration|quit after settings persistence failure|environment settings persistence failure|developer environment settings failure|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|native account frame identity|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           else
-            yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SingleSignOn|WindowUtil|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
+            yarn test:main --grep 'consented display capture native boundary|display capture contracts|detached call parent ownership|TrayHandler|badge-count IPC contract|notification-activation IPC contract|ConfigurationPersistence diagnostics|settings persistence recovery|settings schema migration|quit after settings persistence failure|environment settings persistence failure|developer environment settings failure|dispatchDeepLink|deep-link policy|application startup sandbox|application shell bootstrap|native account frame identity|legacy preload compatibility surface|legacy webview preferences|auxiliary window identity|developer menu view identity|renderer runtime arguments|account context menu|webapp bridge|navigation guard|navigation policy|account popup boundary|SSO window coordinator|SSO window-control|SSO account-limit|public preview|Preview metadata|openGraph|Windows enforced download path|download location update|enforced download setup|managed backend contracts|managed configuration IPC contract|getManagedConfig|WindowsMsiConfiguration|ProxyAuth|ProxyPromptCoordinator|proxy prompt|certificate verification|single-instance ownership|initSquirrelListener|relaunch'
           fi
       - name: Test product account and calling boundaries
         shell: bash
@@ -147,15 +232,71 @@ jobs:
           else
             yarn test:e2e --project=macOS specs/regression/accountLifecycle.spec.ts specs/regression/accountMetadata.spec.ts specs/regression/proxySession.spec.ts specs/regression/accountNavigation.spec.ts specs/regression/e2eiNavigation.spec.ts specs/regression/displayCapture.spec.ts specs/regression/accountPermissions.spec.ts specs/tooling/appLifecycle.spec.ts --reporter=line --repeat-each=${{ inputs.product_repeats || '1' }}
           fi
+      - name: Seed non-secret package exclusion canaries
+        shell: bash
+        run: node bin/test-tools/verify-package-contents.cjs --seed .
       - name: Build development package
         shell: bash
         run: ${{ matrix.build }}
+      - name: Verify actual package archive contents
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == 'macOS' ]]; then
+            node bin/test-tools/verify-package-contents.cjs --unsigned-macos wrap/build wrap/dist > package-contents.json
+          elif [[ "$RUNNER_OS" == 'Windows' ]]; then
+            node - wrap/build wrap/dist > package-contents.json <<'NODE'
+          const {main} = require('./bin/test-tools/verify-package-contents.cjs');
+          const assert = require('node:assert');
+          main(process.argv.slice(2)).catch(error => {
+            const kind = error instanceof assert.AssertionError ? 'assertion' : error?.name || 'unknown';
+            const code = error?.code || 'none';
+            const detail = error instanceof assert.AssertionError ? error.message : 'see verifier source for this error class';
+            console.error(`Windows package verification failed: ${kind}; code=${code}; ${detail}`);
+            process.exitCode = 1;
+          });
+          NODE
+          else
+            node bin/test-tools/verify-package-contents.cjs wrap/build wrap/dist > package-contents.json
+          fi
+      - name: Require both unsigned Windows installer families and Squirrel payload identity
+        if: runner.os == 'Windows'
+        shell: bash
+        run: node bin/test-tools/verify-windows-installers.cjs wrap/dist wrap/build > package-contents-windows-installers.json
+      - name: Inspect actual unsigned Windows MSI payload
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $msi = @(Get-ChildItem wrap/dist -File -Filter *.msi)
+          if ($msi.Count -ne 1) { throw 'Expected exactly one Windows MSI.' }
+          $extract = Join-Path $env:RUNNER_TEMP ('wire-msi-admin-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $extract | Out-Null
+          New-Item -ItemType Directory -Path test-results -Force | Out-Null
+          try {
+            $log = Join-Path (Resolve-Path test-results) 'windows-msi-admin.log'
+            $arguments = @('/a', ('"' + $msi[0].FullName + '"'), ('TARGETDIR="' + $extract + '"'), '/qn', '/norestart', '/l*v', ('"' + $log + '"'))
+            $process = Start-Process msiexec.exe -ArgumentList $arguments -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw "MSI administrative extraction failed with exit code $($process.ExitCode)." }
+            node bin/test-tools/verify-package-contents.cjs $extract > package-contents-windows-msi.json
+            if ($LASTEXITCODE -ne 0) { throw 'MSI payload content verification failed.' }
+            $built = @((Get-Content package-contents.json -Raw | ConvertFrom-Json).archives)
+            $installed = @((Get-Content package-contents-windows-msi.json -Raw | ConvertFrom-Json).archives)
+            if ($built.Count -ne 1 -or $installed.Count -ne 1 -or $built[0].sha256 -ne $installed[0].sha256) {
+              throw 'MSI payload archive differs from the verified unpacked application.'
+            }
+          } finally {
+            Remove-Item -Path $extract -Recurse -Force -ErrorAction SilentlyContinue
+          }
       - name: Verify claimed artifact exists
         id: artifact
         shell: bash
         run: |
           case '${{ matrix.platform }}' in
-            Linux) artifact=$(find wrap/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit) ;;
+            Linux)
+              for extension in AppImage deb rpm; do
+                test -n "$(find wrap/dist -maxdepth 1 -type f -name "*.$extension" -print -quit)"
+              done
+              artifact=$(find wrap/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+              ;;
             Windows) artifact=$(find wrap/build -type f -name '*.exe' -print -quit) ;;
             macOS) artifact=$(find wrap/build -type d -name '*.app' -print -quit) ;;
           esac
@@ -165,27 +306,130 @@ jobs:
           fi
           echo 'available=true' >> "$GITHUB_OUTPUT"
           printf '%s\n' "$artifact"
+      - name: Verify and smoke-test Linux deb and rpm
+        if: runner.os == 'Linux' && steps.artifact.outputs.available == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          extract_dir=$(mktemp -d)
+          trap 'rm -rf "$extract_dir"' EXIT
+          deb=$(find wrap/dist -maxdepth 1 -type f -name '*.deb' -print -quit)
+          rpm=$(find wrap/dist -maxdepth 1 -type f -name '*.rpm' -print -quit)
+          mkdir -p "$extract_dir/deb" "$extract_dir/rpm"
+          dpkg-deb -x "$deb" "$extract_dir/deb"
+          rpm2cpio "$rpm" | (cd "$extract_dir/rpm" && cpio --quiet -idm)
+          node bin/test-tools/verify-package-contents.cjs "$extract_dir/deb" "$extract_dir/rpm" > package-contents-linux-installers.json
+          node - "$extract_dir/deb" "$extract_dir/rpm" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const asar = require('@electron/asar');
+          const {FuseV1Options, getCurrentFuseWire} = require('@electron/fuses');
+          const {findArchives} = require('./bin/test-tools/verify-package-contents.cjs');
+          const built = require('./package-contents.json').archives;
+          const extracted = require('./package-contents-linux-installers.json').archives;
+          assert.equal(built.length, 1);
+          assert.equal(extracted.length, 2);
+          async function verify(root) {
+            const archives = findArchives(root);
+            assert.equal(archives.length, 1, 'Installer must contain exactly one application archive.');
+            const archive = archives[0];
+            const sha = require('node:crypto').createHash('sha256').update(fs.readFileSync(archive)).digest('hex');
+            assert.equal(sha, built[0].sha256, 'Installer must contain the verified archive.');
+            const metadata = JSON.parse(asar.extractFile(archive, 'package.json').toString());
+            assert.match(metadata.desktopName, /^[A-Za-z0-9._-]+$/);
+            const desktop = fs.readFileSync(path.join(root, 'usr/share/applications', `${metadata.desktopName}.desktop`), 'utf8');
+            assert.ok(desktop.split('\n').includes(`StartupWMClass=${metadata.desktopName}`));
+            assert.ok(desktop.split('\n').includes(`Icon=${metadata.desktopName}`));
+            for (const size of ['32x32', '256x256']) {
+              const icon = path.join(root, 'usr/share/icons/hicolor', size, 'apps', `${metadata.desktopName}.png`);
+              assert.deepEqual(fs.readFileSync(icon), fs.readFileSync(path.join('resources/icons', `${size}.png`)));
+            }
+            const executable = path.join(path.dirname(path.dirname(archive)), metadata.desktopName);
+            const fuses = await getCurrentFuseWire(executable);
+            for (const [option, expected] of [
+              [FuseV1Options.RunAsNode, '0'],
+              [FuseV1Options.EnableCookieEncryption, '1'],
+              [FuseV1Options.EnableNodeOptionsEnvironmentVariable, '0'],
+              [FuseV1Options.EnableNodeCliInspectArguments, '0'],
+              [FuseV1Options.EnableEmbeddedAsarIntegrityValidation, '0'],
+              [FuseV1Options.OnlyLoadAppFromAsar, '1'],
+              [FuseV1Options.GrantFileProtocolExtraPrivileges, '1'],
+            ]) {
+              assert.equal(fuses[option], expected.charCodeAt(0));
+            }
+          }
+          Promise.all(process.argv.slice(2).map(verify)).catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+          for format in deb rpm; do
+            executable=$(node bin/test-tools/resolve-linux-installer-executable.cjs "$extract_dir/$format")
+            helper="$(dirname "$executable")/chrome-sandbox"
+            if [[ ! -f "$helper" || -L "$helper" ]]; then
+              echo "$format sandbox helper is missing or a symlink." >&2
+              exit 1
+            fi
+            sudo chown root:root "$helper"
+            sudo chmod 4755 "$helper"
+            echo "Running extracted $format packaged-account smoke."
+            xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          done
       - name: Smoke-test Linux package
         if: runner.os == 'Linux' && steps.artifact.outputs.available == 'true'
         shell: bash
         run: |
           artifact=$(find wrap/dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)
           test -n "$artifact"
+          artifact=$(realpath "$artifact")
           chmod +x "$artifact"
-          xvfb-run "$artifact" --appimage-extract-and-run --no-sandbox --version
-          executable=$(find wrap/dist -maxdepth 2 -type f -name '*-desktop' -print -quit)
-          test -n "$executable"
+          extract_dir=$(mktemp -d)
+          trap 'rm -rf "$extract_dir"' EXIT
+          (cd "$extract_dir" && "$artifact" --appimage-extract > /dev/null)
+          node bin/test-tools/verify-package-contents.cjs "$extract_dir/squashfs-root" > package-contents-appimage.json
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const built = require('./package-contents.json').archives;
+          const extracted = require('./package-contents-appimage.json').archives;
+          assert.equal(built.length, 1);
+          assert.equal(extracted.length, 1);
+          assert.equal(extracted[0].sha256, built[0].sha256, 'AppImage must contain the verified archive.');
+          NODE
+          node - "$extract_dir/squashfs-root" <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = process.argv[2];
+          const desktopFiles = fs.readdirSync(root).filter(name => name.endsWith('.desktop'));
+          assert.equal(desktopFiles.length, 1, 'Expected one AppImage desktop entry.');
+          const desktop = fs.readFileSync(path.join(root, desktopFiles[0]), 'utf8');
+          const launcher = fs.readFileSync(path.join(root, 'AppRun'), 'utf8');
+          const asar = require('@electron/asar');
+          const metadata = JSON.parse(asar.extractFile(path.join(root, 'resources/app.asar'), 'package.json').toString());
+          assert.match(metadata.desktopName, /^[A-Za-z0-9._-]+$/, 'Packaged desktopName must be a safe filename.');
+          assert.equal(desktopFiles[0], `${metadata.desktopName}.desktop`, 'Desktop filename must match Electron app_id.');
+          assert.ok(desktop.split('\n').includes(`StartupWMClass=${metadata.desktopName}`));
+          assert.ok(desktop.split('\n').includes(`Icon=${metadata.desktopName}`));
+          for (const size of ['32x32', '256x256']) {
+            const icon = path.join(root, 'usr/share/icons/hicolor', size, 'apps', `${metadata.desktopName}.png`);
+            assert.deepEqual(fs.readFileSync(icon), fs.readFileSync(path.join('resources/icons', `${size}.png`)));
+          }
+          assert.match(desktop, /^Exec=AppRun %U$/m, 'Desktop launch must not disable sandboxing.');
+          assert.doesNotMatch(launcher, /--no-sandbox/, 'AppRun must never add a sandbox bypass.');
+          NODE
+          executable=$(node bin/test-tools/resolve-linux-installer-executable.cjs "$extract_dir/squashfs-root")
           helper="$(dirname "$executable")/chrome-sandbox"
           test -f "$helper"
           test ! -L "$helper"
           sudo chown root:root "$helper"
           sudo chmod 4755 "$helper"
-          xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$extract_dir/squashfs-root/AppRun"
           test ! -e /etc/wire/managed.json
           sudo mkdir -p /etc/wire
-          trap 'sudo rm -f /etc/wire/managed.json' EXIT
+          trap 'sudo rm -f /etc/wire/managed.json; rm -rf "$extract_dir"' EXIT
           printf '%s\n' '{"applockOverride":true}' | sudo tee /etc/wire/managed.json > /dev/null
-          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$executable"
+          M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true xvfb-run node bin/test-tools/packaged-account-smoke.cjs "$extract_dir/squashfs-root/AppRun"
       - name: Smoke-test Windows package
         id: windows_smoke
         if: runner.os == 'Windows'
@@ -221,6 +465,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: test '${{ steps.windows_smoke.outputs.completed }}' = 'true'
+      - name: Smoke-test applications installed by both Windows installers
+        if: runner.os == 'Windows'
+        timeout-minutes: 15
+        shell: pwsh
+        run: ./bin/test-tools/smoke-windows-installers.ps1
       - name: Smoke-test macOS package
         if: runner.os == 'macOS'
         shell: bash
@@ -239,6 +488,14 @@ jobs:
           trap 'defaults delete "$domain" applockOverride >/dev/null 2>&1' EXIT
           defaults write "$domain" applockOverride -bool true
           M3_EXPECT_APPLOCK_OVERRIDE=true M3_AUTHENTICATED_PROXY=true node bin/test-tools/packaged-account-smoke.cjs "$executable"
+      - name: Preserve macOS bundle permissions in handoff artifact
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bundle=$(find wrap/build -maxdepth 2 -type d -name '*.app' -print -quit)
+          test -n "$bundle"
+          mkdir -p wrap/dist
+          tar -czf wrap/dist/unsigned-macos-app.tar.gz -C "$(dirname "$bundle")" "$(basename "$bundle")"
       - name: Retain native product test failure evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -247,11 +504,19 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
+      - name: Retain package verification manifests
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: modernization-package-contents-${{ matrix.platform }}
+          path: package-contents*.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload development artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: modernization-baseline-${{ matrix.platform }}
           path: ${{ matrix.artifact }}
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7

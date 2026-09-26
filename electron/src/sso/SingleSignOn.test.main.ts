@@ -857,3 +857,40 @@ describe('SingleSignOn', () => {
     });
   });
 });
+
+describe('SingleSignOn native failed-load confidentiality', () => {
+  it('[security-target][CAP-002][INV-010] rejects a real failed login load without exposing its callback URL', async function () {
+    this.timeout(10000);
+    await app.whenReady();
+    const server = createServer(request => request.socket.destroy());
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const options = SingleSignOn.getSingleSignOnLoginWindowOptions(undefined as unknown as BrowserWindow, origin);
+    const window = new BrowserWindow({...options, show: false});
+    const singleSignOn = new SingleSignOn(
+      window,
+      window.webContents,
+      Maybe.nothing<string>(),
+      origin,
+      options,
+      new ViewIdentityRegistry(),
+    );
+    try {
+      await assert.rejects(
+        singleSignOn.init(),
+        (error: Error & {cause?: unknown}) =>
+          error.message === 'SSO login page could not be loaded.' && error.cause === undefined,
+      );
+    } finally {
+      try {
+        await singleSignOn['cleanupSession']();
+      } finally {
+        window.destroy();
+        await new Promise<void>((resolve, reject) => {
+          server.close(error => (error ? reject(error) : resolve()));
+          server.closeAllConnections();
+        });
+      }
+    }
+  });
+});

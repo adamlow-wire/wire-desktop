@@ -19,13 +19,13 @@
 
 import {Session, WebContents} from 'electron';
 
-import {Availability} from '@wireapp/protocol-messaging';
 import {WebAppEvents} from '@wireapp/webapp-events';
 
 import {AccountState, AccountSnapshot, AccountLimitError} from './AccountState';
 import {AccountViews} from './AccountViews';
 
 import type {Account, ConversationJoinData} from '../../renderer/src/types/account';
+import {BUSY_AVAILABILITY} from '../lib/availability';
 import {EVENT_TYPE} from '../lib/eventType';
 import {ACCOUNT_CONTROL_CAPABILITY} from '../security/AccountControlContract';
 import {isAccountCommand} from '../security/AccountControlIpc';
@@ -35,6 +35,8 @@ import {isAllowedAccountNavigation, parseNetworkNavigation} from '../security/Na
 import {AuthorizedViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {WRAPPER_RELOAD_CAPABILITY} from '../security/WrapperReloadContract';
 import {config} from '../settings/config';
+
+const MAX_PENDING_ACCOUNT_OPERATIONS = 32;
 
 export interface AccountControllerOptions {
   state: AccountState;
@@ -54,6 +56,7 @@ export interface AccountControllerOptions {
 // Serializes account lifecycle effects. Authority is checked again when queued work actually begins.
 export class AccountController {
   private pending: Promise<unknown> = Promise.resolve();
+  private pendingCount = 0;
   private desktopPending: Promise<void> = Promise.resolve();
   private desktopCount = 0;
   private readonly failures = new Set<string>();
@@ -426,7 +429,7 @@ export class AccountController {
   private publishBadge(id: string): void {
     this.options.badge(
       this.snapshots().reduce((sum, account) => sum + account.badgeCount, 0),
-      this.options.state.get(id).availability === Availability.Type.BUSY,
+      this.options.state.get(id).availability === BUSY_AVAILABILITY,
     );
   }
 
@@ -453,16 +456,26 @@ export class AccountController {
     identity?: AuthorizedViewIdentity,
     capability = ACCOUNT_CONTROL_CAPABILITY,
   ): Promise<void> {
-    const task = this.pending.then(async () => {
-      if (identity) {
-        this.assertIdentity(identity, capability);
-      }
-      try {
-        await operation();
-      } finally {
-        this.options.changed(this.snapshots());
-      }
-    });
+    // A native approval may remain pending indefinitely. Per-minute IPC quotas
+    // cannot bound retained payloads while that approval holds the lifecycle queue.
+    if (this.pendingCount >= MAX_PENDING_ACCOUNT_OPERATIONS) {
+      return Promise.reject(new Error('Account operation queue is full.'));
+    }
+    this.pendingCount++;
+    const task = this.pending
+      .then(async () => {
+        if (identity) {
+          this.assertIdentity(identity, capability);
+        }
+        try {
+          await operation();
+        } finally {
+          this.options.changed(this.snapshots());
+        }
+      })
+      .finally(() => {
+        this.pendingCount--;
+      });
     this.pending = task.catch(() => undefined);
     return task;
   }

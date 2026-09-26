@@ -110,6 +110,8 @@ const contract = <Request, Response>(
 export class DisplayCaptureCoordinator {
   private enumerationPending = false;
   private readonly flows = new Map<string, CaptureFlow>();
+  private readonly pendingCleanup = new Map<string, CaptureFlow>();
+  private readonly cleaning = new Set<string>();
   private readonly unbind: Array<() => void> = [];
 
   constructor(private readonly options: CaptureOptions) {
@@ -117,7 +119,12 @@ export class DisplayCaptureCoordinator {
       policy: AuthorizedIpcContract<Request, Response>,
       handler: (identity: AuthorizedViewIdentity, request: Request) => Response | Promise<Response>,
     ): void => {
-      this.unbind.push(bindAuthorizedIpc(ipcMain, options.registry, policy, handler));
+      try {
+        this.unbind.push(bindAuthorizedIpc(ipcMain, options.registry, policy, handler));
+      } catch (error) {
+        this.dispose();
+        throw error;
+      }
     };
     bind(
       contract(DISPLAY_CAPTURE_BEGIN_CHANNEL, false, isDisplayCaptureRequest, isDisplayCaptureStarted),
@@ -157,15 +164,19 @@ export class DisplayCaptureCoordinator {
   }
 
   revalidate(): void {
-    for (const flow of [...this.flows.values()]) {
-      if (!this.current(flow) || (flow.phase !== 'active' && !this.options.canApprove(flow.identity))) {
+    for (const flow of [...this.flows.values(), ...this.pendingCleanup.values()]) {
+      if (
+        flow.phase === 'ended' ||
+        !this.current(flow) ||
+        (flow.phase !== 'active' && !this.options.canApprove(flow.identity))
+      ) {
         this.end(flow);
       }
     }
   }
 
   dispose(): void {
-    for (const flow of [...this.flows.values()]) {
+    for (const flow of [...this.flows.values(), ...this.pendingCleanup.values()]) {
       this.end(flow);
     }
     for (const unbind of this.unbind.splice(0)) {
@@ -201,8 +212,10 @@ export class DisplayCaptureCoordinator {
     if (
       !this.options.isEligible(identity) ||
       !this.options.isForeground(identity) ||
-      this.flows.size >= 4 ||
-      [...this.flows.values()].some(flow => flow.identity.accountId === identity.accountId)
+      this.flows.size + this.pendingCleanup.size >= 4 ||
+      [...this.flows.values(), ...this.pendingCleanup.values()].some(
+        flow => flow.identity.accountId === identity.accountId,
+      )
     ) {
       throw new Error('Display request is not available for this view.');
     }
@@ -216,10 +229,10 @@ export class DisplayCaptureCoordinator {
     try {
       window = new BrowserWindow({
         parent,
-        width: 520,
-        height: 600,
-        minWidth: 420,
-        minHeight: 220,
+        width: 800,
+        height: 440,
+        minWidth: 560,
+        minHeight: 360,
         show: false,
         autoHideMenuBar: true,
         minimizable: false,
@@ -299,7 +312,11 @@ export class DisplayCaptureCoordinator {
         });
         window.once('closed', ended);
         window.on('unresponsive', ended);
-        window.on('hide', ended);
+        window.on('hide', () => {
+          if (flow.phase !== 'active') {
+            ended();
+          }
+        });
         window.webContents.once('render-process-gone', ended);
         window.webContents.on('did-start-navigation', (_event, _url, sameDocument, mainFrame) => {
           if (mainFrame && !sameDocument && flow.phase !== 'loading') {
@@ -307,15 +324,18 @@ export class DisplayCaptureCoordinator {
           }
         });
         flow.timer = setTimeout(ended, DISPLAY_CAPTURE_LIMITS.promptTimeoutMs);
-        void window.loadURL(DISPLAY_BROKER_URL).then(() => {
-          if (flow.phase !== 'loading' || !this.current(flow) || !this.options.isForeground(identity)) {
-            this.end(flow);
-            return;
-          }
-          flow.phase = 'choosing';
-          window.show();
-          window.focus();
-        }, ended);
+        void window
+          .loadURL(DISPLAY_BROKER_URL)
+          .then(() => {
+            if (flow.phase !== 'loading' || !this.current(flow) || !this.options.isForeground(identity)) {
+              this.end(flow);
+              return;
+            }
+            flow.phase = 'choosing';
+            window.show();
+            window.focus();
+          })
+          .catch(ended);
       } catch {
         this.end(flow);
       }
@@ -446,17 +466,30 @@ export class DisplayCaptureCoordinator {
     flow.timer = setTimeout(() => this.end(flow), DISPLAY_CAPTURE_LIMITS.frameTimeoutMs);
     try {
       const channel = new MessageChannelMain();
+      const ownedPorts = new Set([channel.port1, channel.port2]);
+      for (const port of ownedPorts) {
+        flow.cleanup.push(() => {
+          if (ownedPorts.has(port)) {
+            port.close();
+            ownedPorts.delete(port);
+          }
+        });
+      }
       flow.window.webContents.mainFrame.postMessage(DISPLAY_BROKER_PORT_CHANNEL, undefined, [channel.port1]);
+      ownedPorts.delete(channel.port1);
       flow.owner.mainFrame.postMessage(DISPLAY_CAPTURE_PORT_CHANNEL, {requestId: flow.requestId, flowId: flow.id}, [
         channel.port2,
       ]);
+      ownedPorts.delete(channel.port2);
       const started = await flow.window.webContents.executeJavaScript('window.wireCaptureBroker.start()', true);
       if (started !== true || flow.phase !== 'starting' || !this.current(flow) || !flow.displayUsed) {
         throw new Error('Display source did not start.');
       }
       flow.phase = 'active';
-      // Keep the Stop window available if the owning account window is minimized or hidden.
+      // The broker must keep relaying approved frames, but its chooser is no longer
+      // a second Stop dialog. The call's track Stop ends this flow through owner IPC.
       flow.window.setParentWindow(null);
+      flow.window.hide();
       // A main-process deadline remains armed; a hung broker cannot keep capture alive.
       flow.sourceChoices.clear();
       flow.resolve({flowId: flow.id});
@@ -467,26 +500,60 @@ export class DisplayCaptureCoordinator {
   }
 
   private end(flow: CaptureFlow): void {
-    if (flow.phase === 'ended') {
+    if (this.cleaning.has(flow.id) || (flow.phase === 'ended' && !this.pendingCleanup.has(flow.id))) {
       return;
     }
-    flow.phase = 'ended';
-    this.flows.delete(flow.id);
-    clearTimeout(flow.timer);
+    this.cleaning.add(flow.id);
     try {
-      if (!flow.owner.isDestroyed() && flow.owner.mainFrame === flow.identity.mainFrame) {
-        flow.owner.mainFrame.postMessage(DISPLAY_CAPTURE_ENDED_CHANNEL, {flowId: flow.id});
+      if (flow.phase !== 'ended') {
+        flow.phase = 'ended';
+        this.flows.delete(flow.id);
+        this.pendingCleanup.set(flow.id, flow);
+        clearTimeout(flow.timer);
+        flow.sourceChoices.clear();
+        flow.selected = undefined;
+        flow.reject(new Error('Display capture was cancelled or ended.'));
+        try {
+          if (!flow.owner.isDestroyed() && flow.owner.mainFrame === flow.identity.mainFrame) {
+            flow.owner.mainFrame.postMessage(DISPLAY_CAPTURE_ENDED_CHANNEL, {flowId: flow.id});
+          }
+        } catch {
+          /* The requesting document may already be gone. */
+        }
       }
-    } catch {
-      /* The requesting document may already be gone. */
+      let failed = false;
+      const attempt = (cleanup: () => void): boolean => {
+        try {
+          cleanup();
+          return true;
+        } catch {
+          failed = true;
+          return false;
+        }
+      };
+      attempt(() => {
+        if (!flow.window.isDestroyed()) {
+          flow.window.destroy();
+        }
+      });
+      const remaining: Array<() => void> = [];
+      for (const cleanup of flow.cleanup.splice(0).reverse()) {
+        if (!attempt(cleanup)) {
+          remaining.unshift(cleanup);
+        }
+      }
+      flow.cleanup.push(...remaining);
+      if (!failed) {
+        this.pendingCleanup.delete(flow.id);
+      } else {
+        try {
+          console.warn('Display capture cleanup failed.');
+        } catch {
+          // Reporting must not interrupt cancellation or other flow cleanup.
+        }
+      }
+    } finally {
+      this.cleaning.delete(flow.id);
     }
-    if (!flow.window.isDestroyed()) {
-      flow.window.destroy();
-    }
-    for (const cleanup of flow.cleanup.splice(0).reverse()) {
-      cleanup();
-    }
-    flow.sourceChoices.clear();
-    flow.reject(new Error('Display capture was cancelled or ended.'));
   }
 }

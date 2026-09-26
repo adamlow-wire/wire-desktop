@@ -219,6 +219,23 @@ describe('action creators', () => {
   });
 
   describe('shouldAcceptBadgeCount', () => {
+    it.each([0, 1, 2, 3, 4, undefined])(
+      '[characterization][ELC-003] suppresses flashing only for wire availability 3 (received %s)',
+      availability => {
+        const account = {...createAccount({visible: true}), availability};
+        const dispatch = jest.fn();
+        const sendBadgeCount = jest.fn();
+        const state: State = {
+          accounts: [account],
+          contextMenuState: {accountId: '', isAtLeastAdmin: false, position: {centerX: 0, centerY: 0}},
+        };
+        window.sendBadgeCount = sendBadgeCount;
+        updateAccountBadgeCount(account.id, 2)(dispatch, () => state);
+        expect(sendBadgeCount).toHaveBeenCalledWith(2, availability === 3);
+        expect(dispatch).toHaveBeenCalledWith(updateAccountBadge(account.id, 2));
+      },
+    );
+
     it('[characterization][DCP-001] preserves unread state reported by a hidden account', () => {
       const account = {...createAccount({visible: false}), badgeCount: 1};
 

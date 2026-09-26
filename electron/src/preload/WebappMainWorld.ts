@@ -19,6 +19,8 @@
 
 import {WebAppEvents} from '@wireapp/webapp-events';
 
+import {ACCOUNT_POPUP_GRANT_FEATURE, ACCOUNT_POPUP_GRANT_FRAME_PREFIX} from '../security/AccountPopupGrantContract';
+
 interface WebappEventNames {
   changeEnvironment: string;
   downloadPathUpdate: string;
@@ -38,6 +40,7 @@ interface WebappEventNames {
 
 interface MainWorldBridge {
   events: import('./WebappEventBridge').WebappEventBridge;
+  preparePopup(url: string, frameName: string): string | undefined;
 }
 
 export const WEBAPP_EVENT_NAMES: Readonly<WebappEventNames> = Object.freeze({
@@ -57,7 +60,70 @@ export const WEBAPP_EVENT_NAMES: Readonly<WebappEventNames> = Object.freeze({
   unreadCount: WebAppEvents.LIFECYCLE.UNREAD_COUNT,
 });
 
-export function installWebappEventAdapter(eventNames: WebappEventNames): void {
+export function installWebappEventAdapter(
+  eventNames: WebappEventNames,
+  enablePopupBroker = false,
+  popupGrantFeature = 'wirePopupGrant',
+  popupGrantFramePrefix = 'wirePopupGrant_',
+): void {
+  if (enablePopupBroker) {
+    const bridge = (window as unknown as {wireDesktopBridge?: MainWorldBridge}).wireDesktopBridge;
+    const nativeOpen = window.open;
+    window.open = (url?: string | URL, target?: string, features?: string): WindowProxy | null => {
+      if (!bridge || typeof bridge.preparePopup !== 'function') {
+        return null;
+      }
+      const rawUrl = url?.toString() ?? '';
+      let destination: string;
+      try {
+        destination = rawUrl === '' ? '' : new URL(rawUrl, window.location.href).href;
+      } catch {
+        return null;
+      }
+      const frameName = target || '_blank';
+      let token: string | undefined;
+      try {
+        token = bridge.preparePopup(destination, frameName);
+      } catch {
+        return null;
+      }
+      if (!token || !/^[0-9a-f]{32}$/.test(token)) {
+        return null;
+      }
+      const authorizedFeatures = [features, `${popupGrantFeature}=${token}`].filter(Boolean).join(',');
+      return nativeOpen.call(window, url, target, authorizedFeatures);
+    };
+    window.addEventListener('click', event => {
+      if (event.defaultPrevented) {
+        return;
+      }
+      const target = event.target as Element | null;
+      const anchor = target?.closest?.('a[href][target]') as HTMLAnchorElement | null;
+      if (!anchor || anchor.target !== '_blank') {
+        return;
+      }
+      if (!bridge || typeof bridge.preparePopup !== 'function') {
+        return;
+      }
+      let token: string | undefined;
+      try {
+        token = bridge.preparePopup(anchor.href, '_blank');
+      } catch {
+        return;
+      }
+      if (!token || !/^[0-9a-f]{32}$/.test(token)) {
+        return;
+      }
+      const authorizedTarget = `${popupGrantFramePrefix}${token}`;
+      anchor.target = authorizedTarget;
+      window.setTimeout(() => {
+        if (anchor.target === authorizedTarget) {
+          anchor.target = '_blank';
+        }
+      }, 0);
+    });
+  }
+
   const register = (): void => {
     const bridge = (window as unknown as {wireDesktopBridge?: MainWorldBridge}).wireDesktopBridge;
     if (!bridge || !window.amplify || !window.wire || !window.z?.event) {
@@ -126,7 +192,7 @@ type MainWorldExecutor = Pick<Electron.ContextBridge, 'executeInMainWorld'>;
 
 export interface WebappMainWorld {
   dispatch(eventName: string, detail: unknown): void;
-  install(): void;
+  install(enablePopupBroker?: boolean): void;
   publish(eventName: string, ...args: unknown[]): void;
   publishUpdate(): void;
   readVersions(): import('./WebappEventBridge').WebappVersions | undefined;
@@ -136,7 +202,11 @@ export interface WebappMainWorld {
 export const createWebappMainWorld = (executor: MainWorldExecutor): WebappMainWorld => ({
   dispatch: (eventName: string, detail: unknown): void =>
     executor.executeInMainWorld({args: [eventName, detail], func: dispatchWebappEvent}),
-  install: (): void => executor.executeInMainWorld({args: [WEBAPP_EVENT_NAMES], func: installWebappEventAdapter}),
+  install: (enablePopupBroker = false): void =>
+    executor.executeInMainWorld({
+      args: [WEBAPP_EVENT_NAMES, enablePopupBroker, ACCOUNT_POPUP_GRANT_FEATURE, ACCOUNT_POPUP_GRANT_FRAME_PREFIX],
+      func: installWebappEventAdapter,
+    }),
   publish: (eventName: string, ...args: unknown[]): void =>
     executor.executeInMainWorld({args: [eventName, args], func: publishWebappEvent}),
   publishUpdate: (): void =>

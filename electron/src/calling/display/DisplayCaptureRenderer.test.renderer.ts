@@ -331,6 +331,8 @@ describe('[security-target][CAP-003] trusted display broker renderer', () => {
     assert.equal(button.textContent, '<script>literal source</script>');
     assert.equal(button.querySelector('script'), null);
     assert.equal(document.getElementById('capture-origin')!.textContent, model().origin);
+    assert.equal(document.getElementById('capture-origin')!.title, model().origin);
+    assert.equal(button.title, model().sources[0].name);
     assert.equal(capture.called, false);
     button.click();
     button.click();

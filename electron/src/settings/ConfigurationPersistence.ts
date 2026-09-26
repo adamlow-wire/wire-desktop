@@ -17,9 +17,10 @@
  *
  */
 
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as logdown from 'logdown';
 
+import {randomUUID} from 'crypto';
 import * as path from 'path';
 
 import {SchemaUpdater} from './SchemaUpdater';
@@ -61,24 +62,56 @@ class ConfigurationPersistence {
 
   persistToFile(): void {
     this.logger.info(`Saving configuration to persistent storage in "${this.configFile}"`);
+    let temporary: string | undefined;
     try {
-      return fs.outputJsonSync(this.configFile, global._ConfigurationPersistence, {spaces: 2});
-    } catch (error) {
-      this.logger.error('An error occurred while persisting the configuration', error);
+      const value = global._ConfigurationPersistence;
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Invalid settings object.');
+      }
+      const serialized = JSON.stringify(value, null, 2);
+      fs.mkdirSync(path.dirname(this.configFile), {recursive: true, mode: 0o700});
+      const stagingPath = `${this.configFile}.${randomUUID()}.tmp`;
+      const descriptor = fs.openSync(stagingPath, 'wx', 0o600);
+      temporary = stagingPath;
+      try {
+        fs.writeFileSync(descriptor, serialized);
+        fs.fsyncSync(descriptor);
+      } finally {
+        fs.closeSync(descriptor);
+      }
+      fs.renameSync(temporary, this.configFile);
+      temporary = undefined;
+    } catch {
+      this.logger.error('Settings persistence failed.');
+      throw new Error('Settings persistence failed.');
+    } finally {
+      if (temporary) {
+        try {
+          fs.unlinkSync(temporary);
+        } catch {
+          this.logger.warn('Could not remove a temporary settings file.');
+        }
+      }
     }
   }
 
   readFromFile(): Record<string, any> {
     this.logger.info(`Reading config file from "${this.configFile}" ...`);
     try {
-      const configContent: Record<string, any> = fs.readJSONSync(this.configFile);
+      const configContent: unknown = fs.readJSONSync(this.configFile);
+      if (!configContent || typeof configContent !== 'object' || Array.isArray(configContent)) {
+        throw new Error('Invalid settings object.');
+      }
       this.logger.info('Read configuration');
-      return configContent;
+      return configContent as Record<string, unknown>;
     } catch (error) {
-      this.logger.warn('No config found');
-      const schemataKeys = Object.keys(SchemaUpdater.SCHEMATA);
-      // In case of an error, always use the latest schema with sensible defaults:
-      return SchemaUpdater.SCHEMATA[schemataKeys[schemataKeys.length - 1]];
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        this.logger.info('No config found');
+        const schemataKeys = Object.keys(SchemaUpdater.SCHEMATA);
+        return structuredClone(SchemaUpdater.SCHEMATA[schemataKeys[schemataKeys.length - 1]]);
+      }
+      this.logger.error('Settings could not be read; the existing file was preserved.');
+      throw new Error('Settings could not be read.');
     }
   }
 }

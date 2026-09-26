@@ -1,0 +1,136 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: #f5f7fa;
+  color: #202429;
+  font: 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+}
+
+main {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px 28px 20px;
+}
+
+.brand {
+  align-items: center;
+  color: #52606e;
+  display: flex;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 9px;
+}
+
+.brand-mark {
+  align-items: center;
+  background: #3879d9;
+  border-radius: 9px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 19px;
+  font-weight: 700;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+h1 {
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 20px 0;
+}
+
+.scope-list {
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.scope {
+  background: #fff;
+  border: 1px solid #dce3eb;
+  border-radius: 11px;
+  padding: 12px 14px;
+}
+
+.scope strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.scope p {
+  color: #56616b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.origin-line {
+  color: #62707e;
+  display: flex;
+  font-size: 12px;
+  gap: 7px;
+  margin: 16px 0 0;
+  min-width: 0;
+}
+
+.origin-line strong {
+  color: #344354;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+footer {
+  border-top: 1px solid #e0e6ed;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 17px;
+}
+
+button {
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-width: 98px;
+  padding: 10px 16px;
+}
+
+button:focus-visible {
+  outline: 3px solid #3879d9;
+  outline-offset: 2px;
+}
+
+#permission-cancel {
+  background: #fff;
+  border: 1px solid #bac5d0;
+  color: #26323e;
+}
+
+#permission-allow {
+  background: #3879d9;
+  border: 1px solid #3879d9;
+  color: #fff;
+}
+
+#permission-cancel:hover {
+  background: #e9eef6;
+}
+
+#permission-allow:hover {
+  background: #2868c7;
+}
