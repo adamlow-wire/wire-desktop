@@ -17,15 +17,20 @@
  *
  */
 
-import {BrowserWindow, dialog} from 'electron';
+import {BrowserWindow} from 'electron';
 
 import {AccountPermissionConsent} from './AccountPermissionPolicy';
+import {showAccountPermissionPrompt} from './AccountPermissionPrompt';
 import {createAccountPermissionPromptCopy} from './AccountPermissionPromptCopy';
 import {parseNetworkNavigation} from './NavigationPolicy';
 
 import * as locale from '../locale';
+import {config} from '../settings/config';
 
-export function createAccountPermissionConsent(window: BrowserWindow): AccountPermissionConsent {
+export function createAccountPermissionConsent(
+  window: BrowserWindow,
+  present: typeof showAccountPermissionPrompt = showAccountPermissionPrompt,
+): AccountPermissionConsent {
   let pending = false;
   const canPrompt: AccountPermissionConsent['canPrompt'] = identity =>
     !window.isDestroyed() &&
@@ -49,23 +54,56 @@ export function createAccountPermissionConsent(window: BrowserWindow): AccountPe
       ) {
         return false;
       }
-      const copy = createAccountPermissionPromptCopy(origin, scopes, locale.getText);
+      const copy = createAccountPermissionPromptCopy(origin, scopes, locale.getText, config.name);
       pending = true;
       const cancellation = new AbortController();
       const cancel = () => cancellation.abort();
       signal.addEventListener('abort', cancel, {once: true});
       window.once('closed', cancel);
       try {
-        const result = await dialog.showMessageBox(window, {
-          type: 'question',
-          buttons: [locale.getText('promptCancel'), locale.getText('permissionAllow')],
-          defaultId: 0,
-          cancelId: 0,
-          message: copy.title,
-          detail: copy.detail,
-          signal: cancellation.signal,
-        });
-        return result.response === 1 && !cancellation.signal.aborted && canPrompt(identity);
+        const accepted = await present(window, copy, cancellation.signal);
+        if (accepted !== true || cancellation.signal.aborted || window.isDestroyed()) {
+          return false;
+        }
+        if (!window.isFocused()) {
+          if (!window.isVisible() || window.isMinimized()) {
+            return false;
+          }
+          try {
+            window.focus();
+          } catch {
+            return false;
+          }
+          if (!window.isFocused()) {
+            const focused = await new Promise<boolean>(resolve => {
+              let settled = false;
+              const finish = (value: boolean): void => {
+                if (settled) {
+                  return;
+                }
+                settled = true;
+                clearTimeout(timeout);
+                window.removeListener('focus', onFocus);
+                window.removeListener('closed', onClose);
+                cancellation.signal.removeEventListener('abort', onClose);
+                resolve(value);
+              };
+              const onFocus = (): void => finish(true);
+              const onClose = (): void => finish(false);
+              const timeout = setTimeout(onClose, 1500);
+              window.once('focus', onFocus);
+              window.once('closed', onClose);
+              cancellation.signal.addEventListener('abort', onClose, {once: true});
+              if (window.isFocused()) {
+                finish(true);
+              }
+            });
+            if (!focused) {
+              return false;
+            }
+          }
+        }
+        return !cancellation.signal.aborted && canPrompt(identity);
       } finally {
         signal.removeEventListener('abort', cancel);
         window.removeListener('closed', cancel);

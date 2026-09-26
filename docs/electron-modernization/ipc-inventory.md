@@ -14,6 +14,7 @@ Main-to-renderer notifications and guest `sendToHost` events are outside this ta
 | `wire-desktop:secure-shell:runtime-info:v1` | secure account proof | Runtime metadata read | merged in PR #14 | SEC-003 |
 | `wire-desktop:safe-storage:encrypt:v1` | account | OS key-store encryption | merged in PR #15 | SEC-003, DCP-016 |
 | `wire-desktop:safe-storage:decrypt:v1` | account | OS key-store decryption | merged in PR #15 | SEC-003, DCP-016 |
+| `wire-desktop:permission-prompt:ready:v1` / `wire-desktop:permission-prompt:decision:v1` | exact main-created, sandboxed local consent modal main frame in its unique session | Shows one owner-bound prompt and returns one boolean user choice; the account policy alone grants permission | September 26 SEC-009 local UX candidate: fixed URL/session/webContents/main-frame equality, ready-before-decision, exact empty/boolean payloads, focus/owner/abort recheck and one-shot teardown; inert model/sender allow-deny tests pass, authored native modal tests await hosted execution | SEC-009 |
 | `wire-desktop:managed-config:read:v1` | account | Enterprise policy read | merged in PR #16; PR #47 native preload startup uses immutable main-owned App-lock arguments to avoid synchronous reads before origin commitment; legacy entry retains this authorized channel | SEC-003, CAP-005 |
 | `wire-desktop:save-picture:v1` | account context action | Network-sized bytes, native dialog, file write | merged in PR #17 | SEC-003, SEC-004 |
 | `wire-desktop:notification:activate:v1` | account | Global window activation | merged in PR #18 | SEC-003, CAP-004 |
@@ -44,6 +45,8 @@ TST-006 F-008 identifies that the account-event per-minute quota did not bound p
 The final production search found no additional privileged renderer-to-main listener. The native About menu now calls its main-owned window boundary directly, and the unproduced `WRAPPER.UPDATE` listener was removed; normal Squirrel update initialization remains unchanged. These dispositions prevent internal or dormant event names from becoming undocumented renderer authority later.
 
 When a migration changes a row, update this file in the same PR. Search evidence must include all production `ipcMain.on`, `ipcMain.once`, and `ipcMain.handle` registrations plus contract binders so wrapper helpers cannot hide an endpoint.
+
+The new `wire-desktop:permission-prompt:model:v1` notification is **main-to-local-preload** only. It carries bounded translated text and the canonical account origin; renderer DOM uses text nodes, never HTML parsing. The return channel is attached only to the created prompt's `webContents` and is not a global account IPC binder. It grants no permission by itself; the existing account policy rechecks owner, origin, document and cancellation.
 
 ## SEC-009 main-to-preload notification request
 

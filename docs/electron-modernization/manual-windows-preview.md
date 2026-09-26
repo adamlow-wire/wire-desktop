@@ -14,7 +14,7 @@ Profile separation is not account/server isolation: messages, account changes an
 
 - Sign in, switch between accounts, restart, then remove a test account and confirm the others remain intact.
 - Exercise menus, keyboard shortcuts, unread badges and notification activation.
-- Make an audio/video call with a second device or test participant.
+- Make an audio/video call with a second device or test participant. Check that microphone and camera consent explains why access is needed, shows the account origin, and that Not now denies access. Check the notification prompt separately.
 - Share a harmless test window: verify the compact horizontal picker, explicit source selection, received pixels, Cancel before selection, automatic picker dismissal and Stop in the call UI. Repeat from a detached call window.
 - Switch accounts or minimize while sharing; restore the call and verify its Stop control ends delivery without a separate sharing dialog. Close/navigate the parent account and verify its detached call closes.
 

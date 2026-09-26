@@ -17,18 +17,19 @@
  *
  */
 
-import {BrowserWindow, dialog, MessageBoxOptions} from 'electron';
+import {BrowserWindow} from 'electron';
 import {restore, stub, SinonStub} from 'sinon';
 
 import {strict as assert} from 'node:assert';
 
 import {createAccountPermissionConsent} from './AccountPermissionConsent';
 import {AccountPermissionConsent} from './AccountPermissionPolicy';
+import {AccountPermissionPromptModel} from './AccountPermissionPromptContract';
 import {AuthorizedViewIdentity, ViewIdentityRegistry} from './ViewIdentityRegistry';
 
 import * as locale from '../locale';
 
-describe('[security-target][SEC-009] native account permission consent', () => {
+describe('[security-target][SEC-009] account permission consent', () => {
   let window: BrowserWindow;
   let consent: AccountPermissionConsent;
   let identity: AuthorizedViewIdentity;
@@ -39,7 +40,7 @@ describe('[security-target][SEC-009] native account permission consent', () => {
   beforeEach(() => {
     window = new BrowserWindow({show: false, webPreferences: {sandbox: true, contextIsolation: true}});
     focus = stub(window, 'isFocused').returns(true);
-    prompt = stub(dialog, 'showMessageBox').resolves({response: 1, checkboxChecked: false});
+    prompt = stub().resolves(true);
     identity = new ViewIdentityRegistry().register({
       accountId: 'fixture',
       allowedOrigin: 'https://app.wire.test',
@@ -50,7 +51,7 @@ describe('[security-target][SEC-009] native account permission consent', () => {
       webContents: window.webContents,
     });
     cancellation = new AbortController();
-    consent = createAccountPermissionConsent(window);
+    consent = createAccountPermissionConsent(window, prompt);
   });
 
   afterEach(() => {
@@ -60,17 +61,21 @@ describe('[security-target][SEC-009] native account permission consent', () => {
     }
   });
 
-  it('uses an owner-bound cancel-default dialog with origin and separate requested scopes', async () => {
+  it('uses an owner-bound cancel-default model with canonical origin and separate requested scopes', async () => {
     assert.equal(consent.canPrompt(identity), true);
     assert.equal(await consent.ask(identity, ['audio', 'video'], cancellation.signal), true);
     assert.equal(prompt.firstCall.args[0], window);
-    const options = prompt.firstCall.args[1] as MessageBoxOptions;
-    assert.equal(options.defaultId, 0);
-    assert.equal(options.cancelId, 0);
-    assert.deepEqual(options.buttons, ['Cancel', 'Allow']);
-    assert.equal(options.message, 'Allow account permissions?');
-    assert.equal(options.detail, 'https://app.wire.test\n\nMicrophone\nCamera');
-    assert.ok(options.signal);
+    const model = prompt.firstCall.args[1] as AccountPermissionPromptModel;
+    assert.equal(model.title, 'Use your camera and microphone?');
+    assert.equal(model.origin, 'https://app.wire.test');
+    assert.equal(model.cancel, 'Not now');
+    assert.equal(model.allow, 'Allow');
+    assert.deepEqual(
+      model.scopes.map(scope => scope.label),
+      ['Microphone', 'Camera'],
+    );
+    assert.ok(model.scopes.every(scope => scope.reason.length > 15));
+    assert.ok(prompt.firstCall.args[2] instanceof AbortSignal);
   });
 
   it('[regression][SEC-009] explains why each requested permission is needed before approval', async () => {
@@ -81,8 +86,8 @@ describe('[security-target][SEC-009] native account permission consent', () => {
     ];
     for (const {scope, reason} of cases) {
       assert.equal(await consent.ask(identity, [scope], new AbortController().signal), true);
-      const options = prompt.lastCall.args[1] as MessageBoxOptions;
-      assert.ok(options.detail?.includes(reason), `${scope} must explain its purpose`);
+      const model = prompt.lastCall.args[1] as AccountPermissionPromptModel;
+      assert.ok(model.scopes[0].reason.includes(reason), `${scope} must explain its purpose`);
     }
   });
 
@@ -106,25 +111,26 @@ describe('[security-target][SEC-009] native account permission consent', () => {
     assert.equal(prompt.callCount, 0);
   });
 
-  it('denies cancellation, unexpected responses and dialog errors', async () => {
-    for (const response of [0, -1, 2]) {
-      prompt.resolves({response, checkboxChecked: false});
+  it('denies cancellation, unexpected presenter results and errors', async () => {
+    for (const result of [false, 0, undefined, 'allow']) {
+      prompt.resolves(result);
       assert.equal(await consent.ask(identity, ['notifications'], cancellation.signal), false);
     }
     prompt.rejects(new Error('Fixture dialog failure'));
     await assert.rejects(consent.ask(identity, ['audio'], cancellation.signal), /Fixture dialog failure/);
   });
 
-  it('uses translated labels with English fallback for untranslated additions', async () => {
+  it('uses translated labels with English fallback for new copy', async () => {
     stub(locale, 'getText').callsFake(key => locale.LANGUAGES.de[key]);
     assert.equal(await consent.ask(identity, ['notifications'], cancellation.signal), true);
-    const options = prompt.firstCall.args[1] as MessageBoxOptions;
-    assert.deepEqual(options.buttons, ['Abbrechen', 'Allow']);
-    assert.equal(options.detail, 'https://app.wire.test\n\nNotifications');
+    const model = prompt.firstCall.args[1] as AccountPermissionPromptModel;
+    assert.equal(model.title, 'Show notifications?');
+    assert.equal(model.scopes[0].label, 'Notifications');
+    assert.ok(model.scopes[0].reason.includes('new messages and calls'));
   });
 
-  it('aborts an outstanding dialog, rejects its late answer and bounds concurrent prompts', async () => {
-    let answer!: (value: {response: number; checkboxChecked: boolean}) => void;
+  it('aborts an outstanding prompt, rejects its late answer and bounds concurrent prompts', async () => {
+    let answer!: (value: boolean) => void;
     prompt.callsFake(
       () =>
         new Promise(resolve => {
@@ -133,15 +139,15 @@ describe('[security-target][SEC-009] native account permission consent', () => {
     );
     const pending = consent.ask(identity, ['audio'], cancellation.signal);
     assert.equal(prompt.callCount, 1);
-    const signal = (prompt.firstCall.args[1] as MessageBoxOptions).signal!;
+    const signal = prompt.firstCall.args[2] as AbortSignal;
     assert.equal(signal.aborted, false);
     assert.equal(await consent.ask(identity, ['video'], new AbortController().signal), false);
     assert.equal(prompt.callCount, 1);
     cancellation.abort();
     assert.equal(signal.aborted, true);
-    answer({response: 1, checkboxChecked: false});
+    answer(true);
     assert.equal(await pending, false);
-    prompt.resolves({response: 1, checkboxChecked: false});
+    prompt.resolves(true);
     assert.equal(await consent.ask(identity, ['video'], new AbortController().signal), true);
   });
 
@@ -149,23 +155,19 @@ describe('[security-target][SEC-009] native account permission consent', () => {
     const listeners = window.listenerCount('closed');
     assert.equal(await consent.ask(identity, ['audio'], cancellation.signal), true);
     assert.equal(window.listenerCount('closed'), listeners);
-    prompt.callsFake(async (_owner, options: MessageBoxOptions) => {
+    prompt.callsFake(async (_owner, _model, signal: AbortSignal) => {
       window.destroy();
-      assert.equal(options.signal!.aborted, true);
-      return {response: 1, checkboxChecked: false};
+      assert.equal(signal.aborted, true);
+      return true;
     });
     assert.equal(await consent.ask(identity, ['audio'], cancellation.signal), false);
   });
 
-  it('settles real native dialog cancellation without user input or a permission grant', async () => {
-    // Eligibility stays fixture-controlled; this exercises the actual native dialog API.
-    prompt.restore();
-    const cancel = setTimeout(() => cancellation.abort(), 100);
-    try {
-      assert.equal(await consent.ask(identity, ['notifications'], cancellation.signal), false);
-      assert.equal(cancellation.signal.aborted, true);
-    } finally {
-      clearTimeout(cancel);
-    }
+  it('refuses presenter approval if the owning window loses foreground eligibility', async () => {
+    prompt.callsFake(async () => {
+      focus.returns(false);
+      return true;
+    });
+    assert.equal(await consent.ask(identity, ['audio'], cancellation.signal), false);
   });
 });

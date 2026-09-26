@@ -19,17 +19,25 @@
 
 import {strict as assert} from 'node:assert';
 
-import {LANGUAGES} from '../locale/languages';
-
 import {createAccountPermissionPromptCopy} from './AccountPermissionPromptCopy';
+
+import {LANGUAGES} from '../locale/languages';
 
 describe('[SEC-009] permission prompt copy', () => {
   const translate = (key: keyof typeof LANGUAGES.en): string => LANGUAGES.en[key];
 
-  it('retains the account origin and each requested scope without changing the current prompt', () => {
+  it('retains the exact account origin and ordered scope names in the new prompt', () => {
     assert.deepEqual(createAccountPermissionPromptCopy('https://app.wire.test', ['audio', 'video'], translate), {
-      title: 'Allow account permissions?',
-      detail: 'https://app.wire.test\n\nMicrophone\nCamera',
+      brand: 'Wire',
+      title: 'Use your camera and microphone?',
+      origin: 'https://app.wire.test',
+      originLabel: 'Requested by',
+      allow: 'Allow',
+      cancel: 'Not now',
+      scopes: [
+        {label: 'Microphone', reason: 'Wire needs your microphone so people in the call can hear you.'},
+        {label: 'Camera', reason: 'Wire needs your camera so people in the call can see you.'},
+      ],
     });
   });
 
@@ -41,7 +49,7 @@ describe('[SEC-009] permission prompt copy', () => {
     ];
     for (const {scope, reason} of cases) {
       const copy = createAccountPermissionPromptCopy('https://app.wire.test', [scope], translate);
-      assert.ok(copy.detail.includes(reason), `${scope} must explain its purpose`);
+      assert.ok(copy.scopes[0].reason.includes(reason), `${scope} must explain its purpose`);
     }
   });
 });

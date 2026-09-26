@@ -44,9 +44,11 @@ const assets = [
   'html/about.html',
   'html/proxy-prompt.html',
   'html/display-capture.html',
+  'html/account-permission.html',
   'css/about.css',
   'css/proxy-prompt.css',
   'css/display-capture.css',
+  'css/account-permission.css',
   'css/wrapper.css',
 ];
 const parents = new Set(

@@ -17,9 +17,10 @@
  *
  */
 
-import type {i18nLanguageIdentifier} from '../locale/languages';
-
 import type {AccountPermissionScope} from './AccountPermissionPolicy';
+import type {AccountPermissionPromptModel} from './AccountPermissionPromptContract';
+
+import type {i18nLanguageIdentifier} from '../locale/languages';
 
 type Translate = (key: i18nLanguageIdentifier) => string;
 
@@ -29,13 +30,38 @@ const scopeLabels = {
   notifications: 'permissionNotifications',
 } as const;
 
+const scopeReasons = {
+  audio: 'permissionMicrophoneReason',
+  video: 'permissionCameraReason',
+  notifications: 'permissionNotificationsReason',
+} as const;
+
 export function createAccountPermissionPromptCopy(
   origin: string,
   scopes: readonly AccountPermissionScope[],
   translate: Translate,
-): {title: string; detail: string} {
+  brand = 'Wire',
+): AccountPermissionPromptModel {
+  const titleKey =
+    scopes.length === 1
+      ? scopes[0] === 'audio'
+        ? 'permissionPromptTitleAudio'
+        : scopes[0] === 'video'
+        ? 'permissionPromptTitleVideo'
+        : 'permissionPromptTitleNotifications'
+      : scopes.length === 2 && scopes.includes('audio') && scopes.includes('video')
+      ? 'permissionPromptTitleAudioVideo'
+      : 'permissionPromptTitle';
   return {
-    title: translate('permissionPromptTitle'),
-    detail: `${origin}\n\n${scopes.map(scope => translate(scopeLabels[scope])).join('\n')}`,
+    brand,
+    title: translate(titleKey),
+    origin,
+    originLabel: translate('permissionRequestedBy'),
+    allow: translate('permissionAllow'),
+    cancel: translate('permissionNotNow'),
+    scopes: scopes.map(scope => ({
+      label: translate(scopeLabels[scope]),
+      reason: translate(scopeReasons[scope]),
+    })),
   };
 }

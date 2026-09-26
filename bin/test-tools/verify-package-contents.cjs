@@ -45,15 +45,18 @@ const required = [
   'electron/dist/preload/menu/preload-proxy-prompt.js',
   'electron/dist/preload/preload-secure-account.js',
   'electron/dist/preload/preload-display-broker.js',
+  'electron/dist/preload/preload-account-permission.js',
   'electron/dist/preload/preload-display-pip.js',
   'electron/dist/runtime/wallClockLoader.mjs',
   'electron/dist/locale/en-US.json',
   'electron/html/about.html',
   'electron/html/proxy-prompt.html',
   'electron/html/display-capture.html',
+  'electron/html/account-permission.html',
   'electron/css/about.css',
   'electron/css/proxy-prompt.css',
   'electron/css/display-capture.css',
+  'electron/css/account-permission.css',
   'electron/css/wrapper.css',
 ];
 const canaries = [
