@@ -108,15 +108,14 @@ export async function showAccountPermissionPrompt(
     return false;
   }
 
+  const contents = prompt.webContents;
   return new Promise(resolve => {
     let settled = false;
     let ready = false;
     const deny = (): void => settle(false);
     const authorized = (event: IpcMainEvent): boolean => {
       try {
-        return (
-          isOwnedPermissionPromptSender(event, prompt.webContents, target) && !owner.isDestroyed() && !signal.aborted
-        );
+        return isOwnedPermissionPromptSender(event, contents, target) && !owner.isDestroyed() && !signal.aborted;
       } catch {
         return false;
       }
@@ -163,13 +162,19 @@ export async function showAccountPermissionPrompt(
       owner.removeListener('hide', deny);
       owner.removeListener('minimize', deny);
       prompt.removeListener('closed', deny);
-      prompt.webContents.removeListener('ipc-message', onMessage);
-      prompt.webContents.removeListener('render-process-gone', deny);
-      let cleaned = true;
+      let cleaned = !prompt.isDestroyed();
       try {
-        prompt.destroy();
+        contents.removeListener('ipc-message', onMessage);
+        contents.removeListener('render-process-gone', deny);
       } catch {
         cleaned = false;
+      }
+      if (!prompt.isDestroyed()) {
+        try {
+          prompt.destroy();
+        } catch {
+          cleaned = false;
+        }
       }
       try {
         uninstall();
@@ -184,13 +189,13 @@ export async function showAccountPermissionPrompt(
     owner.once('hide', deny);
     owner.once('minimize', deny);
     prompt.once('closed', deny);
-    prompt.webContents.on('ipc-message', onMessage);
-    prompt.webContents.once('render-process-gone', deny);
+    contents.on('ipc-message', onMessage);
+    contents.once('render-process-gone', deny);
     void prompt
       .loadURL(ACCOUNT_PERMISSION_PROMPT_URL)
       .then(() => {
         if (!settled && !prompt.isDestroyed()) {
-          prompt.webContents.send(ACCOUNT_PERMISSION_PROMPT_MODEL_CHANNEL, model);
+          contents.send(ACCOUNT_PERMISSION_PROMPT_MODEL_CHANNEL, model);
         }
       })
       .catch(deny);
