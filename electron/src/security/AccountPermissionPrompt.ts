@@ -17,7 +17,7 @@
  *
  */
 
-import {app, BrowserWindow, session} from 'electron';
+import {BrowserWindow, session} from 'electron';
 import type {IpcMainEvent} from 'electron';
 
 import {randomUUID} from 'node:crypto';
@@ -35,8 +35,6 @@ import {
 import {installLocalContentProtocol} from './LocalContentProtocol';
 import {bindNavigationGuard} from './NavigationGuard';
 
-import {config} from '../settings/config';
-
 export async function showAccountPermissionPrompt(
   owner: BrowserWindow,
   model: AccountPermissionPromptModel,
@@ -53,7 +51,7 @@ export async function showAccountPermissionPrompt(
   }
 
   const target = session.fromPartition(`wire-permission-${randomUUID()}`, {cache: false});
-  const directory = path.join(app.getAppPath(), config.electronDirectory);
+  const directory = path.resolve(__dirname, '../..');
   let uninstall: () => void;
   try {
     uninstall = installLocalContentProtocol(target, directory, 'permission-consent');

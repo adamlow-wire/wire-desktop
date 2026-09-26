@@ -89,7 +89,7 @@ describe('[security-target][SEC-009] native local account permission prompt', fu
       await until(() => (prompt!.isVisible() && prompt!.isFocused() ? true : undefined));
     } catch {
       const state = await prompt.webContents.executeJavaScript(
-        '({readyState:document.readyState,url:location.href,title:document.title})',
+        '({readyState:document.readyState,url:location.href,title:document.title,body:document.body?.textContent?.slice(0,160)})',
       );
       throw new Error(
         `Local permission prompt unavailable: visible=${prompt.isVisible()}, focused=${prompt.isFocused()}, ` +
