@@ -56,29 +56,14 @@ test(
       await expect
         .poll(() => app!.windows().some(page => !page.isClosed() && new URL(page.url()).searchParams.has('env')))
         .toBe(true);
-      await app.evaluate(({desktopCapturer, dialog}) => {
-        const fixture = {
-          response: 1,
-          enumerations: 0,
-          requests: [] as Array<{defaultId?: number; cancelId?: number; detail?: string}>,
-        };
+      await app.evaluate(({desktopCapturer}) => {
+        const fixture = {enumerations: 0};
         (globalThis as unknown as {permissionFixture: typeof fixture}).permissionFixture = fixture;
         // Never capture the host desktop. Count attempts at the real IPC boundary instead.
         desktopCapturer.getSources = async () => {
           fixture.enumerations++;
           return [];
         };
-        const original = dialog.showMessageBox.bind(dialog);
-        dialog.showMessageBox = ((
-          ...args: [Electron.BaseWindow, Electron.MessageBoxOptions] | [Electron.MessageBoxOptions]
-        ) => {
-          const options = args.length === 2 ? args[1] : args[0];
-          if (options?.message === 'Allow account permissions?') {
-            fixture.requests.push({defaultId: options.defaultId, cancelId: options.cancelId, detail: options.detail});
-            return Promise.resolve({response: options.signal?.aborted ? 0 : fixture.response, checkboxChecked: false});
-          }
-          return args.length === 2 ? original(args[0], args[1]) : original(args[0]);
-        }) as typeof dialog.showMessageBox;
       });
       await expect
         .poll(() =>
@@ -121,6 +106,20 @@ test(
           const contents = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(origin))!;
           return contents.executeJavaScript('window.permissionResults');
         }, origin);
+      const promptUrl = 'wire-app://shell/html/account-permission.html';
+      const decisions: Array<{scope: string; choice: 'allow' | 'deny'}> = [];
+      const choosePermission = async (scope: string, choice: 'allow' | 'deny') => {
+        const openPrompts = () => app!.windows().filter(page => !page.isClosed() && page.url() === promptUrl);
+        await expect.poll(() => openPrompts().length).toBe(1);
+        const prompt = openPrompts()[0];
+        await expect(prompt.locator('#permission-title')).toBeVisible();
+        await expect(prompt.locator('#requesting-origin')).toHaveText(origin);
+        await expect(prompt.locator('.scope strong')).toHaveText(scope);
+        await expect(prompt.locator('.scope p')).not.toBeEmpty();
+        await prompt.locator(choice === 'allow' ? '#permission-allow' : '#permission-cancel').click();
+        decisions.push({scope, choice});
+        await expect.poll(() => openPrompts().length).toBe(0);
+      };
       const capture = (kind: 'audio' | 'video') =>
         app!.evaluate(
           async ({app, BrowserWindow, webContents}, {origin, kind}) => {
@@ -151,10 +150,16 @@ test(
           },
           {origin, kind},
         );
-      const expectCapture = async (kind: 'audio' | 'video', expected: {kinds: string[]} | {error: string}) => {
+      const expectCapture = async (
+        kind: 'audio' | 'video',
+        choice: 'allow' | 'deny',
+        expected: {kinds: string[]} | {error: string},
+      ) => {
         // Each request models a foreground user flow; OS focus can change between requests.
         await focusOwner();
-        const {result, ...context} = await capture(kind);
+        const request = capture(kind);
+        await choosePermission(kind === 'audio' ? 'Microphone' : 'Camera', choice);
+        const {result, ...context} = await request;
         expect(result, JSON.stringify(context)).toEqual(expected);
       };
       const expectNoDesktopEnumeration = async () => {
@@ -181,34 +186,26 @@ test(
       };
       await expectNoDesktopEnumeration();
       await ready();
+      await choosePermission('Notifications', 'allow');
       await expect.poll(results).toEqual(['granted']);
-      await expectCapture('audio', {kinds: ['audio']});
-      await expectCapture('video', {kinds: ['video']});
+      await expectCapture('audio', 'allow', {kinds: ['audio']});
+      await expectCapture('video', 'allow', {kinds: ['video']});
       await expectNoDesktopEnumeration();
-      expect(
-        await app.evaluate(
-          () => (globalThis as unknown as {permissionFixture: {requests: unknown[]}}).permissionFixture.requests,
-        ),
-      ).toEqual(
-        ['Notifications', 'Microphone', 'Camera'].map(scope => ({
-          defaultId: 0,
-          cancelId: 0,
-          detail: `${origin}\n\n${scope}`,
-        })),
-      );
       await app.evaluate(async ({webContents}, origin) => {
-        (globalThis as unknown as {permissionFixture: {response: number}}).permissionFixture.response = 0;
         const contents = webContents.getAllWebContents().find(contents => contents.getURL().startsWith(origin))!;
         await contents.loadURL(contents.getURL());
       }, origin);
       await ready();
+      await choosePermission('Notifications', 'deny');
       await expect.poll(results).toEqual(['denied']);
-      await expectCapture('audio', {error: 'NotAllowedError'});
-      expect(
-        await app.evaluate(
-          () => (globalThis as unknown as {permissionFixture: {requests: unknown[]}}).permissionFixture.requests.length,
-        ),
-      ).toBe(5);
+      await expectCapture('audio', 'deny', {error: 'NotAllowedError'});
+      expect(decisions).toEqual([
+        {scope: 'Notifications', choice: 'allow'},
+        {scope: 'Microphone', choice: 'allow'},
+        {scope: 'Camera', choice: 'allow'},
+        {scope: 'Notifications', choice: 'deny'},
+        {scope: 'Microphone', choice: 'deny'},
+      ]);
     } finally {
       await app?.close();
       await new Promise<void>(resolve => server.close(() => resolve()));
