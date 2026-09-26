@@ -229,10 +229,10 @@ export class DisplayCaptureCoordinator {
     try {
       window = new BrowserWindow({
         parent,
-        width: 520,
-        height: 600,
-        minWidth: 420,
-        minHeight: 220,
+        width: 800,
+        height: 440,
+        minWidth: 560,
+        minHeight: 360,
         show: false,
         autoHideMenuBar: true,
         minimizable: false,
@@ -312,7 +312,11 @@ export class DisplayCaptureCoordinator {
         });
         window.once('closed', ended);
         window.on('unresponsive', ended);
-        window.on('hide', ended);
+        window.on('hide', () => {
+          if (flow.phase !== 'active') {
+            ended();
+          }
+        });
         window.webContents.once('render-process-gone', ended);
         window.webContents.on('did-start-navigation', (_event, _url, sameDocument, mainFrame) => {
           if (mainFrame && !sameDocument && flow.phase !== 'loading') {
@@ -482,8 +486,10 @@ export class DisplayCaptureCoordinator {
         throw new Error('Display source did not start.');
       }
       flow.phase = 'active';
-      // Keep the Stop window available if the owning account window is minimized or hidden.
+      // The broker must keep relaying approved frames, but its chooser is no longer
+      // a second Stop dialog. The call's track Stop ends this flow through owner IPC.
       flow.window.setParentWindow(null);
+      flow.window.hide();
       // A main-process deadline remains armed; a hung broker cannot keep capture alive.
       flow.sourceChoices.clear();
       flow.resolve({flowId: flow.id});

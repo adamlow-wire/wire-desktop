@@ -25,15 +25,17 @@ The current Wire webapp supports `getDisplayMedia` when the legacy `desktopCaptu
 
 ## Decision
 
-Main authorizes the requesting account or parent-bound PiP document, then creates an isolated local chooser. The user explicitly selects a source, even when only one exists. Only this fixed broker document may obtain a one-use display grant for that main-selected source. Its session has no remote navigation, popups, ambient account credentials or general account capabilities. A visible Stop control owns capture lifetime.
+Main authorizes the requesting account or parent-bound PiP document, then creates an isolated local chooser. The user explicitly selects a source, even when only one exists. Only this fixed broker document may obtain a one-use display grant for that main-selected source. Its session has no remote navigation, popups, ambient account credentials or general account capabilities. The call UI owns the visible Stop action; the broker remains a local capture relay but hides its chooser after the selected stream starts.
 
 Remote account and PiP sessions continue denying native empty-media/legacy/display requests. They receive a real generated video stream through a fixed compatibility adapter and main-created ports bound to the exact requestor. Source lists, thumbnails and native source IDs never reach them. Bridge version 2 removes the legacy enumeration global and production enumeration endpoint.
 
 The relay admits one bounded RGBA frame awaiting acknowledgement, with explicit dimension, byte, frame-rate and time limits. Port messages cannot choose or switch sources. Main owns flow identifiers, per-owner quotas, document revalidation, cancellation and disposal. Initial requests require foreground eligibility; already-active calls may survive an account switch. Parent navigation/destruction, broker failure, source ending or explicit Stop revokes delivery. Closing or aborting the consumer writer ends cloned tracks as well as the original.
 
+September 26 UX amendment (maintainer-requested): the local chooser is a compact horizontal source picker and hides after successful selection. Hiding does not revoke the approved source; the broker remains sandboxed, isolated, and bound to the same owner and deadlines. Stopping the call's generated video track sends the existing owner-authorized Stop request to main, which destroys the broker and ends original and cloned tracks. Cancel before selection, source loss, owner loss, stale authority, and watchdog expiry still revoke capture. A minimized/backgrounded call can continue; restoring the call exposes its existing Stop button. The broker window is no longer a second persistent Stop dialog.
+
 ## Consequences
 
-This preserves the webapp's existing display-media path without exposing native capture authority to remote content. The broker adds memory/copy cost and must enforce backpressure and bounded resolution. System screen-recording permissions and portal consent remain mandatory. Actual source selection, OS privacy denial, Stop, monitor scaling and resource checks are recorded in the [platform QA handoff](../qa-display-capture.md). This decision does not add system-audio capture, which the existing webapp screen request does not request.
+This preserves the webapp's existing display-media path without exposing native capture authority to remote content. The broker adds memory/copy cost and must enforce backpressure and bounded resolution. System screen-recording permissions and portal consent remain mandatory. Actual source selection, OS privacy denial, call-side Stop, monitor scaling and resource checks are recorded in the [platform QA handoff](../qa-display-capture.md). This decision does not add system-audio capture, which the existing webapp screen request does not request.
 
 ## Validation
 

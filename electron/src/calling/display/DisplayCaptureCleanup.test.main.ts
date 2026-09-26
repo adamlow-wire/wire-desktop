@@ -151,6 +151,7 @@ const fixture = (failureStage?: string) => {
   Object.assign(flow.window, {
     isFocused: () => true,
     setParentWindow: () => check('detach-parent'),
+    hide: () => check('hide'),
     webContents: {
       isDestroyed: () => false,
       getURL: () => 'wire-app://shell/html/display-capture.html',
@@ -277,7 +278,7 @@ describe('[CAP-003][INV-006][INV-010] capture teardown ownership with inert nati
     assert.equal(f.calls.filter(value => value === 'denied').length, 1);
     assert.deepEqual(f.diagnostics, []);
   });
-  for (const stage of ['broker-transfer', 'owner-transfer', 'start']) {
+  for (const stage of ['broker-transfer', 'owner-transfer', 'start', 'hide']) {
     it(`closes only main-owned message ports after ${stage} failure`, async () => {
       const f = fixture(stage);
       Object.assign(f.coordinator.options, {canApprove: () => true});
@@ -285,9 +286,9 @@ describe('[CAP-003][INV-006][INV-010] capture teardown ownership with inert nati
       assert.equal(f.flow.phase, 'ended');
       assert.equal(f.calls.filter(value => value === 'denied').length, 1);
       assert.equal(f.ports[0].transferred, stage !== 'broker-transfer');
-      assert.equal(f.ports[1].transferred, stage === 'start');
+      assert.equal(f.ports[1].transferred, stage === 'start' || stage === 'hide');
       assert.equal(f.ports[0].closed, stage === 'broker-transfer');
-      assert.equal(f.ports[1].closed, stage !== 'start');
+      assert.equal(f.ports[1].closed, stage !== 'start' && stage !== 'hide');
       assert.deepEqual(f.diagnostics, []);
     });
   }
@@ -296,6 +297,7 @@ describe('[CAP-003][INV-006][INV-010] capture teardown ownership with inert nati
     Object.assign(f.coordinator.options, {canApprove: () => true});
     await f.coordinator.select(f.flow, 'source');
     assert.equal(f.flow.phase, 'active');
+    assert.equal(f.calls.filter(value => value === 'hide').length, 1);
     assert.equal(f.calls.filter(value => value === 'started').length, 1);
     f.coordinator.dispose();
     assert.deepEqual(

@@ -231,13 +231,17 @@ window.addEventListener(
       document.title = labels.title;
       document.querySelector('h1')!.textContent = labels.title;
       document.getElementById('stop-capture')!.textContent = labels.cancel;
-      document.getElementById('capture-origin')!.textContent = model.origin;
+      const origin = document.getElementById('capture-origin')!;
+      origin.textContent = model.origin;
+      origin.title = model.origin;
       document.getElementById('capture-status')!.textContent = model.sources.length ? labels.choose : labels.empty;
       const list = document.getElementById('source-list')!;
+      list.setAttribute('aria-label', labels.choose);
       for (const source of model.sources) {
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.choiceId = source.choiceId;
+        button.title = source.name;
         if (source.thumbnail) {
           const thumbnail = document.createElement('img');
           thumbnail.src = source.thumbnail;

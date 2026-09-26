@@ -226,8 +226,9 @@ describe('consented display capture native boundary', function () {
         await owner.webContents.executeJavaScript('window.capturedStream.getVideoTracks()[0].readyState'),
         'live',
       );
-      stage = 'waiting for the Stop action to close the broker';
-      await clickStop(broker);
+      assert.equal(broker.isVisible(), false, 'the active broker must not cover the call');
+      stage = 'stopping the shared track from the calling view';
+      await owner.webContents.executeJavaScript('window.capturedStream.getVideoTracks()[0].stop(); void 0;', true);
       stage = 'waiting for original and cloned tracks to end';
       await until(() =>
         owner.webContents.executeJavaScript(
@@ -387,16 +388,17 @@ describe('consented display capture native boundary', function () {
     }
     assert.equal(broker.isDestroyed(), true);
   });
-  it('[CAP-003] retains a visible Stop control when the active owner window is hidden', async () => {
+  it('[CAP-003] retains a hidden relay across account backgrounding and accepts call-side Stop', async () => {
     const broker = await request();
     await selectSource(broker);
     await until(() => owner.webContents.executeJavaScript('window.captureOutcome === "started"'));
-    owner.hide();
     assert.equal(broker.getParentWindow(), null);
-    assert.equal(broker.isVisible(), true);
+    assert.equal(broker.isVisible(), false);
+    owner.hide();
     assert.equal(await owner.webContents.executeJavaScript('window.capturedClone.readyState'), 'live');
-    await clickStop(broker);
+    await owner.webContents.executeJavaScript('window.capturedStream.getVideoTracks()[0].stop(); void 0;', true);
     await until(() => owner.webContents.executeJavaScript('window.capturedClone.readyState === "ended"'));
+    assert.equal(broker.isDestroyed(), true);
   });
   it('[security-target][CAP-003] does not accumulate native enumeration behind cancelled source requests', async () => {
     let release!: (sources: readonly CaptureSource[]) => void;
