@@ -163,6 +163,48 @@ describe('[security-target][SEC-009] account permission consent', () => {
     assert.equal(await consent.ask(identity, ['audio'], cancellation.signal), false);
   });
 
+  it('restores the account window to focus before accepting a modal answer', async () => {
+    stub(window, 'isVisible').returns(true);
+    stub(window, 'isMinimized').returns(false);
+    const restoreFocus = stub(window, 'focus').callsFake(() => {
+      focus.returns(true);
+    });
+    prompt.callsFake(async () => {
+      focus.returns(false);
+      return true;
+    });
+    assert.equal(await consent.ask(identity, ['audio'], cancellation.signal), true);
+    assert.equal(restoreFocus.calledOnce, true);
+  });
+
+  it('denies a modal answer if focus restoration throws or is cancelled while waiting', async () => {
+    stub(window, 'isVisible').returns(true);
+    stub(window, 'isMinimized').returns(false);
+    const restoreFocus = stub(window, 'focus').throws(new Error('Synthetic focus refusal'));
+    prompt.callsFake(async () => {
+      focus.returns(false);
+      return true;
+    });
+    assert.equal(await consent.ask(identity, ['audio'], cancellation.signal), false);
+    focus.returns(true);
+    restoreFocus.resetBehavior();
+    restoreFocus.callsFake(() => {
+      queueMicrotask(() => cancellation.abort());
+    });
+    assert.equal(await consent.ask(identity, ['video'], cancellation.signal), false);
+    assert.equal(cancellation.signal.aborted, true);
+  });
+
+  it('denies a modal answer if its account window was minimized during the prompt', async () => {
+    stub(window, 'isVisible').returns(true);
+    stub(window, 'isMinimized').returns(true);
+    prompt.callsFake(async () => {
+      focus.returns(false);
+      return true;
+    });
+    assert.equal(await consent.ask(identity, ['notifications'], cancellation.signal), false);
+  });
+
   it('refuses presenter approval if the owning window loses foreground eligibility', async () => {
     prompt.callsFake(async () => {
       focus.returns(false);
