@@ -73,6 +73,19 @@ describe('[security-target][SEC-009] native account permission consent', () => {
     assert.ok(options.signal);
   });
 
+  it('[regression][SEC-009] explains why each requested permission is needed before approval', async () => {
+    const cases = [
+      {scope: 'audio' as const, reason: 'hear you'},
+      {scope: 'video' as const, reason: 'see you'},
+      {scope: 'notifications' as const, reason: 'new messages and calls'},
+    ];
+    for (const {scope, reason} of cases) {
+      assert.equal(await consent.ask(identity, [scope], new AbortController().signal), true);
+      const options = prompt.lastCall.args[1] as MessageBoxOptions;
+      assert.ok(options.detail?.includes(reason), `${scope} must explain its purpose`);
+    }
+  });
+
   it('denies background, aborted, auxiliary and malformed requests without a dialog', async () => {
     focus.returns(false);
     assert.equal(consent.canPrompt(identity), false);

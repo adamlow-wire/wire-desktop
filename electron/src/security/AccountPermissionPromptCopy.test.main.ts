@@ -32,4 +32,16 @@ describe('[SEC-009] permission prompt copy', () => {
       detail: 'https://app.wire.test\n\nMicrophone\nCamera',
     });
   });
+
+  it('explains microphone, camera and notification access in plain language', () => {
+    const cases = [
+      {scope: 'audio' as const, reason: 'hear you'},
+      {scope: 'video' as const, reason: 'see you'},
+      {scope: 'notifications' as const, reason: 'new messages and calls'},
+    ];
+    for (const {scope, reason} of cases) {
+      const copy = createAccountPermissionPromptCopy('https://app.wire.test', [scope], translate);
+      assert.ok(copy.detail.includes(reason), `${scope} must explain its purpose`);
+    }
+  });
 });
