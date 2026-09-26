@@ -20,15 +20,10 @@
 import {BrowserWindow, dialog} from 'electron';
 
 import {AccountPermissionConsent} from './AccountPermissionPolicy';
+import {createAccountPermissionPromptCopy} from './AccountPermissionPromptCopy';
 import {parseNetworkNavigation} from './NavigationPolicy';
 
 import * as locale from '../locale';
-
-const scopeLabels = {
-  audio: 'permissionMicrophone',
-  video: 'permissionCamera',
-  notifications: 'permissionNotifications',
-} as const;
 
 export function createAccountPermissionConsent(window: BrowserWindow): AccountPermissionConsent {
   let pending = false;
@@ -50,10 +45,11 @@ export function createAccountPermissionConsent(window: BrowserWindow): AccountPe
         !scopes.length ||
         scopes.length > 3 ||
         new Set(scopes).size !== scopes.length ||
-        !scopes.every(scope => Object.hasOwn(scopeLabels, scope))
+        !scopes.every(scope => ['audio', 'video', 'notifications'].includes(scope))
       ) {
         return false;
       }
+      const copy = createAccountPermissionPromptCopy(origin, scopes, locale.getText);
       pending = true;
       const cancellation = new AbortController();
       const cancel = () => cancellation.abort();
@@ -65,8 +61,8 @@ export function createAccountPermissionConsent(window: BrowserWindow): AccountPe
           buttons: [locale.getText('promptCancel'), locale.getText('permissionAllow')],
           defaultId: 0,
           cancelId: 0,
-          message: locale.getText('permissionPromptTitle'),
-          detail: `${origin}\n\n${scopes.map(scope => locale.getText(scopeLabels[scope])).join('\n')}`,
+          message: copy.title,
+          detail: copy.detail,
           signal: cancellation.signal,
         });
         return result.response === 1 && !cancellation.signal.aborted && canPrompt(identity);
