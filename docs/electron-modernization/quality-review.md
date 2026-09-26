@@ -34,6 +34,10 @@ The upstream comparison is `6f9b6a99..5504073a` on `wireapp/wire-desktop` `dev`,
 
 **Batch sequence:** (1) finish read-only code, test and upstream review; (2) freeze this list with severity, evidence, owner and required-versus-deferred disposition; (3) implement accepted mandatory items in scoped, baseline-first commits without piecemeal PR pushes; (4) compose and run one exact-head Windows/macOS/Linux validation set; (5) re-review the final tree and publish the unsigned engineering handoff. Do not treat a clean CI run as closure for R1/R2 or accept a later successful retry as diagnosis of an earlier failure.
 
+## September 26 execution note
+
+The maintainer explicitly prioritized permission and screen-share dialog improvements and a new Windows preview ZIP. The review-first pause in the September 25 batch sequence no longer prevents these two scoped UX fixes or PR-only qualification/integration. This does not close the upstream catch-up, source-review, test-provenance, coverage, compatibility or release gates. Record the new CAP-003/SEC-009 paths in the original-baseline inventory and continue the holistic review after the preview is available.
+
 ## Current goal
 
 Prepare the modernization integration branch for Wire engineering review: complete a holistic production-code/security review and baseline-before-refactor audit; achieve the fullest practical, meaningful automated coverage of retained functionality and changed behavior; fix and re-review findings; close ELC-003, unsigned PKG-001 and packaged TST-005; qualify the final composed candidate on Windows/macOS/Linux; and deliver reproducible tests, unsigned artifacts and an explicit residual QA/release ledger. Preserve Electron 43.4.0, all invariants, existing product decisions, user work and PR-only integration. Actual signing/notarization validation is for Wire after review and remains a release gate. Preparing the handoff does not authorize contacting Wire, publishing upstream or releasing.

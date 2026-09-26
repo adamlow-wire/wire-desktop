@@ -1,9 +1,9 @@
 ---
 project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
-updated: 2026-09-25
+updated: 2026-09-26
 milestone: M4
 active_work_item: TST-006
-state: review-first-batch-backlog-open
+state: ux-candidate-validation-pending
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -25,6 +25,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 26 UX test candidate:** The maintainer authorized two specific improvements and a new isolated Windows ZIP. Local CAP-003 branch `c45e3102` makes source selection a compact horizontal picker and hides the trusted relay after capture starts; the call UI remains the visible Stop control. Local SEC-009 branch `dd8ead0a` gives microphone, camera and notification consent a styled fixed local modal with plain-language reasons and a canonical account origin. Both were composed on draft fork PR #72's review branch as `9d3152c8` (not pushed or integrated at this snapshot). Scoped failing-baseline/sensitivity evidence, pure tests, types, lint, format and production bundle checks exist; actual native/platform/product behavior still requires hosted CI and manual preview QA. The prior read-only review batch is no longer a freeze on these user-requested UX fixes; its unresolved findings, provenance and coverage ledger remain open. This candidate must not be described as a completed holistic review or signed release. The original-baseline inventory grows from 556 to 566 changed paths; the ten new rows have explicit partial/pending dispositions in `review-inventory.csv`. Next: exact-head hosted checks, PR-only integration, then dispatch the isolated Windows preview and report its artifact hash and limits.
 
 **Review-first checkpoint, September 25:** The maintainer asked for one consolidated upstream catch-up and holistic-review finding list before remediation. [The provisional batch backlog](quality-review.md#review-first-batch-backlog--september-25-2026) records upstream U1–U8 and internal R1–R8, with existing work-item owners and required/deferred decisions. Source fixes and fork pushes are paused while the read-only review is finished and the list is frozen. This changes the sequence of work, not the [mandatory unsigned handoff gates](plan.md#current-goal-close-mandatory-unsigned-review-handoff). The original-baseline ledger accounts for **556/556** changed paths; **123 source-review, 238 test-provenance and 339 coverage-disposition cells** remain exactly pending, plus partial cells. F-012 existing-profile ciphertext compatibility and complete review remain blockers.
 

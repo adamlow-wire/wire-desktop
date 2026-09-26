@@ -1,5 +1,9 @@
 # Review inventory reconciliation — September 23
 
+## September 26 permission and capture UX composition
+
+Original baseline `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a` to local review branch `9d3152c8` has **566** unique changed paths/statuses. Ten paths are new since the September 25 556-row ledger: the fixed permission HTML/CSS, permission preload, presenter, contract, copy and three test files, plus the capture visibility test. The ledger has one row per path and no missing, extra, duplicate or status mismatch. Local source and test notes are bounded; native/platform and full holistic review remain pending. Status and this reconciliation note modify existing paths and do not change the 566 count. Re-run the accounting command below after the next source change.
+
 ## September 25 local follow-up composition
 
 Original modernization baseline: `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a`. The prior composed source through `547cdca5` adds SEC-008 F-037 bounded image streaming and PKG-002 F-040 strict release artifact resolution. Remote draft PR #72 head `bce6f775` passes Build and Test, lint, CodeQL, all three package jobs and all three E2E/report jobs. The retained E2E blobs contain 76 first-attempt passes per OS, with no retries. This exact green checkpoint does not qualify later local source.
