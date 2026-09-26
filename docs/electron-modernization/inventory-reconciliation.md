@@ -2,7 +2,7 @@
 
 ## September 26 permission and capture UX composition
 
-Original baseline `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a` to local review branch `9d3152c8` has **566** unique changed paths/statuses. Ten paths are new since the September 25 556-row ledger: the fixed permission HTML/CSS, permission preload, presenter, contract, copy and three test files, plus the capture visibility test. The ledger has one row per path and no missing, extra, duplicate or status mismatch. Local source and test notes are bounded; native/platform and full holistic review remain pending. Status and this reconciliation note modify existing paths and do not change the 566 count. Re-run the accounting command below after the next source change.
+Original baseline `1b82b085ac1436a7f21d81cb944d2ee2f4ba4a4a` to local review branch `e09ec52b` has **567** unique changed paths/statuses. Eleven paths are new since the September 25 556-row ledger: the fixed permission HTML/CSS, permission preload and its direct test, presenter, contract, copy and three other test files, plus the capture visibility test. The ledger has one row per path and no missing, extra, duplicate or status mismatch. Focused NYC records 43/43 changed statements for the real preload; a temporary duplicate-decision perturbation failed the new assertions and was restored. Three-platform package/product checks pass at earlier source `958f90a1`, while changed-code coverage fails and E2E remains pending. Final-head hosted coverage/platform and full holistic review remain open. Status and this reconciliation note modify existing paths and do not change the 567 count. Re-run the accounting command below after the next source change.
 
 ## September 25 local follow-up composition
 
