@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-28
 milestone: M4
 active_work_item: TST-006
-state: ux-followup-local-validation-pending
+state: ux-followup-publication-in-progress
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -25,6 +25,8 @@ blockers:
 ---
 
 # Current project status
+
+**September 28 maintainer-authorized publication:** The maintainer explicitly asks to put the committed permission follow-up on integration and provide a refreshed Windows binary. Local source `14f83fec` plus handoff head `471f2474` is ready for one consolidated fork push through existing draft PR #72; remote PR source is still `d37fff1a` and protected integration is `897e3930` at preflight. Do not push directly to the protected integration branch or bypass its required checks. Publish the candidate, run the isolated preview workflow on its exact branch head, verify ZIP source/tree and EXE/ASAR hashes, and merge PR-only once the new composed head passes the required platform gates. Until that happens, any new ZIP is an interim candidate for manual testing, not an integration-head or completed review-handoff artifact. The prior failed macOS upload and authenticated E2E results remain recorded below; the new run must be judged on its own evidence, without speculative test changes or repeated reruns.
 
 **September 28 local SEC-009 branding/readability follow-up:** The maintainer reports placeholder blue-W branding and scrolling permission reasons in the Windows preview. Scoped test baseline `833e0cb7` adds an exact fixed-logo allow path and strengthens the native modal's loaded-image, full-text and visible-action assertions; the unchanged policy returns 14 passes and one expected logo failure. Scoped fix `6afc693d`, composed locally as `14f83fec` after baseline `9165053d`, uses the already-packaged `img/logo.256.png`, authorizes only that additional fixed PNG for the permission role, sizes the content area rather than the decorated window and removes the nested scrolling list. All 22 inert model/copy/preload/resource cases, both TypeScript projects, changed-source lint and formatting pass. A local-only headless Chromium check runs the actual transpiled preload with inert IPC and the real PNG for microphone, camera, notifications, audio/video and all three scopes: all five show full text/actions and a loaded logo. Its old-window baseline estimates a 32-pixel Windows caption; it is not native Windows geometry evidence. Temporarily restoring old sizing/CSS reproduces clipping in four combinations while keeping the logo loaded; restored source passes all five. The existing native test now checks the real modal layout but has not run on this follow-up. No permission authority, CSP directive, IPC channel or packaging dependency changes. No fork push, hosted rerun, integration merge or refreshed ZIP occurred. Next: collect the maintainer's remaining preview feedback, then qualify one composed head with native/packaged checks before replacing the preview; prior `d37fff1a` results do not qualify this source.
 
