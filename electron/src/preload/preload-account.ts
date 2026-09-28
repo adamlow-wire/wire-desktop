@@ -26,9 +26,7 @@ import {ACCOUNT_EVENT_CHANNEL} from '../security/AccountEventContract';
 
 installWebappPreload(
   event => {
-    void ipcRenderer
-      .invoke(ACCOUNT_EVENT_CHANNEL, event)
-      .catch(error => console.warn('Account event rejected.', error));
+    void ipcRenderer.invoke(ACCOUNT_EVENT_CHANNEL, event).catch(() => console.warn('Account event rejected.'));
   },
   {applockOverride: readRendererApplockOverride()},
 );

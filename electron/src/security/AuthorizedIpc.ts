@@ -17,7 +17,13 @@
  *
  */
 
-import {AuthorizedViewIdentity, SenderIdentity, ViewIdentityRegistry, ViewType} from './ViewIdentityRegistry';
+import {
+  AuthorizedViewIdentity,
+  SenderIdentity,
+  ViewIdentityRegistry,
+  ViewType,
+  WebContentsIdentity,
+} from './ViewIdentityRegistry';
 
 export interface AuthorizedIpcContract<Request, Response> {
   readonly capability: string;
@@ -45,7 +51,7 @@ interface IpcMainSyncBinding {
 }
 
 interface RequestRateLimiter {
-  consume(webContentsId: number): void;
+  consume(webContents: WebContentsIdentity): void;
 }
 
 type AuthorizedIpcHandler<Request, Response> = (
@@ -75,13 +81,13 @@ const createRequestRateLimiter = (
   if (rateLimit === 'not-required') {
     return undefined;
   }
-  const states = new Map<number, {count: number; resetAt: number}>();
+  const states = new WeakMap<WebContentsIdentity, {count: number; resetAt: number}>();
   return {
-    consume: webContentsId => {
+    consume: webContents => {
       const timestamp = now();
-      const state = states.get(webContentsId);
+      const state = states.get(webContents);
       if (!state || timestamp >= state.resetAt) {
-        states.set(webContentsId, {count: 1, resetAt: timestamp + rateLimit.windowMs});
+        states.set(webContents, {count: 1, resetAt: timestamp + rateLimit.windowMs});
         return;
       }
       if (state.count >= rateLimit.maxRequests) {
@@ -126,7 +132,7 @@ const authorizeIpcRequest = <Request, Response>(
     if (!rateLimiter) {
       throw new Error('IPC contract requires a bound rate limiter.');
     }
-    rateLimiter.consume(identity.webContents.id);
+    rateLimiter.consume(identity.webContents);
   }
   if (!contract.isRequest(request)) {
     throw new Error('IPC request payload is invalid.');

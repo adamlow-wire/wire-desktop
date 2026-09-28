@@ -113,9 +113,19 @@ export const linuxDesktop = {
 };
 
 export const setEnvironment = (env: ServerType): void => {
-  currentEnvironment = env;
+  const previous = settings.restore<ServerType | undefined>(SettingsType.ENV);
   settings.save(SettingsType.ENV, env);
-  settings.persistToFile();
+  try {
+    settings.persistToFile();
+  } catch {
+    if (previous === undefined) {
+      settings.delete(SettingsType.ENV);
+    } else {
+      settings.save(SettingsType.ENV, previous);
+    }
+    throw new Error('Environment settings could not be saved.');
+  }
+  currentEnvironment = env;
 };
 
 /**

@@ -21,11 +21,13 @@ import type {RendererEnvironmentSnapshot} from './rendererEnvironment';
 
 const ENVIRONMENT_ARGUMENT = '--wire-desktop-environment=';
 const LOCALE_ARGUMENT = '--wire-desktop-locale=';
+const REGIONAL_LOCALE_ARGUMENT = '--wire-desktop-regional-locale=';
 const USER_DATA_ARGUMENT = '--wire-desktop-user-data=';
 const APPLOCK_ARGUMENT = '--wire-desktop-applock-override=';
 
 export interface RendererRuntimeValues {
   readonly locale: string;
+  readonly regionalLocale?: string;
   readonly userDataPath: string;
   readonly environment?: RendererEnvironmentSnapshot;
   readonly applockOverride?: boolean;
@@ -47,6 +49,7 @@ const readArgument = (argv: readonly string[], prefix: string): string | undefin
 
 export const createRendererRuntimeArguments = (values: RendererRuntimeValues): string[] => [
   encodeArgument(LOCALE_ARGUMENT, values.locale),
+  ...(values.regionalLocale ? [encodeArgument(REGIONAL_LOCALE_ARGUMENT, values.regionalLocale)] : []),
   encodeArgument(USER_DATA_ARGUMENT, values.userDataPath),
   ...(values.environment ? [encodeArgument(ENVIRONMENT_ARGUMENT, JSON.stringify(values.environment))] : []),
   ...(typeof values.applockOverride === 'boolean'
@@ -75,6 +78,9 @@ export const readRendererEnvironment = (argv: readonly string[] = process.argv):
 
 export const readRendererLocale = (argv: readonly string[] = process.argv): string | undefined =>
   readArgument(argv, LOCALE_ARGUMENT);
+
+export const readRendererRegionalLocale = (argv: readonly string[] = process.argv): string | undefined =>
+  readArgument(argv, REGIONAL_LOCALE_ARGUMENT);
 
 export const readRendererUserDataPath = (argv: readonly string[] = process.argv): string | undefined =>
   readArgument(argv, USER_DATA_ARGUMENT);

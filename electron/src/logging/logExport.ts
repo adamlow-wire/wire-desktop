@@ -63,6 +63,9 @@ export type StreamLogFilesToZipOptions = {
 } & LogArchiveDependencies;
 
 export type LogArchiveDependencies = {
+  createStagingDirectory: (prefix: string) => Promise<string>;
+  publishArchive: (stagedPath: string, destinationPath: string) => Promise<void>;
+  removeStagingDirectory: (directoryPath: string) => Promise<void>;
   createArchive: () => ZipArchive;
   createOutputStream: (destinationPath: string) => Writable;
   pathExists: (filePath: string) => Promise<boolean>;
@@ -281,7 +284,7 @@ async function waitForPromiseToSettle(promise: Promise<void>): Promise<void> {
   }
 }
 
-export async function streamLogFilesToZip(options: StreamLogFilesToZipOptions): Promise<void> {
+async function streamLogFilesToZipFile(options: StreamLogFilesToZipOptions): Promise<void> {
   const {createArchive, createOutputStream, pathExists, removeFile, reportFailure} = options;
   const destinationAlreadyExisted = await pathExists(options.destinationPath);
   let outputStream: Maybe<Writable> = Maybe.nothing<Writable>();
@@ -330,6 +333,25 @@ export async function streamLogFilesToZip(options: StreamLogFilesToZipOptions): 
     });
 
     throw error;
+  }
+}
+
+export async function streamLogFilesToZip(options: StreamLogFilesToZipOptions): Promise<void> {
+  // An adjacent private directory keeps publication on the destination filesystem.
+  // Never truncate the user's existing destination before the ZIP is complete.
+  const stagingDirectory = await options.createStagingDirectory(
+    path.join(path.dirname(options.destinationPath), '.wire-log-export-'),
+  );
+  try {
+    const stagedPath = path.join(stagingDirectory, 'archive.zip');
+    await streamLogFilesToZipFile({...options, destinationPath: stagedPath});
+    await options.publishArchive(stagedPath, options.destinationPath);
+  } finally {
+    try {
+      await options.removeStagingDirectory(stagingDirectory);
+    } catch (error) {
+      options.reportFailure('Failed to remove temporary log archive staging directory', error);
+    }
   }
 }
 

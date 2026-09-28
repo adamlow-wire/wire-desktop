@@ -49,7 +49,7 @@ const createSender = (
   id: number,
 ): SenderIdentity => {
   const isPrompt = viewType === 'proxy-prompt';
-  const url = isPrompt ? 'file:///opt/wire/proxy-prompt.html' : 'https://app.wire.test/account';
+  const url = isPrompt ? 'wire-app://shell/html/proxy-prompt.html' : 'https://app.wire.test/account';
   const frame = {url};
   const session = {};
   const webContents = {id, isDestroyed: () => false, mainFrame: frame, session};
@@ -120,6 +120,29 @@ describe('proxy prompt IPC contracts', () => {
       false,
     );
     assert.strictEqual(errors.length, 3);
+  });
+
+  it('[security-target][INV-010][SEC-003] omits credentials from rejected proxy submission diagnostics', async () => {
+    const password = 'synthetic-proxy-password-for-diagnostic-test';
+    const errors: unknown[][] = [];
+    const logger = {error: (...args: unknown[]) => errors.push(args)};
+    const ipc = {invoke: async () => Promise.reject(new Error(`proxy failed for ${password}`))};
+
+    assert.strictEqual(await submitProxyPrompt(ipc, {username: 'proxy-user', password}, logger), false);
+    assert.deepStrictEqual(errors, [['Failed to submit proxy credentials.']]);
+  });
+
+  it('[security-target][INV-010][SEC-003] keeps rejected proxy locale and cancel diagnostics fixed', async () => {
+    const errors: unknown[][] = [];
+    const logger = {error: (...args: unknown[]) => errors.push(args)};
+    const ipc = {invoke: async () => Promise.reject(new Error('synthetic-proxy-password-in-error'))};
+
+    assert.strictEqual(await requestProxyPromptLocaleValues(ipc, ['proxyPromptTitle'], logger), undefined);
+    assert.strictEqual(await cancelProxyPrompt(ipc, logger), false);
+    assert.deepStrictEqual(errors, [
+      ['Failed to read proxy prompt locale values.'],
+      ['Failed to cancel the proxy prompt.'],
+    ]);
   });
 
   it('[characterization][security-target][INV-003][SEC-003][CAP-005] preserves locale, credential, and cancel effects', async () => {
@@ -269,4 +292,74 @@ describe('proxy prompt IPC contracts', () => {
       assert.strictEqual(sideEffects, maximum);
     });
   }
+
+  for (const invalidity of [
+    'missing capability',
+    'foreign session',
+    'subframe',
+    'other local document',
+    'revoked',
+    'destroyed',
+    'forged contents',
+  ]) {
+    it(`denies ${invalidity} before proxy credential side effects`, async () => {
+      const handlers = new Map<string, BoundHandler>();
+      const registry = new ViewIdentityRegistry();
+      const event = createSender(
+        registry,
+        'proxy-prompt',
+        invalidity === 'missing capability' ? [] : [PROXY_PROMPT_SUBMIT_CAPABILITY],
+        101,
+      );
+      if (invalidity === 'foreign session') {
+        Object.assign(event.sender, {session: {}});
+      }
+      if (invalidity === 'subframe') {
+        Object.assign(event, {senderFrame: {url: event.senderFrame!.url}});
+      }
+      if (invalidity === 'other local document') {
+        Object.assign(event.senderFrame!, {url: 'wire-app://shell/html/about.html'});
+      }
+      if (invalidity === 'revoked') {
+        registry.unregister(101);
+      }
+      if (invalidity === 'destroyed') {
+        Object.assign(event.sender, {isDestroyed: () => true});
+      }
+      if (invalidity === 'forged contents') {
+        Object.assign(event, {sender: {...event.sender}});
+      }
+      let submissions = 0;
+      bindProxyPromptIpc(createIpc(handlers), registry, {
+        cancel() {},
+        readLocaleValues: () => ({}),
+        submit: () => {
+          submissions++;
+        },
+      });
+      const submit = handlers.get(PROXY_PROMPT_SUBMIT_CHANNEL)!;
+      await assert.rejects(submit(event, {username: 'fixture', password: 'fixture'}), /not authorized/);
+      assert.equal(submissions, 0);
+    });
+  }
+
+  it('accepts exact credential length limits through the authorized prompt', async () => {
+    const handlers = new Map<string, BoundHandler>();
+    const registry = new ViewIdentityRegistry();
+    const event = createSender(registry, 'proxy-prompt', [PROXY_PROMPT_SUBMIT_CAPABILITY], 101);
+    const credentials = {
+      username: 'u'.repeat(MAX_PROXY_PROMPT_USERNAME_LENGTH),
+      password: 'p'.repeat(MAX_PROXY_PROMPT_PASSWORD_LENGTH),
+    };
+    const submitted: unknown[] = [];
+    bindProxyPromptIpc(createIpc(handlers), registry, {
+      cancel() {},
+      readLocaleValues: () => ({}),
+      submit: (id, value) => {
+        submitted.push([id, value]);
+      },
+    });
+    await handlers.get(PROXY_PROMPT_SUBMIT_CHANNEL)!(event, credentials);
+    assert.deepEqual(submitted, [[101, credentials]]);
+  });
 });

@@ -22,7 +22,7 @@ import {ipcRenderer} from 'electron';
 import {EVENT_TYPE} from '../../lib/eventType';
 import {cancelProxyPrompt, requestProxyPromptLocaleValues, submitProxyPrompt} from '../../security/ProxyPromptIpc';
 
-const logger = {error: (message: string, error: unknown): void => console.error(message, error)};
+const logger = {error: (message: string): void => console.error(message)};
 
 export const renderProxyPromptLocales = (_event: unknown, labels: Record<string, string>): void => {
   for (const label in labels) {

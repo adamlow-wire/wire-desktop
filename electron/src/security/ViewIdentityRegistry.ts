@@ -153,6 +153,7 @@ export class ViewIdentityRegistry {
       identity.webContents === sender.sender &&
       !sender.sender.isDestroyed() &&
       sender.sender.session === identity.session &&
+      sender.sender.mainFrame === identity.mainFrame &&
       sender.senderFrame === identity.mainFrame &&
       hasAllowedOrigin(sender.senderFrame.url, identity.allowedOrigin) &&
       (typeof identity.allowedUrl === 'undefined' || sender.senderFrame.url === identity.allowedUrl) &&

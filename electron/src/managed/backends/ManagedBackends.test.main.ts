@@ -36,6 +36,8 @@ const isDeviceManagedLinux = (): boolean => {
 const {isDeviceManagedMacOS}: typeof import('./macos') = requireFixture('./macos.ts');
 const {isDeviceManagedWindows}: typeof import('./windows') = requireFixture('./windows.ts');
 const constants: typeof import('../constants') = requireFixture('../constants.ts');
+const WINDOWS_ENROLLMENTS_KEY = 'SOFTWARE\\Microsoft\\Enrollments';
+const WINDOWS_CLOUD_DOMAIN_JOIN_KEY = 'SYSTEM\\CurrentControlSet\\Control\\CloudDomainJoin\\JoinInfo';
 
 describe('[characterization][CAP-005] managed backend contracts', () => {
   const sandbox = createSandbox();
@@ -146,31 +148,20 @@ describe('[characterization][CAP-005] managed backend contracts', () => {
     });
 
     for (const marker of ['UPN', 'ProviderID']) {
-      it(`recognizes MDM enrollment by ${marker} under the machine enrollment key`, () => {
-        registry.enumerateKeys
-          .withArgs(hives.HKEY_LOCAL_MACHINE, constants.WINDOWS_ENROLLMENTS_KEY)
-          .returns(['fixture']);
+      it(`[security-target][CAP-005] ignores unrelated MDM ${marker} enrollment without Wire policy`, () => {
+        registry.enumerateKeys.withArgs(hives.HKEY_LOCAL_MACHINE, WINDOWS_ENROLLMENTS_KEY).returns(['fixture']);
         registry.enumerateValues
-          .withArgs(hives.HKEY_LOCAL_MACHINE, `${constants.WINDOWS_ENROLLMENTS_KEY}\\fixture`)
+          .withArgs(hives.HKEY_LOCAL_MACHINE, `${WINDOWS_ENROLLMENTS_KEY}\\fixture`)
           .returns([{name: marker, type: 'REG_SZ', data: 'synthetic enrollment'}]);
-        assert.equal(isDeviceManagedWindows(), true);
+        assert.equal(isDeviceManagedWindows(), false);
+        assert.equal(registry.enumerateKeys.callCount, 0, 'Wire policy must not probe generic enrollment');
       });
     }
 
-    it('does not treat an unrelated enrollment child as a managed-device marker', () => {
-      registry.enumerateKeys.withArgs(hives.HKEY_LOCAL_MACHINE, constants.WINDOWS_ENROLLMENTS_KEY).returns(['fixture']);
-      registry.enumerateValues
-        .withArgs(hives.HKEY_LOCAL_MACHINE, `${constants.WINDOWS_ENROLLMENTS_KEY}\\fixture`)
-        .returns([{name: 'unrelated', type: 'REG_SZ', data: 'synthetic value'}]);
+    it('[security-target][CAP-005] ignores an unrelated Entra join without Wire policy', () => {
+      registry.enumerateKeys.withArgs(hives.HKEY_LOCAL_MACHINE, WINDOWS_CLOUD_DOMAIN_JOIN_KEY).returns(['fixture']);
       assert.equal(isDeviceManagedWindows(), false);
-    });
-
-    it('recognizes a machine cloud-domain join when enrollment policy reads fail', () => {
-      registry.enumerateValues.throws(new Error('synthetic registry read failure'));
-      registry.enumerateKeys
-        .withArgs(hives.HKEY_LOCAL_MACHINE, constants.WINDOWS_CLOUD_DOMAIN_JOIN_KEY)
-        .returns(['fixture']);
-      assert.equal(isDeviceManagedWindows(), true);
+      assert.equal(registry.enumerateKeys.callCount, 0, 'Wire policy must not probe generic join state');
     });
 
     it('returns unmanaged when the native registry module is unavailable', () => {

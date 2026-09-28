@@ -30,6 +30,8 @@ interface WireJson {
   environment: 'internal' | 'production' | 'wire-gov';
   legalUrl: string;
   licensesUrl: string;
+  /** Written by macOS packaging; absent in development/legacy metadata. */
+  macAutoUpdateEnabled?: boolean;
   maximumAccounts: string;
   name: string;
   nameShort: string;

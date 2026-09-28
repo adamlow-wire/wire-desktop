@@ -261,9 +261,8 @@ export async function buildWindowsMsi(
   await validateWindowsMsiAppDirectory(appDirectory, commonConfig.name);
 
   const backup = await backupFiles([packageJsonResolved, wireJsonResolved]);
-  const packageJsonContent = await fs.readJson(packageJsonResolved);
-
   try {
+    const packageJsonContent = await fs.readJson(packageJsonResolved);
     await fs.writeJson(
       packageJsonResolved,
       {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version.replace(/-.*$/, '')},

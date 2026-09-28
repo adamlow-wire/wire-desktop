@@ -20,6 +20,7 @@
 import * as fs from 'fs-extra';
 
 import * as assert from 'assert';
+import * as os from 'os';
 import * as path from 'path';
 
 import {
@@ -40,7 +41,7 @@ describe('desktop log writer facade', () => {
       await writeBoundedLogMessage({logFilePath, message: 'first'});
       await writeBoundedLogMessage({logFilePath, message: 'second'});
 
-      assert.strictEqual(await fs.readFile(logFilePath, 'utf8'), 'first\nsecond\n');
+      assert.strictEqual(await fs.readFile(logFilePath, 'utf8'), `first${os.EOL}second${os.EOL}`);
     }),
   );
 

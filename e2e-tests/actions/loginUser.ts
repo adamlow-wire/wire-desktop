@@ -50,16 +50,16 @@ const waitForAuthenticatedPage = async (
         const candidatePages = loginPage
           .context()
           .pages()
-          .filter(
-            page =>
-              page === loginPage ||
-              !pagesBeforeLogin.has(page) ||
-              (accountId !== null && accountIdFromUrl(page.url()) === accountId),
+          .filter(page =>
+            accountId !== null
+              ? accountIdFromUrl(page.url()) === accountId
+              : page === loginPage || !pagesBeforeLogin.has(page),
           );
 
         for (const candidatePage of [...candidatePages].reverse()) {
           try {
-            if (await conversationsSidebar(candidatePage).userAvatar.isVisible()) {
+            const avatar = conversationsSidebar(candidatePage).userAvatar;
+            if ((await avatar.isVisible()) && (await avatar.textContent())?.trim() === user.initials) {
               authenticatedPage = candidatePage;
               return true;
             }

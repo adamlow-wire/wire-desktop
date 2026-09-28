@@ -29,6 +29,7 @@ const createDependencies = (isWindows: boolean) => {
       ensureDirectory: (path: string) => calls.push(`ensure:${path}`),
       isWindows,
       persist: () => calls.push('persist'),
+      read: () => undefined,
       resolvePath: (downloadPath: string) => `C:\\Users\\wire\\${downloadPath}`,
       save: (downloadPath: string | undefined) => calls.push(`save:${String(downloadPath)}`),
     },
@@ -75,6 +76,33 @@ describe('download location update', () => {
 
     assert.throws(() => updateDownloadLocation('downloads', dependencies), /Directory unavailable/);
     assert.deepStrictEqual(calls, []);
+  });
+
+  it('[security-target][CAP-005] does not retain a rejected value for a later settings write', () => {
+    let stored = 'Old\\Downloads';
+    let failPersist = true;
+    const persisted: string[] = [];
+    const dependencies = {
+      ensureDirectory: () => undefined,
+      isWindows: true,
+      persist: () => {
+        if (failPersist) {
+          throw new Error('Settings persistence failed.');
+        }
+        persisted.push(stored);
+      },
+      read: () => stored,
+      resolvePath: (downloadPath: string) => `C:\\Users\\wire\\${downloadPath}`,
+      save: (downloadPath: string | undefined) => {
+        stored = downloadPath ?? '';
+      },
+    };
+
+    assert.throws(() => updateDownloadLocation('New\\Downloads', dependencies), /Settings persistence failed/);
+    assert.equal(stored, 'Old\\Downloads');
+    failPersist = false;
+    dependencies.persist();
+    assert.deepEqual(persisted, ['Old\\Downloads']);
   });
 
   it('[characterization][CAP-005] rejects a failed path resolution before any side effect', () => {

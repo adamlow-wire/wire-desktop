@@ -49,6 +49,7 @@ describe('[regression][CAP-001] native account shell slot', () => {
   let layout: jest.Mock;
   let remove: jest.Mock;
   let reload: jest.Mock;
+  let reported: jest.SpyInstance;
   const render = (overrides: Partial<Account> = {}) => {
     act(() =>
       root.render(
@@ -73,6 +74,7 @@ describe('[regression][CAP-001] native account shell slot', () => {
     container = document.createElement('div');
     document.body.append(sidebar, container);
     root = createRoot(container);
+    reported = jest.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -111,12 +113,42 @@ describe('[regression][CAP-001] native account shell slot', () => {
   });
 
   it('retries failed removal without reloading the account or exposing raw cleanup errors', async () => {
+    const failure = new Error('private-removal=credential-value');
+    remove.mockRejectedValue(failure);
     render({removalFailed: true, isLoading: false});
     expect(container.querySelector('[data-uie-name="status-account-removal-error"]')).not.toBeNull();
     const retry = container.querySelector<HTMLElement>('[data-uie-name="do-retry-account-removal"]')!;
     await act(async () => retry.click());
     expect(remove).toHaveBeenCalledWith(account.id);
     expect(reload).not.toHaveBeenCalled();
+    expect(reported.mock.calls).toContainEqual(['Unable to remove account.']);
+    expect(reported.mock.calls.flat()).not.toContain(failure);
+  });
+
+  it('[security-target][INV-010] reports layout, reload and removal failure without rejected detail', async () => {
+    const failure = new Error('private-account=credential-value');
+    layout.mockRejectedValue(failure);
+    render();
+    await act(async () => undefined);
+    expect(console.error).toHaveBeenCalledWith('Unable to lay out account view.');
+    expect(console.error).not.toHaveBeenCalledWith(failure);
+    reload.mockRejectedValue(failure);
+    render({loadError: 'Account loading failed.'});
+    const retry = [...container.querySelectorAll<HTMLElement>('*')].find(
+      element => element.textContent === 'webviewErrorRetryAction' && element.children.length === 0,
+    )!;
+    await act(async () => retry.click());
+    expect(console.error).toHaveBeenCalledWith('Unable to reload account.');
+    remove.mockRejectedValue(failure);
+    render({canCancel: true, loadError: undefined});
+    await act(async () => container.querySelector<HTMLElement>('[data-uie-name="do-close-webview"]')!.click());
+    expect(console.error).toHaveBeenCalledWith('Unable to remove account.');
+    expect(reported.mock.calls).toEqual([
+      ['Unable to lay out account view.'],
+      ['Unable to reload account.'],
+      ['Unable to lay out account view.'],
+      ['Unable to remove account.'],
+    ]);
   });
 
   it('shows the configuration screen without creating renderer-owned remote content', () => {

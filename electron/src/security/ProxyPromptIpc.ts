@@ -65,7 +65,7 @@ interface IpcRendererInvoker {
 }
 
 interface FailureLogger {
-  error(message: string, error: unknown): void;
+  error(message: string): void;
 }
 
 export interface ProxyPromptBoundary {
@@ -194,8 +194,8 @@ export const requestProxyPromptLocaleValues = async (
       throw new Error('Proxy prompt locale response payload is invalid.');
     }
     return response;
-  } catch (error) {
-    logger.error('Failed to read proxy prompt locale values.', error);
+  } catch {
+    logger.error('Failed to read proxy prompt locale values.');
     return undefined;
   }
 };
@@ -213,8 +213,8 @@ const invokeControl = async (
       throw new Error('Proxy prompt control response payload is invalid.');
     }
     return true;
-  } catch (error) {
-    logger.error(failureMessage, error);
+  } catch {
+    logger.error(failureMessage);
     return false;
   }
 };

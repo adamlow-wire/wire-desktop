@@ -81,7 +81,7 @@ if (!['auto', 'msi', 'squirrel'].includes(windowsArtifact)) {
   }
 
   logger.log('Done uploading to AWS S3 bucket.');
-})().catch(error => {
-  logger.error(error);
+})().catch(() => {
+  logger.error('S3 upload failed');
   process.exit(1);
 });

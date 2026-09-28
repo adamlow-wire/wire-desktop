@@ -27,7 +27,8 @@ const jestConfig = {
   coverageReporters: ['html', 'json', 'text-summary'],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx'],
   testEnvironment: 'jsdom',
-  testPathIgnorePatterns: ['<rootDir>/electron/dist', '<rootDir>/e2e-tests', '<rootDir>/wrap'],
+  // Build-tool contracts run under Mocha via test:bin, with native Node APIs.
+  testPathIgnorePatterns: ['<rootDir>/electron/dist', '<rootDir>/e2e-tests', '<rootDir>/wrap', '<rootDir>/bin/'],
 };
 
 module.exports = jestConfig;

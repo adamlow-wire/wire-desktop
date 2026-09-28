@@ -73,7 +73,7 @@ const Sidebar = ({
           target.focus();
         }
       })
-      .catch(console.error);
+      .catch(() => console.error('Unable to open account menu.'));
   };
 
   const accountLabel = (account: Account) => {
@@ -156,5 +156,7 @@ export default connect(
     isAddingAccount: AccountSelector.isAddingAccount(state),
     isDarkMode: AccountSelector.getSelectedAccountDarkMode(state),
   }),
-  () => ({addAccountWithSession: () => void window.wireAccounts.add().catch(console.error)}),
+  () => ({
+    addAccountWithSession: () => void window.wireAccounts.add().catch(() => console.error('Unable to add account.')),
+  }),
 )(Sidebar);

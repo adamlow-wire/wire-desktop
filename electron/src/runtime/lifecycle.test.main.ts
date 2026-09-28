@@ -23,7 +23,14 @@ import {fake, replace, restore} from 'sinon';
 import assert from 'node:assert';
 
 import * as EnvironmentUtil from './EnvironmentUtil';
-import {addRelaunchListeners, checkSingleInstance, initSquirrelListener, isFirstInstance, relaunch} from './lifecycle';
+import {
+  addRelaunchListeners,
+  checkSingleInstance,
+  initSquirrelListener,
+  isFirstInstance,
+  quit,
+  relaunch,
+} from './lifecycle';
 
 import {settings} from '../settings/ConfigurationPersistence';
 import * as Squirrel from '../update/squirrel';
@@ -193,5 +200,19 @@ describe('relaunch', () => {
     await relaunch();
 
     assert.deepStrictEqual(order, ['relaunch', 'quit']);
+  });
+});
+
+describe('[PKG-003] quit after settings persistence failure', () => {
+  afterEach(() => restore());
+
+  it('still exits exactly once without attempting to overwrite the configuration again', async () => {
+    const persist = fake.throws(new Error('Settings persistence failed.'));
+    const exit = fake();
+    replace(settings, 'persistToFile', persist);
+    replace(app, 'quit', exit);
+    await quit();
+    assert.strictEqual(persist.callCount, 1);
+    assert.strictEqual(exit.callCount, 1);
   });
 });

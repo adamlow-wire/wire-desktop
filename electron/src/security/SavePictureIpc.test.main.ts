@@ -115,4 +115,72 @@ describe('save-picture IPC contract', () => {
     await assert.rejects(() => handler(event, {bytes: Uint8Array.from([11])}), /rate limit/);
     assert.strictEqual(saveCalls, 10);
   });
+
+  it('[regression][INV-010][SEC-003] bounds pending saves across accounts and quota windows, then recovers after cancellation', async () => {
+    const handlers = new Map<string, BoundHandler>();
+    const registry = new ViewIdentityRegistry();
+    const first = createSender(registry);
+    const second = createSender(registry, 92);
+    const completions: Array<() => void> = [];
+    const calls: number[] = [];
+    let now = 0;
+    const originalNow = Date.now;
+    Date.now = () => now;
+    bindSavePictureIpc(createIpc(handlers), registry, async bytes => {
+      calls.push(bytes[0]);
+      await new Promise<void>(resolve => completions.push(resolve));
+    });
+    const handler = handlers.get(SAVE_PICTURE_CHANNEL)!;
+    const pending = handler(first, {bytes: Uint8Array.of(1)});
+    let outcome = 'pending';
+    const duplicate = handler(second, {bytes: Uint8Array.of(2)}).then(
+      () => {
+        outcome = 'resolved';
+      },
+      () => {
+        outcome = 'rejected';
+      },
+    );
+    try {
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assert.equal(outcome, 'rejected');
+      assert.deepEqual(calls, [1]);
+      for (let window = 0; window < 3; window += 1) {
+        now += 60_000;
+        await assert.rejects(handler(first, {bytes: Uint8Array.of(4)}), /already pending/);
+        await assert.rejects(handler(second, {bytes: Uint8Array.of(5)}), /already pending/);
+      }
+      assert.deepEqual(calls, [1]);
+    } finally {
+      Date.now = originalNow;
+      completions.forEach(resolve => resolve());
+      await Promise.all([pending, duplicate]);
+    }
+    const retry = handler(second, {bytes: Uint8Array.of(3)});
+    assert.deepEqual(calls, [1, 3]);
+    completions[completions.length - 1]();
+    await retry;
+  });
+
+  it('[regression][INV-010][SEC-003] restores pending capacity after synchronous and asynchronous save failures', async () => {
+    const handlers = new Map<string, BoundHandler>();
+    const registry = new ViewIdentityRegistry();
+    const event = createSender(registry);
+    let calls = 0;
+    bindSavePictureIpc(createIpc(handlers), registry, () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new Error('synthetic synchronous failure');
+      }
+      if (calls === 2) {
+        return Promise.reject(new Error('synthetic asynchronous failure'));
+      }
+      return Promise.resolve();
+    });
+    const handler = handlers.get(SAVE_PICTURE_CHANNEL)!;
+    await assert.rejects(handler(event, {bytes: Uint8Array.of(1)}), /^Error: synthetic synchronous failure$/);
+    await assert.rejects(handler(event, {bytes: Uint8Array.of(2)}), /^Error: synthetic asynchronous failure$/);
+    await handler(event, {bytes: Uint8Array.of(3)});
+    assert.equal(calls, 3);
+  });
 });

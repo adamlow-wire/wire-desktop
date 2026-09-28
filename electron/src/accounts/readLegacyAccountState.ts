@@ -39,9 +39,9 @@ export const readLegacyAccountState = async (
   });
   const contents = window.webContents;
   const destroyed = new Promise<void>(resolve => contents.once('destroyed', () => resolve()));
-  contents.setWindowOpenHandler(() => ({action: 'deny'}));
-  bindNavigationGuard(contents, () => false);
   try {
+    contents.setWindowOpenHandler(() => ({action: 'deny'}));
+    bindNavigationGuard(contents, () => false);
     await window.loadFile(shellFile);
     contents.debugger.attach('1.3');
     const {frameTree} = await contents.debugger.sendCommand('Page.getFrameTree');
@@ -55,12 +55,15 @@ export const readLegacyAccountState = async (
     }
     return value;
   } finally {
-    if (!contents.isDestroyed() && contents.debugger.isAttached()) {
-      contents.debugger.detach();
+    try {
+      if (!contents.isDestroyed() && contents.debugger.isAttached()) {
+        contents.debugger.detach();
+      }
+    } finally {
+      if (!window.isDestroyed()) {
+        window.destroy();
+      }
+      await destroyed;
     }
-    if (!window.isDestroyed()) {
-      window.destroy();
-    }
-    await destroyed;
   }
 };

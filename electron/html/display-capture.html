@@ -7,12 +7,18 @@
     <link rel="stylesheet" href="../css/display-capture.css" />
   </head>
   <body>
-    <main>
-      <h1>Share your screen</h1>
-      <p id="capture-origin"></p>
-      <p id="capture-status" role="status">Loading available screens and windows…</p>
-      <div id="source-list"></div>
-      <button id="stop-capture" type="button">Cancel</button>
+    <main class="capture-picker">
+      <header class="capture-header">
+        <div>
+          <h1>Share your screen</h1>
+          <p id="capture-status" role="status">Loading available screens and windows…</p>
+        </div>
+        <p id="capture-origin"></p>
+      </header>
+      <div id="source-list" aria-label="Available screens and windows"></div>
+      <footer class="capture-footer">
+        <button id="stop-capture" type="button">Cancel</button>
+      </footer>
     </main>
   </body>
 </html>

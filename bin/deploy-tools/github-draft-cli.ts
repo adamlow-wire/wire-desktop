@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,15 +14,18 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import {program as commander} from 'commander';
 import fs from 'fs-extra';
+
 import path from 'path';
 
-import {checkCommanderOptions, execAsync, getLogger} from '../bin-utils';
 import {FileExtension} from './lib/deploy-utils';
 import {GitHubDraftDeployer} from './lib/GitHubDraftDeployer';
+
+import {checkCommanderOptions, execAsync, getLogger} from '../bin-utils';
 
 const toolName = path.basename(__filename).replace('.ts', '');
 const logger = getLogger('deploy-tools', toolName);
@@ -103,7 +106,7 @@ const endsWithAny = (suffixes: string[], str: string) => suffixes.some(suffix =>
   }
 
   logger.log('Done creating GitHub draft.');
-})().catch(error => {
-  logger.error(error);
+})().catch(() => {
+  logger.error('GitHub draft deployment failed');
   process.exit(1);
 });

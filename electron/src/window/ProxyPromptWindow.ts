@@ -99,14 +99,22 @@ const showWindow = async (registry: ViewIdentityRegistry, onCreated?: OnProxyPro
       proxyPromptWindow = undefined;
     });
 
-    await proxyPromptWindow.loadURL(promptHtmlPath);
-
-    if (proxyPromptWindow) {
+    try {
+      await proxyPromptWindow.loadURL(promptHtmlPath);
+      if (!proxyPromptWindow || proxyPromptWindow.isDestroyed()) {
+        throw new Error('Proxy prompt closed while loading.');
+      }
       proxyPromptWindow.webContents.send(EVENT_TYPE.PROXY_PROMPT.LOADED);
+      proxyPromptWindow.show();
+      return proxyPromptWindow;
+    } catch {
+      if (proxyPromptWindow && !proxyPromptWindow.isDestroyed()) {
+        proxyPromptWindow.destroy();
+      }
+      throw new Error('Could not open proxy prompt.');
     }
   }
 
-  proxyPromptWindow.show();
   return proxyPromptWindow;
 };
 

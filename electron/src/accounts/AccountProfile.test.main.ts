@@ -251,4 +251,29 @@ describe('main-owned account profile', () => {
     assert.equal(fs.readFileSync(filename, 'utf8'), saved);
     assert.deepEqual(fs.readdirSync(directory), ['accounts-v1.json']);
   });
+
+  it('[CAP-001] preserves the prior profile after a partial temporary-file write', () => {
+    const filename = path.join(directory, 'accounts-v1.json');
+    const profile = new AccountProfile(filename, 3);
+    const accounts = profile.importLegacy(JSON.stringify(legacy()));
+    const saved = fs.readFileSync(filename, 'utf8');
+    const originalWrite = fs.writeFileSync;
+    const failure = new Error('controlled partial write failure');
+    const write = stub(fs, 'writeFileSync').callsFake((file, data) => {
+      originalWrite(file, String(data).slice(0, 8));
+      throw failure;
+    });
+    try {
+      assert.throws(
+        () => profile.write(accounts.map(account => ({...account, name: 'Not committed'}))),
+        error => error === failure,
+      );
+      assert.equal(fs.readFileSync(filename, 'utf8'), saved);
+      assert.deepEqual(fs.readdirSync(directory), ['accounts-v1.json']);
+    } finally {
+      write.restore();
+    }
+    profile.write(accounts.map(account => ({...account, name: 'Retried'})));
+    assert.equal(profile.read()![0].name, 'Retried');
+  });
 });

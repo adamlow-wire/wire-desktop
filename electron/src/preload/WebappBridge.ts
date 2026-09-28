@@ -32,6 +32,7 @@ export interface WebappBridgeDependencies {
   environment: RendererEnvironment;
   events: Readonly<WebappEventBridge>;
   getOpenGraphData(url: string): Promise<OpenGraphResult>;
+  preparePopup(url: string, frameName: string): string | undefined;
   desktopAppConfig: DesktopAppConfig;
 }
 
@@ -41,6 +42,7 @@ export interface WebappBridge {
   readonly environment: RendererEnvironment;
   readonly events: Readonly<WebappEventBridge>;
   readonly openGraphAsync: (url: string) => Promise<OpenGraphResult>;
+  readonly preparePopup: (url: string, frameName: string) => string | undefined;
   readonly systemCrypto: {
     decrypt(encrypted: Uint8Array): Promise<string>;
     encrypt(value: string): Promise<Uint8Array>;
@@ -63,6 +65,7 @@ export const createWebappBridge = (dependencies: WebappBridgeDependencies): Read
     }),
     events: dependencies.events,
     openGraphAsync: dependencies.getOpenGraphData,
+    preparePopup: dependencies.preparePopup,
     systemCrypto: Object.freeze({decrypt: dependencies.decrypt, encrypt: dependencies.encrypt, version: 1 as const}),
     version: WEBAPP_BRIDGE_VERSION,
   });

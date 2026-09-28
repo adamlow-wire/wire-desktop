@@ -29,6 +29,7 @@ export const handleAccountWindowOpen = (
     accountSession: Session;
     accountOrigin: string | undefined;
     sourceUrl: string;
+    trustedMainFrameGrant: boolean;
     openExternal: (url: string) => void;
     openDeepLink: (url: string) => void;
     openSso: (url: string) => void;
@@ -40,6 +41,7 @@ export const handleAccountWindowOpen = (
     referrerUrl: details.referrer.url,
     accountOrigin: context.accountOrigin,
     sourceUrl: context.sourceUrl,
+    trustedMainFrameGrant: context.trustedMainFrameGrant,
   });
   if (decision === 'sso') {
     context.openSso(details.url);

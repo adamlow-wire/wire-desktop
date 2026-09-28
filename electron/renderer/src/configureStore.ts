@@ -24,11 +24,27 @@ import thunk from 'redux-thunk';
 import reducers from './reducers';
 import {initialState as contextMenuState} from './reducers/contextMenuReducer';
 
+import type {AccountSnapshot} from '../../src/accounts/AccountState';
+
+const createDisplayStore = (accounts: readonly AccountSnapshot[], thunkArguments: Object) =>
+  createStore(reducers, {accounts: [...accounts], contextMenuState}, createMiddleware(thunkArguments));
+
 export const configureStore = async (thunkArguments: Object) => {
-  const accounts = await window.wireAccounts.read();
-  const store = createStore(reducers, {accounts: [...accounts], contextMenuState}, createMiddleware(thunkArguments));
-  window.wireAccounts.subscribe(accounts => store.dispatch({type: 'SYNC_ACCOUNTS', accounts: [...accounts]}));
-  return store;
+  let store: ReturnType<typeof createDisplayStore> | undefined;
+  let latest: readonly AccountSnapshot[] | undefined;
+  // Subscribe before awaiting bootstrap so a newer main snapshot cannot fall into a gap.
+  const unsubscribe = window.wireAccounts.subscribe(accounts => {
+    latest = accounts;
+    store?.dispatch({type: 'SYNC_ACCOUNTS', accounts: [...accounts]});
+  });
+  try {
+    const accounts = await window.wireAccounts.read();
+    store = createDisplayStore(latest ?? accounts, thunkArguments);
+    return store;
+  } catch (error) {
+    unsubscribe();
+    throw error;
+  }
 };
 
 const createMiddleware = (thunkArguments: Object = {}) => {

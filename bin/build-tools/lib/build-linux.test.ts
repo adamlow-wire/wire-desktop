@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,31 +14,103 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
-import * as assert from 'assert';
+import {generateAppRunScript} from 'app-builder-lib/out/targets/appimage/appImageUtil';
+import {Arch} from 'builder-util';
+import type {Configuration, Platform} from 'electron-builder';
 import * as fs from 'fs-extra';
+
+import * as assert from 'assert';
+import {spawnSync} from 'child_process';
 import * as os from 'os';
 import * as path from 'path';
 
-import {Arch} from 'builder-util';
-import type {Configuration, Platform} from 'electron-builder';
-
 import {buildLinuxConfig, buildLinuxWrapper} from './build-linux';
+
 import {generateUUID} from '../../bin-utils';
 
 const wireJsonPath = path.join(__dirname, '../../../electron/wire.json');
 const envFilePath = path.join(__dirname, '../../../.env.defaults');
 
 describe('build-linux', () => {
+  describe('AppImage sandbox launch policy', () => {
+    it('does not request --no-sandbox from the desktop entry', async () => {
+      const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+
+      assert.deepStrictEqual(builderConfig.appImage?.executableArgs, []);
+    });
+
+    it('does not add --no-sandbox when user namespaces are unavailable', () => {
+      const appRun = generateAppRunScript({
+        DesktopFileName: 'WireInternal-desktop',
+        ExecutableName: 'WireInternal-desktop',
+        ProductFilename: 'WireInternal',
+        ProductName: 'WireInternal',
+        ResourceName: 'wireinternal',
+      });
+
+      assert.ok(!appRun.includes('--no-sandbox'), 'AppRun must fail closed instead of disabling the Chromium sandbox.');
+    });
+
+    it('forwards application arguments without a sandbox bypass after a failed namespace probe', async () => {
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'appimage-sandbox-'));
+      const appRunPath = path.join(tempDir, 'AppRun');
+      const executablePath = path.join(tempDir, 'WireInternal-desktop');
+      const argumentsPath = path.join(tempDir, 'arguments.txt');
+      try {
+        await fs.writeFile(
+          appRunPath,
+          generateAppRunScript({
+            DesktopFileName: 'WireInternal-desktop',
+            ExecutableName: 'WireInternal-desktop',
+            ProductFilename: 'WireInternal',
+            ProductName: 'WireInternal',
+            ResourceName: 'wireinternal',
+          }),
+        );
+        await fs.writeFile(executablePath, '#!/bin/sh\nprintf "%s\\n" "$@" > "$WIRE_APPIMAGE_ARGS"\n');
+        await fs.chmod(executablePath, 0o755);
+        await fs.writeFile(path.join(tempDir, 'unshare'), '#!/bin/sh\nexit 1\n');
+        await fs.chmod(path.join(tempDir, 'unshare'), 0o755);
+
+        const result = spawnSync('/bin/bash', [appRunPath, '--user-data-dir=fixture'], {
+          encoding: 'utf8',
+          env: {...process.env, APPDIR: tempDir, WIRE_APPIMAGE_ARGS: argumentsPath},
+        });
+        assert.strictEqual(result.status, 0, result.stderr);
+        assert.strictEqual(await fs.readFile(argumentsPath, 'utf8'), '--user-data-dir=fixture\n');
+      } finally {
+        await fs.remove(tempDir);
+      }
+    });
+  });
+
   describe('buildLinuxConfig', () => {
+    it('[PKG-001][regression] keeps the installed desktop entry and Electron window identity aligned', async () => {
+      const {builderConfig, linuxConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+
+      assert.strictEqual(builderConfig.extraMetadata?.desktopName, linuxConfig.executableName);
+      assert.strictEqual(builderConfig.linux?.syncDesktopName, true);
+      assert.strictEqual(builderConfig.appImage?.desktop?.entry?.StartupWMClass, linuxConfig.executableName);
+      assert.strictEqual(builderConfig.deb?.desktop?.entry?.StartupWMClass, linuxConfig.executableName);
+      assert.strictEqual(builderConfig.rpm?.desktop?.entry?.StartupWMClass, linuxConfig.executableName);
+    });
+
+    it('[PKG-001][regression] uses the supplied Wire Linux icons for installer and desktop integration', async () => {
+      const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+
+      assert.strictEqual(builderConfig.linux?.icon, 'resources/icons');
+    });
+
     it('does not rebuild the Windows-only registry module on Linux', async () => {
       const {builderConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
 
       assert.strictEqual(builderConfig.npmRebuild, false);
     });
 
-    it('honors environment variables', async () => {
+    it('[PKG-001][compatibility] honors environment variables', async () => {
       const categories = generateUUID();
       const keywords = generateUUID();
       const nameShort = generateUUID();
@@ -49,8 +121,11 @@ describe('build-linux', () => {
       process.env.LINUX_NAME_SHORT = nameShort;
       process.env.LINUX_TARGET = targets.join(',');
 
-      const {linuxConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
+      const {builderConfig, linuxConfig} = await buildLinuxConfig(wireJsonPath, envFilePath);
 
+      assert.strictEqual(builderConfig.extraMetadata?.desktopName, nameShort);
+      assert.strictEqual(builderConfig.linux?.executableName, nameShort);
+      assert.strictEqual(builderConfig.appImage?.desktop?.entry?.StartupWMClass, nameShort);
       assert.strictEqual(linuxConfig.categories, categories);
       assert.strictEqual(linuxConfig.executableName, nameShort);
       assert.strictEqual(linuxConfig.keywords, keywords);

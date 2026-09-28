@@ -35,9 +35,7 @@ import * as path from 'path';
 import {URL} from 'url';
 
 import {executeJavaScriptWithoutResult} from '../lib/ElectronUtil';
-import {writeBoundedLogMessage} from '../logging/desktopLogWriter';
-import {ENABLE_LOGGING, getLogger} from '../logging/getLogger';
-import {getLogDirectory, getSsoLogPath} from '../logging/logPaths';
+import {getLogger} from '../logging/getLogger';
 import {isAllowedSsoNavigation} from '../security/NavigationPolicy';
 import {registerViewIdentity, ViewIdentityRegistry} from '../security/ViewIdentityRegistry';
 import {config} from '../settings/config';
@@ -151,7 +149,12 @@ export class SingleSignOn {
     }
 
     // Show the window(s)
-    await this.ssoWindow?.loadURL(loginUrl.toString());
+    try {
+      await this.ssoWindow?.loadURL(loginUrl.toString());
+    } catch {
+      // Electron load errors include the URL, which contains the one-use secret.
+      throw new Error('SSO login page could not be loaded.');
+    }
 
     if (typeof argv[config.ARGUMENT.DEVTOOLS] !== 'undefined') {
       this.ssoWindow?.webContents.openDevTools({mode: 'detach'});
@@ -203,8 +206,8 @@ export class SingleSignOn {
       try {
         await this.cleanupSession();
         this.onClose();
-      } catch (error) {
-        SingleSignOn.logger.error('SSO session cleanup failed; the flow remains unavailable.', error);
+      } catch {
+        SingleSignOn.logger.error('SSO session cleanup failed; the flow remains unavailable.');
       }
     });
 
@@ -236,24 +239,8 @@ export class SingleSignOn {
     ssoWindow.webContents.on('will-navigate', guardNavigation);
     ssoWindow.webContents.on('will-redirect', guardNavigation);
 
-    if (ENABLE_LOGGING) {
-      ssoWindow.webContents.on('console-message', async (_event, _level, message) => {
-        if (this.accountId.isJust) {
-          const logFilePath = getSsoLogPath({
-            accountId: this.accountId.value,
-            date: new Date(),
-            logDirectory: getLogDirectory(),
-          });
-          try {
-            await writeBoundedLogMessage({logFilePath, message});
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-
-            console.error('Cannot write to log file:', logFilePath, errorMessage, error);
-          }
-        }
-      });
-    }
+    // Authentication-page console content may contain credentials or callback secrets.
+    // Do not forward it to desktop diagnostics.
   }
 
   close = () => {
@@ -265,9 +252,9 @@ export class SingleSignOn {
       }
       this.ssoWindow?.close();
       this.ssoWindow = undefined;
-    })()
-      .then(console.info)
-      .catch(console.info);
+    })().catch(() => {
+      SingleSignOn.logger.error('SSO session cleanup failed; the flow remains unavailable.');
+    });
   };
 
   focus = () => {
@@ -381,12 +368,12 @@ export class SingleSignOn {
         }
         active = false;
         respond({mimeType: 'text/html', data: '<!doctype html><title>SSO complete</title>'});
-        void (async () => finalizeLogin(type, label))().catch(error =>
-          SingleSignOn.logger.error('SSO finalization failed', error),
+        void (async () => finalizeLogin(type, label))().catch(() =>
+          SingleSignOn.logger.error('SSO finalization failed.'),
         );
-      } catch (error) {
+      } catch {
         respond({error: -10});
-        SingleSignOn.logger.error(error);
+        SingleSignOn.logger.error('SSO callback was rejected.');
       }
     };
 
@@ -429,8 +416,8 @@ export class SingleSignOn {
         if (!copied) {
           throw new Error('No backend authentication cookie was available.');
         }
-      } catch (error) {
-        SingleSignOn.logger.warn(error);
+      } catch {
+        SingleSignOn.logger.warn('SSO authentication cookie transfer failed.');
         await this.dispatchResponse(SingleSignOn.RESPONSE_TYPES.AUTH_ERROR_COOKIE);
 
         return;

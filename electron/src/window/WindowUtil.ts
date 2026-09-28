@@ -77,8 +77,8 @@ export const openExternal = async (url: string, httpsOnly: boolean = false): Pro
     }
 
     await shell.openExternal(externalUrl);
-  } catch (error) {
-    logger.error(error);
+  } catch {
+    logger.error('Opening the external URL failed.');
   }
 };
 

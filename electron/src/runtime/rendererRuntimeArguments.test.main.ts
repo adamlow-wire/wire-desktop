@@ -24,6 +24,7 @@ import {snapshotRendererEnvironment, restoreRendererEnvironment} from './rendere
 import {
   createRendererRuntimeArguments,
   readRendererLocale,
+  readRendererRegionalLocale,
   readRendererUserDataPath,
   readRendererEnvironment,
   readRendererApplockOverride,
@@ -54,8 +55,22 @@ describe('renderer runtime arguments', () => {
     assert.strictEqual(readRendererUserDataPath(argv), '/tmp/Wire Desktop/user data');
   });
 
+  it('[upstream-parity][CAP-005] passes an optional OS regional locale from main to the isolated preload', () => {
+    const argv = createRendererRuntimeArguments({
+      locale: 'en-US',
+      regionalLocale: 'fr-CH',
+      userDataPath: '/unused',
+    });
+
+    assert.ok(argv.includes('--wire-desktop-regional-locale=fr-CH'));
+    assert.strictEqual(readRendererLocale(argv), 'en-US');
+    assert.strictEqual(readRendererRegionalLocale(argv), 'fr-CH');
+  });
+
   it('fails closed for missing or malformed values', () => {
     assert.strictEqual(readRendererLocale([]), undefined);
+    assert.strictEqual(readRendererRegionalLocale([]), undefined);
+    assert.strictEqual(readRendererRegionalLocale(['--wire-desktop-regional-locale=%E0%A4%A']), undefined);
     assert.strictEqual(readRendererUserDataPath(['--wire-desktop-user-data=%E0%A4%A']), undefined);
   });
 

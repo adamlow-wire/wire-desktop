@@ -1,0 +1,47 @@
+diff --git a/lib/utils.js b/lib/utils.js
+index 64888a094673777825eee66eba85b09472a84ef3..aba56359e7e67f6da4e58aa5eed08860b4265f04 100644
+--- a/lib/utils.js
++++ b/lib/utils.js
+@@ -44,21 +44,27 @@ async function copyAsync(source, destination) {
+ }
+ async function downloadFileAsync(url, baseDir) {
+     const zipFile = path_1.default.join(baseDir, 'archive.zip');
+-    await (0, fs_extra_1.ensureDir)(baseDir);
+-    await new Promise((resolve, reject) => {
+-        const writer = (0, fs_extra_1.createWriteStream)(zipFile).on('error', reject).on('finish', resolve);
+-        return axios_1.default
+-            .request({
+-            method: 'get',
+-            responseType: 'stream',
+-            url,
+-        })
+-            .then(response => {
+-            response.data.pipe(writer);
+-        });
+-    });
+-    await extractAsync(zipFile, baseDir);
+-    await (0, fs_extra_1.remove)(zipFile);
++    let response;
++    let ownsArchive = false;
++    try {
++        await (0, fs_extra_1.ensureDir)(baseDir);
++        response = await axios_1.default.request({method: 'get', responseType: 'stream', url});
++        const writer = (0, fs_extra_1.createWriteStream)(zipFile, {flags: 'wx'});
++        writer.once('open', () => { ownsArchive = true; });
++        await require('node:stream/promises').pipeline(response.data, writer);
++        await extractAsync(zipFile, baseDir);
++    } catch {
++        throw new Error('Configuration download or extraction failed');
++    } finally {
++        response?.data?.destroy();
++        if (ownsArchive) {
++            try {
++                await (0, fs_extra_1.remove)(zipFile);
++            } catch {
++                throw new Error('Configuration archive cleanup failed');
++            }
++        }
++    }
+ }
+ async function extractAsync(zipFile, destination) {
+     const jszip = new jszip_1.default();

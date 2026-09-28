@@ -17,14 +17,16 @@
  *
  */
 
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as logdown from 'logdown';
+import {stub} from 'sinon';
 
 import {strict as assert} from 'assert';
 import {tmpdir} from 'os';
 import * as path from 'path';
 
 import {settings} from './ConfigurationPersistence';
+import {SchemaUpdater} from './SchemaUpdater';
 import {SettingsType} from './SettingsType';
 
 describe('ConfigurationPersistence diagnostics', () => {
@@ -71,4 +73,174 @@ describe('ConfigurationPersistence diagnostics', () => {
       }
     });
   }
+});
+
+describe('[PKG-003][DCP-021] settings persistence recovery', () => {
+  let directory: string;
+  let filename: string;
+  let originalPath: string;
+  let originalSettings: Record<string, unknown>;
+
+  beforeEach(() => {
+    directory = fs.mkdtempSync(path.join(tmpdir(), 'wire-settings-recovery-'));
+    filename = path.join(directory, 'config', 'init.json');
+    originalPath = Reflect.get(settings, 'configFile');
+    originalSettings = global._ConfigurationPersistence;
+    Reflect.set(settings, 'configFile', filename);
+    global._ConfigurationPersistence = {configVersion: 1, customSetting: 'new value'};
+  });
+
+  afterEach(() => {
+    Reflect.set(settings, 'configFile', originalPath);
+    global._ConfigurationPersistence = originalSettings;
+    fs.removeSync(directory);
+  });
+
+  it('round-trips valid settings and creates a missing config directory', () => {
+    settings.persistToFile();
+    assert.deepEqual(settings.readFromFile(), global._ConfigurationPersistence);
+  });
+
+  it('[security-target] returns independent defaults for a missing file', () => {
+    const first = settings.readFromFile();
+    const second = settings.readFromFile();
+    assert.notEqual(first, second);
+    assert.deepEqual(first, second);
+  });
+
+  it('[security-target] rejects corrupt and non-object files instead of replacing them with defaults', () => {
+    for (const contents of ['broken', 'null', '[]', '"text"']) {
+      fs.outputFileSync(filename, contents);
+      assert.throws(() => settings.readFromFile());
+      assert.equal(fs.readFileSync(filename, 'utf8'), contents);
+    }
+  });
+
+  it('[security-target] reports a persistence failure and preserves an inaccessible destination', () => {
+    fs.writeFileSync(path.dirname(filename), 'parent is a file');
+    assert.throws(() => settings.persistToFile());
+    assert.equal(fs.readFileSync(path.dirname(filename), 'utf8'), 'parent is a file');
+  });
+
+  for (const operation of ['openSync', 'writeFileSync', 'fsyncSync', 'renameSync'] as const) {
+    it(`[regression] preserves the previous file after ${operation} failure and recovers`, () => {
+      const previous = '{ "configVersion": 1, "customSetting": "previous" }\n';
+      fs.outputFileSync(filename, previous);
+      const failure = stub(fs, operation).throws(new Error('fixture-secret-only'));
+      try {
+        assert.throws(() => settings.persistToFile(), /^Error: Settings persistence failed\.$/);
+      } finally {
+        failure.restore();
+      }
+      assert.equal(fs.readFileSync(filename, 'utf8'), previous);
+      assert.deepEqual(fs.readdirSync(path.dirname(filename)), ['init.json']);
+      settings.persistToFile();
+      assert.deepEqual(settings.readFromFile(), global._ConfigurationPersistence);
+    });
+  }
+
+  it('[regression] preserves a staging path owned by another writer after an exclusive-open collision', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    const open = fs.openSync;
+    let foreignPath = '';
+    const collision = stub(fs, 'openSync').callsFake((file, flags, mode) => {
+      assert.equal(flags, 'wx');
+      assert.equal(mode, 0o600);
+      foreignPath = String(file);
+      const descriptor = open(file, flags, mode);
+      fs.writeFileSync(descriptor, 'other writer');
+      fs.closeSync(descriptor);
+      throw Object.assign(new Error('synthetic exclusive-open collision'), {code: 'EEXIST'});
+    });
+    try {
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+    } finally {
+      collision.restore();
+    }
+    assert.equal(fs.readFileSync(foreignPath, 'utf8'), 'other writer');
+    assert.deepEqual(fs.readFileSync(filename), previous);
+    settings.persistToFile();
+    assert.equal(fs.readFileSync(foreignPath, 'utf8'), 'other writer');
+  });
+
+  it('[regression] keeps incomplete write bytes out of the live configuration', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    const write = fs.writeFileSync;
+    const partial = stub(fs, 'writeFileSync').callsFake(file => {
+      write(file, '{"incomplete":');
+      throw new Error('synthetic full disk');
+    });
+    try {
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+    } finally {
+      partial.restore();
+    }
+    assert.deepEqual(fs.readFileSync(filename), previous);
+    assert.deepEqual(fs.readdirSync(path.dirname(filename)), ['init.json']);
+  });
+
+  it('[regression] does not log or return malformed settings contents in errors', () => {
+    const canary = 'fixture-secret-only';
+    fs.outputFileSync(filename, canary);
+    const diagnostics: string[] = [];
+    const capture: logdown.TransportFunction = options => {
+      if (options.instance.includes('ConfigurationPersistence')) {
+        diagnostics.push(String(options.msg), ...options.args.map(value => String(value)));
+      }
+    };
+    logdown.transports.push(capture);
+    try {
+      assert.throws(() => settings.readFromFile(), /^Error: Settings could not be read\.$/);
+      assert.equal(
+        diagnostics.some(message => message.includes(canary)),
+        false,
+      );
+    } finally {
+      logdown.transports.splice(logdown.transports.indexOf(capture), 1);
+    }
+  });
+
+  it('[regression] rejects invalid in-memory values without replacing the last valid file', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    for (const value of [null, [], 'invalid']) {
+      global._ConfigurationPersistence = value as unknown as Record<string, unknown>;
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+      assert.deepEqual(fs.readFileSync(filename), previous);
+    }
+    assert.deepEqual(fs.readdirSync(path.dirname(filename)), ['init.json']);
+  });
+
+  it('[regression] ignores a leftover staging file after publication and cleanup both fail', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'previous'});
+    const previous = fs.readFileSync(filename);
+    const publish = stub(fs, 'renameSync').throws(new Error('synthetic publication failure'));
+    const cleanup = stub(fs, 'unlinkSync').throws(new Error('synthetic cleanup failure'));
+    try {
+      assert.throws(() => settings.persistToFile(), /Settings persistence failed/);
+    } finally {
+      publish.restore();
+      cleanup.restore();
+    }
+    assert.deepEqual(fs.readFileSync(filename), previous);
+    assert.deepEqual(settings.readFromFile(), {configVersion: 1, customSetting: 'previous'});
+    assert.equal(fs.readdirSync(path.dirname(filename)).filter(name => name.endsWith('.tmp')).length, 1);
+    settings.persistToFile();
+    assert.deepEqual(settings.readFromFile(), global._ConfigurationPersistence);
+  });
+
+  it('preserves already loaded in-memory settings when another persistence instance is constructed', () => {
+    fs.outputJSONSync(filename, {configVersion: 1, customSetting: 'older disk value'});
+    const loaded = global._ConfigurationPersistence;
+    const migration = stub(SchemaUpdater, 'updateToVersion1').returns(filename);
+    try {
+      Reflect.construct(settings.constructor, []);
+      assert.strictEqual(global._ConfigurationPersistence, loaded);
+      assert.strictEqual(settings.restore('customSetting'), 'new value');
+    } finally {
+      migration.restore();
+    }
+  });
 });

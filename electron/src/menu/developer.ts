@@ -20,6 +20,7 @@
 import {BrowserWindow, MenuItem, MenuItemConstructorOptions} from 'electron';
 
 import {executeJavaScriptWithoutResult} from '../lib/ElectronUtil';
+import {getLogger} from '../logging/getLogger';
 import {getAvailableEnvironments, setEnvironment} from '../runtime/EnvironmentUtil';
 import * as lifecycle from '../runtime/lifecycle';
 import {registerDeveloperToolViewIdentity, WEBRTC_INTERNALS_URL} from '../security/DeveloperToolViewIdentity';
@@ -79,7 +80,12 @@ const createEnvironmentTemplates = (): MenuItemConstructorOptions[] => {
       enabled: !!env.server,
       click: async () => {
         if (env.server) {
-          setEnvironment(env.server);
+          try {
+            setEnvironment(env.server);
+          } catch {
+            getLogger('DeveloperMenu').error('Environment change cancelled because settings could not be saved.');
+            return;
+          }
           await lifecycle.relaunch();
         }
       },

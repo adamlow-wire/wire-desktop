@@ -77,6 +77,7 @@ module.exports = (env = {}) => [
     entry: Object.fromEntries(
       [
         'preload-display-broker',
+        'preload-account-permission',
         'preload-display-pip',
         'preload-app',
         'preload-webview',

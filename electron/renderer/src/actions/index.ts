@@ -17,12 +17,11 @@
  *
  */
 
-import * as Joi from '@hapi/joi';
-
-import {Availability} from '@wireapp/protocol-messaging';
+import * as Joi from 'joi';
 
 import {AccountAction, accountAction} from './AccountAction';
 
+import {BUSY_AVAILABILITY} from '../../../src/lib/availability';
 import {AppDispatch, State} from '../index';
 import {generateUUID} from '../lib/util';
 import {
@@ -196,7 +195,7 @@ export const updateAccountBadgeCount = (id: string, count: number) => {
     const accumulatedCount = accounts.reduce((accumulated, account) => {
       return accumulated + (account.id === id ? effectiveCount : account.badgeCount);
     }, 0);
-    const ignoreFlash = account?.availability === Availability.Type.BUSY;
+    const ignoreFlash = account?.availability === BUSY_AVAILABILITY;
 
     window.sendBadgeCount(accumulatedCount, ignoreFlash);
 

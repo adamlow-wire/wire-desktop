@@ -107,7 +107,18 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
     assert.strictEqual(decide('ftp://example.test/file', '_blank'), 'external');
     assert.strictEqual(decide('file:///tmp/x', '_blank'), 'deny');
     assert.strictEqual(decide('https://backend.wire.test/sso', 'WIRE_SSO', 'https://embedded.evil.test'), 'deny');
-    assert.strictEqual(decide('about:blank', 'WIRE_PICTURE_IN_PICTURE_CALL', ''), 'picture-in-picture');
+    assert.strictEqual(decide('about:blank', 'WIRE_PICTURE_IN_PICTURE_CALL', ''), 'deny');
+    assert.strictEqual(
+      selectAccountPopup({
+        url: 'about:blank',
+        frameName: 'WIRE_PICTURE_IN_PICTURE_CALL',
+        referrerUrl: '',
+        accountOrigin: origin,
+        sourceUrl: origin,
+        trustedMainFrameGrant: true,
+      }),
+      'picture-in-picture',
+    );
     assert.strictEqual(
       selectAccountPopup({
         url: origin,
@@ -130,7 +141,7 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
     );
   });
 
-  it('authorizes noreferrer external links using the main-owned source URL, never a claimed referrer alone', () => {
+  it('requires a main-frame grant for noreferrer popups while preserving validated top-level destinations', () => {
     const request = {
       url: 'https://example.test/',
       frameName: '_blank',
@@ -138,7 +149,8 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
       accountOrigin: origin,
       sourceUrl: origin,
     };
-    assert.strictEqual(selectAccountPopup(request), 'external');
+    assert.strictEqual(selectAccountPopup(request), 'deny');
+    assert.strictEqual(selectAccountPopup({...request, trustedMainFrameGrant: true}), 'external');
     for (const sourceUrl of ['', 'about:blank', 'https://foreign.test', `${origin}.evil.test`]) {
       for (const referrerUrl of ['', origin]) {
         assert.strictEqual(selectAccountPopup({...request, sourceUrl, referrerUrl}), 'deny');
@@ -150,13 +162,22 @@ describe('navigation policy [security-target][INV-005][INV-010][SEC-008]', () =>
       }
     }
     assert.strictEqual(selectAccountPopup({...request, referrerUrl: 'https://foreign.test'}), 'deny');
-    assert.strictEqual(selectAccountPopup({...request, frameName: 'WIRE_SSO'}), 'sso');
+    assert.strictEqual(selectAccountPopup({...request, frameName: 'WIRE_SSO', trustedMainFrameGrant: true}), 'sso');
     assert.strictEqual(
-      selectAccountPopup({...request, url: 'about:blank', frameName: 'WIRE_PICTURE_IN_PICTURE_CALL'}),
+      selectAccountPopup({
+        ...request,
+        url: 'about:blank',
+        frameName: 'WIRE_PICTURE_IN_PICTURE_CALL',
+        trustedMainFrameGrant: true,
+      }),
       'picture-in-picture',
     );
     assert.strictEqual(selectAccountPopup({...request, url: 'javascript:alert(1)'}), 'deny');
-    assert.strictEqual(selectAccountPopup({...request, url: 'wire://start-login'}), 'deep-link');
+    assert.strictEqual(selectAccountPopup({...request, url: 'wire://start-login'}), 'deny');
+    assert.strictEqual(
+      selectAccountPopup({...request, url: 'wire://start-login', trustedMainFrameGrant: true}),
+      'deep-link',
+    );
     assert.strictEqual(selectAccountPopup({...request, url: 'wire://unknown'}), 'deny');
     assert.strictEqual(
       selectAccountPopup({...request, url: 'wire://start-login', sourceUrl: 'https://foreign.test'}),

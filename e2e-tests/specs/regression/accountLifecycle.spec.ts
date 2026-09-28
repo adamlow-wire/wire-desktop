@@ -23,7 +23,7 @@ import {spawn} from 'node:child_process';
 import {access, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import type {AddressInfo} from 'node:net';
-import {tmpdir} from 'node:os';
+import {EOL, tmpdir} from 'node:os';
 import path from 'node:path';
 
 import {WebAppEvents} from '@wireapp/webapp-events';
@@ -323,6 +323,49 @@ test(
       await expect.poll(readAccounts).toHaveLength(3);
       await shell.locator('[data-uie-name="do-close-webview"]').click();
       await expect.poll(readAccounts).toHaveLength(2);
+      // Exercise the actual remote-console listener and writer before account removal.
+      // All contents, tokens and profiles below are synthetic and owned by this fixture.
+      const logDay = await app.evaluate(
+        async ({webContents}, {origin, ids}) => {
+          const day = new Date().toISOString().slice(0, 10);
+          for (const [index, id] of ids.entries()) {
+            const contents = webContents
+              .getAllWebContents()
+              .find(
+                contents =>
+                  contents.getURL().startsWith(origin) && new URL(contents.getURL()).searchParams.get('id') === id,
+              )!;
+            await contents.executeJavaScript(
+              `console.log('CAP001_BOUNDED_LOG_${index} access_token=fixture-token-${index}&payload=' + '🧵'.repeat(40000))`,
+            );
+          }
+          return day;
+        },
+        {origin, ids},
+      );
+      const actualLogPaths = ids.map(id => path.join(profileDirectory, 'logs', logDay, 'accounts', id, 'console.log'));
+      const boundedLines: string[] = [];
+      for (const [index, file] of actualLogPaths.entries()) {
+        const readOwnedLog = async () => {
+          try {
+            return await readFile(file, 'utf8');
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+              return '';
+            }
+            throw error;
+          }
+        };
+        await expect.poll(readOwnedLog).toContain(`CAP001_BOUNDED_LOG_${index}`);
+        const content = await readOwnedLog();
+        const line = content.split(/\r?\n/).find(line => line.includes(`CAP001_BOUNDED_LOG_${index}`))!;
+        expect(Buffer.byteLength(line + EOL)).toBeLessThanOrEqual(65536);
+        expect(line).toContain('[desktop log entry truncated]');
+        expect(line).not.toContain('fixture-token-');
+        expect(line).not.toContain('\ufffd');
+        expect(content).not.toContain(`CAP001_BOUNDED_LOG_${1 - index}`);
+        boundedLines.push(line);
+      }
       const logMarkers = ids.map(id =>
         path.join(profileDirectory, 'logs', '2099-01-01', 'accounts', id, 'deletion-marker.log'),
       );
@@ -359,6 +402,8 @@ test(
       // Closing the native view precedes cleanup; profile/sidebar removal signals completion.
       await expect(shell.locator(`[data-account-id="${ids[1]}"]`)).toHaveCount(0);
       await expect(access(logMarkers[1])).rejects.toMatchObject({code: 'ENOENT'});
+      await expect(access(actualLogPaths[1])).rejects.toMatchObject({code: 'ENOENT'});
+      expect(await readFile(actualLogPaths[0], 'utf8')).toContain(boundedLines[0]);
       expect(await readFile(logMarkers[0], 'utf8')).toBe('account-specific marker');
       const cookies = await app.evaluate(
         async ({session}, {origin, partitionId}) => ({

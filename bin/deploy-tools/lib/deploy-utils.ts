@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import fs from 'fs-extra';
@@ -21,6 +22,7 @@ import globby from 'globby';
 import isCi from 'is-ci';
 import JSZip from 'jszip';
 import logdown from 'logdown';
+
 import path from 'path';
 
 export interface FindOptions {
@@ -56,7 +58,7 @@ export async function find(fileGlob: string, options?: FindOptions): Promise<Fin
   const matches = await globby(`**/${fileGlob}`, {cwd: findOptions.cwd, followSymbolicLinks: false, onlyFiles: true});
 
   if (matches.length > 0) {
-    const file = path.resolve(matches[0]);
+    const file = path.resolve(findOptions.cwd, matches[0]);
     return {fileName: path.basename(file), filePath: file};
   }
 
@@ -67,13 +69,14 @@ export async function find(fileGlob: string, options?: FindOptions): Promise<Fin
   return null;
 }
 
-export function logDry(functionName: string, ...options: any[]): void {
+export function logDry(functionName: string, ..._options: unknown[]): void {
   const logger = logdown('@wireapp/deploy-tools/DryLogger', {
     logger: console,
     markdown: false,
   });
   logger.state.isEnabled = !isCi;
-  logger.info(`${functionName}:`, options);
+  // Arguments may contain credentials, file contents or request bodies.
+  logger.info(`${functionName}: dry run`);
 }
 
 export function zip(originalFile: string, zipFile: string): Promise<string> {

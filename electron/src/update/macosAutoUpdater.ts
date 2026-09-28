@@ -17,7 +17,7 @@
  *
  */
 
-import {BrowserWindow, dialog} from 'electron';
+import {app, BrowserWindow, dialog} from 'electron';
 import {autoUpdater} from 'electron-updater';
 
 import {getLogger} from '../logging/getLogger';
@@ -39,6 +39,11 @@ export function initMacAutoUpdater(mainWindow: BrowserWindow): void {
     return;
   }
 
+  if (!app.isPackaged || config.macAutoUpdateEnabled !== true) {
+    logger.log('Skipping auto-update: package policy disabled');
+    return;
+  }
+
   logger.log('Initializing macOS auto-updater for internal build');
 
   // INTERNAL FEED URL (served from S3)
@@ -52,12 +57,14 @@ export function initMacAutoUpdater(mainWindow: BrowserWindow): void {
   //   process.env.WIRE_INTERNAL_MAC_UPDATE_URL ||
   //   'https://wire-app.wire.com/mac/internal/updates/';
 
-  logger.log(`Using update feed: ${feedUrl}`);
+  logger.log('Using configured update feed');
 
-  autoUpdater.setFeedURL({
-    provider: 'generic',
-    url: feedUrl,
-  });
+  try {
+    autoUpdater.setFeedURL({provider: 'generic', url: feedUrl});
+  } catch {
+    logger.error('Unable to configure auto-updater');
+    return;
+  }
 
   autoUpdater.on('checking-for-update', () => {
     logger.log('Checking for update…');
@@ -71,8 +78,8 @@ export function initMacAutoUpdater(mainWindow: BrowserWindow): void {
     logger.log(`No update available (current: ${info.version})`);
   });
 
-  autoUpdater.on('error', err => {
-    logger.error('Auto-updater error', err);
+  autoUpdater.on('error', () => {
+    logger.error('Auto-updater failed');
   });
 
   autoUpdater.on('download-progress', progress => {
@@ -85,25 +92,31 @@ export function initMacAutoUpdater(mainWindow: BrowserWindow): void {
   autoUpdater.on('update-downloaded', async info => {
     logger.log(`Update downloaded: ${info.version}`);
 
-    // Show a simple native dialog when the update is ready.
-    const result = await dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      buttons: ['Install & Restart', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-      title: 'Wire Update Ready',
-      message: 'A new version of Wire is ready to install.',
-      detail: `Version ${info.version} has been downloaded. Wire will restart to complete the update.`,
-    });
+    try {
+      // Show a simple native dialog when the update is ready.
+      const result = await dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        buttons: ['Install & Restart', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Wire Update Ready',
+        message: 'A new version of Wire is ready to install.',
+        detail: `Version ${info.version} has been downloaded. Wire will restart to complete the update.`,
+      });
 
-    if (result.response === 0) {
-      logger.log('User chose to install update now');
-      autoUpdater.quitAndInstall();
-    } else {
-      logger.log('User chose to install later');
+      if (result.response === 0) {
+        logger.log('User chose to install update now');
+        autoUpdater.quitAndInstall();
+      } else {
+        logger.log('User chose to install later');
+      }
+    } catch {
+      logger.error('Unable to complete update installation prompt');
     }
   });
 
   // Kick off background check + download.
-  autoUpdater.checkForUpdates();
+  void Promise.resolve()
+    .then(() => autoUpdater.checkForUpdates())
+    .catch(() => logger.error('Unable to check for updates'));
 }

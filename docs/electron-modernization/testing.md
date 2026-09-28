@@ -14,11 +14,30 @@ This is characterization-driven development followed by test-driven implementati
 
 Existing behavior is not automatically correct. Security invariants describe the required target even when the corresponding target test initially fails.
 
+## September 25 bounded review checks
+
+From the repository root, the inert SEC-008/PKG-002 composition and F-041 login-helper checks are:
+
+```sh
+node node_modules/mocha/bin/mocha.js --require .babel-register.js electron/src/preload/menu/preload-context.test.main.ts bin/deploy-tools/lib/deploy-utils.test.ts bin/deploy-tools/lib/S3Deployer.test.ts
+node node_modules/mocha/bin/mocha.js --require .babel-register.js 'bin/deploy-tools/**/*.test.ts'
+node node_modules/@playwright/test/cli.js test --project=linux e2e-tests/specs/tooling/loginUserIdentity.spec.ts --reporter=line
+node node_modules/typescript/bin/tsc --noEmit
+node node_modules/typescript/bin/tsc -P tsconfig.mocha.json --noEmit
+node node_modules/typescript/bin/tsc -P tsconfig.bin.json --noEmit
+node node_modules/typescript/bin/tsc -P tsconfig.playwright.json --noEmit
+node node_modules/webpack/bin/webpack.js --env production
+```
+
+The image-preload suite has seven inert cases after F-037 follow-up; scoped deployment tooling has 73 cases; F-041 has three Playwright cases that use fake pages and no GUI. F-041's test-only baseline returns one passing control and two failed foreign-page targets on original source; F-037's second test-only baseline fails repeated-click and stalled-read targets. Current local corrected cases pass, while the prior `bce6f775` head has the clean hosted checkpoint: [all three package jobs](https://github.com/adamlow-wire/wire-desktop/actions/runs/36114887283) and [76/76 first-attempt E2E passes per OS](https://github.com/adamlow-wire/wire-desktop/actions/runs/36114887254). New local source requires its own exact-head hosted checks after one consolidated push. Actual OS image-save interaction, backend user identity, and full coverage review remain distinct from these inert tests.
+
 ## Native-account E2E harness checkpoint (2026-09-10)
 
 `accountSidebar.spec.ts` is a CAP-001 regression for DCP-002/DCP-004. It uses isolated local profiles and real native views/menus to exercise switching, background/active/last-account removal, addition, and logout event delivery with an unrelated window present. It reproduced incorrect positional page selection and the obsolete DOM-menu timeout. The helper now resolves the main-selected account and invokes the actual enabled native menu item; no production IPC or permission bypass is added. The authenticated logout spec retains its menu labels/enabled-state and confirmation/cancellation assertions using that adapter. Local fixtures do not prove staging login, actual data-clearing confirmation, live SSO/E2EI, or macOS/Windows operation.
 
 ## Test classifications
+
+Jest owns renderer tests; Node build-tool contracts beneath `bin/` run with Mocha through `test:bin`. Root TypeScript excludes those tooling test files to avoid competing Jest/Mocha globals; aggregate `test:types` explicitly includes the dedicated `build:ts:bin` compiler before Playwright typing. Keep both tooling execution and typing mandatory when changing discovery. A lower Jest count caused by removing duplicate tooling collection is not lost coverage if the complete Mocha collection remains evidenced.
 
 Every added modernization test MUST be classified in its name, enclosing suite, or PR evidence as one of:
 
@@ -279,3 +298,9 @@ The maintainer prohibits GUI/native application tests on the shared display afte
 ## Windows package execution correction
 
 Baseline02b9ee05 requires a Windows step output emitted only after both Node-owned package smokes return successfully. Requiring two completion observations in actual job104456212184 fails with zero: the old GUI version probe ended the step early. The correction removes that redundant probe and retains strict Node-driver exit checks, then the mandatory output gate. See the [audit](m4-acceptance.md) for exact prior/final evidence. Both fresh Windows launches use a temporary explicit managed policy; the second also requires actual proxy authentication. No enrollment is removed, existing policy is not overwritten, and unmanaged Windows/policy-transition QA is not inferred. Final hosted execution must show both completed smokes and all protected checks before merge.
+
+## Unsigned Windows installer effective-fuse check
+
+The PKG-001 hosted Windows job installs the Squirrel and MSI deliverables on a disposable runner. `bin/test-tools/smoke-windows-installers.ps1` first requires each installed `resources/app.asar` to match the verified unpacked archive, then runs `node bin/test-tools/verify-effective-fuses.cjs <installed-executable>` before packaged account/proxy smoke. The verifier reads Electron's V1 fuse wire from that **installed executable**, requires all nine indexed states to be present, enforces the six configured unsigned security bits, and prints the full nine-character wire for review. A mismatch fails the smoke. The remaining browser-specific snapshot, file-protocol privilege and WASM trap-handler positions are recorded, not accepted by this check; see [F-006](review-findings.md). Signed integrity remains a later SEC-011/PKG-002 gate.
+
+Local non-GUI checks are `yarn build:ts:bin`, `yarn mocha --require .babel-register.js bin/test-tools/windows-installers.test.ts bin/test-tools/verify-effective-fuses.test.ts`, and `node bin/test-tools/verify-effective-fuses.cjs <already-downloaded-Electron-binary>`. The new tests initially failed in three places before the verifier was added; an in-memory changed-RunAsNode expectation then failed its positive control without modifying the repository gate. Thirteen focused tests and a direct read of the downloaded seventh-run Linux executable pass. Hosted Windows installed-binary execution is still required, because the eighth package run stopped in the native account fixture before building installers.

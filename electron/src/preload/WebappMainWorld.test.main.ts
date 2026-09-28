@@ -92,6 +92,95 @@ describe('webapp main-world adapter', () => {
     assert.ok(!calls.includes('close'));
   });
 
+  it('[security-target][SEC-008] grants named popups and preserves native noreferrer anchor navigation', () => {
+    const opens: unknown[][] = [];
+    const grants: unknown[][] = [];
+    const timers: Array<() => void> = [];
+    let onClick: ((event: {defaultPrevented: boolean; preventDefault(): void; target: unknown}) => void) | undefined;
+    const popup = {} as WindowProxy;
+    const fakeWindow = {
+      addEventListener: (name: string, listener: (...args: any[]) => void) => {
+        if (name === 'DOMContentLoaded') {
+          listener();
+        }
+        if (name === 'click') {
+          onClick = listener;
+        }
+      },
+      amplify: {subscribe: () => undefined},
+      location: {href: 'https://account.wire.test/home'},
+      open: (...args: unknown[]) => {
+        opens.push(args);
+        return popup;
+      },
+      setTimeout: (callback: () => void) => timers.push(callback),
+      wire: {},
+      wireDesktopBridge: {
+        events: new Proxy({}, {get: () => () => undefined}),
+        preparePopup: (url: string, frameName: string) => {
+          grants.push([url, frameName]);
+          return '0123456789abcdef0123456789abcdef';
+        },
+      },
+      z: {event: {}, util: {Environment: {version: () => 'webapp'}}},
+    };
+    host.window = fakeWindow;
+    installWebappEventAdapter(WEBAPP_EVENT_NAMES, true, 'wirePopupGrant');
+
+    assert.strictEqual(fakeWindow.open('', 'WIRE_PICTURE_IN_PICTURE_CALL', 'width=300'), popup);
+    assert.deepStrictEqual(grants[0], ['', 'WIRE_PICTURE_IN_PICTURE_CALL']);
+    assert.deepStrictEqual(opens[0], [
+      '',
+      'WIRE_PICTURE_IN_PICTURE_CALL',
+      'width=300,wirePopupGrant=0123456789abcdef0123456789abcdef',
+    ]);
+    let prevented = false;
+    const anchor = {href: 'https://example.test/message', target: '_blank'};
+    onClick?.({
+      defaultPrevented: false,
+      preventDefault: () => (prevented = true),
+      target: {
+        closest: () => anchor,
+      },
+    });
+    assert.strictEqual(prevented, false, 'the anchor default action must remain native');
+    assert.deepStrictEqual(grants[1], ['https://example.test/message', '_blank']);
+    assert.strictEqual(anchor.target, 'wirePopupGrant_0123456789abcdef0123456789abcdef');
+    assert.strictEqual(opens.length, 1, 'the click handler must not call window.open');
+    for (const timer of timers) {
+      timer();
+    }
+    assert.strictEqual(anchor.target, '_blank');
+  });
+
+  it('[security-target][SEC-008] never opens a native popup when the frame cannot obtain a grant', () => {
+    const opens: unknown[][] = [];
+    const fakeWindow = {
+      addEventListener: (name: string, listener: () => void) => {
+        if (name === 'DOMContentLoaded') {
+          listener();
+        }
+      },
+      amplify: {subscribe: () => undefined},
+      location: {href: 'https://foreign.test/'},
+      open: (...args: unknown[]) => {
+        opens.push(args);
+        return {};
+      },
+      setTimeout: () => assert.fail('webapp fixture should register immediately'),
+      wire: {},
+      wireDesktopBridge: {
+        events: new Proxy({}, {get: () => () => undefined}),
+        preparePopup: () => undefined,
+      },
+      z: {event: {}, util: {Environment: {version: () => 'webapp'}}},
+    };
+    host.window = fakeWindow;
+    installWebappEventAdapter(WEBAPP_EVENT_NAMES, true, 'wirePopupGrant');
+    assert.strictEqual(fakeWindow.open('https://example.test/', '_blank'), null);
+    assert.deepStrictEqual(opens, []);
+  });
+
   it('[security-target][INV-002][SEC-005] performs only the fixed webapp actions', () => {
     const dispatched: unknown[] = [];
     const published: unknown[][] = [];

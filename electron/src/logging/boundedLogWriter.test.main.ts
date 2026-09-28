@@ -20,6 +20,7 @@
 import * as fs from 'fs-extra';
 
 import * as assert from 'assert';
+import {EOL} from 'os';
 import * as path from 'path';
 
 import {BoundedLogWriter, BoundedLogWriterDependencies, createBoundedLogWriter} from './boundedLogWriter';
@@ -106,7 +107,7 @@ describe('bounded desktop log writer', () => {
       await writeLogMessages(boundedLogWriter, logFilePath, ['first', 'second', 'third']);
 
       const actualLogContent = await fs.readFile(logFilePath, 'utf8');
-      const expectedLogContent = 'first\nsecond\nthird\n';
+      const expectedLogContent = ['first', 'second', 'third'].join(EOL) + EOL;
 
       assert.strictEqual(actualLogContent, expectedLogContent);
     }),
@@ -168,7 +169,7 @@ describe('bounded desktop log writer', () => {
 
       const actualLogContent = await fs.readFile(logFilePath, 'utf8');
 
-      assert.strictEqual(actualLogContent, 'before restart\nafter restart\n');
+      assert.strictEqual(actualLogContent, ['before restart', 'after restart'].join(EOL) + EOL);
     }),
   );
 
@@ -192,8 +193,8 @@ describe('bounded desktop log writer', () => {
       const actualCurrentLogContent = await fs.readFile(logFilePath, 'utf8');
       const actualRotatedLogContent = await fs.readFile(`${logFilePath}.2-0.old`, 'utf8');
 
-      assert.strictEqual(actualCurrentLogContent, '6789\n');
-      assert.strictEqual(actualRotatedLogContent, '12345\n');
+      assert.strictEqual(actualCurrentLogContent, ['6789'].join(EOL) + EOL);
+      assert.strictEqual(actualRotatedLogContent, ['12345'].join(EOL) + EOL);
       assert.strictEqual(rotationCount, 1);
     }),
   );
@@ -216,7 +217,7 @@ describe('bounded desktop log writer', () => {
 
       const actualRotatedLogContent = await fs.readFile(`${logFilePath}.3-1.old`, 'utf8');
 
-      assert.strictEqual(actualRotatedLogContent, '12345\n');
+      assert.strictEqual(actualRotatedLogContent, ['12345'].join(EOL) + EOL);
       assert.strictEqual(await fs.readFile(existingRotatedLogPath, 'utf8'), 'existing\n');
     }),
   );
@@ -247,7 +248,7 @@ describe('bounded desktop log writer', () => {
       await boundedLogWriter.write({logFilePath, message: '6789'});
 
       assert.strictEqual(moveAttemptCount, 2);
-      assert.strictEqual(await fs.readFile(`${logFilePath}.4-1.old`, 'utf8'), '12345\n');
+      assert.strictEqual(await fs.readFile(`${logFilePath}.4-1.old`, 'utf8'), ['12345'].join(EOL) + EOL);
     }),
   );
 
@@ -268,8 +269,8 @@ describe('bounded desktop log writer', () => {
       const actualCurrentLogContent = await fs.readFile(logFilePath, 'utf8');
       const actualRotatedLogContent = await fs.readFile(`${logFilePath}.4-0.old`, 'utf8');
 
-      assert.strictEqual(actualCurrentLogContent, 'x\n');
-      assert.strictEqual(actualRotatedLogContent, '123456\n');
+      assert.strictEqual(actualCurrentLogContent, ['x'].join(EOL) + EOL);
+      assert.strictEqual(actualRotatedLogContent, ['123456'].join(EOL) + EOL);
     }),
   );
 
@@ -345,7 +346,7 @@ describe('bounded desktop log writer', () => {
 
       await boundedLogWriter.write({logFilePath, message: '1234567890'});
 
-      assert.strictEqual(writtenLogSizeBytes, 11);
+      assert.strictEqual(writtenLogSizeBytes, Buffer.byteLength(`1234567890${EOL}`));
       assert.strictEqual(cleanupCount, 1);
       assert.strictEqual(cleanupStartedAfterWriteCriticalSection, true);
       assert.strictEqual(cleanupFailureMessages.length, 0);

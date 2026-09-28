@@ -48,6 +48,10 @@ interface ViewEntry {
   revoke(): void;
 }
 
+interface ClosingView extends Pick<ViewEntry, 'partition' | 'contents' | 'revoke'> {
+  detach(): void;
+}
+
 export interface AccountViewsOptions {
   window: BrowserWindow;
   registry: ViewIdentityRegistry;
@@ -63,6 +67,7 @@ export interface AccountViewsOptions {
 export class AccountViews {
   private readonly entries = new Map<string, ViewEntry>();
   private readonly closing = new Map<string, {partition: string; done: Promise<void>}>();
+  private readonly failedClosures = new Map<string, ClosingView>();
   private sidebarWidth = 0;
   private headerHeight = 0;
   private disposed = false;
@@ -70,7 +75,7 @@ export class AccountViews {
   constructor(private readonly options: AccountViewsOptions) {
     options.window.on('resize', this.layout);
     options.window.on('focus', this.requestNotifications);
-    options.window.once('closed', this.dispose);
+    options.window.once('closed', this.onWindowClosed);
   }
 
   async create(account: AccountViewRecord, destination: string): Promise<WebContents> {
@@ -81,7 +86,10 @@ export class AccountViews {
       this.options.window.isDestroyed() ||
       this.entries.has(account.id) ||
       this.closing.has(account.id) ||
-      [...this.entries.values(), ...this.closing.values()].some(entry => entry.partition === partition) ||
+      this.failedClosures.has(account.id) ||
+      [...this.entries.values(), ...this.closing.values(), ...this.failedClosures.values()].some(
+        entry => entry.partition === partition,
+      ) ||
       !ValidationUtil.isUUIDv4(account.id) ||
       (account.sessionID !== undefined && !ValidationUtil.isUUIDv4(account.sessionID)) ||
       !url
@@ -108,43 +116,45 @@ export class AccountViews {
         webviewTag: false,
       },
     });
-    view.setVisible(false);
     const contents = view.webContents;
-    const registration = registerViewIdentity(this.options.registry, {
-      accountId: account.id,
-      allowedOrigin: url.origin,
-      capabilities: this.options.capabilities,
-      partition: account.sessionID ?? 'default',
-      session: accountSession,
-      viewType: 'account',
-      webContents: contents,
-    });
-    const entry: ViewEntry = {
-      view,
-      contents,
-      partition,
-      identity: registration.identity,
-      ready: false,
-      notificationRequested: false,
-      cancelConsent: () => undefined,
-      revoke: registration.revoke,
-    };
-    this.entries.set(account.id, entry);
-    contents.on('did-start-navigation', details => {
-      if (details.isMainFrame && !details.isSameDocument) {
-        entry.ready = false;
-        entry.notificationRequested = false;
-      }
-    });
-    bindNavigationGuard(contents, target => isAllowedAccountNavigation(target, url.origin));
-    contents.setWindowOpenHandler(() => ({action: 'deny'}));
-    contents.once('render-process-gone', () => {
-      registration.revoke();
-      if (this.entries.get(account.id)?.view === view) {
-        void this.close(account.id).then(() => this.options.lost(account.id));
-      }
-    });
     try {
+      view.setVisible(false);
+      const registration = registerViewIdentity(this.options.registry, {
+        accountId: account.id,
+        allowedOrigin: url.origin,
+        capabilities: this.options.capabilities,
+        partition: account.sessionID ?? 'default',
+        session: accountSession,
+        viewType: 'account',
+        webContents: contents,
+      });
+      const entry: ViewEntry = {
+        view,
+        contents,
+        partition,
+        identity: registration.identity,
+        ready: false,
+        notificationRequested: false,
+        cancelConsent: () => undefined,
+        revoke: registration.revoke,
+      };
+      this.entries.set(account.id, entry);
+      contents.on('did-start-navigation', details => {
+        if (details.isMainFrame && !details.isSameDocument) {
+          entry.ready = false;
+          entry.notificationRequested = false;
+        }
+      });
+      bindNavigationGuard(contents, target => isAllowedAccountNavigation(target, url.origin));
+      contents.setWindowOpenHandler(() => ({action: 'deny'}));
+      contents.once('render-process-gone', () => {
+        registration.revoke();
+        if (this.entries.get(account.id)?.view === view) {
+          void this.close(account.id)
+            .then(() => this.options.lost(account.id))
+            .catch(this.reportLifecycleFailure);
+        }
+      });
       const consent = this.options.permissionConsent;
       const permissions = new AccountPermissionPolicy(this.options.registry, registration.identity, {
         canPrompt: identity => view.getVisible() && consent?.canPrompt(identity) === true,
@@ -176,6 +186,14 @@ export class AccountViews {
     } catch (error) {
       if (this.entries.get(account.id)?.view === view) {
         await this.close(account.id);
+      } else if (!contents.isDestroyed()) {
+        // Setup can fail before an entry exists; the allocated contents are still ours.
+        await this.closeOwned(account.id, {
+          partition,
+          contents,
+          revoke: () => undefined,
+          detach: () => undefined,
+        });
       }
       throw error;
     }
@@ -263,34 +281,113 @@ export class AccountViews {
       return pending.done;
     }
     const entry = this.entries.get(accountId);
-    if (!entry) {
+    const owned = entry
+      ? {
+          partition: entry.partition,
+          contents: entry.contents,
+          revoke: entry.revoke,
+          detach: () => {
+            if (!this.options.window.isDestroyed()) {
+              this.options.window.contentView.removeChildView(entry.view);
+            }
+          },
+        }
+      : this.failedClosures.get(accountId);
+    if (!owned) {
       return;
     }
     this.entries.delete(accountId);
-    entry.revoke();
-    if (!this.options.window.isDestroyed()) {
-      this.options.window.contentView.removeChildView(entry.view);
+    return this.closeOwned(accountId, owned);
+  }
+
+  private closeOwned(accountId: string, owned: ClosingView): Promise<void> {
+    const pending = this.closing.get(accountId);
+    if (pending) {
+      return pending.done;
     }
-    const contents = entry.contents;
+    let resolve!: () => void;
+    let reject!: (error: unknown) => void;
+    const done = new Promise<void>((complete, fail) => {
+      resolve = complete;
+      reject = fail;
+    });
+    // Reserve before any cleanup callback can re-enter this owner.
+    this.closing.set(accountId, {partition: owned.partition, done});
+    void this.destroyOwned(owned).then(
+      () => {
+        this.failedClosures.delete(accountId);
+        this.closing.delete(accountId);
+        resolve();
+      },
+      error => {
+        // Keep failed cleanup private and retryable; it must never become a usable view.
+        this.failedClosures.set(accountId, owned);
+        this.closing.delete(accountId);
+        reject(error);
+      },
+    );
+    return done;
+  }
+
+  private async destroyOwned(owned: ClosingView): Promise<void> {
+    let failed = false;
+    let failure: unknown;
+    const recordFailure = (error: unknown) => {
+      if (!failed) {
+        failed = true;
+        failure = error;
+      }
+    };
+    try {
+      owned.revoke();
+    } catch (error) {
+      recordFailure(error);
+    }
+    try {
+      owned.detach();
+    } catch (error) {
+      recordFailure(error);
+    }
+    const contents = owned.contents;
     if (!contents.isDestroyed()) {
-      const destroyed = new Promise<void>(resolve => contents.once('destroyed', () => resolve()));
-      this.closing.set(accountId, {partition: entry.partition, done: destroyed});
+      let complete!: () => void;
+      const destroyed = new Promise<void>(resolve => {
+        complete = resolve;
+      });
+      contents.once('destroyed', complete);
       try {
         contents.close({waitForBeforeUnload: false});
         await destroyed;
+      } catch (error) {
+        recordFailure(error);
       } finally {
-        this.closing.delete(accountId);
+        contents.removeListener('destroyed', complete);
       }
     }
+    if (failed) {
+      throw failure;
+    }
   }
+
+  private readonly reportLifecycleFailure = (): void => {
+    try {
+      console.error('Account view lifecycle cleanup failed.');
+    } catch {
+      // Diagnostics cannot create another unhandled lifecycle rejection.
+    }
+  };
+
+  private readonly onWindowClosed = (): void => {
+    void this.dispose().catch(this.reportLifecycleFailure);
+  };
 
   readonly dispose = async (): Promise<void> => {
     this.disposed = true;
     this.options.window.removeListener('resize', this.layout);
     this.options.window.removeListener('focus', this.requestNotifications);
-    this.options.window.removeListener('closed', this.dispose);
+    this.options.window.removeListener('closed', this.onWindowClosed);
     await Promise.all([
-      ...[...this.entries.keys()].map(id => this.close(id)),
+      ...[...new Set([...this.entries.keys(), ...this.failedClosures.keys()])].map(id => this.close(id)),
       ...[...this.closing.values()].map(entry => entry.done),
     ]);
   };

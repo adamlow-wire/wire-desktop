@@ -108,16 +108,30 @@ describe('[regression][CAP-001] named sidebar controls', () => {
     expect(focus).not.toHaveBeenCalled();
   });
 
+  it('[security-target][INV-010] reports add and menu failure without rejected detail', async () => {
+    const failure = new Error('private-menu=credential-value');
+    add.mockRejectedValue(failure);
+    await act(async () => container.querySelector<HTMLElement>('[data-uie-name="do-open-plus-menu"]')!.click());
+    expect(console.error).toHaveBeenCalledWith('Unable to add account.');
+    expect(console.error).not.toHaveBeenCalledWith(failure);
+    contextMenu.mockRejectedValue(failure);
+    await act(async () => cells()[0].dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})));
+    expect(console.error).toHaveBeenCalledWith('Unable to open account menu.');
+    expect(console.error).toHaveBeenCalledTimes(2);
+  });
+
   it('uses the named add control and reports rejected native actions', async () => {
     const failure = new Error('Native action failed');
     add.mockRejectedValue(failure);
     await act(async () => container.querySelector<HTMLElement>('[data-uie-name="do-open-plus-menu"]')!.click());
     expect(add).toHaveBeenCalledWith();
-    expect(console.error).toHaveBeenCalledWith(failure);
+    expect(console.error).toHaveBeenCalledWith('Unable to add account.');
+    expect(console.error).not.toHaveBeenCalledWith(failure);
     contextMenu.mockRejectedValue(failure);
     const cell = cells()[0];
     await act(async () => cell.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true})));
     expect(contextMenu).toHaveBeenCalledWith(accounts[0].id);
+    expect(console.error).toHaveBeenCalledWith('Unable to open account menu.');
     expect(console.error).toHaveBeenCalledTimes(2);
   });
 });

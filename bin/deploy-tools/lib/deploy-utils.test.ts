@@ -1,6 +1,6 @@
 /*
  * Wire
- * Copyright (C) 2019 Wire Swiss GmbH
+ * Copyright (C) 2026 Wire Swiss GmbH
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,9 +14,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
+ *
  */
 
 import * as assert from 'assert';
+import path from 'node:path';
+
 import {find} from './deploy-utils';
 
 describe('deploy-utils', () => {
@@ -42,6 +45,6 @@ describe('deploy-utils', () => {
     const result = await find('deploy-utils.test.ts', {cwd: __dirname, safeGuard: false});
     assert.notEqual(result, null);
     assert.strictEqual(typeof result!.fileName, 'string');
-    assert.strictEqual(typeof result!.filePath, 'string');
+    assert.strictEqual(result!.filePath, path.join(__dirname, 'deploy-utils.test.ts'));
   });
 });

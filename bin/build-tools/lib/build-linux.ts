@@ -20,11 +20,14 @@
 import {Arch} from 'builder-util';
 import type * as electronBuilder from 'electron-builder';
 import fs from 'fs-extra';
+
 import path from 'path';
 
-import {backupFiles, getLogger, restoreFiles} from '../../bin-utils';
 import {getCommonConfig, flipElectronFuses} from './commonConfig';
 import {LinuxConfig} from './Config';
+import {packageFilePatterns} from './packageInputs';
+
+import {backupFiles, getLogger, restoreFiles} from '../../bin-utils';
 
 const libraryName = path.basename(__filename).replace('.ts', '');
 const logger = getLogger('build-tools', libraryName);
@@ -66,7 +69,7 @@ export async function buildLinuxConfig(
     Keywords: linuxConfig.keywords,
     MimeType: `x-scheme-handler/${commonConfig.customProtocolName}`,
     Name: commonConfig.name,
-    StartupWMClass: commonConfig.name,
+    StartupWMClass: linuxConfig.executableName,
     Version: '1.1',
   };
 
@@ -87,6 +90,8 @@ export async function buildLinuxConfig(
       artifactName: linuxConfig.artifactName,
       category: platformSpecificConfig.category,
       desktop: {entry: linuxDesktopConfig},
+      // electron-builder otherwise adds --no-sandbox to the legacy AppImage desktop entry.
+      executableArgs: [],
       publish: null,
     },
     asar: commonConfig.enableAsar,
@@ -100,13 +105,16 @@ export async function buildLinuxConfig(
       output: commonConfig.distDir,
     },
     extraMetadata: {
+      desktopName: linuxConfig.executableName,
       homepage: commonConfig.websiteUrl,
     },
-    files: ['!**/.yarn', '!**/renderer/src', '!**/electron/src', '!**/bin', '!**/jenkins'],
+    files: packageFilePatterns(commonConfig.electronDirectory),
     linux: {
       artifactName: linuxConfig.artifactName,
       category: platformSpecificConfig.category,
+      icon: 'resources/icons',
       executableName: linuxConfig.executableName,
+      syncDesktopName: true,
       target: linuxConfig.targets,
     },
     // The only native production dependency is registry-js, which is loaded exclusively by the
@@ -153,16 +161,15 @@ export async function buildLinuxWrapper(
   );
 
   const backup = await backupFiles([packageJsonResolved, wireJsonResolved]);
-  const packageJsonContent = await fs.readJson(packageJsonResolved);
-
-  await fs.writeJson(
-    packageJsonResolved,
-    {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
-    {spaces: 2},
-  );
-  await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
-
   try {
+    const packageJsonContent = await fs.readJson(packageJsonResolved);
+
+    await fs.writeJson(
+      packageJsonResolved,
+      {...packageJsonContent, productName: commonConfig.name, version: commonConfig.version},
+      {spaces: 2},
+    );
+    await fs.writeJson(wireJsonResolved, commonConfig, {spaces: 2});
     const builtPackages = await build({config: builderConfig, targets});
     builtPackages.forEach(builtPackage => logger.log(`Built package "${builtPackage}".`));
   } finally {

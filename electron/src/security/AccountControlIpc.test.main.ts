@@ -35,13 +35,14 @@ type Handler = (event: SenderIdentity, value: unknown) => Promise<unknown>;
 
 const fixture = (viewType: ViewType = 'application-shell') => {
   const registry = new ViewIdentityRegistry();
-  const frame = {url: 'https://shell.wire.test/index.html'};
+  const frame = {url: 'wire-app://shell/renderer/index.html'};
   const session = {};
   let destroyed = false;
   const sender = {id: 701, mainFrame: frame, session, isDestroyed: () => destroyed};
   registry.register({
     accountId: viewType === 'account' ? accountId : undefined,
-    allowedOrigin: 'https://shell.wire.test',
+    allowedOrigin: new URL(frame.url).origin,
+    allowedUrl: viewType === 'application-shell' ? frame.url : undefined,
     capabilities: [ACCOUNT_CONTROL_CAPABILITY],
     partition: 'default',
     session,
@@ -221,7 +222,7 @@ describe('account control IPC', () => {
     await assert.rejects(invoke({action: 'add'}, {...event, senderFrame: {url: frame.url}}), /authorized/);
     frame.url = 'https://hostile.wire.test/';
     await assert.rejects(invoke({action: 'add'}), /authorized/);
-    frame.url = 'https://shell.wire.test/index.html';
+    frame.url = 'wire-app://shell/renderer/index.html';
     destroy();
     await assert.rejects(invoke({action: 'add'}), /authorized/);
     registry.unregister(event.sender.id);
@@ -270,5 +271,47 @@ describe('account control IPC', () => {
     }
     control.snapshots = () => [{...valid, sessionID: accountId}];
     await assert.rejects(invoke({action: 'read'}), /response payload/);
+  });
+  it('denies a different local shell document, host or query', async () => {
+    const {invoke, frame, state} = fixture();
+    const initial = state.snapshots();
+    for (const url of [
+      'wire-app://shell/html/about.html',
+      'wire-app://other/renderer/index.html',
+      'wire-app://shell/renderer/index.html?other=1',
+    ]) {
+      frame.url = url;
+      await assert.rejects(invoke({action: 'add'}), /authorized/);
+      assert.deepEqual(state.snapshots(), initial);
+    }
+    frame.url = 'wire-app://shell/renderer/index.html';
+    assert.deepEqual(await invoke({action: 'read'}), initial);
+  });
+
+  it('awaits removal before reading or returning the resulting snapshots', async () => {
+    const {invoke, control, state} = fixture();
+    let release!: () => void;
+    const pending = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    let snapshots = 0;
+    control.remove = async id => {
+      await pending;
+      state.remove(id);
+    };
+    control.snapshots = () => {
+      snapshots++;
+      return state.snapshots();
+    };
+    const removing = invoke({action: 'remove', accountId});
+    try {
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assert.equal(snapshots, 0, 'A pending operation must not publish a success snapshot.');
+    } finally {
+      release();
+    }
+    assert.deepEqual(await removing, state.snapshots());
+    assert.equal(snapshots, 1);
+    assert.notEqual(state.snapshots()[0].id, accountId);
   });
 });

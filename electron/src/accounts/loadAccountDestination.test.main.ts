@@ -143,6 +143,42 @@ describe('account startup navigation completion', () => {
     assert.deepEqual(fixture.eventNames(), []);
   });
 
+  for (const [label, failure, expected] of [
+    [
+      'safe native code',
+      Object.assign(new Error('fixture-private-message'), {
+        code: 'ERR_CONNECTION_REFUSED',
+        secret: 'fixture-private-property',
+      }),
+      'Account startup navigation failed (ERR_CONNECTION_REFUSED).',
+    ],
+    [
+      'URL in code',
+      {code: 'ERR_FAILED https://account.example.test/?key=fixture-private-code'},
+      'Account startup navigation failed.',
+    ],
+    ['oversized code', {code: `ERR_${'A'.repeat(65)}`}, 'Account startup navigation failed.'],
+    ['primitive rejection', 'fixture-private-rejection', 'Account startup navigation failed.'],
+    ['null rejection', null, 'Account startup navigation failed.'],
+  ] as const) {
+    it(`[security-target][INV-010][CAP-001] emits only the allowed diagnostic for ${label}`, async () => {
+      const fixture = new NavigationFixture();
+      fixture.navigate = async () => {
+        throw failure;
+      };
+      await assert.rejects(fixture.load(), error => {
+        assert.ok(error instanceof Error);
+        assert.strictEqual(error.message, expected);
+        assert.notStrictEqual(error, failure);
+        assert.deepStrictEqual(Object.keys(error), []);
+        assert.strictEqual('cause' in error, false);
+        assert.doesNotMatch(error.stack ?? '', /fixture-private|https:/);
+        return true;
+      });
+      assert.deepStrictEqual(fixture.eventNames(), []);
+    });
+  }
+
   for (const cancellation of ['lost-owner', 'destroyed', 'crashed', 'foreign-commit', 'load-failure'] as const) {
     it(`[security-target][CAP-001] rejects a pending replacement after ${cancellation}`, async () => {
       const fixture = new NavigationFixture();

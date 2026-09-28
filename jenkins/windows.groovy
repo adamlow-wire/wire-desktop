@@ -57,7 +57,7 @@ node('windows') {
   }
 
   stage('Sign application') {
-    if (production) {
+    if (production || wireGov) {
       withCredentials([
         string(credentialsId: 'SM_API_KEY',               variable: 'SM_API_KEY'),
         string(credentialsId: 'SM_HOST',                  variable: 'SM_HOST'),

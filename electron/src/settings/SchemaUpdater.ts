@@ -20,9 +20,8 @@
 import * as Electron from 'electron';
 import fs from 'fs-extra';
 
+import {randomUUID} from 'crypto';
 import * as path from 'path';
-
-import {SettingsType} from './SettingsType';
 
 import {getLogger} from '../logging/getLogger';
 import {readRendererUserDataPath} from '../runtime/rendererRuntimeArguments';
@@ -50,32 +49,47 @@ export class SchemaUpdater {
       configFileV0 ??= defaults[0];
       configFileV1 ??= defaults[1];
     }
-    const config = SchemaUpdater.SCHEMATA.VERSION_1;
+    // A completed migration is authoritative, including when an interrupted
+    // cleanup left the old file behind. Never overwrite it with legacy data.
+    if (fs.existsSync(configFileV1) || !fs.existsSync(configFileV0)) {
+      return configFileV1;
+    }
 
-    if (fs.existsSync(configFileV0)) {
-      try {
-        fs.moveSync(configFileV0, configFileV1, {overwrite: true});
-        Object.assign(config, fs.readJSONSync(configFileV1));
-      } catch (error: any) {
-        logger.log(`Could not upgrade "${configFileV0}" to "${configFileV1}": ${error.message}`, error);
+    let temporary: string | undefined;
+    try {
+      const legacy: unknown = fs.readJSONSync(configFileV0);
+      if (!legacy || typeof legacy !== 'object' || Array.isArray(legacy)) {
+        throw new Error('Invalid settings object.');
       }
-
-      const getSetting = (setting: string) => (config.hasOwnProperty(setting) ? config[setting] : undefined);
-      const hasNoConfigVersion = typeof getSetting('configVersion') === 'undefined';
-
-      if (hasNoConfigVersion) {
-        [SettingsType.FULL_SCREEN, SettingsType.WINDOW_BOUNDS].forEach(setting => {
-          if (typeof getSetting(setting) !== 'undefined') {
-            delete config[setting];
-            logger.log(`Deleted "${setting}" property from old init file.`);
-          }
-        });
-      }
-
+      const config = {...SchemaUpdater.SCHEMATA.VERSION_1, ...legacy};
+      const serialized = JSON.stringify(config, null, 2);
+      fs.mkdirSync(path.dirname(configFileV1), {recursive: true, mode: 0o700});
+      const stagingPath = `${configFileV1}.${randomUUID()}.tmp`;
+      const descriptor = fs.openSync(stagingPath, 'wx', 0o600);
+      temporary = stagingPath;
       try {
-        fs.writeJsonSync(configFileV1, config, {spaces: 2});
-      } catch (error: any) {
-        logger.log(`Failed to write config to "${configFileV1}": ${error.message}`, error);
+        fs.writeFileSync(descriptor, serialized);
+        fs.fsyncSync(descriptor);
+      } finally {
+        fs.closeSync(descriptor);
+      }
+      // Publish complete bytes without replacing a destination created by
+      // another process. Both names are on the same filesystem. If linking is
+      // unsupported, fail safely with the original legacy file still intact.
+      fs.linkSync(temporary, configFileV1);
+      fs.unlinkSync(configFileV0);
+    } catch {
+      // Parser and filesystem errors can contain settings or sensitive paths.
+      // Do not attach the original error as a cause or forward it to logging.
+      logger.error('Settings migration failed; existing configuration files were preserved.');
+      throw new Error('Settings migration failed.');
+    } finally {
+      if (temporary) {
+        try {
+          fs.unlinkSync(temporary);
+        } catch {
+          logger.warn('Could not remove a temporary settings migration file.');
+        }
       }
     }
 
