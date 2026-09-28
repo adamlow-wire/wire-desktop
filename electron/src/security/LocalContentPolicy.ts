@@ -32,6 +32,7 @@ const resources: readonly (LocalContentResource & {readonly role: LocalContentRo
   {role: 'display-broker', path: 'css/display-capture.css', contentType: 'text/css; charset=utf-8'},
   {role: 'permission-consent', path: 'html/account-permission.html', contentType: 'text/html; charset=utf-8'},
   {role: 'permission-consent', path: 'css/account-permission.css', contentType: 'text/css; charset=utf-8'},
+  {role: 'permission-consent', path: 'img/logo.256.png', contentType: 'image/png'},
   {role: 'shell', path: 'renderer/index.html', contentType: 'text/html; charset=utf-8'},
   {role: 'shell', path: 'renderer/dist/bundle.js', contentType: 'text/javascript; charset=utf-8'},
   {role: 'about', path: 'html/about.html', contentType: 'text/html; charset=utf-8'},

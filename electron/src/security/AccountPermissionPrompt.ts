@@ -69,7 +69,9 @@ export async function showAccountPermissionPrompt(
       modal: true,
       show: false,
       width: 500,
-      height: Math.max(330, Math.min(480, 240 + model.scopes.length * 76)),
+      // Size the page itself, so the native title bar cannot squeeze the reasons.
+      useContentSize: true,
+      height: 280 + model.scopes.length * 100,
       minWidth: 440,
       minHeight: 330,
       resizable: false,
