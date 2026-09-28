@@ -61,3 +61,25 @@ describe('[TST-005] complete generic test gate', () => {
     );
   });
 });
+
+describe('[regression][TST-005] native account permission fixture startup', () => {
+  it('registers the production local scheme before native account tests on every platform', () => {
+    const baseline = yaml.load(
+      fs.readFileSync(path.resolve('.github/workflows/electron-modernization-baseline.yml'), 'utf8'),
+    ) as {jobs: {package_baseline: {steps: WorkflowStep[]}}};
+    const step = baseline.jobs.package_baseline.steps.find(
+      candidate => candidate.name === 'Test native account lifecycle and cleanup',
+    );
+    assert.ok(step?.run, 'The native account and permission fixture must be selected.');
+    const commands = step.run.split('\n').filter(line => line.includes('yarn electron-mocha'));
+    assert.equal(commands.length, 2, 'Both Linux and Windows/macOS launch paths must remain selected.');
+    for (const command of commands) {
+      assert.match(
+        command,
+        /electron-mocha --require-main electron\/test\/register-local-scheme\.cjs --require \.babel-register\.js/,
+        'Native permission fixtures need the same pre-ready local-scheme registration as production and test:main.',
+      );
+      assert.match(command, /electron\/src\/security\/AccountPermission\*\.test\.main\.ts/);
+    }
+  });
+});
