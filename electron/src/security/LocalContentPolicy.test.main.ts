@@ -27,6 +27,7 @@ describe('[security-target][SEC-010] local content resource policy', () => {
     ['display-broker', 'css/display-capture.css', 'text/css; charset=utf-8'],
     ['permission-consent', 'html/account-permission.html', 'text/html; charset=utf-8'],
     ['permission-consent', 'css/account-permission.css', 'text/css; charset=utf-8'],
+    ['permission-consent', 'img/logo.256.png', 'image/png'],
     ['shell', 'renderer/index.html', 'text/html; charset=utf-8'],
     ['shell', 'renderer/dist/bundle.js', 'text/javascript; charset=utf-8'],
     ['about', 'html/about.html', 'text/html; charset=utf-8'],
@@ -44,8 +45,10 @@ describe('[security-target][SEC-010] local content resource policy', () => {
           contentType,
         });
       }
+      const allowedRoles: readonly LocalContentRole[] =
+        path === 'img/logo.256.png' ? ['about', 'permission-consent'] : [role];
       for (const other of ['shell', 'about', 'proxy-prompt', 'display-broker', 'permission-consent'] as const) {
-        if (other !== role) {
+        if (!allowedRoles.includes(other)) {
           assert.equal(resolveLocalContentResource(other, `${LOCAL_CONTENT_ORIGIN}/${path}`, 'GET'), undefined);
         }
       }

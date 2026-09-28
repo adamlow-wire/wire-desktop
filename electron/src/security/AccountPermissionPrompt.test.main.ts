@@ -103,13 +103,31 @@ describe('[security-target][SEC-009] native local account permission prompt', fu
     const {result} = start(new AbortController().signal);
     const modal = await visiblePrompt();
     const content = await modal.webContents.executeJavaScript(
-      "({title:document.getElementById('permission-title').textContent,origin:document.getElementById('requesting-origin').textContent,reasons:[...document.querySelectorAll('.scope p')].map(node=>node.textContent)})",
+      `(() => {
+        const scopes = document.getElementById('permission-scopes');
+        const logo = document.querySelector('img.brand-mark');
+        return {
+          title: document.getElementById('permission-title').textContent,
+          origin: document.getElementById('requesting-origin').textContent,
+          reasons: [...document.querySelectorAll('.scope p')].map(node => node.textContent),
+          logoLoaded: Boolean(logo && logo.complete && logo.naturalWidth > 0),
+          logoSource: logo?.getAttribute('src'),
+          scopesFit: scopes.scrollHeight <= scopes.clientHeight + 1,
+          pageFits: document.documentElement.scrollHeight <= innerHeight + 1,
+          actionsFit: document.querySelector('footer').getBoundingClientRect().bottom <= innerHeight + 1,
+        };
+      })()`,
     );
     assert.equal(content.title, 'Use your camera and microphone?');
     assert.equal(content.origin, 'https://app.wire.test');
     assert.equal(content.reasons.length, 2);
     assert.match(content.reasons[0], /hear you/);
     assert.match(content.reasons[1], /see you/);
+    assert.equal(content.logoSource, '../img/logo.256.png');
+    assert.equal(content.logoLoaded, true, 'The packaged Wire logo must load in the permission modal.');
+    assert.equal(content.scopesFit, true, 'Permission reasons must be visible without scrolling a text box.');
+    assert.equal(content.pageFits, true, 'The standard permission content must fit inside the modal.');
+    assert.equal(content.actionsFit, true, 'Both permission actions must remain visible.');
     void modal.webContents
       .executeJavaScript("document.getElementById('permission-allow').click(); void 0;", true)
       .catch(() => undefined);
