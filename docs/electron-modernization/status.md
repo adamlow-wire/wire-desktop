@@ -3,7 +3,7 @@ project: WIRE-DESKTOP-ELECTRON-MODERNIZATION
 updated: 2026-09-28
 milestone: M4
 active_work_item: TST-006
-state: ux-followup-publication-in-progress
+state: ux-followup-fixture-qualification-pending
 current_goal: close-mandatory-unsigned-review-handoff
 integration_branch: integration/electron-modernization
 integration_head_commit: 897e3930392fdc9479f9641c8c03f116947d4e95
@@ -25,6 +25,12 @@ blockers:
 ---
 
 # Current project status
+
+**September 28 published preview and native fixture correction:** PR #72 source `3008e8b1` passes Build and Test, lint, CodeQL and [Windows preview run `36466296909`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36466296909). Its [runnable ZIP artifact `10989738444`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36466296909/artifacts/10989738444) was downloaded: 79 files; `BUILD.txt` names synthetic merge `8c22cb37`, whose parents are integration `897e3930` and candidate `3008e8b1` and whose tree equals the candidate. EXE SHA-256 `1EECD3226162479F4628F61F2483420F26CA9CC72FCB08B4A8649511B23CC93A` and ASAR SHA-256 `BB125A790F9B8A710665D1FBF63B25EE277409AAEA7EDD0F2C9BD5C9F3CEE71B` match its shipped manifest. The actual ASAR contains source-equal permission HTML/CSS, the real PNG, content-area sizing, exact-logo allowlist and isolated preview identity. It is available for manual testing; it is not an integration-head or completed review-handoff artifact.
+
+[Platform run `36466296791`](https://github.com/adamlow-wire/wire-desktop/actions/runs/36466296791) returns 267 native account passes and one identical logo-rendering assertion failure on each OS; package build is not reached. The direct account-test commands omit `--require-main electron/test/register-local-scheme.cjs`, while the passing aggregate `test:main` and production install the reviewed scheme privileges before readiness. The missing registration prevents the local image's expected CSP/origin behavior in this narrower fixture; do not weaken CSP or the loaded-logo assertion. Scoped TST-005 baseline `e73dfc49` has one passing generic-gate control and one failing startup-hook target. Scoped `4bfa1153`, composed as `4f88df4e` after test `4a9072b4`, adds only the existing hook to both native platform commands. Two workflow cases plus three adjacent environment cases, bin types, lint and formatting pass; temporarily omitting one hook fails the target, restoration passes. Actual corrected native/platform execution remains pending. No application/preload/permission-policy source changes after the verified ZIP. Next: one corrected-head hosted qualification; do not infer final composed acceptance from the earlier Build and Test pass.
+
+The available GitHub API credentials report read-only repository access and reject manual workflow dispatch; Git-over-SSH successfully publishes the fork branch and the existing PR automatically builds the preview. A pending maintainer question asks whether they will merge PR #72 after checks pass or enable merge-capable API authentication. Protected integration remains `897e3930`; no direct push, protection bypass or merge was attempted. Preserve all failed/pending check evidence and do not mark integration publication complete until the remote integration SHA is verified.
 
 **September 28 maintainer-authorized publication:** The maintainer explicitly asks to put the committed permission follow-up on integration and provide a refreshed Windows binary. Local source `14f83fec` plus handoff head `471f2474` is ready for one consolidated fork push through existing draft PR #72; remote PR source is still `d37fff1a` and protected integration is `897e3930` at preflight. Do not push directly to the protected integration branch or bypass its required checks. Publish the candidate, run the isolated preview workflow on its exact branch head, verify ZIP source/tree and EXE/ASAR hashes, and merge PR-only once the new composed head passes the required platform gates. Until that happens, any new ZIP is an interim candidate for manual testing, not an integration-head or completed review-handoff artifact. The prior failed macOS upload and authenticated E2E results remain recorded below; the new run must be judged on its own evidence, without speculative test changes or repeated reruns.
 
