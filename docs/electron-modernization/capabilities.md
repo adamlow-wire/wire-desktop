@@ -10,6 +10,8 @@ Packaged legacy-account migration has a bounded new checkpoint: [PKG-003 draft #
 
 September 26 local UX candidate: CAP-003 changes the fixed source chooser to a compact horizontal picker and hides its relay window after selection; the call UI stops the approved stream. SEC-009 replaces the native media/notification message box with a fixed local consent modal that explains each requested scope. Source/recipient authority and default denial remain unchanged. Local inert checks pass; native/packaged Windows, macOS and Linux qualification and manual visual/capture QA remain pending. Existing DCP-006/DCP-007/DCP-008 confidence is unchanged until those checks pass.
 
+September 28 SEC-009 follow-up for DCP-006/DCP-007: the local candidate uses the packaged Wire logo and shows the standard permission reasons/actions without a nested scrolling list. Twenty-two inert permission/resource cases and five headless local-asset layouts pass; old sizing/CSS fails the layout sensitivity check. The existing native modal test now requires the image and full text/actions to fit. This follow-up is composed locally at `14f83fec`; native Windows/macOS/Linux and refreshed packaged-preview validation remain unrun. Confidence and permission grants are unchanged; see status for the new-profile startup result and intermittent browser-link report.
+
 ## Rules
 
 September 15 reconciliation: the [M3 acceptance audit](m3-acceptance.md) records integrated final-head qualification. Checkpoint paragraphs below are historical evidence, not current open-item or deployment claims. Functional M4 and later packaged/customer qualification remain distinct. Use `status.md` for current execution.
